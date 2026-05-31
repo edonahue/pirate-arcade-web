@@ -5,7 +5,8 @@ import { getCollection } from "astro:content";
 
 const posts = await getCollection("posts", ({ data }) => !data.draft);
 posts.sort(
-  (a, b) => new Date(b.data.pubDate).getTime() - new Date(a.data.pubDate).getTime(),
+  (a, b) =>
+    new Date(b.data.pubDate).getTime() - new Date(a.data.pubDate).getTime(),
 );
 ---
 
@@ -24,22 +25,24 @@ posts.sort(
       </p>
     </div>
 
-    {posts.length > 0 ? (
-      <div class="build-log-grid">
-        {posts.map((post) => (
-          <BuildLogCard
-            post={{
-              slug: post.id,
-              title: post.data.title,
-              description: post.data.description,
-              pubDate: post.data.pubDate,
-              status: "post",
-            }}
-          />
-        ))}
-      </div>
-    ) : (
-      <p class="text-center muted">No build posts yet. Check back soon.</p>
-    )}
+    {
+      posts.length > 0 ? (
+        <div class="build-log-grid">
+          {posts.map((post) => (
+            <BuildLogCard
+              post={{
+                slug: post.id,
+                title: post.data.title,
+                description: post.data.description,
+                pubDate: post.data.pubDate,
+                status: "post",
+              }}
+            />
+          ))}
+        </div>
+      ) : (
+        <p class="text-center muted">No build posts yet. Check back soon.</p>
+      )
+    }
   </section>
 </BaseLayout>

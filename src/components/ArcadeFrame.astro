@@ -1,9 +1,13 @@
 ---
 export interface Props {
   label?: string;
+  topLabel?: string;
 }
+
+const { label, topLabel } = Astro.props;
 ---
 
-<div class="arcade-frame" role="group" aria-label={Astro.props.label || "Arcade frame"}>
+<div class="arcade-frame" role="group" aria-label={label || "Arcade frame"}>
+  {topLabel && <div class="arcade-frame__top">{topLabel}</div>}
   <slot />
 </div>

@@ -23,15 +23,20 @@ const { Content } = await render(post);
   <article class="prose" style="padding-top: 2rem; padding-bottom: 3rem;">
     <div class="post-meta">
       <time datetime={post.data.pubDate.toISOString()}>
-        {post.data.pubDate.toLocaleDateString("en-US", {
-          year: "numeric",
-          month: "long",
-          day: "numeric",
-        })}
+        {
+          post.data.pubDate.toLocaleDateString("en-US", {
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+          })
+        }
       </time>
     </div>
     <h1>{post.data.title}</h1>
-    <p class="lede" style="font-size: 1.125rem; color: var(--muted); margin-bottom: 2rem;">
+    <p
+      class="lede"
+      style="font-size: 1.125rem; color: var(--muted); margin-bottom: 2rem;"
+    >
       {post.data.description}
     </p>
     <Content />

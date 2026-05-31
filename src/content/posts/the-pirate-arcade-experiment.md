@@ -7,14 +7,14 @@ draft: false
 
 ## Goal
 
-Build a polished pirate-themed arcade collection — four classic games reimagined — using only free AI coding tools, local hardware, open source infrastructure, and no paid subscriptions. Then wrap it in a public-facing website to document the process.
+Build a polished pirate-themed arcade collection — four classic games reimagined — using only free AI-assisted coding tools, local hardware, open source infrastructure, and no paid subscriptions. Then wrap it in a public-facing website to document the process.
 
 The bet: a single developer with free AI assistance, a local workstation, GitHub, and Cloudflare's free tier can ship something real.
 
 ## Tools used
 
-- **OpenCode** (Cline fork) — AI-assisted coding in the terminal
-- **Free-to-use models** — various frontier models accessed through OpenCode
+- **OpenCode** — AI-assisted coding in the terminal
+- **Free-to-use models** — various free-to-use models accessed through OpenCode
 - **Python + Pygame** — desktop game framework
 - **Astro** — static site framework for the public website
 - **Local X600 workstation** — all development ran locally on consumer hardware
@@ -28,7 +28,7 @@ The bet: a single developer with free AI assistance, a local workstation, GitHub
 - **Zero-cost infrastructure.** GitHub free tier handles everything: CI runners, releases, package distribution. Cloudflare Pages free tier hosts the website.
 - **AI-assisted code generation is fast for well-known patterns.** Classic games like Pong, Breakout, and Asteroids have been implemented thousands of times. The AI had plenty of training data and produced solid first-pass implementations.
 - **Procedural asset pipeline.** Generating all visuals and audio programmatically eliminated the need for a game artist or sound designer. This is a genuine advantage for a solo developer.
-- **Monopoly variant was the most interesting.** Port Royale Tycoon required more original game design (pirate-themed board, unique rules) and correspondingly more human judgment. The AI handled the repetitive part; the human handled the creative constraints.
+- **Property-trading game variant was the most interesting.** Port Royale Tycoon required more original game design (pirate-themed board, unique rules) and correspondingly more human judgment. The AI handled the repetitive part; the human handled the creative constraints.
 
 ## What broke
 
@@ -36,7 +36,7 @@ The bet: a single developer with free AI assistance, a local workstation, GitHub
 - **Debugging AI-generated code is harder than debugging your own.** When the code doesn't match your mental model, you can't quickly spot where the logic diverges. Each bug fix required reading unfamiliar generated code carefully.
 - **Test-driven workflow is essential but easy to skip.** When each iteration is fast, the temptation to skip tests is high. Several regressions snuck in and had to be fixed in follow-up commits.
 - **Cross-platform packaging still needs human attention.** PyInstaller and Debian packaging worked, but the spec file needed manual tweaks for hidden imports. Not something AI handled correctly out of the box.
-- **Themes beyond "well-worn patterns" require more human input.** The pirate-monopoly variant needed original board layout, property names, rule modifications, and balancing. AI generated plausible-looking structures but the human had to redesign the game logic.
+- **Themes beyond "well-worn patterns" require more human input.** The pirate property-trading game variant needed original board layout, property names, rule modifications, and balancing. AI generated plausible-looking structures but the human had to redesign the game logic.
 
 ## Human intervention needed
 
@@ -68,4 +68,4 @@ That said, "free and good enough to ship" is an incredible capability. The zero-
 
 ---
 
-*This is a living document. As the project evolves, I'll update this post with new findings and updated tool comparisons.*
+_This is a living document. As the project evolves, I'll update this post with new findings and updated tool comparisons._

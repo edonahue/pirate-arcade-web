@@ -13,11 +13,13 @@ const { post } = Astro.props;
   <a href={`/build-log/${post.slug}`}>
     <div class="build-log-card__meta">
       <time datetime={post.pubDate.toISOString()}>
-        {post.pubDate.toLocaleDateString("en-US", {
-          year: "numeric",
-          month: "short",
-          day: "numeric",
-        })}
+        {
+          post.pubDate.toLocaleDateString("en-US", {
+            year: "numeric",
+            month: "short",
+            day: "numeric",
+          })
+        }
       </time>
       <StatusBadge variant="post" label="Build Note" />
     </div>

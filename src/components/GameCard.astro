@@ -10,10 +10,18 @@ const { game } = Astro.props;
 ---
 
 <article class="game-card">
-  <a href={game.desktopUrl || "#"} class="game-card__image" aria-label={`${game.title} screenshot`}>
+  <a
+    href={game.desktopUrl || "#"}
+    class="game-card__image"
+    aria-label={`${game.title} screenshot`}
+  >
     {
       game.screenshot ? (
-        <img src={game.screenshot} alt={`${game.title} screenshot`} loading="lazy" />
+        <img
+          src={game.screenshot}
+          alt={`${game.title} screenshot`}
+          loading="lazy"
+        />
       ) : (
         <span>[{game.title} screenshot]</span>
       )
@@ -27,6 +35,13 @@ const { game } = Astro.props;
     <p class="game-card__description">{game.description}</p>
   </div>
   <div class="game-card__footer">
-    <StatusBadge variant={game.status === "desktop-available" ? "available" : game.status === "browser-planned" ? "planned" : "experimental"} label={game.statusLabel} />
+    <StatusBadge
+      variant={game.status === "desktop-available"
+        ? "available"
+        : game.status === "browser-planned"
+          ? "planned"
+          : "experimental"}
+      label={game.statusLabel}
+    />
   </div>
 </article>

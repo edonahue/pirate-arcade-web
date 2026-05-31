@@ -12,14 +12,14 @@ import { games } from "../data/games";
   current="play"
 >
   <Hero
-    title="SELECT GAME"
-    subtitle="Pick your pirate adventure. Desktop apps are ready to download.
-    Browser versions are on the horizon."
-    eyebrow="Insert coin"
+    title="THE ARCADE"
+    subtitle="Four pirate-themed arcade games, ready to download and play on
+    your platform. Browser versions are planned."
+    eyebrow="Pick your game"
   />
 
   <section class="section">
-    <ArcadeFrame label="Game selection">
+    <ArcadeFrame label="Game selection" topLabel="GAME SELECT  -  P1 READY">
       <div class="game-grid" style="padding: 1.5rem;">
         {games.map((game) => <GameCard game={game} />)}
       </div>
@@ -31,8 +31,9 @@ import { games } from "../data/games";
       <p class="section__eyebrow">How to play</p>
       <h2 class="section__title">Desktop Apps</h2>
       <p class="section__description">
-        Download the latest release from GitHub for your platform (Windows,
-        macOS, or Linux). No installation required — just download and run.
+        Download the latest release from GitHub. Windows users can run the
+        standalone executable directly. Linux users can install the Debian
+        package. macOS users can build from source with PyInstaller.
       </p>
     </div>
     <div class="text-center mt-2">
@@ -42,7 +43,7 @@ import { games } from "../data/games";
         rel="noopener noreferrer"
         class="cta cta--primary"
       >
-        Download from GitHub
+        Download Latest Release
       </a>
     </div>
   </section>
