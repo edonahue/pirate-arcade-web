@@ -1,0 +1,22 @@
+---
+import { nav } from "../data/nav";
+
+export interface Props {
+  current?: string;
+}
+
+const { current } = Astro.props;
+---
+
+<nav class="site-nav" aria-label="Primary navigation">
+  {
+    nav.map((item) => (
+      <a
+        href={item.href}
+        aria-current={current === item.key ? "page" : undefined}
+      >
+        {item.label}
+      </a>
+    ))
+  }
+</nav>

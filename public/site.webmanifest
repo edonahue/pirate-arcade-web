@@ -1,0 +1,16 @@
+{
+  "name": "Pirate Arcade",
+  "short_name": "Pirate Arcade",
+  "description": "A pirate-themed arcade collection — four classic games reimagined with a nautical twist. Built as an experiment in zero-cost AI-assisted development.",
+  "start_url": "/",
+  "display": "minimal-ui",
+  "background_color": "#0a0e17",
+  "theme_color": "#2dd4bf",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

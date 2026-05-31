@@ -1,0 +1,151 @@
+---
+import "../styles/global.css";
+import { site } from "../data/profile";
+import Nav from "../components/Nav.astro";
+import Footer from "../components/Footer.astro";
+
+interface Props {
+  title?: string;
+  description?: string;
+  current?: string;
+  ogImage?: string;
+}
+
+const {
+  title = site.title,
+  description = site.description,
+  current,
+  ogImage = "/og-image.svg",
+} = Astro.props;
+
+const pageTitle =
+  title === site.title ? site.title : `${title} | ${site.title}`;
+const canonicalUrl = new URL(
+  Astro.url.pathname,
+  Astro.site ?? site.url,
+).href;
+const siteUrl = new URL(Astro.site ?? site.url).href;
+const ogImageUrl = new URL(ogImage, siteUrl).href;
+
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Person",
+      "@id": `${siteUrl}#person`,
+      name: site.author,
+      url: siteUrl,
+      sameAs: [
+        "https://github.com/edonahue",
+        "https://www.linkedin.com/in/erichdonahue/",
+      ],
+    },
+    {
+      "@type": "WebSite",
+      "@id": `${siteUrl}#website`,
+      url: siteUrl,
+      name: site.title,
+      description,
+      publisher: { "@id": `${siteUrl}#person` },
+    },
+  ],
+};
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content={description} />
+    <meta name="author" content={site.author} />
+    <meta name="robots" content="index, follow" />
+    <meta name="theme-color" content="#2dd4bf" />
+    <link rel="canonical" href={canonicalUrl} />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="manifest" href="/site.webmanifest" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content={site.title} />
+    <meta property="og:title" content={pageTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonicalUrl} />
+    <meta property="og:image" content={ogImageUrl} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={pageTitle} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImageUrl} />
+    <script
+      is:inline
+      type="application/ld+json"
+      set:html={JSON.stringify(jsonLd)}
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bangers&family=IBM+Plex+Mono:wght@400;600&family=Inter:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <script is:inline>
+      (() => {
+        const key = "pirate-arcade-theme";
+        const stored = window.localStorage.getItem(key);
+        const theme = stored === "light" ? "light" : "dark";
+        document.documentElement.dataset.theme = theme;
+      })();
+    </script>
+    <title>{pageTitle}</title>
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="site-shell site-header__inner">
+        <a class="site-brand" href="/" aria-label="Pirate Arcade home">
+          PIRATE ARCADE
+        </a>
+        <div class="site-header__right">
+          <Nav current={current} />
+          <button
+            class="theme-toggle"
+            type="button"
+            aria-label="Switch theme"
+            data-theme-toggle
+          >
+            <span aria-hidden="true">
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+              </svg>
+            </span>
+          </button>
+        </div>
+      </div>
+    </header>
+    <main class="site-shell page-main">
+      <slot />
+    </main>
+    <Footer />
+    <script is:inline>
+      (() => {
+        const key = "pirate-arcade-theme";
+        const root = document.documentElement;
+        const toggle = document.querySelector("[data-theme-toggle]");
+        if (!toggle) return;
+
+        toggle.addEventListener("click", () => {
+          const next = root.dataset.theme === "light" ? "dark" : "light";
+          root.dataset.theme = next;
+          window.localStorage.setItem(key, next);
+        });
+      })();
+    </script>
+  </body>
+</html>

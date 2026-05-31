@@ -1,0 +1,14 @@
+---
+export type BadgeVariant = "available" | "planned" | "experimental" | "post";
+
+export interface Props {
+  variant?: BadgeVariant;
+  label: string;
+}
+
+const { variant = "planned", label } = Astro.props;
+---
+
+<span class={`status-badge status-badge--${variant}`}>
+  {label}
+</span>

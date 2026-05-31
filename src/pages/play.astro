@@ -1,0 +1,61 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import Hero from "../components/Hero.astro";
+import GameCard from "../components/GameCard.astro";
+import ArcadeFrame from "../components/ArcadeFrame.astro";
+import { games } from "../data/games";
+---
+
+<BaseLayout
+  title="Play"
+  description="Choose your game from the Pirate Arcade collection. Desktop apps are available now; browser versions are planned."
+  current="play"
+>
+  <Hero
+    title="SELECT GAME"
+    subtitle="Pick your pirate adventure. Desktop apps are ready to download.
+    Browser versions are on the horizon."
+    eyebrow="Insert coin"
+  />
+
+  <section class="section">
+    <ArcadeFrame label="Game selection">
+      <div class="game-grid" style="padding: 1.5rem;">
+        {games.map((game) => <GameCard game={game} />)}
+      </div>
+    </ArcadeFrame>
+  </section>
+
+  <section class="section">
+    <div class="section__header">
+      <p class="section__eyebrow">How to play</p>
+      <h2 class="section__title">Desktop Apps</h2>
+      <p class="section__description">
+        Download the latest release from GitHub for your platform (Windows,
+        macOS, or Linux). No installation required — just download and run.
+      </p>
+    </div>
+    <div class="text-center mt-2">
+      <a
+        href="https://github.com/edonahue/pirate-arcade/releases"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="cta cta--primary"
+      >
+        Download from GitHub
+      </a>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section__header">
+      <p class="section__eyebrow">Roadmap</p>
+      <h2 class="section__title">Browser Versions</h2>
+      <p class="section__description">
+        Each game will eventually be playable directly in the browser. The
+        porting work hasn't started yet — stay tuned for updates in the build
+        log.
+      </p>
+    </div>
+  </section>
+</BaseLayout>

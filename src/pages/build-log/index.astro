@@ -1,0 +1,45 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import BuildLogCard from "../../components/BuildLogCard.astro";
+import { getCollection } from "astro:content";
+
+const posts = await getCollection("posts", ({ data }) => !data.draft);
+posts.sort(
+  (a, b) => new Date(b.data.pubDate).getTime() - new Date(a.data.pubDate).getTime(),
+);
+---
+
+<BaseLayout
+  title="Build Log"
+  description="Build notes and findings from the Pirate Arcade project — tools, constraints, what worked, what broke."
+  current="build-log"
+>
+  <section class="section">
+    <div class="section__header">
+      <p class="section__eyebrow">Field Notes</p>
+      <h1 class="section__title">Build Log</h1>
+      <p class="section__description">
+        Notes from the Pirate Arcade build: tools, decisions, failures, and
+        findings from experimenting with zero-cost AI-assisted development.
+      </p>
+    </div>
+
+    {posts.length > 0 ? (
+      <div class="build-log-grid">
+        {posts.map((post) => (
+          <BuildLogCard
+            post={{
+              slug: post.id,
+              title: post.data.title,
+              description: post.data.description,
+              pubDate: post.data.pubDate,
+              status: "post",
+            }}
+          />
+        ))}
+      </div>
+    ) : (
+      <p class="text-center muted">No build posts yet. Check back soon.</p>
+    )}
+  </section>
+</BaseLayout>

@@ -1,0 +1,43 @@
+---
+import { site } from "../data/profile";
+---
+
+<footer class="site-footer">
+  <div class="site-shell site-footer__grid">
+    <div>
+      <span class="site-footer__col-label">Project</span>
+      <p>
+        {site.tagline}
+      </p>
+    </div>
+    <div>
+      <span class="site-footer__col-label">Made by</span>
+      <p>
+        <a href={site.authorUrl} target="_blank" rel="noopener noreferrer">
+          {site.author}
+        </a>
+        {" \u2014 "}a side project and workbench experiment, not a commercial
+        game studio.
+      </p>
+    </div>
+    <div>
+      <span class="site-footer__col-label">Find it on</span>
+      <div class="site-footer__links">
+        <a
+          href="https://github.com/edonahue/pirate-arcade"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Desktop Repo
+        </a>
+        <a
+          href="https://github.com/edonahue/pirate-arcade-web"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Website Repo
+        </a>
+      </div>
+    </div>
+  </div>
+</footer>

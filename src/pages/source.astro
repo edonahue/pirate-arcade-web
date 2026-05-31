@@ -1,0 +1,94 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import CTAButton from "../components/CTAButton.astro";
+---
+
+<BaseLayout
+  title="Source"
+  description="Source code, releases, and roadmap for Pirate Arcade."
+  current="source"
+>
+  <section class="section">
+    <div class="section__header">
+      <p class="section__eyebrow">Code &amp; Releases</p>
+      <h1 class="section__title">Source &amp; Roadmap</h1>
+      <p class="section__description">
+        All code is open source under the MIT license. Contributions, issues,
+        and feature requests are welcome.
+      </p>
+    </div>
+
+    <ul class="source-list">
+      <li class="source-list__item">
+        <h2 class="source-list__item-title">Desktop Game Repository</h2>
+        <p class="source-list__item-description">
+          Python + Pygame arcade collection. Four games, procedural audio,
+          cross-platform packaging, full CI.
+        </p>
+        <a
+          href="https://github.com/edonahue/pirate-arcade"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="source-list__item-link"
+        >
+          github.com/edonahue/pirate-arcade
+        </a>
+      </li>
+
+      <li class="source-list__item">
+        <h2 class="source-list__item-title">Website Repository</h2>
+        <p class="source-list__item-description">
+          This site: Astro, TypeScript, vanilla CSS, deployed to Cloudflare Pages.
+        </p>
+        <a
+          href="https://github.com/edonahue/pirate-arcade-web"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="source-list__item-link"
+        >
+          github.com/edonahue/pirate-arcade-web
+        </a>
+      </li>
+
+      <li class="source-list__item">
+        <h2 class="source-list__item-title">Releases</h2>
+        <p class="source-list__item-description">
+          Download the latest desktop builds for Windows, macOS, and Linux.
+        </p>
+        <a
+          href="https://github.com/edonahue/pirate-arcade/releases"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="source-list__item-link"
+        >
+          github.com/edonahue/pirate-arcade/releases
+        </a>
+      </li>
+
+      <li class="source-list__item">
+        <h2 class="source-list__item-title">Issues &amp; Roadmap</h2>
+        <p class="source-list__item-description">
+          Bug reports, feature requests, and planned work. Check the TODO and
+          ROADMAP in the repo for current priorities.
+        </p>
+        <a
+          href="https://github.com/edonahue/pirate-arcade/issues"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="source-list__item-link"
+        >
+          github.com/edonahue/pirate-arcade/issues
+        </a>
+      </li>
+    </ul>
+
+    <div class="text-center mt-4">
+      <CTAButton
+        href="https://github.com/edonahue/pirate-arcade"
+        variant="primary"
+      >
+        View on GitHub
+      </CTAButton>
+    </div>
+  </section>
+</BaseLayout>

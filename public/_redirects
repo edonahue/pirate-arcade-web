@@ -1,0 +1,11 @@
+# Cloudflare Pages redirects
+# Format: source target status
+
+# Legacy build-log path
+/build-log /build-log/ 301
+
+# Placeholder: uncomment when games are playable
+# /cannonball-clash /play 302
+# /treasure-cove /play 302
+# /krakens-wake /play 302
+# /port-royale-tycoon /play 302

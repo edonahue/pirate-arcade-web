@@ -1,0 +1,22 @@
+---
+export interface Props {
+  title: string;
+  subtitle?: string;
+  eyebrow?: string;
+}
+
+const { title, subtitle, eyebrow } = Astro.props;
+---
+
+<section class="hero">
+  {eyebrow && <p class="hero__eyebrow">{eyebrow}</p>}
+  <h1 class="hero__title">{title}</h1>
+  {subtitle && <p class="hero__subtitle">{subtitle}</p>}
+  {
+    Astro.slots.has("default") && (
+      <div class="hero__actions">
+        <slot />
+      </div>
+    )
+  }
+</section>

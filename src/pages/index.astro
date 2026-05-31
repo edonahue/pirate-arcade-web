@@ -1,0 +1,64 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import Hero from "../components/Hero.astro";
+import CTAButton from "../components/CTAButton.astro";
+import GameCard from "../components/GameCard.astro";
+import { games } from "../data/games";
+---
+
+<BaseLayout current="home">
+  <Hero
+    title="PIRATE ARCADE"
+    subtitle="Four classic arcade games reimagined with a nautical twist. Built in the open as an experiment in zero-cost AI-assisted development."
+    eyebrow="Ahoy, captain!"
+  >
+    <CTAButton href="/play" variant="primary">Play Now</CTAButton>
+    <CTAButton href="/build-log" variant="gold">Read the Build Log</CTAButton>
+    <CTAButton href="/source" variant="outline">View Source</CTAButton>
+  </Hero>
+
+  <section class="section">
+    <div class="section__header">
+      <p class="section__eyebrow">The Games</p>
+      <h2 class="section__title">Choose Your Adventure</h2>
+      <p class="section__description">
+        Four classic arcade games, each reimagined with pirate flavor and
+        modern visual effects.
+      </p>
+    </div>
+    <div class="game-grid">
+      {games.map((game) => <GameCard game={game} />)}
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section__header">
+      <p class="section__eyebrow">Browser Play</p>
+      <h2 class="section__title">Coming to the Browser</h2>
+      <p class="section__description">
+        The games are playable now as desktop apps. Browser versions are
+        planned — this site will host web-native ports once the desktop
+        collection is stable and the porting strategy is decided.
+      </p>
+    </div>
+    <div class="text-center mt-2">
+      <CTAButton href="/play" variant="outline">See Status</CTAButton>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section__header">
+      <p class="section__eyebrow">The Experiment</p>
+      <h2 class="section__title">Free AI, Local Hardware, Open Source</h2>
+      <p class="section__description">
+        This project explores how far a zero-cost AI-assisted development
+        workflow can go. Built with OpenCode, free-to-use models, a local
+        X600 workstation, GitHub, and Cloudflare's free tier. No paid AI
+        subscriptions, no cloud credits, no SaaS lock-in.
+      </p>
+    </div>
+    <div class="text-center mt-2">
+      <CTAButton href="/build-log" variant="gold">Read the Build Log</CTAButton>
+    </div>
+  </section>
+</BaseLayout>

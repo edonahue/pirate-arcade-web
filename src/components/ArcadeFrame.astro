@@ -1,0 +1,9 @@
+---
+export interface Props {
+  label?: string;
+}
+---
+
+<div class="arcade-frame" role="group" aria-label={Astro.props.label || "Arcade frame"}>
+  <slot />
+</div>

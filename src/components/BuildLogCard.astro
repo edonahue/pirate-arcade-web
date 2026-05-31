@@ -1,0 +1,27 @@
+---
+import StatusBadge from "./StatusBadge.astro";
+import type { PostMeta } from "../data/posts";
+
+export interface Props {
+  post: PostMeta;
+}
+
+const { post } = Astro.props;
+---
+
+<article class="build-log-card">
+  <a href={`/build-log/${post.slug}`}>
+    <div class="build-log-card__meta">
+      <time datetime={post.pubDate.toISOString()}>
+        {post.pubDate.toLocaleDateString("en-US", {
+          year: "numeric",
+          month: "short",
+          day: "numeric",
+        })}
+      </time>
+      <StatusBadge variant="post" label="Build Note" />
+    </div>
+    <h2 class="build-log-card__title">{post.title}</h2>
+    <p class="build-log-card__description">{post.description}</p>
+  </a>
+</article>
