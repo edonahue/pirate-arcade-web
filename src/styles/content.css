@@ -137,6 +137,17 @@
   border-color: var(--accent);
 }
 
+.source-list__item-badges {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.source-list__item-badges img {
+  height: 20px;
+  display: block;
+}
+
 .source-list__item-title {
   font-family: var(--display);
   font-size: 1.25rem;

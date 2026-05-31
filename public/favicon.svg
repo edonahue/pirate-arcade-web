@@ -4,16 +4,44 @@
       <stop offset="0%" stop-color="#0a0e17"/>
       <stop offset="100%" stop-color="#111827"/>
     </linearGradient>
-    <linearGradient id="x" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#2dd4bf"/>
-      <stop offset="100%" stop-color="#d4a843"/>
+    <linearGradient id="gold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#d4a843"/>
+      <stop offset="100%" stop-color="#f5c842"/>
     </linearGradient>
   </defs>
   <rect width="256" height="256" rx="48" fill="url(#bg)"/>
-  <text x="128" y="175" font-family="monospace" font-size="160" font-weight="bold"
-        fill="url(#x)" text-anchor="middle">P</text>
-  <circle cx="60" cy="196" r="14" fill="#2dd4bf" opacity="0.7"/>
-  <circle cx="196" cy="196" r="14" fill="#d4a843" opacity="0.7"/>
-  <circle cx="60" cy="196" r="6" fill="#fff" opacity="0.3"/>
-  <circle cx="196" cy="196" r="6" fill="#fff" opacity="0.3"/>
+
+  <!-- Crossbones -->
+  <g stroke="url(#gold)" stroke-width="12" stroke-linecap="round" opacity="0.6">
+    <line x1="72" y1="62" x2="184" y2="194"/>
+    <line x1="184" y1="62" x2="72" y2="194"/>
+  </g>
+
+  <!-- Skull -->
+  <g fill="#fff">
+    <!-- Cranium -->
+    <ellipse cx="128" cy="110" rx="52" ry="56"/>
+
+    <!-- Jaw -->
+    <path d="M80 130 Q80 180 128 180 Q176 180 176 130" fill="#fff"/>
+
+    <!-- Eye sockets -->
+    <ellipse cx="108" cy="108" rx="14" ry="16" fill="#0a0e17"/>
+    <ellipse cx="148" cy="108" rx="14" ry="16" fill="#0a0e17"/>
+
+    <!-- Nose -->
+    <path d="M124 128 L128 138 L132 128" fill="none" stroke="#0a0e17" stroke-width="3" stroke-linecap="round"/>
+
+    <!-- Teeth -->
+    <g fill="#0a0e17" opacity="0.8">
+      <rect x="106" y="150" width="10" height="12" rx="2"/>
+      <rect x="120" y="150" width="10" height="12" rx="2"/>
+      <rect x="134" y="150" width="10" height="12" rx="2"/>
+      <rect x="148" y="150" width="10" height="12" rx="2"/>
+    </g>
+  </g>
+
+  <!-- Eye patch (left eye) -->
+  <ellipse cx="106" cy="110" rx="10" ry="12" fill="#111827" stroke="#d4a843" stroke-width="2"/>
+  <line x1="104" y1="114" x2="74" y2="60" stroke="#d4a843" stroke-width="3" stroke-linecap="round"/>
 </svg>

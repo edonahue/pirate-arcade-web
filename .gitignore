@@ -25,3 +25,8 @@ Thumbs.db
 
 # Debug
 npm-debug.log*
+
+# Python
+__pycache__/
+*.pyc
+*.pyo

@@ -7,11 +7,11 @@ Current state of all visual assets across the Pirate Arcade project.
 | Asset                             | Path                                              | Status          | Source                                                 | Next Action                                                    |
 | --------------------------------- | ------------------------------------------------- | --------------- | ------------------------------------------------------ | -------------------------------------------------------------- |
 | **Favicon**                       | `public/favicon.svg`                              | Placeholder SVG | Hand-coded (derived from `localgame/icon.svg` pattern) | Refine with real pirate arcade branding when logo is finalized |
-| **OG Image**                      | `public/og-image.svg`                             | Placeholder SVG | Hand-coded                                             | Replace with real 1200×630 PNG social image                    |
-| **Cannonball Clash screenshot**   | `public/images/screenshot-cannonball-clash.svg`   | Placeholder SVG | Hand-coded (Pong-like scene rendered in SVG)           | Replace with real game screenshot                              |
-| **Treasure Cove screenshot**      | `public/images/screenshot-treasure-cove.svg`      | Placeholder SVG | Hand-coded (Breakout-like scene)                       | Replace with real game screenshot                              |
-| **Kraken's Wake screenshot**      | `public/images/screenshot-krakens-wake.svg`       | Placeholder SVG | Hand-coded (Asteroids-like scene)                      | Replace with real game screenshot                              |
-| **Port Royale Tycoon screenshot** | `public/images/screenshot-port-royale-tycoon.svg` | Placeholder SVG | Hand-coded (board-game-like scene)                     | Replace with real game screenshot                              |
+| **OG Image**                      | `public/og-image.png`                             | Real PNG        | Composite of 4 game screenshots + title                | Add to desktop repo if desired                                 |
+| **Cannonball Clash screenshot**   | `public/images/screenshot-cannonball-clash.png`   | Real PNG        | Captured via `scripts/capture-screenshots.py`          | Review quality, recapture if lighting/state feels off          |
+| **Treasure Cove screenshot**      | `public/images/screenshot-treasure-cove.png`      | Real PNG        | Captured via `scripts/capture-screenshots.py`          | Review quality, recapture if lighting/state feels off          |
+| **Kraken's Wake screenshot**      | `public/images/screenshot-krakens-wake.png`       | Real PNG        | Captured via `scripts/capture-screenshots.py`          | Review quality, recapture if lighting/state feels off          |
+| **Port Royale Tycoon screenshot** | `public/images/screenshot-port-royale-tycoon.png` | Real PNG        | Captured via `scripts/capture-screenshots.py`          | Review quality, recapture if lighting/state feels off          |
 | **Security headers**              | `public/_headers`                                 | Real            | Hand-coded                                             | Review CSP when adding new external resources                  |
 | **Redirects**                     | `public/_redirects`                               | Real            | Hand-coded                                             | Add redirects when old URLs change                             |
 | **Robots.txt**                    | `public/robots.txt`                               | Real            | Hand-coded                                             | Review when site structure changes                             |
@@ -28,25 +28,17 @@ Current state of all visual assets across the Pirate Arcade project.
 
 ## Recommended Actions (Priority Order)
 
-### High Priority
+### High Priority (Done)
 
-1. **Capture real game screenshots** for all four games. Options:
-   - Run each game locally and take screenshots (requires display)
-   - Use Xvfb/virtual display to render without a physical monitor
-   - Capture from the launcher screen as a composite
-   - Export at 1280×720 or 1920×1080 for best results
+1. ✅ **Capture real game screenshots** for all four games via `scripts/capture-screenshots.py` (SDL_VIDEODRIVER=dummy, no display needed).
 
-2. **Create real OG image** (1200×630 PNG). Should include:
-   - Pirate Arcade logo/branding
-   - Gold/teal color scheme
-   - One of the game screenshots or a composite
-   - Clean, readable on social media feeds
+2. ✅ **Create real OG image** (1200×630 PNG) — composite of 4 game screenshots with Pirate Arcade title.
+
+3. ✅ **Replace game screenshot SVG placeholders** with real 16:9 PNGs in `public/images/`.
 
 ### Medium Priority
 
-3. **Refine favicon** — the current "P" in a rounded square is a placeholder. Consider a cannon, treasure chest, or skull-and-crossbones silhouette.
-
-4. **Replace game screenshot SVG placeholders** with actual 16:9 PNG screenshots once captured.
+4. **Refine favicon** — the current "P" in a rounded square is a placeholder. Consider a cannon, treasure chest, or skull-and-crossbones silhouette.
 
 ### Low Priority
 
@@ -56,17 +48,11 @@ Current state of all visual assets across the Pirate Arcade project.
 
 ## Screenshot Capture Method
 
-The desktop game renders everything procedurally. To capture real screenshots:
+The desktop game renders everything procedurally. Screenshots are captured via:
 
 ```bash
-# Option 1: Run with a display (SSH with X forwarding or local terminal)
-cd ../localgame
-python main.py
-# Press F11 for fullscreen, then use system screenshot tool
-
-# Option 2: Headless capture with Xvfb (no display needed)
-xvfb-run python main.py
-# Use import (ImageMagick) or scrot to capture the window
+cd pirate-arcade-web
+python scripts/capture-screenshots.py
 ```
 
-The launcher screen in `launcher.py` shows all game cards and would make a good composite hero image.
+This script uses `SDL_VIDEODRIVER=dummy` (no display needed) and instantiates each game class directly to render a representative mid-game frame. Output is 1280×720 PNG.

@@ -8,7 +8,7 @@ import { games } from "../data/games";
 
 <BaseLayout
   title="Play"
-  description="Choose your game from the Pirate Arcade collection. Desktop apps are available now; browser versions are planned."
+  description="Choose your game from the Pirate Arcade collection. Desktop apps available now; Cannonball Clash browser prototype is live."
   current="play"
 >
   <Hero
@@ -20,8 +20,11 @@ import { games } from "../data/games";
 
   <section class="section">
     <ArcadeFrame label="Game selection" topLabel="GAME SELECT  -  P1 READY">
-      <div class="game-grid" style="padding: 1.5rem;">
-        {games.map((game) => <GameCard game={game} />)}
+      <div style="padding: 1.5rem;">
+        <h2 class="sr-only">Available Games</h2>
+        <div class="game-grid">
+          {games.map((game) => <GameCard game={game} />)}
+        </div>
       </div>
     </ArcadeFrame>
   </section>
@@ -31,11 +34,11 @@ import { games } from "../data/games";
       <p class="section__eyebrow">How to play</p>
       <h2 class="section__title">Desktop Apps</h2>
       <p class="section__description">
-        Download the latest release from GitHub. Windows users can run the
-        standalone executable directly. Linux users can install the Debian
-        package. macOS users can build from source with PyInstaller.
+        All four games run locally on your machine with no installation
+        dependencies. Download the latest release below.
       </p>
     </div>
+
     <div class="text-center mt-2">
       <a
         href="https://github.com/edonahue/pirate-arcade/releases"
@@ -46,16 +49,70 @@ import { games } from "../data/games";
         Download Latest Release
       </a>
     </div>
+
+    <div class="release-details mt-2">
+      <div class="release-details__grid">
+        <div class="release-details__item">
+          <span class="release-details__label">Latest version</span>
+          <span class="release-details__value">v2.0.0</span>
+        </div>
+        <div class="release-details__item">
+          <span class="release-details__label">Windows</span>
+          <span class="release-details__value">Standalone .exe</span>
+        </div>
+        <div class="release-details__item">
+          <span class="release-details__label">Linux</span>
+          <span class="release-details__value">.deb package</span>
+        </div>
+        <div class="release-details__item">
+          <span class="release-details__label">macOS</span>
+          <span class="release-details__value">Build from source</span>
+        </div>
+      </div>
+      <p class="release-details__note">
+        <a href="/build-log/launching-on-free-infrastructure">
+          Read about the infrastructure
+        </a>
+        {" \u2014 "}how everything ships on free tiers.
+      </p>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section__header">
+      <p class="section__eyebrow">Feasibility</p>
+      <h2 class="section__title">Browser Prototype</h2>
+      <p class="section__description">
+        Cannonball Clash is now playable in the browser via Pygbag/WebAssembly.
+        The CPython runtime (~12 MB) loads on first visit; the game code bundle
+        is only 15 KB. Performance and input latency are being evaluated.
+      </p>
+      <div class="text-center mt-2">
+        <a
+          href="/play/cannonball-clash/"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="cta cta--primary"
+        >
+          Play Cannonball Clash in Browser
+        </a>
+      </div>
+      <p class="section__description mt-2">
+        <a href="/build-log/browser-port-feasibility">
+          Read the feasibility analysis
+        </a>
+        {" \u2014 "}Pygbag vs Canvas rewrite trade-offs.
+      </p>
+    </div>
   </section>
 
   <section class="section">
     <div class="section__header">
       <p class="section__eyebrow">Roadmap</p>
-      <h2 class="section__title">Browser Versions</h2>
+      <h2 class="section__title">More Browser Games</h2>
       <p class="section__description">
-        Each game will eventually be playable directly in the browser. The
-        porting work hasn't started yet — stay tuned for updates in the build
-        log.
+        If the Cannonball Clash prototype performs well, the remaining three
+        games will be ported using the same approach.
       </p>
     </div>
   </section>

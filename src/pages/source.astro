@@ -20,10 +20,21 @@ import CTAButton from "../components/CTAButton.astro";
 
     <ul class="source-list">
       <li class="source-list__item">
+        <div class="source-list__item-badges">
+          <img
+            src="https://img.shields.io/github/actions/workflow/status/edonahue/pirate-arcade/ci.yml?label=desktop+CI&style=flat-square"
+            alt="Desktop CI status"
+          />
+          <img
+            src="https://img.shields.io/github/v/release/edonahue/pirate-arcade?style=flat-square&label=release"
+            alt="Latest release"
+          />
+        </div>
         <h2 class="source-list__item-title">Desktop Game Repository</h2>
         <p class="source-list__item-description">
-          Python + Pygame arcade collection. Four games, procedural audio,
-          cross-platform packaging, full CI.
+          Python + Pygame arcade collection. Four games with procedural audio,
+          high score tracking, Port Royale save/load, cross-platform packaging,
+          and full CI.
         </p>
         <a
           href="https://github.com/edonahue/pirate-arcade"
@@ -36,10 +47,20 @@ import CTAButton from "../components/CTAButton.astro";
       </li>
 
       <li class="source-list__item">
+        <div class="source-list__item-badges">
+          <img
+            src="https://img.shields.io/github/actions/workflow/status/edonahue/pirate-arcade-web/ci.yml?label=website+CI&style=flat-square"
+            alt="Website CI status"
+          />
+          <img
+            src="https://img.shields.io/github/v/release/edonahue/pirate-arcade-web?style=flat-square&label=release"
+            alt="Latest website release"
+          />
+        </div>
         <h2 class="source-list__item-title">Website Repository</h2>
         <p class="source-list__item-description">
           This site: Astro, TypeScript, vanilla CSS, deployed to Cloudflare
-          Pages.
+          Pages free tier.
         </p>
         <a
           href="https://github.com/edonahue/pirate-arcade-web"
@@ -54,7 +75,8 @@ import CTAButton from "../components/CTAButton.astro";
       <li class="source-list__item">
         <h2 class="source-list__item-title">Releases</h2>
         <p class="source-list__item-description">
-          Download the latest desktop builds for Windows, macOS, and Linux.
+          Download the latest desktop builds. Windows: standalone .exe. Linux:
+          Debian .deb package. macOS: build from source.
         </p>
         <a
           href="https://github.com/edonahue/pirate-arcade/releases"
@@ -69,8 +91,8 @@ import CTAButton from "../components/CTAButton.astro";
       <li class="source-list__item">
         <h2 class="source-list__item-title">Issues &amp; Roadmap</h2>
         <p class="source-list__item-description">
-          Bug reports, feature requests, and planned work. Check the TODO and
-          ROADMAP in the repo for current priorities.
+          Bug reports, feature requests, and planned work. Check the ROADMAP in
+          the repo for current priorities.
         </p>
         <a
           href="https://github.com/edonahue/pirate-arcade/issues"
@@ -83,7 +105,7 @@ import CTAButton from "../components/CTAButton.astro";
       </li>
     </ul>
 
-    <div class="text-center mt-4">
+    <div class="text-center mt-2">
       <CTAButton
         href="https://github.com/edonahue/pirate-arcade"
         variant="primary"
@@ -91,5 +113,93 @@ import CTAButton from "../components/CTAButton.astro";
         View on GitHub
       </CTAButton>
     </div>
+  </section>
+
+  <section class="section">
+    <div class="section__header">
+      <p class="section__eyebrow">Documentation</p>
+      <h2 class="section__title">Project Docs</h2>
+      <p class="section__description">
+        Detailed documentation for the experiment methodology, asset inventory,
+        deployment, and roadmap.
+      </p>
+    </div>
+
+    <ul class="source-list">
+      <li class="source-list__item">
+        <h2 class="source-list__item-title">Build Log</h2>
+        <p class="source-list__item-description">
+          Development journal covering the experiment, methodology,
+          infrastructure, and browser port feasibility.
+        </p>
+        <a href="/build-log" class="source-list__item-link">
+          /build-log
+        </a>
+      </li>
+
+      <li class="source-list__item">
+        <h2 class="source-list__item-title">Free AI Coding Experiment</h2>
+        <p class="source-list__item-description">
+          Tooling inventory, model run observations, and methodology for the
+          zero-cost AI-assisted development experiment.
+        </p>
+        <a
+          href="https://github.com/edonahue/pirate-arcade/blob/main/EXPERIMENT.md"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="source-list__item-link"
+        >
+          EXPERIMENT.md
+        </a>
+      </li>
+
+      <li class="source-list__item">
+        <h2 class="source-list__item-title">Asset Inventory</h2>
+        <p class="source-list__item-description">
+          Current state of all visual assets: screenshots, icons, OG image, and
+          desktop game assets.
+        </p>
+        <a
+          href="https://github.com/edonahue/pirate-arcade-web/blob/main/ASSETS.md"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="source-list__item-link"
+        >
+          ASSETS.md
+        </a>
+      </li>
+
+      <li class="source-list__item">
+        <h2 class="source-list__item-title">Roadmap</h2>
+        <p class="source-list__item-description">
+          Current development roadmap: completed phases, in-progress work, and
+          planned features.
+        </p>
+        <a
+          href="https://github.com/edonahue/pirate-arcade-web/blob/main/ROADMAP.md"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="source-list__item-link"
+        >
+          ROADMAP.md
+        </a>
+      </li>
+
+      <li class="source-list__item">
+        <h2 class="source-list__item-title">Deployment Guide</h2>
+        <p class="source-list__item-description">
+          Cloudflare Pages setup, domain configuration, and deployment
+          workflow.
+        </p>
+        <a
+          href="https://github.com/edonahue/pirate-arcade-web/blob/main/DEPLOYMENT.md"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="source-list__item-link"
+        >
+          DEPLOYMENT.md
+        </a>
+      </li>
+    </ul>
   </section>
 </BaseLayout>

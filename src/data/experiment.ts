@@ -143,6 +143,9 @@ export const tooling: ToolingEntry[] = [
   },
 ];
 
+// Observations are based on session notes and recollection, not
+// controlled measurement. They capture what stood out during development
+// rather than formal evaluation metrics.
 export const modelRuns: ModelRun[] = [
   {
     model: "DeepSeek V4 Flash Free",

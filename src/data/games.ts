@@ -12,6 +12,7 @@ export interface Game {
   statusLabel: string;
   desktopUrl?: string;
   screenshot?: string;
+  features?: string[];
 }
 
 export const games: Game[] = [
@@ -24,7 +25,8 @@ export const games: Game[] = [
     status: "desktop-available",
     statusLabel: "Desktop app available",
     desktopUrl: "https://github.com/edonahue/pirate-arcade/releases",
-    screenshot: "/images/screenshot-cannonball-clash.svg",
+    screenshot: "/images/screenshot-cannonball-clash.png",
+    features: ["1-2 players", "AI opponent", "Power-ups", "Procedural audio"],
   },
   {
     id: "treasure-cove",
@@ -35,7 +37,8 @@ export const games: Game[] = [
     status: "desktop-available",
     statusLabel: "Desktop app available",
     desktopUrl: "https://github.com/edonahue/pirate-arcade/releases",
-    screenshot: "/images/screenshot-treasure-cove.svg",
+    screenshot: "/images/screenshot-treasure-cove.png",
+    features: ["8 brick rows", "Score combos", "Paddle power-up", "Procedural audio"],
   },
   {
     id: "krakens-wake",
@@ -46,7 +49,8 @@ export const games: Game[] = [
     status: "desktop-available",
     statusLabel: "Desktop app available",
     desktopUrl: "https://github.com/edonahue/pirate-arcade/releases",
-    screenshot: "/images/screenshot-krakens-wake.svg",
+    screenshot: "/images/screenshot-krakens-wake.png",
+    features: ["Ship combat", "Wave survival", "Treasure pickups", "3 lives"],
   },
   {
     id: "port-royale-tycoon",
@@ -57,6 +61,7 @@ export const games: Game[] = [
     status: "desktop-available",
     statusLabel: "Desktop app available",
     desktopUrl: "https://github.com/edonahue/pirate-arcade/releases",
-    screenshot: "/images/screenshot-port-royale-tycoon.svg",
+    screenshot: "/images/screenshot-port-royale-tycoon.png",
+    features: ["2-4 players", "AI opponents", "Save/load", "Property trading"],
   },
 ];

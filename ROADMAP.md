@@ -20,21 +20,20 @@
 
 ## Phase 1: Content & Assets
 
-- [ ] Real game screenshots for all 4 games (see ASSETS.md for capture method)
-- [ ] Real OG image (1200×630 PNG) for social sharing
-- [ ] Additional build log posts for each development session
-- [ ] Favicon refinement (pirate-themed, not placeholder)
-- [ ] Add at least one more build post covering the website scaffold session
+- [x] Real game screenshots for all 4 games (via `scripts/capture-screenshots.py`)
+- [x] Real OG image (1200×630 PNG) — composite of 4 screenshots + title
+- [x] Release infrastructure build-log post: "Launching on Free Infrastructure"
+- [x] Favicon refinement (skull-and-crossbones, gold + white)
+- [x] Additional build log posts: "Launching on Free Infrastructure", "Browser Port Feasibility"
 
 ## Phase 2: Browser Play Feasibility
 
-- [ ] Evaluate porting strategy:
-  - Pygbag/WebAssembly (port Pygame to browser with minimal rewrite)
-  - TypeScript/Canvas rewrite (full web-native)
-  - Hybrid: port one game as feasibility spike
-- [ ] Choose first game to port (likely Cannonball Clash as simplest)
+- [x] Evaluate porting strategy — Pygbag/WebAssembly recommended for Phase 2
+- [x] Choose first game: Cannonball Clash (simplest game, minimal changes)
+- [ ] Port Cannonball Clash via Pygbag as feasibility spike
+- [ ] Measure bundle size, load time, frame rate, input latency
 - [ ] Embed or link web-playable game prototype on /play
-- [ ] Update game status badges to reflect browser state
+- [ ] Port remaining games if Pygbag performance is acceptable
 
 ## Phase 3: Polish
 
@@ -43,7 +42,7 @@
 - [ ] Nautical chart map background motif for hero or sections
 - [ ] Performance audit (Lighthouse target: 90+ all categories)
 - [ ] Accessibility audit (keyboard nav, screen reader, contrast)
-- [ ] Custom 404 page
+- [x] Custom 404 page ("Lost at Sea" themed, Cloudflare \_redirects catch-all)
 - [ ] Model/tooling comparison table on experiment page
 
 ## Maybe / Future

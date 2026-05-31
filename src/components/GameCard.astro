@@ -21,6 +21,8 @@ const { game } = Astro.props;
           src={game.screenshot}
           alt={`${game.title} screenshot`}
           loading="lazy"
+          width="1280"
+          height="720"
         />
       ) : (
         <span>[{game.title} screenshot]</span>
@@ -33,6 +35,15 @@ const { game } = Astro.props;
     </h3>
     <div class="game-card__classic">{game.classic}</div>
     <p class="game-card__description">{game.description}</p>
+    {
+      game.features && game.features.length > 0 && (
+        <div class="game-card__features">
+          {game.features.map((f) => (
+            <span class="game-card__feature-chip">{f}</span>
+          ))}
+        </div>
+      )
+    }
   </div>
   <div class="game-card__footer">
     <StatusBadge

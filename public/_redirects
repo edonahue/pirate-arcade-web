@@ -4,6 +4,9 @@
 # Legacy build-log path
 /build-log /build-log/ 301
 
+# 404 catch-all — unmatched routes serve the 404 page
+/* /404.html 404
+
 # Placeholder: uncomment when games are playable
 # /cannonball-clash /play 302
 # /treasure-cove /play 302

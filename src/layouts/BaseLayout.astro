@@ -15,7 +15,7 @@ const {
   title = site.title,
   description = site.description,
   current,
-  ogImage = "/og-image.svg",
+  ogImage = "/og-image.png",
 } = Astro.props;
 
 const pageTitle =
@@ -83,7 +83,15 @@ const jsonLd = {
     <link
       href="https://fonts.googleapis.com/css2?family=Bangers&family=IBM+Plex+Mono:wght@400;600&family=Inter:wght@400;500;600&display=swap"
       rel="stylesheet"
+      media="print"
+      onload="this.media='all'"
     />
+    <noscript>
+      <link
+        href="https://fonts.googleapis.com/css2?family=Bangers&family=IBM+Plex+Mono:wght@400;600&family=Inter:wght@400;500;600&display=swap"
+        rel="stylesheet"
+      />
+    </noscript>
     <script is:inline>
       (() => {
         const key = "pirate-arcade-theme";
@@ -95,6 +103,7 @@ const jsonLd = {
     <title>{pageTitle}</title>
   </head>
   <body>
+    <a href="#main-content" class="skip-link">Skip to main content</a>
     <header class="site-header">
       <div class="site-shell site-header__inner">
         <a class="site-brand" href="/" aria-label="Pirate Arcade home">
@@ -127,7 +136,7 @@ const jsonLd = {
         </div>
       </div>
     </header>
-    <main class="site-shell page-main">
+    <main id="main-content" class="site-shell page-main" tabindex="-1">
       <slot />
     </main>
     <Footer />
