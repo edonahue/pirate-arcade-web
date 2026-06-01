@@ -157,7 +157,7 @@
     <title>Treasure Cove – Pirate Arcade</title>
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, height=device-height">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, height=device-height">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes"/>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
@@ -196,9 +196,77 @@
       #status { display: inline-block; vertical-align: top; margin: 20px 0 0 30px; font-weight: bold; color: #5a6a7e; }
       #progress { height: 20px; width: 300px; accent-color: #d4a843; }
       #pyconsole > #terminal { z-index: 0; }
+
+      /* ── orientation lock ── */
+      #rotate-device {
+        display: none; position: fixed; inset: 0; z-index: 99999999;
+        background: #0a0e17; color: #b8c4d4;
+        font: 16px/1.5 monospace; text-align: center;
+        align-items: center; justify-content: center; flex-direction: column;
+        padding: 2rem;
+      }
+      #rotate-device .icon { font-size: 48px; margin-bottom: 1rem; opacity: 0.6; }
+      @media (orientation: portrait) and (pointer: coarse) {
+        #rotate-device { display: flex; }
+        #game-wrap { display: none; }
+      }
+
+      /* ── touch overlay ── */
+      .touch-overlay {
+        display: none; position: fixed; inset: 0; z-index: 999999;
+        pointer-events: none; touch-action: none;
+      }
+      .touch-overlay.active { display: block; }
+      .touch-overlay .btn {
+        position: absolute; pointer-events: auto; touch-action: none;
+        -webkit-user-select: none; user-select: none;
+        display: flex; align-items: center; justify-content: center;
+        opacity: 0.3; transition: opacity 0.12s;
+      }
+      .touch-overlay .btn.pressed { opacity: 0.6; }
+      .touch-overlay .btn-arrow {
+        bottom: 0; width: 40%; height: 30%;
+        font-size: 32px; color: rgba(255,255,255,0.4);
+      }
+      .touch-overlay .btn-left { left: 0; }
+      .touch-overlay .btn-right { right: 0; }
+      .touch-overlay .btn-action {
+        left: 50%; bottom: 6%;
+        width: 72px; height: 72px; margin-left: -36px;
+        border-radius: 50%;
+        background: rgba(212,175,55,0.2);
+        border: 2px solid rgba(212,175,55,0.4);
+        color: #d4af37; font: bold 10px/1 monospace;
+        text-transform: uppercase; letter-spacing: 1px;
+      }
+      .touch-overlay .btn-pause {
+        top: 10px; right: 10px;
+        width: 44px; height: 44px; border-radius: 50%;
+        background: rgba(255,255,255,0.08);
+        border: 1px solid rgba(255,255,255,0.15);
+        color: #8a9ab0; font: 16px/1 monospace;
+      }
+      .touch-overlay .btn-menu-up {
+        top: 60px; right: 10px;
+        width: 44px; height: 44px; border-radius: 50%;
+        background: rgba(255,255,255,0.08);
+        border: 1px solid rgba(255,255,255,0.15);
+        color: #8a9ab0; font: 16px/1 monospace;
+        display: none;
+      }
+      .touch-overlay .btn-menu-down {
+        top: 110px; right: 10px;
+        width: 44px; height: 44px; border-radius: 50%;
+        background: rgba(255,255,255,0.08);
+        border: 1px solid rgba(255,255,255,0.15);
+        color: #8a9ab0; font: 16px/1 monospace;
+        display: none;
+      }
     </style>
   </head>
   <body>
+    <div id="rotate-device"><div class="icon">↻</div><div>Rotate your device to landscape</div><div style="margin-top:0.5rem;font-size:13px;color:#6b7a8f;">This game is designed for landscape orientation.</div></div>
+    <div id="game-wrap">
     <a id="back-link" href="/play/">← Back to Arcade</a>
     <div id="controls-hint">A / D or Left / Right  •  Space to launch  •  Click to pause  •  Audio after click</div>
     <div id="transfer" align=center>
@@ -215,6 +283,16 @@
     </canvas>
     <div id="infobox">Loading Treasure Cove — first visit downloads the Python/Pygame runtime (~12 MB). Audio starts after your first click.</div>
     <div id="pyconsole"><div id="terminal" tabIndex=1 align="left"></div></div>
+
+    <div class="touch-overlay" id="touch-overlay">
+      <div class="btn btn-arrow btn-left" data-dir="left">◀</div>
+      <div class="btn btn-arrow btn-right" data-dir="right">▶</div>
+      <div class="btn btn-action" data-dir="action">⏎</div>
+      <div class="btn btn-pause" data-dir="pause">❚❚</div>
+      <div class="btn btn-menu-up" data-dir="up">▲</div>
+      <div class="btn btn-menu-down" data-dir="down">▼</div>
+    </div>
+    </div>
 
     <script type="application/javascript">
     async function custom_onload(debug_hidden) {
@@ -238,6 +316,94 @@
         c.focus();
       }
     }).observe(document.documentElement, { attributes: true, subtree: true, attributeFilter: ['style'] });
+    </script>
+
+    <!-- touch controls (only activates on touch devices) -->
+    <script>
+    (function () {
+      if (!('ontouchstart' in window)) return;
+
+      var overlay = document.getElementById('touch-overlay');
+      if (!overlay) return;
+
+      var held = {};
+      var hint = document.getElementById('controls-hint');
+
+      function keyEvent(k, type) {
+        var code = {ArrowLeft:37,ArrowRight:39,ArrowUp:38,ArrowDown:40,' ':32,Escape:27}[k]||0;
+        document.dispatchEvent(new KeyboardEvent(type, {
+          key: k, code: k, keyCode: code, which: code,
+          bubbles: true, cancelable: true
+        }));
+      }
+
+      function hold(k) { keyEvent(k, 'keydown'); }
+      function release(k) { keyEvent(k, 'keyup'); }
+
+      function pressAndRelease(k) {
+        hold(k);
+        setTimeout(function () { release(k); }, 80);
+      }
+
+      function buttonFor(el) {
+        while (el && !el.classList.contains('btn')) el = el.parentNode;
+        return el;
+      }
+
+      document.addEventListener('touchstart', function (e) {
+        for (var i = 0; i < e.changedTouches.length; i++) {
+          var t = e.changedTouches[i];
+          var el = buttonFor(document.elementFromPoint(t.clientX, t.clientY));
+          if (!el) continue;
+
+          var dir = el.getAttribute('data-dir');
+          if (!dir) continue;
+          e.preventDefault();
+
+          el.classList.add('pressed');
+          var id = t.identifier;
+
+          if (dir === 'left') {
+            held[id] = {keys:['ArrowLeft','a']};
+            held[id].keys.forEach(hold);
+          } else if (dir === 'right') {
+            held[id] = {keys:['ArrowRight','d']};
+            held[id].keys.forEach(hold);
+          } else if (dir === 'action') {
+            pressAndRelease(' ');
+          } else if (dir === 'pause') {
+            pressAndRelease('Escape');
+          } else if (dir === 'up') {
+            pressAndRelease('ArrowUp');
+          } else if (dir === 'down') {
+            pressAndRelease('ArrowDown');
+          }
+        }
+      });
+
+      function onEnd(e) {
+        for (var i = 0; i < e.changedTouches.length; i++) {
+          var t = e.changedTouches[i];
+          var entry = held[t.identifier];
+          if (entry) {
+            entry.keys.forEach(release);
+            delete held[t.identifier];
+          }
+        }
+        var pressed = overlay.querySelectorAll('.btn.pressed');
+        for (var j = 0; j < pressed.length; j++) pressed[j].classList.remove('pressed');
+      }
+
+      document.addEventListener('touchend', onEnd);
+      document.addEventListener('touchcancel', onEnd);
+
+      document.addEventListener('touchmove', function (e) {
+        if (overlay.classList.contains('active')) e.preventDefault();
+      }, {passive: false});
+
+      if (hint) hint.textContent = 'Touch: ◀ ▶ move  •  ⏎ launch  •  ❚❚ pause';
+      overlay.classList.add('active');
+    })();
     </script>
   </body>
 </html>

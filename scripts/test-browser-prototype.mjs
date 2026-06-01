@@ -5,7 +5,7 @@
  *   node scripts/test-browser-prototype.mjs
  */
 
-import { chromium, firefox } from "playwright";
+import { chromium, firefox, webkit } from "playwright";
 import { spawn, execSync } from "child_process";
 import { resolve } from "path";
 
@@ -424,6 +424,44 @@ async function runMobileTest(browser, name, url, gameLabel) {
   }
 }
 
+async function checkGamePageDetails(browser, name, url, gameLabel) {
+  console.log(`\n  Page details ${gameLabel} (${name}):`);
+  const ctx = await browser.newContext({
+    viewport: { width: 1280, height: 720 },
+  });
+  const page = await ctx.newPage();
+  const details = { game: gameLabel, browser: name };
+
+  try {
+    await page.goto(url, { waitUntil: "domcontentloaded", timeout: 15000 });
+    const r = await page.evaluate(() => ({
+      touchOverlay: !!document.getElementById("touch-overlay"),
+      rotateDevice: !!document.getElementById("rotate-device"),
+      gameWrap: !!document.getElementById("game-wrap"),
+      controlsHint: document.getElementById("controls-hint")?.textContent || "",
+      viewport:
+        document
+          .querySelector("meta[name=viewport]")
+          ?.getAttribute("content") || "",
+      canvas: !!document.querySelector("canvas#canvas"),
+      hasUnsafeEval: false, // CSP not observable from JS, checked via _headers audit
+    }));
+    Object.assign(details, r);
+    const touchOk = r.touchOverlay && r.rotateDevice && r.gameWrap;
+    const vpOk = r.viewport.includes("user-scalable=no");
+    console.log(
+      `    Touch overlay: ${r.touchOverlay ? "✓" : "✗"} | Rotate: ${r.rotateDevice ? "✓" : "✗"} | Wrap: ${r.gameWrap ? "✓" : "✗"} | Viewport: ${vpOk ? "✓" : "✗"}`,
+    );
+    details.mobileReady = touchOk && vpOk;
+  } catch (e) {
+    console.log(`    ✗ ${e.message}`);
+    details.mobileReady = false;
+  } finally {
+    await ctx.close();
+  }
+  return details;
+}
+
 async function main() {
   console.log("=== Browser Prototype Validation ===\n");
 
@@ -442,32 +480,33 @@ async function main() {
   const routeResults = [];
   const protoResults = [];
   const mobileResults = [];
+  const pageDetails = [];
 
   const games = [
     { url: CANNONBALL_URL, label: "Cannonball Clash" },
     { url: TREASURE_COVE_URL, label: "Treasure Cove" },
   ];
 
-  try {
-    // Chromium
-    console.log("=== CHROMIUM ===");
-    const cb = await chromium.launch({ headless: true });
-    routeResults.push(...(await runRouteTests(cb, "Chromium")));
-    for (const g of games) {
-      protoResults.push(await runPrototypeTest(cb, "Chromium", g.url, g.label));
-      mobileResults.push(await runMobileTest(cb, "Chromium", g.url, g.label));
-    }
-    await cb.close();
+  const browsers = [
+    { launch: () => chromium.launch({ headless: true }), name: "Chromium" },
+    { launch: () => firefox.launch({ headless: true }), name: "Firefox" },
+    { launch: () => webkit.launch({ headless: true }), name: "WebKit" },
+  ];
 
-    // Firefox
-    console.log("\n=== FIREFOX ===");
-    const fb = await firefox.launch({ headless: true });
-    routeResults.push(...(await runRouteTests(fb, "Firefox")));
-    for (const g of games) {
-      protoResults.push(await runPrototypeTest(fb, "Firefox", g.url, g.label));
-      mobileResults.push(await runMobileTest(fb, "Firefox", g.url, g.label));
+  try {
+    for (const b of browsers) {
+      console.log(`\n=== ${b.name} ===`);
+      const br = await b.launch();
+      routeResults.push(...(await runRouteTests(br, b.name)));
+      for (const g of games) {
+        protoResults.push(await runPrototypeTest(br, b.name, g.url, g.label));
+        mobileResults.push(await runMobileTest(br, b.name, g.url, g.label));
+        pageDetails.push(
+          await checkGamePageDetails(br, b.name, g.url, g.label),
+        );
+      }
+      await br.close();
     }
-    await fb.close();
   } catch (err) {
     console.error("\nFatal:", err);
   } finally {
@@ -544,6 +583,36 @@ async function main() {
       `  ${m.canvas ? "✓" : "✗"} ${m.game || "?"} Canvas | ${m.back ? "✓" : "✗"} Back | ${m.ctrl ? "✓" : "✗"} Controls`,
     );
 
+  console.log("\nPage Details (mobile-ready checks):");
+  for (const d of pageDetails) {
+    const mobileReady = d.mobileReady ? "✓" : "✗";
+    console.log(
+      `  ${mobileReady} ${d.game} ${d.browser}: overlay=${d.touchOverlay ? "✓" : "✗"} rotate=${d.rotateDevice ? "✓" : "✗"} wrap=${d.gameWrap ? "✓" : "✗"} viewport=${d.viewport?.includes("user-scalable=no") ? "✓" : "✗"}`,
+    );
+  }
+
+  console.log("\nCSP Headers Audit:");
+  const fs = await import("fs");
+  const headersPath = resolve(ROOT, "public/_headers");
+  const headersText = fs.readFileSync(headersPath, "utf-8");
+  const hasUnsafeEval = [];
+  const sections = headersText.split("\n\n");
+  for (const s of sections) {
+    const lines = s.split("\n");
+    const headerLine = lines[0].trim();
+    const cspLine = lines.find((l) =>
+      l.trim().startsWith("Content-Security-Policy:"),
+    );
+    if (cspLine) {
+      const csp = cspLine;
+      if (csp.includes("'unsafe-eval'"))
+        hasUnsafeEval.push(`${headerLine}: has 'unsafe-eval'`);
+      else hasUnsafeEval.push(`${headerLine}: MISSING 'unsafe-eval'`);
+    }
+  }
+  for (const h of hasUnsafeEval)
+    console.log(`  ${h.includes("MISSING") ? "✗" : "✓"} ${h}`);
+
   // Decision
   console.log("\n" + "-".repeat(40));
   console.log("DECISION");
@@ -564,10 +633,14 @@ async function main() {
       console.log("    NO-GO: WASM runtime did not start.");
       console.log("      Likely: CDN blocked or pygbag issue.");
     } else if (!umeOk) {
-      console.log("    CONDITIONAL GO: WASM starts but UME click not triggered by automation.");
+      console.log(
+        "    CONDITIONAL GO: WASM starts but UME click not triggered by automation.",
+      );
       console.log("      Condition: Manual click-to-start test.");
     } else if (!activeOk) {
-      console.log("    CONDITIONAL GO: WASM + UME work but rendering not confirmed.");
+      console.log(
+        "    CONDITIONAL GO: WASM + UME work but rendering not confirmed.",
+      );
       console.log("      Condition: Manual browser test.");
     } else if (!cleanErrs) {
       console.log("    CONDITIONAL GO: Runs with non-fatal console errors.");
