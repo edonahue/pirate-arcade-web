@@ -7,11 +7,12 @@ export interface Props {
 }
 
 const { game } = Astro.props;
+const cardHref = game.browserUrl || game.desktopUrl || "#";
 ---
 
 <article class="game-card">
   <a
-    href={game.desktopUrl || "#"}
+    href={cardHref}
     class="game-card__image"
     aria-label={`${game.title} screenshot`}
   >
@@ -31,7 +32,7 @@ const { game } = Astro.props;
   </a>
   <div class="game-card__body">
     <h3 class="game-card__title">
-      <a href={game.desktopUrl || "#"}>{game.title}</a>
+      <a href={cardHref}>{game.title}</a>
     </h3>
     <div class="game-card__classic">{game.classic}</div>
     <p class="game-card__description">{game.description}</p>
@@ -49,10 +50,19 @@ const { game } = Astro.props;
     <StatusBadge
       variant={game.status === "desktop-available"
         ? "available"
-        : game.status === "browser-planned"
-          ? "planned"
-          : "experimental"}
+        : game.status === "browser-playable"
+          ? "available"
+          : game.status === "browser-planned"
+            ? "planned"
+            : "experimental"}
       label={game.statusLabel}
     />
+    {
+      game.browserUrl && game.status === "browser-playable" && (
+        <a href={game.browserUrl} class="game-card__play-link">
+          Play in Browser →
+        </a>
+      )
+    }
   </div>
 </article>

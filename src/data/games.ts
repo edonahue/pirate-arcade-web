@@ -1,4 +1,5 @@
 export type GameStatus =
+  | "browser-playable"
   | "desktop-available"
   | "browser-planned"
   | "experimental";
@@ -11,6 +12,7 @@ export interface Game {
   status: GameStatus;
   statusLabel: string;
   desktopUrl?: string;
+  browserUrl?: string;
   screenshot?: string;
   features?: string[];
 }
@@ -22,8 +24,9 @@ export const games: Game[] = [
     classic: "Pong",
     description:
       "Naval cannon duel. Defend your fortress and sink your opponent's ship with well-aimed shots. First to 11 hits wins the sea.",
-    status: "desktop-available",
-    statusLabel: "Desktop app available",
+    status: "browser-playable",
+    statusLabel: "Play in browser now",
+    browserUrl: "/play/cannonball-clash/",
     desktopUrl: "https://github.com/edonahue/pirate-arcade/releases",
     screenshot: "/images/screenshot-cannonball-clash.png",
     features: ["1-2 players", "AI opponent", "Power-ups", "Procedural audio"],

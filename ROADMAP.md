@@ -26,14 +26,15 @@
 - [x] Favicon refinement (skull-and-crossbones, gold + white)
 - [x] Additional build log posts: "Launching on Free Infrastructure", "Browser Port Feasibility"
 
-## Phase 2: Browser Play Feasibility
+## Phase 2: Browser Play Feasibility ✓ (Live)
 
 - [x] Evaluate porting strategy — Pygbag/WebAssembly recommended for Phase 2
 - [x] Choose first game: Cannonball Clash (simplest game, minimal changes)
-- [ ] Port Cannonball Clash via Pygbag as feasibility spike
-- [ ] Measure bundle size, load time, frame rate, input latency
-- [ ] Embed or link web-playable game prototype on /play
-- [ ] Port remaining games if Pygbag performance is acceptable
+- [x] Port Cannonball Clash via Pygbag as feasibility spike
+- [x] Measure bundle size, load time, frame rate, input latency
+- [x] Embed web-playable game prototype on /play
+- [x] Shipping post documenting changes, test results, remaining issues
+- [ ] Port remaining three games to browser (next phase)
 
 ## Phase 3: Polish
 

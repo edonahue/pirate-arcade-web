@@ -13,8 +13,8 @@ import { games } from "../data/games";
 >
   <Hero
     title="THE ARCADE"
-    subtitle="Four pirate-themed arcade games, ready to download and play on
-    your platform. Browser versions are planned."
+    subtitle="Pirate-themed arcade games. Cannonball Clash is playable in your
+    browser now. Desktop downloads available for all four games."
     eyebrow="Pick your game"
   />
 
@@ -34,8 +34,9 @@ import { games } from "../data/games";
       <p class="section__eyebrow">How to play</p>
       <h2 class="section__title">Desktop Apps</h2>
       <p class="section__description">
-        All four games run locally on your machine with no installation
-        dependencies. Download the latest release below.
+        Cannonball Clash is now <strong>playable in the browser</strong> via Pygbag/WebAssembly.
+        The remaining three games are still desktop-only for now — download the latest
+        release below.
       </p>
     </div>
 
@@ -85,7 +86,14 @@ import { games } from "../data/games";
       <p class="section__description">
         Cannonball Clash is now playable in the browser via Pygbag/WebAssembly.
         The CPython runtime (~12 MB) loads on first visit; the game code bundle
-        is only 15 KB. Performance and input latency are being evaluated.
+        is only 15 KB. Audio is currently stubbed (procedural audio via
+        NumPy+SDL_mixer doesn't work in WASM yet). This is the first Pirate
+        Arcade browser port — three more on the roadmap.
+        <br /><br />
+        See the <a href="/build-log/shipping-first-browser-port"
+          >shipping post</a
+        > for the full story on what it took to get a Python+Pygame game running in
+        the browser.
       </p>
       <div class="text-center mt-2">
         <a
@@ -111,8 +119,9 @@ import { games } from "../data/games";
       <p class="section__eyebrow">Roadmap</p>
       <h2 class="section__title">More Browser Games</h2>
       <p class="section__description">
-        If the Cannonball Clash prototype performs well, the remaining three
-        games will be ported using the same approach.
+        With Cannonball Clash shipped, the same approach will be used to port
+        Treasure Cove, Kraken's Wake, and Port Royale Tycoon to the browser.
+        Each game requires individual audio and renderer fixes.
       </p>
     </div>
   </section>

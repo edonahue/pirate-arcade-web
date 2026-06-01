@@ -212,6 +212,21 @@
   margin-top: auto;
 }
 
+.game-card__play-link {
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  color: #d4a843;
+  text-decoration: none;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid #d4a843;
+  border-radius: 4px;
+  transition: background 0.15s;
+}
+
+.game-card__play-link:hover {
+  background: rgba(212, 168, 67, 0.1);
+}
+
 /* Game Card Feature Chips */
 .game-card__features {
   display: flex;
