@@ -86,9 +86,9 @@ import { games } from "../data/games";
       <p class="section__description">
         Cannonball Clash is now playable in the browser via Pygbag/WebAssembly.
         The CPython runtime (~12 MB) loads on first visit; the game code bundle
-        is only 15 KB. Audio is currently stubbed (procedural audio via
-        NumPy+SDL_mixer doesn't work in WASM yet). This is the first Pirate
-        Arcade browser port — three more on the roadmap.
+        is only 15 KB. Game audio is synthesized in-browser via Web Audio API.
+        Audio starts after your first click (browser autoplay rules). This is
+        the first Pirate Arcade browser port — three more on the roadmap.
         <br /><br />
         See the <a href="/build-log/shipping-first-browser-port"
           >shipping post</a

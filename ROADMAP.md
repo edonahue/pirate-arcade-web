@@ -33,6 +33,7 @@
 - [x] Port Cannonball Clash via Pygbag as feasibility spike
 - [x] Measure bundle size, load time, frame rate, input latency
 - [x] Embed web-playable game prototype on /play
+- [x] Browser game audio (Web Audio API synthesis, in-game mute toggle)
 - [x] Shipping post documenting changes, test results, remaining issues
 - [ ] Port remaining three games to browser (next phase)
 

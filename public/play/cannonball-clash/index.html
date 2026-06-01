@@ -89,15 +89,26 @@
             '        pg.display.set_caption("Cannonball Clash")',
             '        from games.pong.game import PongGame',
             '',
-            '        class DummyAudio:',
-            '            muted = False',
-            '            @staticmethod',
-            '            def play(*a,**kw): pass',
-            '            @staticmethod',
-            '            def load(*a,**kw): pass',
+            '        class WebAudio:',
+            '            def __init__(self):',
+            '                self._js = platform.window.PirateArcadeAudio',
+            '                self._js.init()',
+            '                self._muted = False',
+            '            @property',
+            '            def muted(self):',
+            '                return self._muted',
+            '            @muted.setter',
+            '            def muted(self, val):',
+            '                self._muted = val',
+            '                self._js.setMuted(val)',
+            '            def play(self, name, *a, **kw):',
+            '                self._js.resume()',
+            '                self._js.play(name)',
+            '            def load(self, *a, **kw):',
+            '                pass',
             '',
-            '        game = PongGame(s, DummyAudio())',
-            '        platform.window.infobox.innerText = "Cannonball Clash loaded!"',
+            '        game = PongGame(s, WebAudio())',
+            '        platform.window.infobox.innerText = "Cannonball Clash loaded! Audio starts after your first click."',
             '        await game.run()',
             '    except Exception as e:',
             '        sys.print_exception(e)',
@@ -115,6 +126,7 @@
 
     console.log('INLINE_SCRIPT: all setup done');
   </script>
+  <script src="audio-bridge.js"></script>
   <script
     src="https://pygame-web.github.io/cdn/0.9.3/pythons.js"
     type="module"
@@ -188,7 +200,7 @@
   </head>
   <body>
     <a id="back-link" href="/play/">← Back to Arcade</a>
-    <div id="controls-hint">W / S  •  Arrow keys to move  —  Space / Enter to select  —  Click to start</div>
+    <div id="controls-hint">W / S  •  Arrow keys to move  —  Space / Enter to select  —  Click to start  —  Audio after click</div>
     <div id="transfer" align=center>
       <div class="emscripten" id="status">Downloading Python runtime...</div>
       <div class="emscripten"><progress value="0" max="100" id="progress"></progress></div>
@@ -201,7 +213,7 @@
       width="1280px" height="720px"
       oncontextmenu="event.preventDefault()" tabindex=1 hidden>
     </canvas>
-    <div id="infobox">Loading Cannonball Clash — first visit downloads the Python/Pygame runtime (~12 MB).</div>
+    <div id="infobox">Loading Cannonball Clash — first visit downloads the Python/Pygame runtime (~12 MB). Audio starts after your first click.</div>
     <div id="pyconsole"><div id="terminal" tabIndex=1 align="left"></div></div>
 
     <script type="application/javascript">
