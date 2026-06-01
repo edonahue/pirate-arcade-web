@@ -37,8 +37,9 @@ export const games: Game[] = [
     classic: "Breakout",
     description:
       "Smash through fort defenses to reach the loot. Each brick is a barrier between you and the treasure hoard.",
-    status: "desktop-available",
-    statusLabel: "Desktop app available",
+    status: "browser-playable",
+    statusLabel: "Play in browser now",
+    browserUrl: "/play/treasure-cove/",
     desktopUrl: "https://github.com/edonahue/pirate-arcade/releases",
     screenshot: "/images/screenshot-treasure-cove.png",
     features: [

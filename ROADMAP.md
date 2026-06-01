@@ -35,7 +35,9 @@
 - [x] Embed web-playable game prototype on /play
 - [x] Browser game audio (Web Audio API synthesis, in-game mute toggle)
 - [x] Shipping post documenting changes, test results, remaining issues
-- [ ] Port remaining three games to browser (next phase)
+- [x] Port Treasure Cove (Breakout) to browser
+- [ ] Port Kraken's Wake (Asteroids) to browser
+- [ ] Port Port Royale Tycoon (board game) to browser
 
 ## Phase 3: Polish
 

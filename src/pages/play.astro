@@ -8,13 +8,13 @@ import { games } from "../data/games";
 
 <BaseLayout
   title="Play"
-  description="Choose your game from the Pirate Arcade collection. Desktop apps available now; Cannonball Clash browser prototype is live."
+  description="Choose your game from the Pirate Arcade collection. Desktop apps available now; two browser ports are live."
   current="play"
 >
   <Hero
     title="THE ARCADE"
-    subtitle="Pirate-themed arcade games. Cannonball Clash is playable in your
-    browser now. Desktop downloads available for all four games."
+    subtitle="Pirate-themed arcade games. Cannonball Clash and Treasure Cove
+    are playable in your browser now. Desktop downloads available for all four games."
     eyebrow="Pick your game"
   />
 
@@ -34,9 +34,9 @@ import { games } from "../data/games";
       <p class="section__eyebrow">How to play</p>
       <h2 class="section__title">Desktop Apps</h2>
       <p class="section__description">
-        Cannonball Clash is now <strong>playable in the browser</strong> via Pygbag/WebAssembly.
-        The remaining three games are still desktop-only for now — download the latest
-        release below.
+        Two games are now <strong>playable in the browser</strong> via Pygbag/WebAssembly:
+        Cannonball Clash and Treasure Cove. The remaining two games are still desktop-only
+        for now — download the latest release below.
       </p>
     </div>
 
@@ -82,17 +82,19 @@ import { games } from "../data/games";
   <section class="section">
     <div class="section__header">
       <p class="section__eyebrow">Feasibility</p>
-      <h2 class="section__title">Browser Prototype</h2>
+      <h2 class="section__title">Browser Ports</h2>
       <p class="section__description">
-        Cannonball Clash is now playable in the browser via Pygbag/WebAssembly.
-        The CPython runtime (~12 MB) loads on first visit; the game code bundle
-        is only 15 KB. Game audio is synthesized in-browser via Web Audio API.
-        Audio starts after your first click (browser autoplay rules). This is
-        the first Pirate Arcade browser port — three more on the roadmap.
+        Two games are now playable in the browser via Pygbag/WebAssembly:
+        <strong>Cannonball Clash</strong> and <strong>Treasure Cove</strong>.
+        The CPython runtime (~12 MB) loads on first visit; each game code bundle
+        is under 20 KB. Game audio is synthesized in-browser via Web Audio API.
+        Audio starts after your first click (browser autoplay rules).
         <br /><br />
         See the <a href="/build-log/shipping-first-browser-port"
-          >shipping post</a
-        > for the full story on what it took to get a Python+Pygame game running in
+          >first shipping post</a
+        > and the <a href="/build-log/porting-the-second-game-treasure-cove"
+          >second port post</a
+        > for the full story on what it takes to get Python+Pygame games running in
         the browser.
       </p>
       <div class="text-center mt-2">
@@ -102,7 +104,17 @@ import { games } from "../data/games";
           rel="noopener noreferrer"
           class="cta cta--primary"
         >
-          Play Cannonball Clash in Browser
+          Play Cannonball Clash
+        </a>
+      </div>
+      <div class="text-center mt-2">
+        <a
+          href="/play/treasure-cove/"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="cta cta--primary"
+        >
+          Play Treasure Cove
         </a>
       </div>
       <p class="section__description mt-2">
@@ -117,10 +129,10 @@ import { games } from "../data/games";
   <section class="section">
     <div class="section__header">
       <p class="section__eyebrow">Roadmap</p>
-      <h2 class="section__title">More Browser Games</h2>
+      <h2 class="section__title">Remaining Ports</h2>
       <p class="section__description">
-        With Cannonball Clash shipped, the same approach will be used to port
-        Treasure Cove, Kraken's Wake, and Port Royale Tycoon to the browser.
+        With Cannonball Clash and Treasure Cove shipped, the same approach will
+        be used to port Kraken's Wake and Port Royale Tycoon to the browser.
         Each game requires individual audio and renderer fixes.
       </p>
     </div>

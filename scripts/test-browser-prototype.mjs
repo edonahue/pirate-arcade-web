@@ -12,7 +12,8 @@ import { resolve } from "path";
 const ROOT = resolve(import.meta.dirname, "..");
 const PORT = parseInt(process.env.TEST_PORT || "4327", 10);
 const PREVIEW_URL = `http://localhost:${PORT}`;
-const PROTOTYPE_URL = `${PREVIEW_URL}/play/cannonball-clash/`;
+const CANNONBALL_URL = `${PREVIEW_URL}/play/cannonball-clash/`;
+const TREASURE_COVE_URL = `${PREVIEW_URL}/play/treasure-cove/`;
 const WASM_TIMEOUT = 90000;
 const CANVAS_POLL_INTERVAL = 500;
 const CANVAS_TIMEOUT = 30000;
@@ -79,7 +80,8 @@ async function runRouteTests(browser, name) {
   const routes = [
     { p: "/", n: "Home" },
     { p: "/play/", n: "Play" },
-    { p: "/play/cannonball-clash/", n: "Prototype" },
+    { p: "/play/cannonball-clash/", n: "Cannonball" },
+    { p: "/play/treasure-cove/", n: "Treasure Cove" },
     { p: "/build-log/browser-port-feasibility", n: "Feasibility post" },
     { p: "/source", n: "Source" },
     { p: "/nonexistent-xyz", n: "Custom 404" },
@@ -105,8 +107,8 @@ async function runRouteTests(browser, name) {
   return results;
 }
 
-async function runPrototypeTest(browser, name) {
-  console.log(`\n  Prototype (${name}):`);
+async function runPrototypeTest(browser, name, url, gameLabel) {
+  console.log(`\n  ${gameLabel} (${name}):`);
   const ctx = await browser.newContext({
     viewport: { width: 1280, height: 720 },
   });
@@ -144,10 +146,10 @@ async function runPrototypeTest(browser, name) {
   const pgErrs = [];
   page.on("pageerror", (e) => pgErrs.push(e.message));
 
-  const r = { browser: name };
+  const r = { browser: name, game: gameLabel };
 
   // Load
-  const resp = await page.goto(PROTOTYPE_URL, {
+  const resp = await page.goto(url, {
     waitUntil: "domcontentloaded",
     timeout: 30000,
   });
@@ -390,8 +392,8 @@ async function runPrototypeTest(browser, name) {
   return r;
 }
 
-async function runMobileTest(browser, name) {
-  console.log(`\n  Mobile (${name}):`);
+async function runMobileTest(browser, name, url, gameLabel) {
+  console.log(`\n  Mobile ${gameLabel} (${name}):`);
   const ctx = await browser.newContext({
     viewport: { width: 390, height: 844 },
   });
@@ -402,7 +404,7 @@ async function runMobileTest(browser, name) {
   });
 
   try {
-    await page.goto(PROTOTYPE_URL, {
+    await page.goto(url, {
       waitUntil: "domcontentloaded",
       timeout: 30000,
     });
@@ -413,17 +415,17 @@ async function runMobileTest(browser, name) {
     console.log(
       `    Canvas: ${canvas ? "✓" : "✗"} | Back: ${back ? "✓" : "✗"} | Controls: ${ctrl ? "✓" : "✗"} | Errors: ${errs.length}`,
     );
-    return { canvas, back, ctrl };
+    return { canvas, back, ctrl, game: gameLabel };
   } catch (e) {
     console.log(`    ✗ ${e.message}`);
-    return { canvas: false, back: false, ctrl: false };
+    return { canvas: false, back: false, ctrl: false, game: gameLabel };
   } finally {
     await ctx.close();
   }
 }
 
 async function main() {
-  console.log("=== Cannonball Clash Prototype Validation ===\n");
+  console.log("=== Browser Prototype Validation ===\n");
 
   // Build
   execSync(`PATH="${NODE_BIN}:${process.env.PATH}" npm run build`, {
@@ -441,22 +443,30 @@ async function main() {
   const protoResults = [];
   const mobileResults = [];
 
+  const games = [
+    { url: CANNONBALL_URL, label: "Cannonball Clash" },
+    { url: TREASURE_COVE_URL, label: "Treasure Cove" },
+  ];
+
   try {
     // Chromium
     console.log("=== CHROMIUM ===");
     const cb = await chromium.launch({ headless: true });
     routeResults.push(...(await runRouteTests(cb, "Chromium")));
-    protoResults.push(await runPrototypeTest(cb, "Chromium"));
-    mobileResults.push(await runMobileTest(cb, "Chromium"));
+    for (const g of games) {
+      protoResults.push(await runPrototypeTest(cb, "Chromium", g.url, g.label));
+      mobileResults.push(await runMobileTest(cb, "Chromium", g.url, g.label));
+    }
     await cb.close();
 
     // Firefox
     console.log("\n=== FIREFOX ===");
     const fb = await firefox.launch({ headless: true });
     routeResults.push(...(await runRouteTests(fb, "Firefox")));
-    protoResults.push(await runPrototypeTest(fb, "Firefox"));
-    const fm = await runMobileTest(fb, "Firefox");
-    mobileResults.push(fm);
+    for (const g of games) {
+      protoResults.push(await runPrototypeTest(fb, "Firefox", g.url, g.label));
+      mobileResults.push(await runMobileTest(fb, "Firefox", g.url, g.label));
+    }
     await fb.close();
   } catch (err) {
     console.error("\nFatal:", err);
@@ -479,54 +489,59 @@ async function main() {
     console.log(`  ${arr.every((r) => r.ok) ? "✓" : "✗"} ${n}`);
   }
 
-  console.log("\nPrototype:");
-  for (const p of protoResults) {
-    console.log(`  ${p.browser}:`);
-    const keys = [
-      "pageLoads",
-      "canvasExists",
-      "infoboxExists",
-      "backLinkExists",
-      "controlsHintExists",
-      "wasmStarted",
-      "canvasVisible",
-      "umeTriggered",
-      "keyboardSent",
-      "canvasActive",
-      "reloadWorks",
-      "noBlockingErrors",
-    ];
-    for (const k of keys) {
-      if (k in p) console.log(`    ${k}: ${p[k] ? "✓" : "✗"}`);
-    }
-    console.log(
-      `    totalErrors: ${p.totalErrors}, blocking: ${p.blockingErrors}, wasmStart: ${p.wasmStartTime}ms`,
-    );
-    if (p.blockingErrors > 0) {
-      const blockingItems = p.consoleErrors.filter(
-        (e) =>
-          ![
-            "wasm",
-            "Wasm",
-            "Memory",
-            "emscripten",
-            "Emscripten",
-            "WebAssembly",
-            "unreachable",
-            "SourceMap",
-            "favicon",
-            "404",
-            "Failed to load resource",
-          ].some((b) => e.includes(b)),
+  console.log("\nGame Tests:");
+  const gameNames = [...new Set(protoResults.map((p) => p.game))];
+  for (const gn of gameNames) {
+    const entries = protoResults.filter((p) => p.game === gn);
+    console.log(`  ${gn}:`);
+    for (const p of entries) {
+      console.log(`    ${p.browser}:`);
+      const keys = [
+        "pageLoads",
+        "canvasExists",
+        "infoboxExists",
+        "backLinkExists",
+        "controlsHintExists",
+        "wasmStarted",
+        "canvasVisible",
+        "umeTriggered",
+        "keyboardSent",
+        "canvasActive",
+        "reloadWorks",
+        "noBlockingErrors",
+      ];
+      for (const k of keys) {
+        if (k in p) console.log(`      ${k}: ${p[k] ? "✓" : "✗"}`);
+      }
+      console.log(
+        `      totalErrors: ${p.totalErrors}, blocking: ${p.blockingErrors}, wasmStart: ${p.wasmStartTime}ms`,
       );
-      blockingItems.forEach((e) => console.log(`      BLOCKING: ${e}`));
+      if (p.blockingErrors > 0) {
+        const blockingItems = p.consoleErrors.filter(
+          (e) =>
+            ![
+              "wasm",
+              "Wasm",
+              "Memory",
+              "emscripten",
+              "Emscripten",
+              "WebAssembly",
+              "unreachable",
+              "SourceMap",
+              "favicon",
+              "404",
+              "Failed to load resource",
+            ].some((b) => e.includes(b)),
+        );
+        blockingItems.forEach((e) => console.log(`        BLOCKING: ${e}`));
+      }
     }
   }
 
   console.log("\nMobile:");
   for (const m of mobileResults)
     console.log(
-      `  ${m.canvas ? "✓" : "✗"} Canvas | ${m.back ? "✓" : "✗"} Back | ${m.ctrl ? "✓" : "✗"} Controls`,
+      `  ${m.canvas ? "✓" : "✗"} ${m.game || "?"} Canvas | ${m.back ? "✓" : "✗"} Back | ${m.ctrl ? "✓" : "✗"} Controls`,
     );
 
   // Decision
@@ -534,37 +549,31 @@ async function main() {
   console.log("DECISION");
   console.log("-".repeat(40));
 
-  const coreOk = protoResults.every((p) => p.pageLoads && p.canvasExists);
-  const wasmOk = protoResults.some((p) => p.wasmStarted);
-  const umeOk = protoResults.some((p) => p.umeTriggered);
-  const activeOk = protoResults.some((p) => p.canvasActive);
-  const cleanErrs = protoResults.every((p) => p.noBlockingErrors);
+  for (const gn of gameNames) {
+    const entries = protoResults.filter((p) => p.game === gn);
+    const coreOk = entries.every((p) => p.pageLoads && p.canvasExists);
+    const wasmOk = entries.some((p) => p.wasmStarted);
+    const umeOk = entries.some((p) => p.umeTriggered);
+    const activeOk = entries.some((p) => p.canvasActive);
+    const cleanErrs = entries.every((p) => p.noBlockingErrors);
 
-  if (!coreOk) {
-    console.log("NO-GO: Core page broken.");
-  } else if (!wasmOk) {
-    console.log("NO-GO: WASM runtime did not start in any browser.");
-    console.log("  Likely: CDN blocked or pygbag issue.");
-  } else if (!umeOk) {
-    console.log(
-      "CONDITIONAL GO: WASM starts but UME (click-to-start) not triggered by automation.",
-    );
-    console.log(
-      "  Condition: Manual test to verify click flow works in real browser.",
-    );
-  } else if (!activeOk) {
-    console.log(
-      "CONDITIONAL GO: WASM + UME work but game rendering not confirmed via automation.",
-    );
-    console.log("  Condition: Manual browser test required.");
-  } else if (!cleanErrs) {
-    console.log("CONDITIONAL GO: Game runs but has non-fatal console errors.");
-    console.log("  Condition: Review and fix errors before porting next game.");
-  } else {
-    console.log("GO: All critical checks pass.");
-    console.log(
-      "  Recommendation: Port Treasure Cove using the same Pygbag approach.",
-    );
+    console.log(`  ${gn}:`);
+    if (!coreOk) {
+      console.log("    NO-GO: Core page broken.");
+    } else if (!wasmOk) {
+      console.log("    NO-GO: WASM runtime did not start.");
+      console.log("      Likely: CDN blocked or pygbag issue.");
+    } else if (!umeOk) {
+      console.log("    CONDITIONAL GO: WASM starts but UME click not triggered by automation.");
+      console.log("      Condition: Manual click-to-start test.");
+    } else if (!activeOk) {
+      console.log("    CONDITIONAL GO: WASM + UME work but rendering not confirmed.");
+      console.log("      Condition: Manual browser test.");
+    } else if (!cleanErrs) {
+      console.log("    CONDITIONAL GO: Runs with non-fatal console errors.");
+    } else {
+      console.log("    GO: All critical checks pass.");
+    }
   }
 
   console.log("\n=== DONE ===");
