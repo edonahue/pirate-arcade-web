@@ -1,30 +1,79 @@
 :root {
   color-scheme: dark;
 
-  --bg: #0a0e17;
-  --bg-elevated: #111827;
-  --surface: #1a1f2e;
-  --surface-soft: #222838;
-  --paper: #f5e6c8;
-  --ink: #f0e6d3;
-  --ink-strong: #fff8ee;
-  --muted: #9ca3af;
-  --line: rgba(240, 230, 211, 0.12);
-  --accent: #2dd4bf;
-  --accent-strong: #5eead4;
-  --gold: #d4a843;
-  --gold-strong: #e2b85c;
-  --warm: #dc4444;
-  --focus: #f97316;
-  --crt-glow: #2dd4bf;
-  --marquee: #dc4444;
+  --bg: #071016;
+  --bg-deep: #03070b;
+  --bg-elevated: #0d1a24;
 
-  --shadow: 0 18px 48px rgba(0, 0, 0, 0.5);
-  --shadow-strong: 0 24px 64px rgba(0, 0, 0, 0.6);
-  --radius: 6px;
-  --radius-lg: 10px;
+  --surface: rgba(16, 28, 38, 0.88);
+  --surface-soft: rgba(25, 42, 54, 0.78);
 
-  --display: "Bangers", system-ui, sans-serif;
+  --paper: #ead8b5;
+  --paper-ink: #2a1d12;
+
+  --ink: #efe7d3;
+  --ink-strong: #fff7e6;
+  --muted: #a9b3ad;
+
+  --brass: #c9a45c;
+  --brass-strong: #f0cf7a;
+  --sea: #2aa6a1;
+  --sea-deep: #0f5d63;
+  --rum: #8c3428;
+
+  --line: rgba(239, 231, 211, 0.14);
+  --chart-line: rgba(201, 164, 92, 0.18);
+
+  --shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
+  --shadow-soft: 0 18px 50px rgba(0, 0, 0, 0.28);
+
+  --radius: 10px;
+  --radius-lg: 18px;
+
+  --display: "Cinzel", Georgia, serif;
+  --body:
+    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", sans-serif;
+  --mono:
+    "IBM Plex Mono", "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+
+  font-family: var(--body);
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+
+  --bg: #f8f6f3;
+  --bg-deep: #f0ebe5;
+  --bg-elevated: #ffffff;
+
+  --surface: rgba(240, 235, 225, 0.88);
+  --surface-soft: rgba(245, 240, 230, 0.78);
+
+  --paper: #d4c5a5;
+  --paper-ink: #4a3a22;
+
+  --ink: #2a2620;
+  --ink-strong: #12100e;
+
+  --muted: #6b7280;
+
+  --brass: #b88d3f;
+  --brass-strong: #d4af37;
+  --sea: #1e8e89;
+  --sea-deep: #0c4a4f;
+  --rum: #6a2820;
+
+  --line: rgba(211, 207, 197, 0.14);
+  --chart-line: rgba(181, 148, 83, 0.18);
+
+  --shadow: 0 20px 60px rgba(0, 0, 0, 0.08);
+  --shadow-soft: 0 12px 30px rgba(0, 0, 0, 0.05);
+
+  --radius: 10px;
+  --radius-lg: 18px;
+
+  --display: "Cinzel", Georgia, serif;
   --body:
     Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
     "Segoe UI", sans-serif;

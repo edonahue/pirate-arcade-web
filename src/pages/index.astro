@@ -40,16 +40,44 @@ import { games } from "../data/games";
   <section class="section">
     <div class="section__header">
       <p class="section__eyebrow">Browser Play</p>
-      <h2 class="section__title">Coming to the Browser</h2>
+      <h2 class="section__title">Play in Browser Now</h2>
       <p class="section__description">
-        The games are playable now as desktop downloads. Browser versions are
-        planned — this site will host web-native ports once the porting strategy
-        is decided.
+        Two games are playable immediately in your browser via
+        Pygbag/WebAssembly: Cannonball Clash and Treasure Cove. The CPython
+        runtime (~12 MB) loads on first visit; audio starts after your first
+        click. Works best with a keyboard, with on-screen touch controls
+        available on mobile.
       </p>
     </div>
     <div class="text-center mt-2">
-      <CTAButton href="/play" variant="outline">See Status</CTAButton>
+      <div class="space-x-4">
+        <a
+          href="/play/cannonball-clash/"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="cta cta--primary"
+        >
+          Play Cannonball Clash
+        </a>
+        <a
+          href="/play/treasure-cove/"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="cta cta--gold"
+        >
+          Play Treasure Cove
+        </a>
+      </div>
     </div>
+    <p class="section__description mt-4 text-center text-sm">
+      <a href="/build-log/shipping-first-browser-port"
+        >Read about the browser porting journey</a
+      >
+      {" • "}
+      <a href="/build-log/porting-the-second-game-treasure-cove"
+        >See the technical details</a
+      >
+    </p>
   </section>
 
   <div class="section-divider" aria-hidden="true">

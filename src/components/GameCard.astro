@@ -10,59 +10,69 @@ const { game } = Astro.props;
 const cardHref = game.browserUrl || game.desktopUrl || "#";
 ---
 
-<article class="game-card">
-  <a
-    href={cardHref}
-    class="game-card__image"
-    aria-label={`${game.title} screenshot`}
-  >
-    {
-      game.screenshot ? (
-        <img
-          src={game.screenshot}
-          alt={`${game.title} screenshot`}
-          loading="lazy"
-          width="1280"
-          height="720"
+<article class="game-chart-frame">
+  <div class="game-chart-frame__parchment">
+    <div class="game-chart-frame__content">
+      <a
+        href={cardHref}
+        class="game-card__image"
+        aria-label={`${game.title} screenshot`}
+      >
+        {
+          game.screenshot ? (
+            <img
+              src={game.screenshot}
+              alt={`${game.title} screenshot`}
+              loading="lazy"
+              width="1280"
+              height="720"
+            />
+          ) : (
+            <span class="game-card__placeholder">
+              [{game.title} screenshot]
+            </span>
+          )
+        }
+      </a>
+      <div class="game-card__body">
+        <h3 class="game-card__title">
+          <a href={cardHref}>{game.title}</a>
+        </h3>
+        <div class="game-card__classic">{game.classic}</div>
+        <p class="game-card__description">{game.description}</p>
+        {
+          game.features && game.features.length > 0 && (
+            <div class="game-card__features">
+              {game.features.map((f) => (
+                <span class="game-card__feature-chip">{f}</span>
+              ))}
+            </div>
+          )
+        }
+      </div>
+      <div class="game-card__footer">
+        <StatusBadge
+          variant={game.status === "desktop-available"
+            ? "available"
+            : game.status === "browser-playable"
+              ? "available"
+              : game.status === "browser-planned"
+                ? "planned"
+                : "experimental"}
+          label={game.statusLabel}
         />
-      ) : (
-        <span>[{game.title} screenshot]</span>
-      )
-    }
-  </a>
-  <div class="game-card__body">
-    <h3 class="game-card__title">
-      <a href={cardHref}>{game.title}</a>
-    </h3>
-    <div class="game-card__classic">{game.classic}</div>
-    <p class="game-card__description">{game.description}</p>
-    {
-      game.features && game.features.length > 0 && (
-        <div class="game-card__features">
-          {game.features.map((f) => (
-            <span class="game-card__feature-chip">{f}</span>
-          ))}
-        </div>
-      )
-    }
-  </div>
-  <div class="game-card__footer">
-    <StatusBadge
-      variant={game.status === "desktop-available"
-        ? "available"
-        : game.status === "browser-playable"
-          ? "available"
-          : game.status === "browser-planned"
-            ? "planned"
-            : "experimental"}
-      label={game.statusLabel}
-    />
-    {
-      game.browserUrl && game.status === "browser-playable" && (
-        <a href={game.browserUrl} class="game-card__play-link">
-          Play in Browser →
-        </a>
-      )
-    }
+        {
+          game.browserUrl && game.status === "browser-playable" && (
+            <a href={game.browserUrl} class="game-card__play-link">
+              Play in Browser →
+            </a>
+          )
+        }
+      </div>
+    </div>
+    <div class="game-chart-frame__brass-corner top-left"></div>
+    <div class="game-chart-frame__brass-corner top-right"></div>
+    <div class="game-chart-frame__brass-corner bottom-left"></div>
+    <div class="game-chart-frame__brass-corner bottom-right"></div>
   </div>
 </article>
