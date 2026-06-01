@@ -1,0 +1,50 @@
+.touch-overlay {
+  display: none; position: fixed; inset: 0; z-index: 999999;
+  pointer-events: none; touch-action: none;
+}
+.touch-overlay.active { display: block; }
+.touch-overlay .btn {
+  position: absolute; pointer-events: auto; touch-action: none;
+  -webkit-user-select: none; user-select: none;
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0.3; transition: opacity 0.12s;
+}
+.touch-overlay .btn.pressed { opacity: 0.6; }
+.touch-overlay .btn-arrow {
+  bottom: 0; width: 40%; height: 30%;
+  font-size: 32px; color: rgba(255,255,255,0.4);
+}
+.touch-overlay .btn-left { left: 0; }
+.touch-overlay .btn-right { right: 0; }
+.touch-overlay .btn-action {
+  left: 50%; bottom: 6%;
+  width: 72px; height: 72px; margin-left: -36px;
+  border-radius: 50%;
+  background: rgba(212,175,55,0.2);
+  border: 2px solid rgba(212,175,55,0.4);
+  color: #d4af37; font: bold 10px/1 monospace;
+  text-transform: uppercase; letter-spacing: 1px;
+}
+.touch-overlay .btn-pause {
+  top: 10px; right: 10px;
+  width: 44px; height: 44px; border-radius: 50%;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.15);
+  color: #8a9ab0; font: 16px/1 monospace;
+}
+.touch-overlay .btn-menu-up {
+  top: 60px; right: 10px;
+  width: 44px; height: 44px; border-radius: 50%;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.15);
+  color: #8a9ab0; font: 16px/1 monospace;
+  display: none;
+}
+.touch-overlay .btn-menu-down {
+  top: 110px; right: 10px;
+  width: 44px; height: 44px; border-radius: 50%;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.15);
+  color: #8a9ab0; font: 16px/1 monospace;
+  display: none;
+}
