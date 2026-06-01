@@ -30,7 +30,9 @@
   }
 
   function handleDown(e) {
-    var el = buttonFor(document.elementFromPoint(e.clientX, e.clientY));
+    var el = document.elementFromPoint(e.clientX, e.clientY);
+    if (!el) return;
+    el = buttonFor(el);
     if (!el) return;
 
     var dir = el.getAttribute('data-dir');
@@ -80,6 +82,8 @@
   overlay.addEventListener('pointerdown', handleDown);
   overlay.addEventListener('pointerup', handleUp);
   overlay.addEventListener('pointercancel', handleCancel);
+  overlay.addEventListener('pointerleave', handleUp);
+  overlay.addEventListener('lostpointercapture', handleCancel);
 
   document.addEventListener('pointermove', function (e) {
     if (overlay.classList.contains('active') && held[e.pointerId]) {

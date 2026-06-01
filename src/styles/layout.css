@@ -145,7 +145,7 @@
 .support-link--footer {
   font-family: var(--mono);
   font-size: 0.8125rem;
-  color: var(--muted);
+  color: var(--gold);
 }
 
 .support-link--footer:hover {
