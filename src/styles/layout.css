@@ -484,7 +484,7 @@
 
 .game-card__play-link:hover {
   background: var(--brass);
-  color: var(--paper);
+  color: var(--paper-ink);
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(201, 164, 92, 0.3);
 }
