@@ -65,7 +65,9 @@
       entry.keys.forEach(release);
       delete held[e.pointerId];
     }
-    var el = buttonFor(document.elementFromPoint(e.clientX, e.clientY));
+    var el = document.elementFromPoint(e.clientX, e.clientY);
+    if (!el) return;
+    el = buttonFor(el);
     if (el) el.classList.remove('pressed');
   }
 
@@ -75,8 +77,8 @@
       entry.keys.forEach(release);
       delete held[e.pointerId];
     }
-    var pressed = overlay.querySelectorAll('.btn.pressed');
-    for (var j = 0; j < pressed.length; j++) pressed[j].classList.remove('pressed');
+    // Note: We don't need to check for pressed buttons here as we're just cleaning up state
+    // The classList removal happens in handleUp/handleDown when we have a valid element
   }
 
   overlay.addEventListener('pointerdown', handleDown);
