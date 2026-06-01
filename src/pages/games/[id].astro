@@ -1,0 +1,106 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import CTAButton from "../../components/CTAButton.astro";
+import { games } from "../../data/games";
+import { breadcrumbNode, gameNode, webPageNode } from "../../lib/schema";
+
+export function getStaticPaths() {
+  return games.map((game) => ({
+    params: { id: game.id },
+    props: { game },
+  }));
+}
+
+const { game } = Astro.props;
+const gameUrl = `/games/${game.id}/`;
+const title = `${game.title} — Pirate Arcade`;
+const description = `${game.title} is a pirate-themed ${game.classic} arcade game in Pirate Arcade. ${game.description}`;
+---
+
+<BaseLayout
+  title={title}
+  titleTemplate="literal"
+  description={description}
+  current="play"
+  ogImage={game.screenshot ?? "/og-image.png"}
+  jsonLd={[
+    webPageNode(gameUrl, title, description, "WebPage"),
+    gameNode(game),
+    breadcrumbNode([
+      { name: "Home", url: "/" },
+      { name: "Play", url: "/play/" },
+      { name: game.title, url: gameUrl },
+    ]),
+  ]}
+>
+  <article class="section">
+    <div class="section__header">
+      <p class="section__eyebrow">{game.classic}</p>
+      <h1 class="section__title">{game.title}</h1>
+      <p class="section__description">{game.description}</p>
+    </div>
+
+    {
+      game.screenshot && (
+        <figure class="game-detail__figure">
+          <img
+            src={game.screenshot}
+            alt={`${game.title} gameplay screenshot`}
+            width="1280"
+            height="720"
+            loading="eager"
+          />
+        </figure>
+      )
+    }
+
+    <div class="prose">
+      <h2>What it is</h2>
+      <p>
+        {game.title} is Pirate Arcade's nautical take on {game.classic}. It is
+        part of a four-game Python and Pygame arcade collection built as a
+        zero-cost AI-assisted development experiment.
+      </p>
+
+      <h2>Availability</h2>
+      <p>
+        {
+          game.browserUrl
+            ? "This game is playable in the browser now via Pygbag and WebAssembly, and it is also included in the desktop release."
+            : "This game is available in the desktop release now. A browser port is planned after the current Pygbag/WebAssembly ports are complete."
+        }
+      </p>
+
+      {
+        game.features && game.features.length > 0 && (
+          <>
+            <h2>Features</h2>
+            <ul>
+              {game.features.map((feature) => (
+                <li>{feature}</li>
+              ))}
+            </ul>
+          </>
+        )
+      }
+    </div>
+
+    <div class="text-center mt-2">
+      {
+        game.browserUrl && (
+          <CTAButton href={game.browserUrl} variant="primary">
+            Play in Browser
+          </CTAButton>
+        )
+      }
+      {
+        game.desktopUrl && (
+          <CTAButton href={game.desktopUrl} variant="gold">
+            Download Desktop Release
+          </CTAButton>
+        )
+      }
+      <CTAButton href="/play" variant="outline">All Games</CTAButton>
+    </div>
+  </article>
+</BaseLayout>

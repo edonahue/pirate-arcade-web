@@ -1,0 +1,44 @@
+# Pirate Arcade
+
+Pirate Arcade is a public game and build-log project by Erich Donahue. It combines a four-game Python/Pygame desktop arcade collection with browser ports, an Astro static website, GitHub releases, and Cloudflare Pages hosting.
+
+## Project summary
+
+The project asks how much of a complete, inspectable, public software project one person can ship using local hardware, free-to-use AI coding tools, open source software, GitHub, and Cloudflare's free tier. It is not a commercial game studio or subscription product.
+
+## Games
+
+- Cannonball Clash: a naval Pong riff with power-ups, procedural audio, AI opponent support, and browser play.
+- Treasure Cove: a treasure-hunt brick breaker with score combos, paddle power-up, procedural audio, and browser play.
+- Kraken's Wake: an Asteroids-style sea-monster survival game in the desktop release.
+- Port Royale Tycoon: a pirate property-trading board game in the desktop release.
+
+## Technology
+
+- Desktop games: Python, Pygame, NumPy, procedural audio.
+- Browser ports: Pygbag, WebAssembly, Web Audio API bridge.
+- Website: Astro, TypeScript, vanilla CSS, Cloudflare Pages.
+- Distribution: GitHub repositories, CI, and releases.
+- Development constraint: local X600 workstation, free-to-use AI models, no paid AI subscriptions, no cloud compute.
+
+## Main pages
+
+- Home: https://pirate-arcade.com/
+- Play: https://pirate-arcade.com/play/
+- Build Log: https://pirate-arcade.com/build-log/
+- About: https://pirate-arcade.com/about/
+- Source: https://pirate-arcade.com/source/
+- RSS feed: https://pirate-arcade.com/feed.xml
+
+## Canonical links
+
+- Desktop game repo: https://github.com/edonahue/pirate-arcade
+- Website repo: https://github.com/edonahue/pirate-arcade-web
+- Erich Donahue: https://erichdonahue.com/
+- Erich's Pirate Arcade case study: https://erichdonahue.com/projects/pirate-arcade/
+- Buy Me a Coffee: https://buymeacoffee.com/erichdonahue
+
+## Content usage note
+
+This file is a convenience summary for AI agents and retrieval tools. Prefer canonical page URLs when citing or linking.
+

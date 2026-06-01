@@ -21,7 +21,8 @@ npm run build      # Build to dist/
 npm run preview    # Preview production build
 npm run typecheck  # Run astro check (type checking)
 npm run format     # Format with Prettier
-npm run check      # Format check + typecheck + build
+npm run seo:audit  # Inspect built SEO/indexing files
+npm run check      # Format check + typecheck + build + seo:audit
 ```
 
 ## Project Structure
@@ -36,6 +37,29 @@ src/
   styles/        CSS design tokens and partials
 public/          Static assets (headers, favicon, images)
 ```
+
+## Search indexing
+
+The site is static and exposes:
+
+- `https://pirate-arcade.com/robots.txt`
+- `https://pirate-arcade.com/sitemap.xml`
+- `https://pirate-arcade.com/feed.xml`
+- `https://pirate-arcade.com/llms.txt`
+- `https://pirate-arcade.com/llms-full.txt`
+
+Submit the sitemap in Google Search Console and Bing Webmaster Tools after
+deploy. Use URL inspection/submission for the home page, `/play/`,
+`/build-log/`, `/source/`, and the individual `/games/.../` pages.
+
+Optional IndexNow support is available after build:
+
+```bash
+INDEXNOW_KEY=<key> SITE_URL=https://pirate-arcade.com npm run indexnow:submit
+```
+
+By default the script reads `dist/sitemap.xml`; set `INDEXNOW_URLS` to a
+comma-separated list to submit only changed URLs.
 
 ## Design
 

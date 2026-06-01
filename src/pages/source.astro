@@ -1,12 +1,21 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
 import CTAButton from "../components/CTAButton.astro";
+import { webPageNode } from "../lib/schema";
 ---
 
 <BaseLayout
   title="Source"
   description="Source code, releases, and roadmap for Pirate Arcade."
   current="source"
+  jsonLd={[
+    webPageNode(
+      "/source/",
+      "Source Code and Releases — Pirate Arcade",
+      "Source code, releases, and roadmap for Pirate Arcade.",
+      "WebPage",
+    ),
+  ]}
 >
   <section class="section">
     <div class="section__header">

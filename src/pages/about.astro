@@ -1,12 +1,21 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
 import { site } from "../data/profile";
+import { webPageNode } from "../lib/schema";
 ---
 
 <BaseLayout
   title="About"
   description="About Pirate Arcade — a side project and workbench experiment in zero-cost AI-assisted game development."
   current="about"
+  jsonLd={[
+    webPageNode(
+      "/about/",
+      "About Pirate Arcade",
+      "About Pirate Arcade — a side project and workbench experiment in zero-cost AI-assisted game development.",
+      "AboutPage",
+    ),
+  ]}
 >
   <section class="section">
     <div class="section__header">

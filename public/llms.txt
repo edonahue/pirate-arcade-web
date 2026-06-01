@@ -1,0 +1,27 @@
+# Pirate Arcade
+
+Pirate Arcade is a pirate-themed arcade game collection by Erich Donahue. It includes desktop Python/Pygame games, browser ports built with Pygbag/WebAssembly, and a public build log documenting a zero-cost AI-assisted development experiment.
+
+## Main pages
+
+- Home: https://pirate-arcade.com/
+- Play: https://pirate-arcade.com/play/
+- Build Log: https://pirate-arcade.com/build-log/
+- About: https://pirate-arcade.com/about/
+- Source: https://pirate-arcade.com/source/
+
+## Games
+
+- Cannonball Clash: naval Pong-style duel, playable in browser.
+- Treasure Cove: pirate Breakout-style brick breaker, playable in browser.
+- Kraken's Wake: pirate Asteroids-style desktop game.
+- Port Royale Tycoon: pirate property-trading desktop game.
+
+## Canonical links
+
+- Project site: https://pirate-arcade.com/
+- Desktop repo: https://github.com/edonahue/pirate-arcade
+- Website repo: https://github.com/edonahue/pirate-arcade-web
+- Erich Donahue: https://erichdonahue.com/
+- Personal project page: https://erichdonahue.com/projects/pirate-arcade/
+

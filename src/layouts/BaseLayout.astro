@@ -3,50 +3,52 @@ import "../styles/global.css";
 import { site } from "../data/profile";
 import Nav from "../components/Nav.astro";
 import Footer from "../components/Footer.astro";
+import { absoluteUrl, canonicalPath } from "../lib/site";
+import {
+  jsonLdGraph,
+  personNode,
+  projectNode,
+  type JsonLdNode,
+  websiteNode,
+} from "../lib/schema";
 
 interface Props {
   title?: string;
+  titleTemplate?: "suffix" | "literal";
   description?: string;
   current?: string;
   ogImage?: string;
+  canonicalPath?: string;
+  ogType?: "website" | "article";
+  jsonLd?: JsonLdNode[];
 }
 
 const {
   title = site.title,
+  titleTemplate = "suffix",
   description = site.description,
   current,
   ogImage = "/og-image.png",
+  canonicalPath: canonicalPathOverride,
+  ogType = "website",
+  jsonLd: pageJsonLd = [],
 } = Astro.props;
 
 const pageTitle =
-  title === site.title ? site.title : `${title} | ${site.title}`;
-const canonicalUrl = new URL(Astro.url.pathname, Astro.site ?? site.url).href;
-const siteUrl = new URL(Astro.site ?? site.url).href;
-const ogImageUrl = new URL(ogImage, siteUrl).href;
-
-const jsonLd = {
-  "@context": "https://schema.org",
-  "@graph": [
-    {
-      "@type": "Person",
-      "@id": `${siteUrl}#person`,
-      name: site.author,
-      url: siteUrl,
-      sameAs: [
-        "https://github.com/edonahue",
-        "https://www.linkedin.com/in/erichdonahue/",
-      ],
-    },
-    {
-      "@type": "WebSite",
-      "@id": `${siteUrl}#website`,
-      url: siteUrl,
-      name: site.title,
-      description,
-      publisher: { "@id": `${siteUrl}#person` },
-    },
-  ],
-};
+  titleTemplate === "literal" || title === site.title
+    ? title
+    : `${title} | ${site.title}`;
+const canonicalUrl = new URL(
+  canonicalPathOverride ?? canonicalPath(Astro.url.pathname),
+  Astro.site ?? site.url,
+).href;
+const ogImageUrl = absoluteUrl(ogImage);
+const jsonLd = jsonLdGraph([
+  personNode(),
+  websiteNode(),
+  projectNode(),
+  ...pageJsonLd,
+]);
 ---
 
 <!doctype html>
@@ -61,7 +63,13 @@ const jsonLd = {
     <link rel="canonical" href={canonicalUrl} />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="manifest" href="/site.webmanifest" />
-    <meta property="og:type" content="website" />
+    <link
+      rel="alternate"
+      type="application/rss+xml"
+      title="Pirate Arcade Build Log"
+      href="/feed.xml"
+    />
+    <meta property="og:type" content={ogType} />
     <meta property="og:site_name" content={site.title} />
     <meta property="og:title" content={pageTitle} />
     <meta property="og:description" content={description} />

@@ -7,7 +7,7 @@ export interface Props {
 }
 
 const { game } = Astro.props;
-const cardHref = game.browserUrl || game.desktopUrl || "#";
+const cardHref = `/games/${game.id}/`;
 ---
 
 <article class="game-chart-frame">

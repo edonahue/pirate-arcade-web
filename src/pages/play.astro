@@ -4,12 +4,21 @@ import Hero from "../components/Hero.astro";
 import GameCard from "../components/GameCard.astro";
 import ArcadeFrame from "../components/ArcadeFrame.astro";
 import { games } from "../data/games";
+import { webPageNode } from "../lib/schema";
 ---
 
 <BaseLayout
   title="Play"
   description="Choose your game from the Pirate Arcade collection. Desktop apps available now; two browser ports are live."
   current="play"
+  jsonLd={[
+    webPageNode(
+      "/play/",
+      "Play Pirate Arcade",
+      "Choose your game from the Pirate Arcade collection. Desktop apps available now; two browser ports are live.",
+      "CollectionPage",
+    ),
+  ]}
 >
   <Hero
     title="THE ARCADE"

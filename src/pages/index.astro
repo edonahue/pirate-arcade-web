@@ -4,9 +4,20 @@ import Hero from "../components/Hero.astro";
 import CTAButton from "../components/CTAButton.astro";
 import GameCard from "../components/GameCard.astro";
 import { games } from "../data/games";
+import { webPageNode } from "../lib/schema";
 ---
 
-<BaseLayout current="home">
+<BaseLayout
+  current="home"
+  jsonLd={[
+    webPageNode(
+      "/",
+      "Pirate Arcade",
+      "Four classic arcade games reimagined with a nautical twist. Built in the open as an experiment in zero-cost AI-assisted development.",
+      "CollectionPage",
+    ),
+  ]}
+>
   <Hero
     title="PIRATE ARCADE"
     subtitle="Four classic arcade games reimagined with a nautical twist. Built in the open as an experiment in zero-cost AI-assisted development."

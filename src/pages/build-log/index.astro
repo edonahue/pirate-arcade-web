@@ -2,6 +2,7 @@
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import BuildLogCard from "../../components/BuildLogCard.astro";
 import { getCollection } from "astro:content";
+import { webPageNode } from "../../lib/schema";
 
 const posts = await getCollection("posts", ({ data }) => !data.draft);
 posts.sort(
@@ -14,6 +15,14 @@ posts.sort(
   title="Build Log"
   description="Build notes and findings from the Pirate Arcade project — tools, constraints, what worked, what broke."
   current="build-log"
+  jsonLd={[
+    webPageNode(
+      "/build-log/",
+      "Pirate Arcade Build Log",
+      "Build notes and findings from the Pirate Arcade project — tools, constraints, what worked, what broke.",
+      "CollectionPage",
+    ),
+  ]}
 >
   <section class="section">
     <div class="section__header">

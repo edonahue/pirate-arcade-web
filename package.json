@@ -5,19 +5,20 @@
   "type": "module",
   "scripts": {
     "dev": "astro dev",
-    "build": "astro build",
+    "build": "astro build && node scripts/generate-sitemap.mjs",
     "preview": "astro preview",
     "typecheck": "astro check",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "check": "npm run format:check && npm run typecheck && npm run build"
+    "seo:audit": "node scripts/seo-audit.mjs",
+    "indexnow:submit": "node scripts/indexnow-submit.mjs",
+    "check": "npm run format:check && npm run typecheck && npm run build && npm run seo:audit"
   },
   "engines": {
     "node": ">=22"
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.9",
-    "@astrojs/sitemap": "^3.7.2",
     "astro": "^6.0.5",
     "prettier": "^3.8.3",
     "prettier-plugin-astro": "^0.14.1",
