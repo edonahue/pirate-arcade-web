@@ -157,7 +157,7 @@
     <title>Treasure Cove – Pirate Arcade</title>
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, height=device-height">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes"/>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
@@ -245,6 +245,20 @@
     </div>
 
     <script type="application/javascript">
+    // Audio unlock handler for iOS Safari - unlock AudioContext on first user interaction
+    function unlockAudioOnInteraction() {
+      const audio = window.PirateArcadeAudio;
+      if (audio && typeof audio.resume === 'function') {
+        audio.resume();
+      }
+      // Remove listeners after first interaction
+      document.removeEventListener('touchstart', unlockAudioOnInteraction);
+      document.removeEventListener('click', unlockAudioOnInteraction);
+    }
+    // Add listeners for first interaction
+    document.addEventListener('touchstart', unlockAudioOnInteraction, { passive: true });
+    document.addEventListener('click', unlockAudioOnInteraction, { passive: true });
+
     async function custom_onload(debug_hidden) {
       console.log('custom_onload');
       pyconsole.hidden = debug_hidden;
