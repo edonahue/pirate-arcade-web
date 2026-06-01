@@ -38,7 +38,12 @@ export const games: Game[] = [
     statusLabel: "Desktop app available",
     desktopUrl: "https://github.com/edonahue/pirate-arcade/releases",
     screenshot: "/images/screenshot-treasure-cove.png",
-    features: ["8 brick rows", "Score combos", "Paddle power-up", "Procedural audio"],
+    features: [
+      "8 brick rows",
+      "Score combos",
+      "Paddle power-up",
+      "Procedural audio",
+    ],
   },
   {
     id: "krakens-wake",
