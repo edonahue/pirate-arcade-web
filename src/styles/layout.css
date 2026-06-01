@@ -118,6 +118,45 @@
   border-color: var(--accent);
 }
 
+/* Support link (header) */
+.support-link {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  color: var(--muted);
+  border-radius: var(--radius);
+  transition:
+    color 0.15s,
+    background 0.15s;
+}
+
+.support-link:hover {
+  color: var(--ink-strong);
+  background: var(--surface);
+}
+
+.support-link:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+/* Support link (footer) */
+.support-link--footer {
+  font-family: var(--mono);
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+
+.support-link--footer:hover {
+  color: var(--accent);
+}
+
+.support-link--footer:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
 /* Footer */
 .site-footer {
   border-top: 1px solid var(--line);
