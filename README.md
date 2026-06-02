@@ -38,6 +38,22 @@ src/
 public/          Static assets (headers, favicon, images)
 ```
 
+## Content editing (Pages CMS)
+
+The build log posts (`src/content/posts/*.md`) and the game catalog
+(`src/data/games.json`) are editable through [Pages CMS](https://pagescms.org),
+a Git-based CMS for static sites:
+
+1. Go to [app.pagescms.org](https://app.pagescms.org) and sign in with the
+   GitHub account that owns this repo.
+2. Open the project — the schema is defined in `.pages.yml` at the repo root.
+3. Edit build log posts or games from the sidebar. Saving commits straight
+   to `main`; Cloudflare Pages will redeploy automatically.
+
+Posts are frontmatter-validated markdown. The games file is a JSON array
+loaded by `src/data/games.ts`, so editing a game in Pages CMS is just a
+JSON edit — no code change required.
+
 ## Search indexing
 
 The site is static and exposes:

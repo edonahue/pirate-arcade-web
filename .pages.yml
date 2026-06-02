@@ -1,0 +1,86 @@
+media:
+  input: public/images
+  output: /images
+
+content:
+  - name: posts
+    label: Build log posts
+    type: collection
+    path: src/content/posts
+    format: yaml-frontmatter
+    filename: "{primary}.md"
+    view:
+      primary: title
+      sort: pubDate
+      order: desc
+      fields: [title, pubDate, draft]
+    fields:
+      - name: title
+        type: string
+        required: true
+      - name: description
+        type: text
+        required: true
+      - name: pubDate
+        type: date
+        required: true
+      - name: draft
+        type: boolean
+        default: false
+      - name: body
+        type: rich-text
+
+  - name: games
+    label: Game catalog
+    type: file
+    path: src/data/games.json
+    format: json
+    list: true
+    view:
+      primary: title
+      sort: title
+      order: asc
+    fields:
+      - name: id
+        type: string
+        required: true
+        description: "Lowercase, hyphenated slug used in URLs."
+      - name: title
+        type: string
+        required: true
+      - name: classic
+        type: string
+        required: true
+        description: "The classic arcade game this is based on (e.g. Pong)."
+      - name: description
+        type: text
+        required: true
+      - name: status
+        type: select
+        required: true
+        options:
+          - label: "Playable in browser"
+            value: browser-playable
+          - label: "Desktop app available"
+            value: desktop-available
+          - label: "Browser port planned"
+            value: browser-planned
+          - label: "Experimental"
+            value: experimental
+      - name: statusLabel
+        type: string
+        required: true
+        description: "Short text shown next to the status badge."
+      - name: browserUrl
+        type: string
+        description: "Path under /play/ when the game is browser-playable."
+      - name: desktopUrl
+        type: string
+        description: "URL to the desktop release."
+      - name: screenshot
+        type: string
+        description: "Path under /images/, e.g. /images/screenshot-foo.png"
+      - name: features
+        type: string
+        list: true
+        description: "Tags shown as chips on the game card."
