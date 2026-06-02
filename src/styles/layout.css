@@ -403,13 +403,13 @@
 .game-card__title {
   font-family: var(--display);
   font-size: 1.35rem;
-  color: var(--paper-ink);
+  color: var(--paper-ink-strong);
   margin-bottom: 0.25rem;
   letter-spacing: 0.05em;
 }
 
 .game-card__title a {
-  color: var(--paper-ink);
+  color: var(--paper-ink-strong);
   text-decoration: none;
 }
 
@@ -423,13 +423,13 @@
   font-size: 0.875rem;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  color: var(--paper-ink);
+  color: var(--paper-ink-strong);
   margin-bottom: 1rem;
 }
 
 .game-card__description {
   font-size: 0.9375rem;
-  color: var(--paper-ink);
+  color: var(--paper-ink-strong);
   line-height: 1.6;
   margin-bottom: 1.5rem;
 }
