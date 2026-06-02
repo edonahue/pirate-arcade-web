@@ -22,6 +22,7 @@
     "test:browser-games:all": "playwright test tests/browser-games.spec.ts",
     "test:desktop-input": "playwright test tests/game-input-desktop.spec.ts --project=chromium-desktop --project=firefox-desktop --project=webkit-desktop",
     "test:mobile-input": "playwright test tests/game-input-mobile.spec.ts --project=mobile-chrome --project=mobile-safari",
+    "test:mobile-regression": "playwright test tests/mobile-controls-regression.spec.ts --project=mobile-safari --project=mobile-chrome --project=webkit-desktop",
     "test:debug:webkit": "playwright test tests/browser-games.spec.ts --project=webkit-desktop --headed --debug",
     "test:debug:mobile": "playwright test tests/game-input-mobile.spec.ts --project=mobile-safari --headed --debug",
     "test:a11y": "playwright test tests/a11y.spec.ts",

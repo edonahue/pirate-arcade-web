@@ -489,47 +489,200 @@ export async function unlockAndFocusGame(page: Page): Promise<void> {
 /**
  * Dispatch touch events to simulate mobile controls.
  *
+ * Uses the production event names (`pointerdown` / `pointerup` /
+ * `pointercancel` / `lostpointercapture`) and the production payload
+ * (`clientX` / `clientY`, not `x` / `y`), because the production
+ * handler in `public/play/shared/mobile-controls.js` reads
+ * `e.clientX` / `e.clientY` directly. The previous version of this
+ * helper dispatched `pointerstart` / `pointerend` with `x` / `y`,
+ * which silently missed the production code path entirely.
+ *
  * @param page The Playwright page
  * @param touchPoints Array of { x, y, durationMs } touch points
+ *   (x/y are in CSS pixels relative to the page viewport; they are
+ *   converted to clientX/clientY for the dispatched event)
  * @param holdMs How long to hold each touch (default 200ms)
+ * @param options Optional config: `selector` to dispatch against
+ *   (defaults to `#touch-overlay`); `fireLostPointerCapture` to also
+ *   dispatch a `lostpointercapture` event after the up (matches the
+ *   iOS Safari teardown path that triggers the classList TypeError
+ *   bug in mobile-controls.js).
  */
 export async function dispatchTouchSequence(
   page: Page,
   touchPoints: Array<{ x: number; y: number; durationMs?: number }>,
   holdMs: number = 200,
+  options: {
+    selector?: string;
+    fireLostPointerCapture?: boolean;
+  } = {},
 ): Promise<void> {
+  const selector = options.selector ?? "#touch-overlay";
+  const fireLost = options.fireLostPointerCapture ?? false;
+
   for (const point of touchPoints) {
     const duration = point.durationMs ?? holdMs;
 
-    // Touch start
-    await page.dispatchEvent("#touch-overlay", "pointerstart", {
-      x: point.x,
-      y: point.y,
+    // Touch start — use production event name + payload
+    await page.dispatchEvent(selector, "pointerdown", {
+      clientX: point.x,
+      clientY: point.y,
       pointerId: 1,
+      pointerType: "touch",
+      isPrimary: true,
+      button: 0,
+      buttons: 1,
       pressure: 0.5,
       tiltX: 0,
       tiltY: 0,
       twist: 0,
       tangentialPressure: 0,
+      bubbles: true,
+      cancelable: true,
     });
 
     // Wait for hold duration
     await page.waitForTimeout(duration);
 
-    // Touch end
-    await page.dispatchEvent("#touch-overlay", "pointerend", {
-      x: point.x,
-      y: point.y,
+    // Touch end — same coords, buttons: 0
+    await page.dispatchEvent(selector, "pointerup", {
+      clientX: point.x,
+      clientY: point.y,
       pointerId: 1,
+      pointerType: "touch",
+      isPrimary: true,
+      button: 0,
+      buttons: 0,
       pressure: 0,
       tiltX: 0,
       tiltY: 0,
       twist: 0,
       tangentialPressure: 0,
+      bubbles: true,
+      cancelable: true,
     });
+
+    // iOS Safari fires `lostpointercapture` after `setPointerCapture`
+    // is released. The production handler in mobile-controls.js wires
+    // this to `handleCancel`, which reads `held[e.pointerId]`. Some
+    // teardown paths also fire `pointercancel` and `pointerleave`.
+    // We dispatch all three to fully exercise the production flow.
+    if (fireLost) {
+      await page.dispatchEvent(selector, "lostpointercapture", {
+        pointerId: 1,
+        pointerType: "touch",
+        isPrimary: true,
+        bubbles: true,
+        cancelable: false,
+      });
+      await page.dispatchEvent(selector, "pointercancel", {
+        pointerId: 1,
+        pointerType: "touch",
+        isPrimary: true,
+        bubbles: true,
+        cancelable: false,
+      });
+      await page.dispatchEvent(selector, "pointerleave", {
+        clientX: point.x,
+        clientY: point.y,
+        pointerId: 1,
+        pointerType: "touch",
+        isPrimary: true,
+        bubbles: true,
+        cancelable: false,
+      });
+    }
 
     // Small gap between touches
     await page.waitForTimeout(50);
+  }
+}
+
+/**
+ * Hold a single button by dispatching real production pointer events
+ * against the resolved locator. This is the canonical helper for
+ * regression tests that need to exercise `mobile-controls.js` with
+ * the exact event names and payload iOS Safari uses.
+ *
+ * Unlike `dispatchTouchSequence`, this helper resolves a Playwright
+ * `Locator` (not just a CSS selector), so it can target a specific
+ * `.btn-*` button. It also reads the button's bounding box to set
+ * `clientX` / `clientY` to the button's center, matching the
+ * coordinates a real touch would have.
+ *
+ * After the up, optionally fires `lostpointercapture`,
+ * `pointercancel`, and `pointerleave` to exercise the full
+ * teardown path (matches the iPhone 16 Pro Max Safari bug).
+ */
+export async function pointerHoldButton(
+  page: Page,
+  selector: string,
+  holdMs: number = 150,
+  options: {
+    fireLostPointerCapture?: boolean;
+  } = {},
+): Promise<void> {
+  const locator = page.locator(selector).first();
+  await expect(locator).toBeVisible();
+
+  const box = await locator.boundingBox();
+  if (!box) {
+    throw new Error(`No bounding box for ${selector}`);
+  }
+
+  const clientX = box.x + box.width / 2;
+  const clientY = box.y + box.height / 2;
+
+  await locator.dispatchEvent("pointerdown", {
+    pointerId: 1,
+    pointerType: "touch",
+    isPrimary: true,
+    clientX,
+    clientY,
+    button: 0,
+    buttons: 1,
+    bubbles: true,
+    cancelable: true,
+  });
+
+  await page.waitForTimeout(holdMs);
+
+  await locator.dispatchEvent("pointerup", {
+    pointerId: 1,
+    pointerType: "touch",
+    isPrimary: true,
+    clientX,
+    clientY,
+    button: 0,
+    buttons: 0,
+    bubbles: true,
+    cancelable: true,
+  });
+
+  if (options.fireLostPointerCapture ?? true) {
+    await locator.dispatchEvent("lostpointercapture", {
+      pointerId: 1,
+      pointerType: "touch",
+      isPrimary: true,
+      bubbles: true,
+      cancelable: false,
+    });
+    await locator.dispatchEvent("pointercancel", {
+      pointerId: 1,
+      pointerType: "touch",
+      isPrimary: true,
+      bubbles: true,
+      cancelable: false,
+    });
+    await locator.dispatchEvent("pointerleave", {
+      clientX,
+      clientY,
+      pointerId: 1,
+      pointerType: "touch",
+      isPrimary: true,
+      bubbles: true,
+      cancelable: false,
+    });
   }
 }
 
