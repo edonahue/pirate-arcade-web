@@ -48,3 +48,36 @@
   color: #8a9ab0; font: 16px/1 monospace;
   display: none;
 }
+
+/* Asteroids-mode buttons (Kraken's Wake). Hidden by default; only shown
+   when the touch overlay (or an ancestor) has data-controls="asteroids".
+   In that mode the default .btn-action circle is hidden because we want
+   a hold-to-fire button (taps do not keep the cannon firing). */
+.touch-overlay .btn-thrust,
+.touch-overlay .btn-fire {
+  display: none;
+}
+.touch-overlay[data-controls="asteroids"] .btn-action {
+  display: none;
+}
+.touch-overlay[data-controls="asteroids"] .btn-thrust,
+.touch-overlay[data-controls="asteroids"] .btn-fire {
+  display: flex;
+}
+.touch-overlay .btn-thrust {
+  right: 2%; bottom: 2%;
+  width: 96px; height: 96px; border-radius: 50%;
+  background: rgba(46,204,113,0.18);
+  border: 2px solid rgba(46,204,113,0.5);
+  color: #b6f5cf; font: bold 11px/1 monospace;
+  text-transform: uppercase; letter-spacing: 1px;
+}
+.touch-overlay .btn-fire {
+  left: 50%; bottom: 4%;
+  width: 84px; height: 84px; margin-left: -42px;
+  border-radius: 50%;
+  background: rgba(204,46,46,0.2);
+  border: 2px solid rgba(204,46,46,0.55);
+  color: #f5b6b6; font: bold 11px/1 monospace;
+  text-transform: uppercase; letter-spacing: 1px;
+}

@@ -8,6 +8,24 @@
   var held = {};
   var hint = document.getElementById('controls-hint');
 
+  // Per-game control mode. Default keeps the existing behavior for
+  // Cannonball Clash and Treasure Cove. Set data-controls="asteroids" on
+  // the touch overlay (or any ancestor) to switch to Kraken's Wake style:
+  // hold left/right to turn, hold a thrust button, hold a fire button,
+  // tap pause. Adding new buttons and modes is non-breaking: when the
+  // attribute is absent, the original mappings and the original hint
+  // text are used unchanged.
+  var controlMode = '';
+  var node = overlay;
+  while (node) {
+    if (node.dataset && node.dataset.controls) {
+      controlMode = node.dataset.controls;
+      break;
+    }
+    node = node.parentNode;
+  }
+  var isAsteroids = controlMode === 'asteroids';
+
   function keyEvent(k, type) {
     var code = {ArrowLeft:37,ArrowRight:39,ArrowUp:38,ArrowDown:40,' ':32,Escape:27}[k]||0;
     document.dispatchEvent(new KeyboardEvent(type, {
@@ -47,6 +65,12 @@
       held[e.pointerId].keys.forEach(hold);
     } else if (dir === 'right') {
       held[e.pointerId] = {keys:['ArrowRight','d']};
+      held[e.pointerId].keys.forEach(hold);
+    } else if (dir === 'thrust') {
+      held[e.pointerId] = {keys:['ArrowUp','w']};
+      held[e.pointerId].keys.forEach(hold);
+    } else if (dir === 'fire') {
+      held[e.pointerId] = {keys:[' ']};
       held[e.pointerId].keys.forEach(hold);
     } else if (dir === 'action') {
       pressAndRelease(' ');
@@ -93,6 +117,14 @@
     }
   }, {passive: false});
 
-  if (hint) hint.textContent = 'Touch: \u25C0 \u25B6 move  \u2022  \u23CE launch  \u2022  \u275A\u275A pause';
+  if (hint) {
+    if (isAsteroids) {
+      hint.textContent =
+        'Touch: \u25C0 \u25B6 turn  \u2022  \u2191 thrust  \u2022  \u23FA fire  \u2022  \u275A\u275A pause';
+    } else {
+      hint.textContent =
+        'Touch: \u25C0 \u25B6 move  \u2022  \u23CE launch  \u2022  \u275A\u275A pause';
+    }
+  }
   overlay.classList.add('active');
 })();

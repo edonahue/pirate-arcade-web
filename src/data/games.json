@@ -33,8 +33,9 @@
     "title": "Kraken’s Wake",
     "classic": "Asteroids",
     "description": "Navigate treacherous waters and blast sea monsters. Watch for the Kraken — it hits hard.",
-    "status": "desktop-available",
-    "statusLabel": "Desktop app available",
+    "status": "browser-playable",
+    "statusLabel": "Play in browser now",
+    "browserUrl": "/play/krakens-wake/",
     "desktopUrl": "https://github.com/edonahue/pirate-arcade/releases",
     "screenshot": "/images/screenshot-krakens-wake.png",
     "features": ["Ship combat", "Wave survival", "Treasure pickups", "3 lives"]
