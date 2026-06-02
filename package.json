@@ -12,14 +12,31 @@
     "format:check": "prettier --check .",
     "seo:audit": "node scripts/seo-audit.mjs",
     "indexnow:submit": "node scripts/indexnow-submit.mjs",
-    "check": "npm run format:check && npm run typecheck && npm run build && npm run seo:audit"
+    "check": "npm run format:check && npm run typecheck && npm run build && npm run seo:audit",
+    "test:e2e": "playwright test",
+    "test:e2e:headed": "playwright test --headed",
+    "test:e2e:debug": "playwright test --debug",
+    "test:e2e:report": "playwright show-report",
+    "test:browser-games": "playwright test tests/browser-games.spec.ts",
+    "test:browser-games:chromium": "playwright test tests/browser-games.spec.ts --project=chromium-desktop",
+    "test:browser-games:all": "playwright test tests/browser-games.spec.ts",
+    "test:desktop-input": "playwright test tests/game-input-desktop.spec.ts --project=chromium-desktop --project=firefox-desktop --project=webkit-desktop",
+    "test:mobile-input": "playwright test tests/game-input-mobile.spec.ts --project=mobile-chrome --project=mobile-safari",
+    "test:debug:webkit": "playwright test tests/browser-games.spec.ts --project=webkit-desktop --headed --debug",
+    "test:debug:mobile": "playwright test tests/game-input-mobile.spec.ts --project=mobile-safari --headed --debug",
+    "test:a11y": "playwright test tests/a11y.spec.ts",
+    "test:lhci": "lhci autorun"
   },
   "engines": {
     "node": ">=22"
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.9",
+    "@axe-core/playwright": "^4.11.3",
+    "@lhci/cli": "^0.15.1",
+    "@playwright/test": "^1.60.0",
     "astro": "^6.0.5",
+    "playwright": "^1.60.0",
     "prettier": "^3.8.3",
     "prettier-plugin-astro": "^0.14.1",
     "typescript": "^6.0.3"
