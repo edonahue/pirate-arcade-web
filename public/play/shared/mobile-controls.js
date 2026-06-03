@@ -90,7 +90,16 @@
       held[e.pointerId] = { keys: [' '] };
       held[e.pointerId].keys.forEach(hold);
     } else if (dir === 'action') {
-      pressAndRelease('Enter');
+      // Send both Enter (for menus) and Space (for in-game actions like
+      // Treasure Cove ball launch which only accepts pg.K_SPACE)
+      if (input) {
+        input.keyDown('Enter');
+        input.keyDown(' ');
+        setTimeout(function () {
+          input.keyUp(' ');
+          input.keyUp('Enter');
+        }, 220);
+      }
     } else if (dir === 'pause') {
       pressAndRelease('Escape');
     } else if (dir === 'up') {

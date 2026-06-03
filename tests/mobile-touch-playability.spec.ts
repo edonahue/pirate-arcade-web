@@ -15,7 +15,7 @@ const GAMES = [
     name: "Cannonball Clash",
     path: "/play/cannonball-clash/",
     controls: "pong",
-    actionKey: "Enter",
+    actionKeys: ["Enter", "Space"],
     movement: [
       { dir: "left", keys: ["ArrowUp", "w"] },
       { dir: "right", keys: ["ArrowDown", "s"] },
@@ -26,7 +26,7 @@ const GAMES = [
     name: "Treasure Cove",
     path: "/play/treasure-cove/",
     controls: "breakout",
-    actionKey: "Enter",
+    actionKeys: ["Enter", "Space"],
     movement: [
       { dir: "left", keys: ["ArrowLeft", "a"] },
       { dir: "right", keys: ["ArrowRight", "d"] },
@@ -78,7 +78,7 @@ test.describe("mobile touch playability", () => {
         expect(debug.bridgeCalls).toBeDefined();
       });
 
-      test("action button dispatches Enter via bridge", async ({
+      test("action button dispatches Enter and Space via bridge", async ({
         page,
       }, testInfo) => {
         test.skip(!MOBILE_PROJECTS.includes(testInfo.project.name), "skipped");
@@ -136,14 +136,14 @@ test.describe("mobile touch playability", () => {
         });
         await page.waitForTimeout(300);
 
-        const actionKey = game.actionKey;
-        const calls: BridgeCall[] = await page.evaluate(function (ak) {
+        const actionKeys = game.actionKeys;
+        const calls: BridgeCall[] = await page.evaluate(function (aks) {
           var d = (window as any).__paInputDebug;
           if (!d || !d.bridgeCalls) return [];
           return d.bridgeCalls.filter(function (c: { key: string }) {
-            return c.key === ak;
+            return aks.indexOf(c.key) >= 0;
           });
-        }, actionKey);
+        }, actionKeys);
 
         expect(calls.length).toBeGreaterThan(0);
         var lastDown = calls.filter(function (c: BridgeCall) {
