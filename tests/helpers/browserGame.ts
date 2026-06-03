@@ -59,6 +59,11 @@ const HARMLESS_ERROR_PATTERNS: RegExp[] = [
 const GAME_ASSET_REGEX = /\.(wasm|so|tar\.gz|py|js|css)(\?|$)/i;
 
 export function isHarmlessConsoleError(text: string): boolean {
+  // Blocking patterns take priority — if the error matches a known
+  // blocking pattern (e.g. "Could not load dynamic lib: ...emscripten.so"
+  // contains both "Could not load dynamic lib" and "emscripten"), it
+  // is NOT harmless even if it also contains harmless keywords.
+  if (BLOCKING_PATTERNS.some((re) => re.test(text))) return false;
   return HARMLESS_ERROR_PATTERNS.some((re) => re.test(text));
 }
 
@@ -204,6 +209,22 @@ export async function waitForPygbagRuntime(page: Page): Promise<void> {
 
       if (!c || !tr || !ib) return false;
 
+      const current = (ib.textContent || "").trim();
+
+      // Error state — set a global flag for the outer function to
+      // detect and throw. We do NOT return true here because "error"
+      // is a failure signal, not a ready signal. The previous version
+      // of this helper treated "error" as ready, which meant a game
+      // that failed to start (e.g. "Could not load dynamic lib") would
+      // be treated as "successfully started".
+      if (current && current !== initialText.trim()) {
+        const lower = current.toLowerCase();
+        if (lower.includes("error")) {
+          (window as any).__pygbagError = current;
+          return false;
+        }
+      }
+
       // Canvas has been resized to real game dimensions. This is
       // the most reliable signal because it only happens once the
       // game has set up pygame's display mode.
@@ -215,14 +236,9 @@ export async function waitForPygbagRuntime(page: Page): Promise<void> {
       // Infobox text REPLACED with runtime copy. Must differ from
       // the initial "Loading..." template that already contains
       // the word "click".
-      const current = (ib.textContent || "").trim();
       if (current && current !== initialText.trim()) {
         const lower = current.toLowerCase();
-        if (
-          lower.includes("loaded") ||
-          lower.includes("ready") ||
-          lower.includes("error")
-        ) {
+        if (lower.includes("loaded") || lower.includes("ready")) {
           return true;
         }
       }
@@ -237,6 +253,19 @@ export async function waitForPygbagRuntime(page: Page): Promise<void> {
     initialInfobox,
     { timeout: 120000, polling: 500 },
   );
+
+  // After waitForFunction completes (by canvas size, infobox text,
+  // or timeout), check whether it was because of an error state.
+  const pygbagError = await page.evaluate(
+    () => (window as any).__pygbagError as string | undefined,
+  );
+  if (pygbagError) {
+    throw new Error(
+      `Game runtime entered error state. Infobox content: "${pygbagError}". ` +
+        `This may indicate a failed Pygbag startup, missing CDN assets, or a ` +
+        `runtime exception. Check the diagnostics report for blocking errors.`,
+    );
+  }
 }
 
 /**
@@ -687,41 +716,95 @@ export async function pointerHoldButton(
 }
 
 /**
- * Check if any JavaScript dialogs (alert, confirm, prompt) were opened.
- * Returns true if any dialog was detected.
+ * Override `window.alert`, `window.confirm`, and `window.prompt` via
+ * `addInitScript` so the override is active BEFORE any page JavaScript
+ * runs. This is the only reliable way to catch all dialog calls — the
+ * previous version used `page.evaluate` to override and then immediately
+ * restore within the same microtask, which missed any dialog triggered
+ * asynchronously (e.g. during WASM startup or from a deferred handler).
+ *
+ * After calling this, use `dialogWasCalled(page)` to check whether a
+ * dialog was ever raised.
  */
-export async function hasJavaScriptDialogs(page: Page): Promise<boolean> {
-  return page.evaluate(() => {
-    // Override native dialog methods to detect calls
-    let alertCalled = false;
-    let confirmCalled = false;
-    let promptCalled = false;
+export async function installDialogCapture(page: Page): Promise<void> {
+  // Guard: only install once per context
+  const alreadyInstalled = await page.evaluate(
+    () => !!(window as any).__dialogOverrideInstalled,
+  );
+  if (alreadyInstalled) return;
 
-    const originalAlert = window.alert;
-    const originalConfirm = window.confirm;
-    const originalPrompt = window.prompt;
+  await page.context().addInitScript(() => {
+    if ((window as any).__dialogOverrideInstalled) return;
+    (window as any).__dialogOverrideInstalled = true;
+    (window as any).__dialogCalled = false;
 
-    window.alert = () => {
-      alertCalled = true;
+    const origAlert = window.alert;
+
+    window.alert = (msg?: unknown) => {
+      (window as any).__dialogCalled = true;
+      return origAlert.call(window, msg);
     };
     window.confirm = () => {
-      confirmCalled = true;
+      (window as any).__dialogCalled = true;
       return true;
     };
     window.prompt = () => {
-      promptCalled = true;
+      (window as any).__dialogCalled = true;
+      return "";
+    };
+  });
+}
+
+/**
+ * Check whether any JavaScript dialog (alert, confirm, prompt) was
+ * called since the page loaded. Requires `installDialogCapture(page)`
+ * to have been called before navigation.
+ */
+export async function dialogWasCalled(page: Page): Promise<boolean> {
+  return page.evaluate(() => !!(window as any).__dialogCalled);
+}
+
+/**
+ * Check if any JavaScript dialogs (alert, confirm, prompt) were opened.
+ *
+ * NOTE: This function relies on window overrides that must be installed
+ * BEFORE the dialog fires. The most reliable approach is to call
+ * `installDialogCapture(page)` before `page.goto()`. This function is
+ * kept for backward compatibility — if no override is detected, it
+ * installs one and asks the caller to check again.
+ *
+ * @deprecated Use `installDialogCapture(page)` + `dialogWasCalled(page)`
+ *   instead for reliable dialog detection.
+ */
+export async function hasJavaScriptDialogs(page: Page): Promise<boolean> {
+  // First check if the persistent override is already installed
+  const installed = await page.evaluate(
+    () => !!(window as any).__dialogOverrideInstalled,
+  );
+  if (installed) {
+    return dialogWasCalled(page);
+  }
+
+  // Fallback: instant override (may miss async dialogs)
+  return page.evaluate(() => {
+    let called = false;
+    const origAlert = window.alert;
+
+    window.alert = () => {
+      called = true;
+    };
+    window.confirm = () => {
+      called = true;
+      return true;
+    };
+    window.prompt = () => {
+      called = true;
       return "";
     };
 
-    // Trigger a small timeout to allow any pending dialogs to show
-    setTimeout(() => {}, 0);
+    window.alert = origAlert;
 
-    // Restore originals
-    window.alert = originalAlert;
-    window.confirm = originalConfirm;
-    window.prompt = originalPrompt;
-
-    return alertCalled || confirmCalled || promptCalled;
+    return called;
   });
 }
 

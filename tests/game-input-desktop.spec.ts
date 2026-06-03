@@ -27,7 +27,8 @@ import {
   expectCanvasHasRenderedPixels,
   attachDiagnostics,
   blockingErrors,
-  hasJavaScriptDialogs,
+  installDialogCapture,
+  dialogWasCalled,
   getCanvasPixelSample,
 } from "./helpers/browserGame";
 
@@ -138,6 +139,10 @@ for (const game of GAMES) {
         `Dialog-detection test skipped on ${testInfo.project.name}`,
       );
 
+      // Install dialog capture BEFORE navigation so any alert/confirm/
+      // prompt that fires during runtime startup or gameplay is caught.
+      await installDialogCapture(page);
+
       await page.goto(game.path, { waitUntil: "domcontentloaded" });
       await waitForPygbagRuntime(page);
       await unlockAndFocusGame(page);
@@ -145,8 +150,8 @@ for (const game of GAMES) {
       // Drive gameplay to surface any alert/confirm/prompt usage
       await sendKeysAndWaitForResponse(page, game.testSequence, 500);
 
-      const hasDialogs = await hasJavaScriptDialogs(page);
-      expect(hasDialogs).toBe(false);
+      const dlgCalled = await dialogWasCalled(page);
+      expect(dlgCalled).toBe(false);
     });
 
     test("rapid input sequence does not cause JS errors", async ({

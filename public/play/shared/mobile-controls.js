@@ -43,8 +43,25 @@
   }
 
   function buttonFor(el) {
-    while (el && !el.classList.contains('btn')) el = el.parentNode;
-    return el;
+    // Only traverse Element nodes (nodeType === 1). Non-Element nodes
+    // such as Document, DocumentFragment, and Text nodes do not have
+    // a .classList property, and accessing it would throw a TypeError
+    // ("undefined is not an object (evaluating 'el.classList.contains')").
+    // This was the root cause of the iPhone 16 Pro Max Safari bug.
+    while (el && el.nodeType === 1 && !el.classList.contains('btn')) {
+      el = el.parentNode;
+    }
+    return el && el.nodeType === 1 ? el : null;
+  }
+
+  function safeHandler(fn) {
+    return function (e) {
+      try {
+        fn(e);
+      } catch (err) {
+        console.error('mobile-controls: error in handler', err);
+      }
+    };
   }
 
   function handleDown(e) {
@@ -101,21 +118,19 @@
       entry.keys.forEach(release);
       delete held[e.pointerId];
     }
-    // Note: We don't need to check for pressed buttons here as we're just cleaning up state
-    // The classList removal happens in handleUp/handleDown when we have a valid element
   }
 
-  overlay.addEventListener('pointerdown', handleDown);
-  overlay.addEventListener('pointerup', handleUp);
-  overlay.addEventListener('pointercancel', handleCancel);
-  overlay.addEventListener('pointerleave', handleUp);
-  overlay.addEventListener('lostpointercapture', handleCancel);
+  overlay.addEventListener('pointerdown', safeHandler(handleDown));
+  overlay.addEventListener('pointerup', safeHandler(handleUp));
+  overlay.addEventListener('pointercancel', safeHandler(handleCancel));
+  overlay.addEventListener('pointerleave', safeHandler(handleUp));
+  overlay.addEventListener('lostpointercapture', safeHandler(handleCancel));
 
-  document.addEventListener('pointermove', function (e) {
+  document.addEventListener('pointermove', safeHandler(function (e) {
     if (overlay.classList.contains('active') && held[e.pointerId]) {
       e.preventDefault();
     }
-  }, {passive: false});
+  }), {passive: false});
 
   if (hint) {
     if (isAsteroids) {
