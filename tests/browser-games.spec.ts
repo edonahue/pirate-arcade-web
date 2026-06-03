@@ -155,8 +155,8 @@ for (const game of GAMES) {
       });
       expect(canvasStyle.position).toBe("absolute");
       expect(canvasStyle.margin).toBe("0px");
-      expect(Number.parseInt(canvasStyle.width)).toBeGreaterThan(0);
-      expect(Number.parseInt(canvasStyle.height)).toBeGreaterThan(0);
+      expect(Number.parseInt(canvasStyle.width || "0")).toBeGreaterThan(0);
+      expect(Number.parseInt(canvasStyle.height || "0")).toBeGreaterThan(0);
     });
 
     test("desktop keyboard input is accepted and the canvas renders", async ({

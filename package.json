@@ -21,6 +21,9 @@
     "test:browser-games:chromium": "playwright test tests/browser-games.spec.ts --project=chromium-desktop",
     "test:browser-games:all": "playwright test tests/browser-games.spec.ts",
     "test:desktop-input": "playwright test tests/game-input-desktop.spec.ts --project=chromium-desktop --project=firefox-desktop --project=webkit-desktop",
+    "test:unit": "vitest run",
+    "test:unit:watch": "vitest",
+    "test:mobile-playability": "playwright test tests/mobile-touch-playability.spec.ts --project=mobile-chrome --project=mobile-safari",
     "test:mobile-input": "playwright test tests/game-input-mobile.spec.ts --project=mobile-chrome --project=mobile-safari",
     "test:mobile-regression": "playwright test tests/mobile-controls-regression.spec.ts --project=mobile-safari --project=mobile-chrome --project=webkit-desktop",
     "test:debug:webkit": "playwright test tests/browser-games.spec.ts --project=webkit-desktop --headed --debug",
@@ -40,9 +43,11 @@
     "@lhci/cli": "^0.15.1",
     "@playwright/test": "^1.60.0",
     "astro": "^6.0.5",
+    "jsdom": "^29.1.1",
     "playwright": "^1.60.0",
     "prettier": "^3.8.3",
     "prettier-plugin-astro": "^0.14.1",
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.8"
   }
 }

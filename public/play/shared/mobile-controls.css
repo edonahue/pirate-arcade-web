@@ -29,6 +29,25 @@
 #game-loading .loader-note {
   font-size: 11px; color: #4a5a6e; max-width: 280px;
 }
+#game-loading.game-error {
+  border: 1px solid #a03030;
+  background: #1a0a0a;
+}
+#game-loading.game-error .loader-title {
+  color: #e05050;
+}
+#game-loading.game-error .loader-spinner {
+  border-top-color: #e05050;
+  animation: none;
+}
+#game-loading.game-error #game-loading-detail {
+  color: #d08080;
+}
+
+.game-ready #controls-hint {
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.8s;
+}
 
 /* ── Touch controls ── */
 .touch-overlay {
@@ -47,8 +66,8 @@
 }
 .touch-overlay .btn.pressed { opacity: 0.6; }
 .touch-overlay .btn-arrow {
-  bottom: 0; width: 40%; height: 30%;
-  font-size: 32px; color: rgba(255,255,255,0.4);
+  bottom: 0; width: 45%; height: 35%;
+  font-size: 36px; color: rgba(255,255,255,0.45);
 }
 .touch-overlay .btn-left { left: 0; }
 .touch-overlay .btn-right { right: 0; }

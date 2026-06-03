@@ -61,18 +61,23 @@
             'async def boot():',
             '    import __EMSCRIPTEN__ as platform',
             '    try:',
-            '        platform.window.transfer.hidden = True',
-            '        platform.window.canvas.style.visibility = "visible"',
-            '        platform.window.infobox.innerText = "loading game..."',
+            '        _w = platform.window',
+            '        _w.transfer.hidden = True',
+            '        _w.canvas.style.visibility = "visible"',
+            '        _w.PirateArcadeLoading.set("Loading game...")',
             '',
             '        # Pre-install pygame wheel from CDN',
+            '        _w.PirateArcadeLoading.set("Installing Pygame\u2026")',
             '        import aio.pep0723',
             '        await aio.pep0723.pip_install("pygame")',
             '',
             '        # Fetch and extract game archive',
-            '        url = platform.window.location.href + "cannonball-clash.tar.gz"',
+            '        _w.PirateArcadeLoading.set("Downloading game package\u2026")',
+            '        url = _w.location.href + "cannonball-clash.tar.gz"',
             '        async with platform.fopen(url, "rb") as f:',
             '            data = f.read()',
+            '',
+            '        _w.PirateArcadeLoading.set("Extracting game files\u2026")',
             '        d = "/tmp/game_extract"',
             '        os.makedirs(d, exist_ok=True)',
             '        tarfile.open(fileobj=io.BytesIO(data)).extractall(d)',
@@ -84,6 +89,54 @@
             '        import pygame as pg',
             '        pg.display.init()',
             '        pg.font.init()',
+            '',
+            '        # ── Input bridge shim ──',
+            '        import builtins',
+            '        builtins.__pa_web_keys__ = set()',
+            '        _orig_get_pressed = pg.key.get_pressed',
+            '',
+            '        class _PAWebKeyState:',
+            '            def __init__(self, base):',
+            '                self.base = base',
+            '            def __getitem__(self, key):',
+            '                try:',
+            '                    web_down = key in builtins.__pa_web_keys__',
+            '                    native = self.base is not None and self.base[key]',
+            '                    return web_down or native',
+            '                except Exception:',
+            '                    return key in builtins.__pa_web_keys__',
+            '            def __len__(self):',
+            '                try: return len(self.base)',
+            '                except Exception: return 0',
+            '            def __iter__(self):',
+            '                return iter(self.base)',
+            '',
+            '        def _pa_get_pressed():',
+            '            return _PAWebKeyState(_orig_get_pressed())',
+            '        pg.key.get_pressed = _pa_get_pressed',
+            '',
+            '        _KEY_MAP = {',
+            '            "ArrowUp": pg.K_UP, "ArrowDown": pg.K_DOWN,',
+            '            "ArrowLeft": pg.K_LEFT, "ArrowRight": pg.K_RIGHT,',
+            '            "w": pg.K_w, "s": pg.K_s, "a": pg.K_a, "d": pg.K_d,',
+            '            "Space": pg.K_SPACE, "Enter": pg.K_RETURN,',
+            '            "Escape": pg.K_ESCAPE, "p": pg.K_p,',
+            '        }',
+            '',
+            '        def __pa_post_key(name, down):',
+            '            key = _KEY_MAP.get(str(name))',
+            '            if key is None:',
+            '                return',
+            '            if down:',
+            '                builtins.__pa_web_keys__.add(key)',
+            '                pg.event.post(pg.event.Event(pg.KEYDOWN, key=key))',
+            '            else:',
+            '                builtins.__pa_web_keys__.discard(key)',
+            '                pg.event.post(pg.event.Event(pg.KEYUP, key=key))',
+            '        builtins.__pa_post_key = __pa_post_key',
+            '        # ── End input bridge shim ──',
+            '',
+            '        _w.PirateArcadeLoading.set("Initializing display\u2026")',
             '        import constants as c',
             '        s = pg.display.set_mode((c.WINDOW_WIDTH, c.WINDOW_HEIGHT))',
             '        pg.display.set_caption("Cannonball Clash")',
@@ -107,12 +160,15 @@
             '            def load(self, *a, **kw):',
             '                pass',
             '',
+            '        _w.PirateArcadeLoading.set("Installing touch input bridge\u2026")',
             '        game = PongGame(s, WebAudio())',
-            '        platform.window.infobox.innerText = "Cannonball Clash loaded! Audio starts after your first click."',
+            '        _w.PirateArcadeLoading.ready("Ready \u2014 tap START")',
+            '        _w.infobox.innerText = "Cannonball Clash loaded! Audio starts after your first click."',
             '        await game.run()',
             '    except Exception as e:',
             '        sys.print_exception(e)',
-            '        platform.window.infobox.innerText = "Error: " + str(e)',
+            '        msg = str(e) if str(e) else type(e).__name__',
+            '        platform.window.PirateArcadeLoading.error("Error: " + msg)',
             '',
             'asyncio.ensure_future(boot())',
           ].join('\n');
@@ -224,7 +280,7 @@
     </div>
     <div id="game-wrap">
     <a id="back-link" href="/play/">← Back to Arcade</a>
-    <div id="controls-hint">W / S  •  Arrow keys to move  —  Space / Enter to select  —  Click to start  —  Audio after click</div>
+    <div id="controls-hint">Touch: ▲ ▼ up/down  •  ⏎ start  •  ❚❚ pause</div>
     <div id="transfer" align=center>
       <div class="emscripten" id="status">Downloading Python runtime...</div>
       <div class="emscripten"><progress value="0" max="100" id="progress"></progress></div>
@@ -241,8 +297,8 @@
     <div id="pyconsole"><div id="terminal" tabIndex=1 align="left"></div></div>
 
     <div class="touch-overlay" id="touch-overlay" data-controls="pong">
-      <div class="btn btn-arrow btn-left" data-dir="left">◀</div>
-      <div class="btn btn-arrow btn-right" data-dir="right">▶</div>
+      <div class="btn btn-arrow btn-left" data-dir="left">▲</div>
+      <div class="btn btn-arrow btn-right" data-dir="right">▼</div>
       <div class="btn btn-action" data-dir="action">⏎</div>
       <div class="btn btn-pause" data-dir="pause">❚❚</div>
       <div class="btn btn-menu-up" data-dir="up">▲</div>
@@ -288,6 +344,7 @@
     }).observe(document.documentElement, { attributes: true, subtree: true, attributeFilter: ['style'] });
     </script>
 
+    <script src="/play/shared/pygame-input-bridge.js"></script>
     <script src="/play/shared/game-viewport.js"></script>
     <script src="/play/shared/mobile-controls.js"></script>
   </body>

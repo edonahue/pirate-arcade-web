@@ -32,42 +32,24 @@
     right: isPong ? ['ArrowDown', 's'] : ['ArrowRight', 'd'],
   };
 
-  // Dispatch keyboard events to window AND document, with correct
-  // key/code per the DOM spec. Pygbag/SDL hooks keyboard events at
-  // the window level, and uses both event.key and event.code to
-  // map to SDL scancodes. The code field MUST be the physical key
-  // name (e.g. "Space", "KeyA", "ArrowUp"), NOT the key value.
-  function dispatchKey(k, type) {
-    var keyData = keyMap[k] || { key: k, code: k, keyCode: 0 };
-    var opts = {
-      key: keyData.key, code: keyData.code,
-      keyCode: keyData.keyCode, which: keyData.keyCode,
-      bubbles: true, cancelable: true
-    };
-    try { window.dispatchEvent(new KeyboardEvent(type, opts)); } catch (e) {}
-    try { document.dispatchEvent(new KeyboardEvent(type, opts)); } catch (e) {}
+  // Use the Python input bridge (PirateArcadeInput) which updates
+  // both the pg.key.get_pressed() key state AND the pygame event
+  // queue. Falls back to DOM KeyboardEvent dispatch if the bridge
+  // is unavailable.
+  var input = window.PirateArcadeInput;
+
+  function hold(k) {
+    if (input) { input.keyDown(k); }
+  }
+  function release(k) {
+    if (input) { input.keyUp(k); }
   }
 
-  var keyMap = {
-    'ArrowLeft':  { key: 'ArrowLeft',  code: 'ArrowLeft',  keyCode: 37 },
-    'ArrowRight': { key: 'ArrowRight', code: 'ArrowRight', keyCode: 39 },
-    'ArrowUp':    { key: 'ArrowUp',    code: 'ArrowUp',    keyCode: 38 },
-    'ArrowDown':  { key: 'ArrowDown',  code: 'ArrowDown',  keyCode: 40 },
-    ' ':          { key: ' ',          code: 'Space',      keyCode: 32 },
-    'Escape':     { key: 'Escape',     code: 'Escape',     keyCode: 27 },
-    'Enter':      { key: 'Enter',      code: 'Enter',      keyCode: 13 },
-    'a':          { key: 'a',          code: 'KeyA',       keyCode: 65 },
-    'd':          { key: 'd',          code: 'KeyD',       keyCode: 68 },
-    'w':          { key: 'w',          code: 'KeyW',       keyCode: 87 },
-    's':          { key: 's',          code: 'KeyS',       keyCode: 83 },
-  };
-
-  function hold(k) { dispatchKey(k, 'keydown'); }
-  function release(k) { dispatchKey(k, 'keyup'); }
-
   function pressAndRelease(k) {
-    hold(k);
-    setTimeout(function () { release(k); }, 80);
+    if (input) {
+      // 220ms hold so a 60 FPS pygame polling loop catches it
+      input.tap(k, 220);
+    }
   }
 
   function buttonFor(el) {
@@ -96,7 +78,7 @@
 
     e.preventDefault();
     el.classList.add('pressed');
-    el.setPointerCapture(e.pointerId);
+    try { el.setPointerCapture(e.pointerId); } catch (e) {}
 
     if (dir === 'left' || dir === 'right') {
       held[e.pointerId] = { keys: DIR_KEYS[dir] };
@@ -156,7 +138,7 @@
         'Touch: \u25C0 \u25B6 turn  \u2022  \u2191 thrust  \u2022  \u23FA fire  \u2022  \u275A\u275A pause';
     } else if (isPong) {
       hint.textContent =
-        'Touch: \u25C0 \u25B6 up/down  \u2022  \u23CE action  \u2022  \u275A\u275A pause';
+        'Touch: \u25B2 \u25BC up/down  \u2022  \u23CE start  \u2022  \u275A\u275A pause';
     } else {
       hint.textContent =
         'Touch: \u25C0 \u25B6 move  \u2022  \u23CE action  \u2022  \u275A\u275A pause';

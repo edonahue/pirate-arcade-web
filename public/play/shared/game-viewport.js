@@ -1,9 +1,7 @@
 (function () {
   var isCoarse = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
   var hasTouch = 'ontouchstart' in window;
-
   var canvas = document.getElementById('canvas');
-  var loadingEl = document.getElementById('game-loading');
   var body = document.body;
 
   if (isCoarse || hasTouch) body.classList.add('mobile-touch');
@@ -24,7 +22,6 @@
     var vv = window.visualViewport || window;
     var vw = vv.width;
     var vh = vv.height;
-
     if (vw < 100 || vh < 100) return;
 
     var scale = Math.min(vw / cw, vh / ch);
@@ -53,9 +50,11 @@
     var cw = canvas.width, ch = canvas.height;
     if (cw > 10 && ch > 10) {
       clearInterval(bootCheck);
+      // Do NOT hide the loading overlay here — the input bridge
+      // manages that via PirateArcadeLoading.ready().
+      // Just fit the canvas and mark the body ready for CSS.
       addBodyClass('game-ready');
       removeBodyClass('game-loading');
-      if (loadingEl) loadingEl.style.display = 'none';
       fitCanvas();
     }
   }, 300);
@@ -68,7 +67,6 @@
         if (!body.classList.contains('game-ready')) {
           addBodyClass('game-ready');
           removeBodyClass('game-loading');
-          if (loadingEl) loadingEl.style.display = 'none';
         }
         scheduleFit();
       }
@@ -86,7 +84,6 @@
     setTimeout(scheduleFit, 300);
   });
 
-  // Initial fit attempt
   setTimeout(fitCanvas, 500);
   setTimeout(fitCanvas, 1500);
   setTimeout(fitCanvas, 3000);
