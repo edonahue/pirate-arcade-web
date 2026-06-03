@@ -71,12 +71,14 @@ At minimum, run through this on:
 ### 5. Cannonball Clash - mobile touch controls
 
 - [ ] `◀ ▶` buttons appear on left and right of screen
-- [ ] Hold the left arrow - paddle moves continuously
-- [ ] Hold the right arrow - paddle moves continuously
+- [ ] Hold the left arrow — paddle moves **up** (game-aware `data-controls="pong"`)
+- [ ] Hold the right arrow — paddle moves **down** (game-aware `data-controls="pong"`)
 - [ ] `⏎` (action) button works for menu confirm
 - [ ] `❚❚` (pause) button toggles pause
 - [ ] `▲ ▼` (menu up/down) buttons appear and work in menu
 - [ ] Touch-and-hold is responsive (no 500ms delay between tap and hold)
+- [ ] Verify that ArrowDown is NOT dispatched when pressing the left/right
+      buttons (Pong mode only dispatches ArrowUp/ArrowDown, not ArrowLeft/ArrowRight)
 
 ### 6. Treasure Cove - desktop controls
 
@@ -88,10 +90,13 @@ At minimum, run through this on:
 
 ### 7. Treasure Cove - mobile touch controls
 
-- [ ] `◀ ▶` buttons appear and move the paddle on hold
+- [ ] `◀ ▶` buttons appear and move the paddle left/right on hold
+      (game-aware `data-controls="breakout"`)
 - [ ] `⏎` launches the ball and confirms menu options
 - [ ] `❚❚` toggles pause
 - [ ] `▲ ▼` work in menu
+- [ ] Verify that ArrowUp/ArrowDown are NOT dispatched when pressing
+      left/right (Breakout mode only dispatches ArrowLeft/ArrowRight)
 
 ### 8. Audio
 
@@ -102,42 +107,56 @@ At minimum, run through this on:
 - [ ] Audio remains consistent after pausing and resuming
 - [ ] Audio resumes after switching tabs and returning
 
-### 9. Orientation lock (mobile only)
+### 9. Loading overlay and viewport fitting (mobile only)
+
+- [ ] On first load, `#game-loading` overlay is centered with spinner
+      and title text
+- [ ] After the game loads, the overlay fades away and the canvas is
+      visible with correct aspect ratio (16:9, not stretched)
+- [ ] On iPhone Safari landscape (~932 CSS px wide), the canvas should
+      have inset CSS width/height to maintain 16:9, not `100%` width
+- [ ] Rotating the device re-fits the canvas within 500ms
+- [ ] The `#game-loading` does not re-appear during gameplay
+- [ ] On desktop: loading overlay should NOT appear (no `mobile-touch`
+      class on body, `game-viewport.js` still runs and fits canvas if
+      touch is not detected, but the overlay is hidden immediately)
+
+### 10. Orientation lock (mobile only)
 
 - [ ] Hold the device in portrait -> rotate-device overlay appears
 - [ ] Rotate to landscape -> overlay disappears
 - [ ] Game is paused / hidden while in portrait
 - [ ] Game resumes when rotating back to landscape
 
-### 10. Background/foreground
+### 11. Background/foreground
 
 - [ ] Switch to another app for 10 seconds, then return
 - [ ] Game is still running, no error overlay
 - [ ] Audio resumed appropriately (paused if other app uses audio)
 - [ ] Repeat with the device locked, then unlocked
 
-### 11. Reload and refresh
+### 12. Reload and refresh
 
 - [ ] Reload the page (F5 / pull-to-refresh)
 - [ ] Runtime downloads again from cache (should be <5s on warm cache)
 - [ ] Game starts cleanly
 - [ ] No console errors in Web Inspector / DevTools
 
-### 12. Performance
+### 13. Performance
 
 - [ ] Frame rate is smooth (>30 FPS typical) on a mid-range device
 - [ ] No visible stuttering during normal gameplay
 - [ ] Memory usage stays stable over 5 minutes of play
       (check in browser dev tools)
 
-### 13. Network errors
+### 14. Network errors
 
 - [ ] Open DevTools Network tab
 - [ ] All requests return 2xx (or expected redirects)
 - [ ] No 4xx / 5xx on critical assets (tar.gz, wasm, css, js)
 - [ ] No CSP violation reports in the console
 
-### 14. CSP headers
+### 15. CSP headers
 
 - [ ] Open DevTools -> Network -> click the page request
 - [ ] Inspect Response Headers
@@ -150,7 +169,7 @@ At minimum, run through this on:
       in `_headers` is broken)
 - [ ] No `unsafe-eval` leaks to other routes (e.g. `/`, `/play/`)
 
-### 15. CSP fix verification (post-`_headers` deployment)
+### 16. CSP fix verification (post-`_headers` deployment)
 
 - [ ] Open `https://pirate-arcade.com/play/cannonball-clash/` in a
       private tab after cache clear

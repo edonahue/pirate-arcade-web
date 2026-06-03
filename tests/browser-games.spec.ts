@@ -137,6 +137,26 @@ for (const game of GAMES) {
         ib.includes("click") ||
         ib.includes("touch");
       expect(loaded).toBe(true);
+
+      // game-viewport.js should have run: body gets game-ready class,
+      // canvas gets centered CSS dimensions, loading overlay hidden.
+      const bodyClasses = await page.evaluate(() => document.body.className);
+      expect(bodyClasses).toContain("game-ready");
+
+      const canvasStyle = await page.evaluate(() => {
+        const c = document.getElementById("canvas") as HTMLCanvasElement | null;
+        if (!c) return {};
+        return {
+          position: c.style.position,
+          margin: c.style.margin,
+          width: c.style.width,
+          height: c.style.height,
+        };
+      });
+      expect(canvasStyle.position).toBe("absolute");
+      expect(canvasStyle.margin).toBe("0px");
+      expect(Number.parseInt(canvasStyle.width)).toBeGreaterThan(0);
+      expect(Number.parseInt(canvasStyle.height)).toBeGreaterThan(0);
     });
 
     test("desktop keyboard input is accepted and the canvas renders", async ({

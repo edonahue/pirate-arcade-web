@@ -231,6 +231,12 @@
   </head>
   <body>
     <div id="rotate-device"><div class="icon">↻</div><div>Rotate your device to landscape</div><div style="margin-top:0.5rem;font-size:13px;color:#6b7a8f;">This game is designed for landscape orientation.</div></div>
+    <div id="game-loading" role="status" aria-live="polite">
+      <div class="loader-title">Loading Kraken's Wake</div>
+      <div class="loader-spinner" aria-hidden="true"></div>
+      <div id="game-loading-detail">Starting Python runtime…</div>
+      <div class="loader-note">First load may take 10–20 seconds on mobile.</div>
+    </div>
     <div id="game-wrap">
     <a id="back-link" href="/play/">← Back to Arcade</a>
     <div id="controls-hint">W / Up thrust • A/D or Left/Right turn • Space fire • Esc pause</div>
@@ -299,6 +305,7 @@
     }).observe(document.documentElement, { attributes: true, subtree: true, attributeFilter: ['style'] });
     </script>
 
+    <script src="/play/shared/game-viewport.js"></script>
     <script src="/play/shared/mobile-controls.js"></script>
   </body>
 </html>
