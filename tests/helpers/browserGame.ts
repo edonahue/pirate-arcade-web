@@ -76,93 +76,22 @@ export function isHarmlessConsoleError(text: string): boolean {
  * the time of awaiting `collectPageDiagnostics`. Use this *after* the
  * page has had time to settle (e.g. after `waitForPygbagRuntime`).
  */
+/**
+ * Collect a snapshot of diagnostics for the page.
+ *
+ * Attaches listeners, waits briefly for events to flush, reads DOM
+ * state, then detaches listeners. Backward-compatible wrapper around
+ * `startDiagnostics` + `snapshotDiagnostics`.
+ *
+ * @deprecated Prefer `startDiagnostics(page)` before navigation and
+ *   `snapshotDiagnostics(page, diag)` after the page settles, to
+ *   ensure no events during page load are missed.
+ */
 export async function collectPageDiagnostics(
   page: Page,
 ): Promise<PageDiagnostics> {
-  const consoleErrors: string[] = [];
-  const consoleWarnings: string[] = [];
-  const pageErrors: string[] = [];
-  const failedRequests: FailedRequest[] = [];
-  const badResponses: BadResponse[] = [];
-
-  const consoleHandler = (msg: { type(): string; text(): string }) => {
-    if (msg.type() === "error") consoleErrors.push(msg.text());
-    else if (msg.type() === "warning") consoleWarnings.push(msg.text());
-  };
-  const pageErrorHandler = (err: Error) => pageErrors.push(err.message);
-  const requestFailedHandler = (req: {
-    url(): string;
-    failure(): { errorText: string } | null;
-  }) => {
-    const failure = req.failure();
-    failedRequests.push({
-      url: req.url(),
-      failureText: failure?.errorText || "unknown",
-    });
-  };
-  const responseHandler = (resp: {
-    url(): string;
-    status(): number;
-    statusText(): string;
-  }) => {
-    const status = resp.status();
-    if (status >= 400) {
-      badResponses.push({
-        url: resp.url(),
-        status,
-        statusText: resp.statusText(),
-      });
-    }
-  };
-
-  page.on("console", consoleHandler);
-  page.on("pageerror", pageErrorHandler);
-  page.on("requestfailed", requestFailedHandler);
-  page.on("response", responseHandler);
-
-  // Let async events flush
-  await page.waitForTimeout(500);
-
-  // Read DOM state
-  const dom = await page.evaluate(() => {
-    const ib = document.getElementById("infobox") as HTMLElement | null;
-    const c = document.getElementById("canvas") as HTMLCanvasElement | null;
-    const tr = document.getElementById("transfer") as HTMLElement | null;
-    const cs = c ? window.getComputedStyle(c) : null;
-    return {
-      infoboxText: ib?.textContent?.trim() || "",
-      canvasWidth: c?.width || 0,
-      canvasHeight: c?.height || 0,
-      canvasVisible: !!(
-        c &&
-        cs &&
-        cs.visibility === "visible" &&
-        cs.display !== "none"
-      ),
-      transferHidden: !!tr?.hidden,
-    };
-  });
-
-  // Detach listeners so subsequent tests start clean
-  page.off("console", consoleHandler);
-  page.off("pageerror", pageErrorHandler);
-  page.off("requestfailed", requestFailedHandler);
-  page.off("response", responseHandler);
-
-  return {
-    consoleErrors: consoleErrors.filter((e) => !isHarmlessConsoleError(e)),
-    consoleWarnings,
-    pageErrors,
-    failedRequests,
-    badResponses,
-    finalInfoboxText: dom.infoboxText,
-    canvasWidth: dom.canvasWidth,
-    canvasHeight: dom.canvasHeight,
-    canvasVisible: dom.canvasVisible,
-    transferHidden: dom.transferHidden,
-    url: page.url(),
-    userAgent: await page.evaluate(() => navigator.userAgent),
-  };
+  const diag = startDiagnostics(page);
+  return snapshotDiagnostics(page, diag);
 }
 
 /**
@@ -407,6 +336,139 @@ export function attachDiagnostics(
     body: JSON.stringify(diagnostics, null, 2),
     contentType: "application/json",
   });
+}
+
+/**
+ * Start collecting diagnostics on a page. Attaches listeners for console
+ * errors/warnings, page errors, failed requests, and bad responses.
+ *
+ * Call this BEFORE `page.goto()` so no events are missed during page
+ * load, runtime startup, or CSP violations.
+ *
+ * Returns a mutable PageDiagnostics object that live-updates as events
+ * arrive. After the page has settled, call `snapshotDiagnostics(page, diag)`
+ * to finalize, detach listeners, and read DOM state.
+ */
+export function startDiagnostics(page: Page): PageDiagnostics {
+  const diag: PageDiagnostics = {
+    consoleErrors: [],
+    consoleWarnings: [],
+    pageErrors: [],
+    failedRequests: [],
+    badResponses: [],
+    finalInfoboxText: "",
+    canvasWidth: 0,
+    canvasHeight: 0,
+    canvasVisible: false,
+    transferHidden: false,
+    url: "",
+    userAgent: "",
+  };
+
+  const consoleHandler = (msg: { type(): string; text(): string }) => {
+    if (msg.type() === "error") diag.consoleErrors.push(msg.text());
+    else if (msg.type() === "warning") diag.consoleWarnings.push(msg.text());
+  };
+  const pageErrorHandler = (err: Error) => diag.pageErrors.push(err.message);
+  const requestFailedHandler = (req: {
+    url(): string;
+    failure(): { errorText: string } | null;
+  }) => {
+    const failure = req.failure();
+    diag.failedRequests.push({
+      url: req.url(),
+      failureText: failure?.errorText || "unknown",
+    });
+  };
+  const responseHandler = (resp: {
+    url(): string;
+    status(): number;
+    statusText(): string;
+  }) => {
+    const status = resp.status();
+    if (status >= 400) {
+      diag.badResponses.push({
+        url: resp.url(),
+        status,
+        statusText: resp.statusText(),
+      });
+    }
+  };
+
+  page.on("console", consoleHandler);
+  page.on("pageerror", pageErrorHandler);
+  page.on("requestfailed", requestFailedHandler);
+  page.on("response", responseHandler);
+
+  // Store handlers for cleanup
+  (page as any).__diag_handlers = {
+    consoleHandler,
+    pageErrorHandler,
+    requestFailedHandler,
+    responseHandler,
+  };
+
+  return diag;
+}
+
+/**
+ * Finalize a PageDiagnostics object that was started with `startDiagnostics()`.
+ * Detaches listeners, reads DOM state (infobox text, canvas dimensions, etc.),
+ * and returns the populated snapshot.
+ *
+ * After this call, the diagnostic listeners are no longer attached to the page.
+ */
+export async function snapshotDiagnostics(
+  page: Page,
+  diag: PageDiagnostics,
+): Promise<PageDiagnostics> {
+  // Detach listeners
+  const handlers = (page as any).__diag_handlers;
+  if (handlers) {
+    page.off("console", handlers.consoleHandler);
+    page.off("pageerror", handlers.pageErrorHandler);
+    page.off("requestfailed", handlers.requestFailedHandler);
+    page.off("response", handlers.responseHandler);
+    delete (page as any).__diag_handlers;
+  }
+
+  // Let async events flush
+  await page.waitForTimeout(500);
+
+  // Read current DOM state
+  const dom = await page.evaluate(() => {
+    const ib = document.getElementById("infobox") as HTMLElement | null;
+    const c = document.getElementById("canvas") as HTMLCanvasElement | null;
+    const tr = document.getElementById("transfer") as HTMLElement | null;
+    const cs = c ? window.getComputedStyle(c) : null;
+    return {
+      infoboxText: ib?.textContent?.trim() || "",
+      canvasWidth: c?.width || 0,
+      canvasHeight: c?.height || 0,
+      canvasVisible: !!(
+        c &&
+        cs &&
+        cs.visibility === "visible" &&
+        cs.display !== "none"
+      ),
+      transferHidden: !!tr?.hidden,
+    };
+  });
+
+  return {
+    consoleErrors: diag.consoleErrors.filter((e) => !isHarmlessConsoleError(e)),
+    consoleWarnings: diag.consoleWarnings,
+    pageErrors: diag.pageErrors,
+    failedRequests: diag.failedRequests,
+    badResponses: diag.badResponses,
+    finalInfoboxText: dom.infoboxText,
+    canvasWidth: dom.canvasWidth,
+    canvasHeight: dom.canvasHeight,
+    canvasVisible: dom.canvasVisible,
+    transferHidden: dom.transferHidden,
+    url: page.url(),
+    userAgent: await page.evaluate(() => navigator.userAgent),
+  };
 }
 
 /**

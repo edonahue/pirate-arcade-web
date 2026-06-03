@@ -12,7 +12,12 @@ smoke checklist** (iOS Safari, Android Chrome, etc.), see
 The test suite uses [Playwright](https://playwright.dev) Test with
 TypeScript. It runs against a real build of the site served by
 `astro preview` (port 4327), so it exercises the production code path
-including the CSP route overrides and the static-asset build.
+including the static-asset build.
+
+> **Important:** `astro preview` does NOT serve Cloudflare Pages
+> `_headers` rules. CSP testing is done via a static parser
+> (`scripts/check-cloudflare-headers.mjs`) that simulates Cloudflare's
+> matching algorithm. See "CSP headers" below for the rationale.
 
 The suite is structured around two axes:
 
@@ -197,10 +202,19 @@ The shared helpers cover three categories:
 
 ### Diagnostics collection
 
-- `collectPageDiagnostics(page)` — attaches listeners for `console`,
-  `pageerror`, `requestfailed`, and `response`; returns a snapshot
-  including console errors, page errors, failed requests, and 4xx/5xx
-  responses.
+- `startDiagnostics(page)` — attaches listeners for `console`,
+  `pageerror`, `requestfailed`, and `response`; returns a mutable
+  `PageDiagnostics` object that live-updates as events arrive.
+  **Call before `page.goto()`** to capture CSP/EvalError violations
+  that fire during page load.
+- `snapshotDiagnostics(page, diag)` — finalizes a diagnostics object
+  started by `startDiagnostics`. Detaches listeners, reads DOM state
+  (infobox, canvas dimensions, etc.), and returns the populated
+  snapshot. Call after the page has settled.
+- `collectPageDiagnostics(page)` — **deprecated.** Wrapper around
+  `startDiagnostics` + `snapshotDiagnostics` that attaches listeners
+  after the page has already loaded. Prefer the explicit pair for
+  tests that need to catch startup errors.
 - `attachDiagnostics(testInfo, diagnostics)` — attaches both a
   human-readable summary and the full payload to the Playwright
   report, so failure triage has the full event capture.
@@ -233,6 +247,60 @@ The shared helpers cover three categories:
   level before/after comparison.
 - `hasJavaScriptDialogs(page)` — temporarily overrides
   `window.alert/confirm/prompt` and reports whether any were called.
+
+---
+
+## CSP headers
+
+The game pages require `'unsafe-eval'` in their `script-src` CSP directive
+because Pygbag uses `eval()` internally for dynamic WASM module loading.
+Non-game routes (home page, arcade index) do NOT need `'unsafe-eval'`.
+
+The CSP is configured in `public/_headers`, which is only interpreted by
+Cloudflare Pages — not by `astro preview`. This created a subtle bug:
+
+### Root cause: Cloudflare merges, browser enforces strictest
+
+When a URL matches multiple `_headers` rules, Cloudflare **merges** headers
+from all matching rules. Previously, the global `/*` CSP (without
+`'unsafe-eval'`) was merged with the `/play/cannonball-clash/*` CSP (with
+`'unsafe-eval'`). The browser received TWO `Content-Security-Policy`
+headers and enforced the **stricter** one, which blocked `eval()`.
+
+### Fix: `!` prefix to detach inherited CSP
+
+Each game route now uses:
+
+```
+/play/cannonball-clash/*
+  ! Content-Security-Policy
+  Content-Security-Policy: ...game CSP with 'unsafe-eval'...
+```
+
+The `! Content-Security-Policy` line tells Cloudflare "do not inherit
+the CSP from less specific rules." The subsequent `Content-Security-Policy`
+line sets the correct game CSP. Only one effective CSP reaches the browser.
+
+Three URL variants are covered for each game (directory path, `index.html`
+file, and `*` glob) to handle all possible Cloudflare matching behaviors.
+
+### Testing
+
+- **`npm run test:check-headers`** — runs a static parser
+  (`scripts/check-cloudflare-headers.mjs`) that simulates Cloudflare's
+  `_headers` matching algorithm and asserts correct CSP per route.
+- **`npm run test:live-headers`** — fetches the deployed site and checks
+  the live `Content-Security-Policy` header (manual, post-deploy).
+- **`npm run test:mobile-runtime`** — a Playwright test on mobile-safari
+  and mobile-chrome that navigates to each game in landscape, starts
+  diagnostics BEFORE page load, and asserts no CSP/EvalError violations.
+
+### Why `astro preview` did not catch this
+
+Astro's built-in preview server serves static files but does NOT interpret
+Cloudflare Pages `_headers`. Our Playwright suite could not detect the
+CSP header merging bug because the game pages loaded successfully during
+local preview. The bug only manifested on Cloudflare Pages.
 
 ---
 

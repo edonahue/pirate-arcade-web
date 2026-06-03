@@ -145,7 +145,27 @@ At minimum, run through this on:
 - [ ] For `/play/cannonball-clash/` and `/play/treasure-cove/`:
       the CSP includes `script-src ... 'unsafe-eval' ...` (required
       for Pygbag runtime)
+- [ ] The CSP for game routes does NOT contain a comma-separated
+      duplicate from the global `/*` rule (if it does, the `!` detach
+      in `_headers` is broken)
 - [ ] No `unsafe-eval` leaks to other routes (e.g. `/`, `/play/`)
+
+### 15. CSP fix verification (post-`_headers` deployment)
+
+- [ ] Open `https://pirate-arcade.com/play/cannonball-clash/` in a
+      private tab after cache clear
+- [ ] Open DevTools Console; confirm no `EvalError: Refused to evaluate
+a string as JavaScript` error
+- [ ] Confirm no `Content Security Policy` console errors
+- [ ] Confirm the Pygbag runtime download starts (progress bar visible)
+- [ ] If the game still does not load, capture the exact CSP header:
+      `js
+fetch(location.href).then(r => console.log(r.headers.get('content-security-policy')))
+`
+      The header should contain `'unsafe-eval'` exactly once; if it
+      appears in a comma-merged list, the `!` detach is not working.
+- [ ] Repeat for `/play/treasure-cove/` and `/play/krakens-wake/`
+- [ ] Run `node scripts/check-live-game-headers.mjs` from the repo
 
 ## Reporting issues
 
@@ -173,14 +193,28 @@ These specific things are NOT covered by the Playwright suite:
 - Background app behavior on iOS (Pygbag specifically)
 - Pygbag `cross_file` fetch on real device (mobile Safari can be
   stricter about `fetch()` on cross-origin)
+- Cloudflare Pages `_headers` header merging (same-CSP-policy stacking
+  bug — `astro preview` does not serve `_headers`)
 
 The Playwright suite catches:
 
 - DOM regression (missing elements, broken classes)
-- CSP regression (script-src, frame-src changes)
 - WASM/Pygbag startup on desktop Chromium / Firefox / WebKit
 - Console error pattern regressions (TypeError, CSP, etc.)
 - Touch overlay element wiring
 - Basic keyboard input routing
 - a11y violations via axe-core
 - Lighthouse performance regressions (via `@lhci/cli`)
+
+### CSP/header gap: how we compensate
+
+Because Playwright runs against `astro preview` (not Cloudflare), CSP
+header merging bugs are invisible to normal browser tests. We use two
+compensations:
+
+1. **Static parser** (`scripts/check-cloudflare-headers.mjs`) — simulates
+   Cloudflare's `_headers` matching algorithm, reads `public/_headers`,
+   and asserts correct CSP per route. Run with `npm run test:check-headers`.
+2. **Live header checker** (`scripts/check-live-game-headers.mjs`) — fetches
+   the deployed site and inspects the actual `Content-Security-Policy`
+   header. Run manually after each deploy.

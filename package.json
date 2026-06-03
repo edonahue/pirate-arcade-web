@@ -26,6 +26,9 @@
     "test:debug:webkit": "playwright test tests/browser-games.spec.ts --project=webkit-desktop --headed --debug",
     "test:debug:mobile": "playwright test tests/game-input-mobile.spec.ts --project=mobile-safari --headed --debug",
     "test:a11y": "playwright test tests/a11y.spec.ts",
+    "test:check-headers": "node scripts/check-cloudflare-headers.mjs",
+    "test:live-headers": "node scripts/check-live-game-headers.mjs",
+    "test:mobile-runtime": "playwright test tests/game-runtime-csp.spec.ts --project=mobile-safari --project=mobile-chrome",
     "test:lhci": "lhci autorun"
   },
   "engines": {
