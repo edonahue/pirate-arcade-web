@@ -71,7 +71,10 @@
   }
 
   // ── DOM fallback dispatch ───────────────────────────────────
+  var _isTouch = window.matchMedia && window.matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window;
+
   function focusCanvas() {
+    if (_isTouch) return; // iOS Safari opens virtual keyboard when focusing a canvas
     var c = document.getElementById('canvas');
     if (c && typeof c.focus === 'function') {
       try { c.focus(); } catch (e) {}

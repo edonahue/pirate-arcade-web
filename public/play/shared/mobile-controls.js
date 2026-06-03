@@ -90,7 +90,7 @@
       held[e.pointerId] = { keys: [' '] };
       held[e.pointerId].keys.forEach(hold);
     } else if (dir === 'action') {
-      pressAndRelease(' ');
+      pressAndRelease('Enter');
     } else if (dir === 'pause') {
       pressAndRelease('Escape');
     } else if (dir === 'up') {

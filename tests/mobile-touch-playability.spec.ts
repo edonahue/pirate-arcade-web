@@ -15,7 +15,7 @@ const GAMES = [
     name: "Cannonball Clash",
     path: "/play/cannonball-clash/",
     controls: "pong",
-    actionKey: "Space",
+    actionKey: "Enter",
     movement: [
       { dir: "left", keys: ["ArrowUp", "w"] },
       { dir: "right", keys: ["ArrowDown", "s"] },
@@ -26,7 +26,7 @@ const GAMES = [
     name: "Treasure Cove",
     path: "/play/treasure-cove/",
     controls: "breakout",
-    actionKey: "Space",
+    actionKey: "Enter",
     movement: [
       { dir: "left", keys: ["ArrowLeft", "a"] },
       { dir: "right", keys: ["ArrowRight", "d"] },
@@ -78,7 +78,7 @@ test.describe("mobile touch playability", () => {
         expect(debug.bridgeCalls).toBeDefined();
       });
 
-      test("action button dispatches Space via bridge", async ({
+      test("action button dispatches Enter via bridge", async ({
         page,
       }, testInfo) => {
         test.skip(!MOBILE_PROJECTS.includes(testInfo.project.name), "skipped");

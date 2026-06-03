@@ -133,11 +133,11 @@ describe("mobile-controls", () => {
       expect(downCalls[1].key).toBe("s");
     });
 
-    it("tap action dispatches Space", () => {
+    it("tap action dispatches Enter", () => {
       dispatchOnBtn("action", 12);
       const calls = (window as any).__paInputDebug.bridgeCalls;
-      const spaceDown = calls.filter((c: any) => c.key === "Space" && c.down);
-      expect(spaceDown.length).toBeGreaterThan(0);
+      const enterDown = calls.filter((c: any) => c.key === "Enter" && c.down);
+      expect(enterDown.length).toBeGreaterThan(0);
     });
 
     it("tap pause dispatches Escape", () => {

@@ -23,13 +23,14 @@
 
 import { test, expect } from "./helpers/browserGame";
 import {
-  collectPageDiagnostics,
   waitForPygbagRuntime,
   dispatchTouchSequence,
   expectTouchOverlayWired,
   expectRotateDeviceOverlayPresent,
   attachDiagnostics,
   blockingErrors,
+  startDiagnostics,
+  snapshotDiagnostics,
   installDialogCapture,
   dialogWasCalled,
 } from "./helpers/browserGame";
@@ -198,6 +199,8 @@ for (const game of GAMES) {
         `Mobile test skipped on ${testInfo.project.name}`,
       );
 
+      const diag = startDiagnostics(page);
+
       await page.goto(game.path, { waitUntil: "domcontentloaded" });
       await waitForPygbagRuntime(page);
 
@@ -231,13 +234,15 @@ for (const game of GAMES) {
         // Small gap so error events can flush
         await page.waitForTimeout(100);
 
-        const diagnostics = await collectPageDiagnostics(page);
-        const blocking = blockingErrors(diagnostics);
+        const blocking = blockingErrors(diag);
         expect(
           blocking,
           `Blocking errors after "${test.desc}": ${blocking.join(", ")}`,
         ).toEqual([]);
       }
+
+      const diagnostics = await snapshotDiagnostics(page, diag);
+      attachDiagnostics(testInfo, diagnostics);
     });
 
     test("no JavaScript dialogs during mobile gameplay", async ({
@@ -284,6 +289,8 @@ for (const game of GAMES) {
         `Rapid-tap test skipped on ${testInfo.project.name}`,
       );
 
+      const diag = startDiagnostics(page);
+
       await page.goto(game.path, { waitUntil: "domcontentloaded" });
       await waitForPygbagRuntime(page);
       // On mobile the canvas is occluded; the touch overlay is the
@@ -306,7 +313,7 @@ for (const game of GAMES) {
 
       await page.waitForTimeout(500);
 
-      const diagnostics = await collectPageDiagnostics(page);
+      const diagnostics = await snapshotDiagnostics(page, diag);
       attachDiagnostics(testInfo, diagnostics);
       const blocking = blockingErrors(diagnostics);
       expect(blocking).toEqual([]);
@@ -408,6 +415,8 @@ test.describe(`${ASTEROIDS_GAME.name} - mobile input`, () => {
       `Asteroids mobile test skipped on ${testInfo.project.name}`,
     );
 
+    const diag = startDiagnostics(page);
+
     await page.goto(ASTEROIDS_GAME.path, { waitUntil: "domcontentloaded" });
     // Skipping waitForPygbagRuntime: see comment at the top of
     // this describe. The tap sequence is dispatched against the
@@ -430,12 +439,14 @@ test.describe(`${ASTEROIDS_GAME.name} - mobile input`, () => {
       );
       await page.waitForTimeout(100);
 
-      const diagnostics = await collectPageDiagnostics(page);
-      const blocking = blockingErrors(diagnostics);
+      const blocking = blockingErrors(diag);
       expect(
         blocking,
         `Blocking errors after "${test.desc}": ${blocking.join(", ")}`,
       ).toEqual([]);
     }
+
+    const finalDiag = await snapshotDiagnostics(page, diag);
+    attachDiagnostics(testInfo, finalDiag);
   });
 });

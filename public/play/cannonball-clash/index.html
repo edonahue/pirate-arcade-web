@@ -336,12 +336,17 @@
       infobox.style.top = ((window.innerHeight - h) / 2) + 'px';
     }
     // Auto-focus canvas once it becomes visible (game is ready)
-    new MutationObserver(() => {
-      const c = document.getElementById('canvas');
-      if (c && c.style.visibility === 'visible' && document.activeElement !== c) {
-        c.focus();
-      }
-    }).observe(document.documentElement, { attributes: true, subtree: true, attributeFilter: ['style'] });
+    // On touch devices, focusing the canvas triggers the iOS virtual keyboard —
+    // the touch overlay handles input so keyboard focus is neither needed nor desired.
+    var _isTouch = window.matchMedia && window.matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window;
+    if (!_isTouch) {
+      new MutationObserver(() => {
+        const c = document.getElementById('canvas');
+        if (c && c.style.visibility === 'visible' && document.activeElement !== c) {
+          c.focus();
+        }
+      }).observe(document.documentElement, { attributes: true, subtree: true, attributeFilter: ['style'] });
+    }
     </script>
 
     <script src="/play/shared/pygame-input-bridge.js"></script>
