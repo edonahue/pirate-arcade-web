@@ -140,6 +140,8 @@ describe("mobile-controls", () => {
       expect(enterDown.length).toBeGreaterThan(0);
       const spaceDown = calls.filter((c: any) => c.key === "Space" && c.down);
       expect(spaceDown.length).toBeGreaterThan(0);
+      // Should have both Enter and Space key down events
+      expect(enterDown.length + spaceDown.length).toBeGreaterThanOrEqual(2);
     });
 
     it("tap pause dispatches Escape", () => {
