@@ -147,6 +147,32 @@ test.describe("Mobile Game Layout", () => {
         expect(leftLabel).toMatch(game.nudgeLeftLabel);
         expect(rightLabel).toMatch(game.nudgeRightLabel);
 
+        // Assert buttons are not covered by drag zone (elementFromPoint)
+        for (const btn of [
+          leftButton,
+          rightButton,
+          actionButton,
+          pauseButton,
+        ]) {
+          const box = await btn.boundingBox();
+          if (box) {
+            const topEl = await page.evaluate(
+              ({ x, y }) => {
+                const el = document.elementFromPoint(x, y);
+                if (!el) return "null";
+                if (el.classList && el.classList.contains("btn"))
+                  return "button";
+                if (el.closest && el.closest(".btn")) return "button";
+                if (el.classList && el.classList.contains("touch-drag-zone"))
+                  return "drag-zone";
+                return el.tagName + (el.className ? "." + el.className : "");
+              },
+              { x: box.x + box.width / 2, y: box.y + box.height / 2 },
+            );
+            expect(topEl).toBe("button");
+          }
+        }
+
         // Drag zones exist
         const dragZone = page.locator(`.touch-drag-zone`);
         await expect(dragZone).toBeVisible();

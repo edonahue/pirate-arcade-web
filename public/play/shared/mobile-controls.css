@@ -84,20 +84,29 @@
 
 /* ── Nudge buttons (fallback) ── */
 .touch-overlay .btn-nudge {
-  bottom: max(60px, env(safe-area-inset-bottom, 60px));
   width: 64px; height: 64px; border-radius: 50%;
   font-size: 28px; color: rgba(255,255,255,0.5);
   background: rgba(255,255,255,0.06);
   border: 1px solid rgba(255,255,255,0.12);
+  z-index: 20;
 }
-.touch-overlay .btn-up { left: max(16px, env(safe-area-inset-left, 16px)); }
+/* Cannonball: vertical stack on left side */
+.touch-overlay .btn-up {
+  left: max(16px, env(safe-area-inset-left, 16px));
+  bottom: max(130px, env(safe-area-inset-bottom, 130px));
+}
 .touch-overlay .btn-down {
   left: max(16px, env(safe-area-inset-left, 16px));
-  top: auto;
+  bottom: max(60px, env(safe-area-inset-bottom, 60px));
 }
-.touch-overlay .btn-left { left: max(16px, env(safe-area-inset-left, 16px)); }
+/* Treasure: left/right at bottom */
+.touch-overlay .btn-left {
+  left: max(16px, env(safe-area-inset-left, 16px));
+  bottom: max(60px, env(safe-area-inset-bottom, 60px));
+}
 .touch-overlay .btn-right {
   left: max(88px, calc(env(safe-area-inset-left, 16px) + 72px));
+  bottom: max(60px, env(safe-area-inset-bottom, 60px));
 }
 
 /* ── Action pill ── */
@@ -111,6 +120,9 @@
   color: #d4af37; font: bold 13px/1 monospace;
   text-transform: uppercase; letter-spacing: 1px;
   z-index: 10;
+}
+.game-started .touch-overlay .btn-action {
+  opacity: 0 !important; pointer-events: none !important;
 }
 
 /* ── Pause button ── */

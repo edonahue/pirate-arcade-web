@@ -5,7 +5,7 @@
 //     network-first HTML, stale-while-revalidate JS/CSS,
 //     cache-first archives, debug signal for tests.
 
-const CACHE_NAME = "pirate-arcade-games-v4";
+const CACHE_NAME = "pirate-arcade-games-v5";
 
 // List of assets to cache - only confirmed browser-playable games.
 // Missing assets are added with individual try/catch so one failure
@@ -71,6 +71,42 @@ self.addEventListener("activate", (event) => {
   });
 });
 
+// Helper: network-first with cache fallback
+function networkFirst(event) {
+  return fetch(event.request)
+    .then((res) => {
+      if (res && res.status === 200) {
+        const clone = res.clone();
+        caches
+          .open(CACHE_NAME)
+          .then((cache) => cache.put(event.request, clone));
+      }
+      return res;
+    })
+    .catch(() =>
+      caches.match(event.request).then((fallback) => {
+        if (fallback) return fallback;
+        return new Response("Offline", { status: 503 });
+      }),
+    );
+}
+
+// Helper: cache-first with fetch fallback (for versioned assets)
+function cacheFirst(event) {
+  return caches.match(event.request).then((cached) => {
+    if (cached) return cached;
+    return fetch(event.request).then((res) => {
+      if (res && res.status === 200) {
+        const clone = res.clone();
+        caches
+          .open(CACHE_NAME)
+          .then((cache) => cache.put(event.request, clone));
+      }
+      return res;
+    });
+  });
+}
+
 // Fetch strategy
 self.addEventListener("fetch", (event) => {
   if (!event.request.url.startsWith(self.location.origin)) {
@@ -79,46 +115,23 @@ self.addEventListener("fetch", (event) => {
 
   const url = new URL(event.request.url);
 
-  // Cache-first for stable game archives (never change after deploy)
+  // Network-first for game archives — always get latest after deploy
   if (url.pathname.endsWith(".tar.gz")) {
-    event.respondWith(
-      caches.match(event.request).then((cached) => {
-        if (cached) return cached;
-        return fetch(event.request).then((res) => {
-          if (res && res.status === 200) {
-            const clone = res.clone();
-            caches
-              .open(CACHE_NAME)
-              .then((cache) => cache.put(event.request, clone));
-          }
-          return res;
-        });
-      }),
-    );
+    event.respondWith(networkFirst(event));
     return;
   }
 
-  // Stale-while-revalidate for JS and CSS (may update between deploys)
+  // Network-first for game shell JS/CSS so mobile controls update immediately
+  const isGameShell =
+    url.pathname.startsWith("/play/shared/") ||
+    url.pathname.startsWith("/play/cannonball-clash/") ||
+    url.pathname.startsWith("/play/treasure-cove/");
   if (
-    event.request.destination === "script" ||
-    event.request.destination === "style"
+    isGameShell &&
+    (event.request.destination === "script" ||
+      event.request.destination === "style")
   ) {
-    event.respondWith(
-      caches.match(event.request).then((cached) => {
-        const fetchPromise = fetch(event.request)
-          .then((res) => {
-            if (res && res.status === 200) {
-              const clone = res.clone();
-              caches
-                .open(CACHE_NAME)
-                .then((cache) => cache.put(event.request, clone));
-            }
-            return res;
-          })
-          .catch(() => cached);
-        return cached || fetchPromise;
-      }),
-    );
+    event.respondWith(networkFirst(event));
     return;
   }
 
@@ -127,31 +140,23 @@ self.addEventListener("fetch", (event) => {
     event.request.destination === "document" ||
     url.pathname.endsWith(".html")
   ) {
-    event.respondWith(
-      fetch(event.request)
-        .then((res) => {
-          if (res && res.status === 200) {
-            const clone = res.clone();
-            caches
-              .open(CACHE_NAME)
-              .then((cache) => cache.put(event.request, clone));
-          }
-          return res;
-        })
-        .catch(() =>
-          caches.match(event.request).then((fallback) => {
-            if (fallback) return fallback;
-            if (event.request.headers.get("accept")?.includes("text/html")) {
-              return caches.match("/play/");
-            }
-            return new Response("Offline", { status: 503 });
-          }),
-        ),
-    );
+    event.respondWith(networkFirst(event));
     return;
   }
 
-  // Stale-while-revalidate for everything else
+  // Cache-first for versioned assets (has ?v= query)
+  if (url.search.includes("v=")) {
+    event.respondWith(cacheFirst(event));
+    return;
+  }
+
+  // Cache-first for favicon and other stable assets
+  if (url.pathname === "/favicon.svg") {
+    event.respondWith(cacheFirst(event));
+    return;
+  }
+
+  // Stale-while-revalidate for everything else (non-game JS/CSS, images, etc.)
   event.respondWith(
     caches.match(event.request).then((cached) => {
       const fetchPromise = fetch(event.request)

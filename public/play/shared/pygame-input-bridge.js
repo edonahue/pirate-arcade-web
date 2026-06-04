@@ -167,7 +167,7 @@
   // Query Python-side bridge state for tests
   PirateArcadeInput.getDebugPythonState = function () {
     if (!window.python || typeof window.python.PyRun_SimpleString !== 'function') {
-      return { keyEventCount: 0, lastKey: null, lastKeyDown: false, bridgeAvailable: false };
+      return { keyEventCount: 0, lastKey: null, lastKeyDown: false, touchEventCount: 0, touchActive: false, bridgeAvailable: false };
     }
     try {
       window.python.PyRun_SimpleString(
@@ -177,6 +177,10 @@
         '    "keyEventCount": getattr(builtins, "__pa_key_event_count__", 0),\n' +
         '    "lastKey": str(getattr(builtins, "__pa_last_key__", "None")),\n' +
         '    "lastKeyDown": bool(getattr(builtins, "__pa_last_key_down__", False)),\n' +
+        '    "touchEventCount": getattr(builtins, "__pa_touch_event_count__", 0),\n' +
+        '    "touchActive": bool(getattr(builtins, "__pa_touch_active__", False)),\n' +
+        '    "lastTouchAxis": str(getattr(builtins, "__pa_last_touch_axis__", "None")),\n' +
+        '    "lastTouchValue": float(getattr(builtins, "__pa_last_touch_value__", 0)),\n' +
         '  })\n' +
         '  open("/tmp/_pa_test_state.json", "w").write(_pa_state)\n' +
         'except Exception:\n' +
@@ -185,7 +189,7 @@
       var stateStr = window.python.FS.readFile('/tmp/_pa_test_state.json', { encoding: 'utf8' });
       return JSON.parse(stateStr);
     } catch (e) {
-      return { keyEventCount: 0, lastKey: null, lastKeyDown: false, bridgeAvailable: false, error: e.message };
+      return { keyEventCount: 0, lastKey: null, lastKeyDown: false, touchEventCount: 0, touchActive: false, bridgeAvailable: false, error: e.message };
     }
   };
 

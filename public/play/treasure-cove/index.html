@@ -117,7 +117,7 @@
             '        _w.PirateArcadeMetrics.mark("archive-fetch-start")',
             '        _w.PirateArcadeLoading.set("Installing Pygame and downloading game package\u2026")',
             '        import aio.pep0723',
-            '        url = _w.location.href + "treasure-cove.tar.gz"',
+            '        url = _w.location.href + "treasure-cove.tar.gz?v=mobile-v2"',
             '        async def fetch_archive():',
             '            async with platform.fopen(url, "rb") as f:',
             '                return f.read()',
@@ -305,7 +305,7 @@
     <link rel="preconnect" href="https://pygame-web.github.io">
     <link rel="dns-prefetch" href="https://pygame-web.github.io">
     <link rel="modulepreload" href="https://pygame-web.github.io/cdn/0.9.3/pythons.js">
-    <link rel="preload" href="/play/treasure-cove/treasure-cove.tar.gz" as="fetch">
+    <link rel="preload" href="/play/treasure-cove/treasure-cove.tar.gz?v=mobile-v2" as="fetch">
     <script src="/play/shared/game-boot-metrics.js"></script>
     <style>
       * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -354,14 +354,15 @@
       }
 
     </style>
-    <link rel="stylesheet" href="/play/shared/mobile-controls.css">
+    <link rel="stylesheet" href="/play/shared/mobile-controls.css?v=mobile-v2">
     <!-- Service Worker Registration -->
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js')
+          navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' })
             .then(registration => {
               console.log('ServiceWorker registration successful with scope: ', registration.scope);
+              registration.update();
             })
             .catch(err => {
               console.log('ServiceWorker registration failed: ', err);
@@ -448,8 +449,8 @@
     }
     </script>
 
-    <script src="/play/shared/pygame-input-bridge.js"></script>
-    <script src="/play/shared/game-viewport.js"></script>
-    <script src="/play/shared/mobile-controls.js"></script>
+    <script src="/play/shared/pygame-input-bridge.js?v=mobile-v2"></script>
+    <script src="/play/shared/game-viewport.js?v=mobile-v2"></script>
+    <script src="/play/shared/mobile-controls.js?v=mobile-v2"></script>
   </body>
 </html>

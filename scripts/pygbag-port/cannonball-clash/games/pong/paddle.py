@@ -18,29 +18,38 @@ class Paddle:
             alpha = max(0, 40 - (10 - i) * 4)
             r = pg.Rect(i, i, self.width + 20 - i * 2, self.height + 20 - i * 2)
             pg.draw.rect(self._glow_surf, (0, 128, 128, alpha), r, border_radius=4)
+        visual_w = max(self.width + 20, 36)
         w = self.width
         h = self.height
-        self._ship_surf = pg.Surface((w, h), pg.SRCALPHA)
+        self._ship_surf = pg.Surface((visual_w, h), pg.SRCALPHA)
         hull_color = c.PIRATE_DARK_WOOD
         deck_color = c.PIRATE_BROWN
         trim_color = c.PIRATE_GOLD
         mast_color = c.PIRATE_CREAM
-        pg.draw.rect(self._ship_surf, hull_color, (0, 4, w, h - 8))
-        pg.draw.polygon(self._ship_surf, hull_color, [(0, 4), (w // 2, 0), (w - 1, 4)])
-        pg.draw.polygon(self._ship_surf, hull_color, [(0, h - 5), (w // 2, h - 1), (w - 1, h - 5)])
-        pg.draw.rect(self._ship_surf, deck_color, (2, 8, w - 4, h - 16), 1)
-        pg.draw.line(self._ship_surf, trim_color, (0, h // 2 - 1), (w - 1, h // 2 - 1))
+        offset_x = (visual_w - w) // 2
+        pg.draw.rect(self._ship_surf, hull_color, (offset_x, 4, w, h - 8))
+        pg.draw.polygon(self._ship_surf, hull_color, [
+            (offset_x - 6, 8), (offset_x, 2), (offset_x + w - 1, 2), (offset_x + w + 5, 8)
+        ])
+        pg.draw.polygon(self._ship_surf, hull_color, [
+            (offset_x - 4, h - 9), (offset_x + w + 3, h - 9), (offset_x + w // 2, h - 1)
+        ])
+        pg.draw.rect(self._ship_surf, deck_color, (offset_x + 2, 8, w - 4, h - 16), 1)
+        pg.draw.line(self._ship_surf, trim_color, (offset_x, h // 2 - 1), (offset_x + w - 1, h // 2 - 1))
+        mast_x = offset_x + w // 2
         if h > 30:
             mast_y1 = 10
             mast_y2 = h - 10
-            pg.draw.line(self._ship_surf, mast_color, (w // 2, mast_y1), (w // 2, mast_y2), 2)
+            pg.draw.line(self._ship_surf, mast_color, (mast_x, mast_y1), (mast_x, mast_y2), 2)
             mid = (mast_y1 + mast_y2) // 2
             pg.draw.polygon(self._ship_surf, c.PIRATE_CREAM, [
-                (w // 2, mid - 2), (w // 2 + 6, mid + 6), (w // 2, mid + 14)
+                (mast_x, mid - 2), (mast_x + 6, mid + 6), (mast_x, mid + 14)
             ])
             pg.draw.polygon(self._ship_surf, c.PIRATE_CREAM, [
-                (w // 2, mid - 2), (w // 2 - 6, mid + 6), (w // 2, mid + 14)
+                (mast_x, mid - 2), (mast_x - 6, mid + 6), (mast_x, mid + 14)
             ])
+        self._offset_x = offset_x
+        self._visual_w = visual_w
         self._built = True
 
     @property
@@ -77,12 +86,14 @@ class Paddle:
         gx = self.x - self.width // 2 - 10
         gy = self.y - self.height // 2 - 10
         surface.blit(self._glow_surf, (gx, gy))
-        sx = self.x - self.width // 2
+        sx = self.x - self._visual_w // 2
         sy = self.y - self.height // 2
         if self.is_big:
-            tint = pg.Surface((self.width, self.height), pg.SRCALPHA)
+            tinted = self._ship_surf.copy()
+            tint = pg.Surface((self._visual_w, self.height), pg.SRCALPHA)
             tint.fill((255, 200, 50, 80))
-            self._ship_surf.blit(tint, (0, 0), special_flags=pg.BLEND_RGBA_MULT)
-        surface.blit(self._ship_surf, (sx, sy))
-        if self.is_big:
+            tinted.blit(tint, (0, 0), special_flags=pg.BLEND_RGBA_MULT)
+            surface.blit(tinted, (sx, sy))
             pg.draw.rect(surface, c.POWERUP_COLOR, self.rect, 2)
+        else:
+            surface.blit(self._ship_surf, (sx, sy))

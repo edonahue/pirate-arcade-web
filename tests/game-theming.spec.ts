@@ -23,11 +23,11 @@ test.describe("Game Theming", () => {
   test.describe("archive structure checks", () => {
     for (const game of GAMES) {
       test(`${game.name} paddle files contain ship-theming markers`, () => {
-        // This is a static unit-level check against the source directory
-        // which gets repacked into the archive.
         const fs = require("fs");
         const path = require("path");
+        const { execSync } = require("child_process");
 
+        // Check source directory
         const paddlePath =
           game.id === "cannonball-clash"
             ? path.resolve(
@@ -62,6 +62,20 @@ test.describe("Game Theming", () => {
         expect(gameplayCode).toContain("__pa_touch_active__");
         expect(gameplayCode).toContain("__pa_touch_axis__");
         expect(gameplayCode).toContain("__pa_touch_value__");
+
+        // Check the actual shipped archive also contains the updated paddle code
+        const archivePath = path.resolve(
+          __dirname,
+          `../public/play/${game.id}/${game.archivePath}`,
+        );
+        const archivePaddle = execSync(
+          `tar xzf "${archivePath}" --to-stdout assets/games/pong/paddle.py 2>/dev/null || ` +
+            `tar xzf "${archivePath}" --to-stdout assets/games/breakout/paddle.py 2>/dev/null || echo "NOT_FOUND"`,
+          { encoding: "utf-8" },
+        );
+        expect(archivePaddle).not.toContain("NOT_FOUND");
+        expect(archivePaddle).toContain("_ship_surf");
+        expect(archivePaddle).toContain("pg.draw.polygon");
       });
     }
   });

@@ -99,34 +99,17 @@
     }
   }
 
-  function handleDown(e) {
-    var el = document.elementFromPoint(e.clientX, e.clientY);
-    if (!el) return;
-
-    if (isDragZone(el)) {
-      e.preventDefault();
-      var dir = el.getAttribute('data-dir');
-      dragActive.axis = dir === 'drag-x' ? 'x' : 'y';
-      dragActive.pointerId = e.pointerId;
-      try { el.setPointerCapture(e.pointerId); } catch (e) {}
-      updateDragTarget(e);
-      return;
-    }
-
-    el = buttonFor(el);
-    if (!el) return;
-
-    var dir = el.getAttribute('data-dir');
-    if (!dir) return;
-
+  function handleButton(btn, e) {
+    var d = btn.getAttribute('data-dir');
+    if (!d) return false;
     e.preventDefault();
-    el.classList.add('pressed');
-    try { el.setPointerCapture(e.pointerId); } catch (e) {}
-
-    if (dir === 'left' || dir === 'right') {
-      held[e.pointerId] = { keys: DIR_KEYS[dir] };
+    btn.classList.add('pressed');
+    try { btn.setPointerCapture(e.pointerId); } catch (e) {}
+    if (d === 'left' || d === 'right') {
+      held[e.pointerId] = { keys: DIR_KEYS[d] };
       held[e.pointerId].keys.forEach(hold);
-    } else if (dir === 'action') {
+    } else if (d === 'action') {
+      document.body.classList.add('game-started');
       if (input) {
         input.keyDown('Enter');
         input.keyDown(' ');
@@ -135,8 +118,33 @@
           input.keyUp('Enter');
         }, 220);
       }
-    } else if (dir === 'pause') {
+    } else if (d === 'pause') {
       pressAndRelease('Escape');
+    }
+    return true;
+  }
+
+  function handleDown(e) {
+    // First check: did the user touch a button? (e.target is reliable
+    // when the button has higher z-index than the drag zone)
+    var btn = buttonFor(e.target);
+    if (btn && handleButton(btn, e)) return;
+
+    // Second check: fallback to elementFromPoint for drag zones
+    var el = document.elementFromPoint(e.clientX, e.clientY);
+    if (!el) return;
+
+    btn = buttonFor(el);
+    if (btn && handleButton(btn, e)) return;
+
+    if (isDragZone(el)) {
+      e.preventDefault();
+      var ddir = el.getAttribute('data-dir');
+      dragActive.axis = ddir === 'drag-x' ? 'x' : 'y';
+      dragActive.pointerId = e.pointerId;
+      try { el.setPointerCapture(e.pointerId); } catch (e) {}
+      updateDragTarget(e);
+      return;
     }
   }
 
