@@ -5,7 +5,7 @@
 //     network-first HTML, stale-while-revalidate JS/CSS,
 //     cache-first archives, debug signal for tests.
 
-const CACHE_NAME = "pirate-arcade-games-v5";
+const CACHE_NAME = "pirate-arcade-games-v6";
 
 // List of assets to cache - only confirmed browser-playable games.
 // Missing assets are added with individual try/catch so one failure

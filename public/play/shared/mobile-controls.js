@@ -125,6 +125,15 @@
   }
 
   function handleDown(e) {
+    // Skip if target is an excluded control (e.g., Back link)
+    var target = e.target;
+    while (target) {
+      if (target.hasAttribute && target.hasAttribute('data-no-touch-control')) {
+        return; // Let browser handle natively (navigation)
+      }
+      target = target.parentNode;
+    }
+
     // First check: did the user touch a button? (e.target is reliable
     // when the button has higher z-index than the drag zone)
     var btn = buttonFor(e.target);
@@ -149,6 +158,15 @@
   }
 
   function handleUp(e) {
+    // Skip if target is an excluded control (e.g., Back link)
+    var target = e.target;
+    while (target) {
+      if (target.hasAttribute && target.hasAttribute('data-no-touch-control')) {
+        return; // Let browser handle natively
+      }
+      target = target.parentNode;
+    }
+
     if (dragActive.pointerId === e.pointerId) {
       clearDragTarget();
     }
@@ -164,6 +182,15 @@
   }
 
   function handleMove(e) {
+    // Skip if target is an excluded control (e.g., Back link)
+    var target = e.target;
+    while (target) {
+      if (target.hasAttribute && target.hasAttribute('data-no-touch-control')) {
+        return; // Let browser handle natively
+      }
+      target = target.parentNode;
+    }
+
     if (dragActive.pointerId === e.pointerId) {
       e.preventDefault();
       updateDragTarget(e);
@@ -175,6 +202,15 @@
   }
 
   function handleCancel(e) {
+    // Skip if target is an excluded control (e.g., Back link)
+    var target = e.target;
+    while (target) {
+      if (target.hasAttribute && target.hasAttribute('data-no-touch-control')) {
+        return; // Let browser handle natively
+      }
+      target = target.parentNode;
+    }
+
     if (dragActive.pointerId === e.pointerId) {
       clearDragTarget();
     }
