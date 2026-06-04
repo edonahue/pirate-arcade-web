@@ -56,6 +56,27 @@ npm run test:debug:webkit
 # Headed + debug on emulated iPhone Safari
 npm run test:debug:mobile
 
+# Game loading performance (measures cold-start phase timings)
+npm run test:game-performance
+
+# Game loading performance in headed mode (watch the boot)
+npm run test:game-performance:headed
+
+# Mobile touch playability (tap/hold movement, action buttons)
+npm run test:mobile-playability
+
+# Mobile layout (canvas positioning, touch control sizing)
+npm run test:mobile-layout
+
+# Mobile runtime CSP check (no EvalError on game routes)
+npm run test:mobile-runtime
+
+# Mobile controls regression (iOS Safari classList.contains bug)
+npm run test:mobile-regression
+
+# Audit browser game archives for size, suspicious files
+npm run audit:game-archives
+
 # HTML report of the most recent run
 npm run test:e2e:report
 ```

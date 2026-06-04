@@ -24,7 +24,6 @@
   }
   var isAsteroids = controlMode === 'asteroids';
   var isPong = controlMode === 'pong';
-  var isBreakout = controlMode === 'breakout';
 
   // Key mappings per game mode
   var DIR_KEYS = {

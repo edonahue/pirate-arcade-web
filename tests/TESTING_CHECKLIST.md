@@ -156,6 +156,15 @@ At minimum, run through this on:
 - [ ] No 4xx / 5xx on critical assets (tar.gz, wasm, css, js)
 - [ ] No CSP violation reports in the console
 
+### 14b. Caching behavior
+
+- [ ] First cold load: game archive is fetched from network (Status 200)
+- [ ] After SW install completes, reload the page
+- [ ] Second load: game archive is served from cache (Status 200, `(from ServiceWorker)`)
+- [ ] JS/CSS should show `(from ServiceWorker)` on repeat visits
+- [ ] HTML page should show `(from ServiceWorker)` with `(from cache)` only if offline
+- [ ] All SW-cached assets show correct cache strategy behavior
+
 ### 15. CSP headers
 
 - [ ] Open DevTools -> Network -> click the page request
@@ -183,7 +192,7 @@ fetch(location.href).then(r => console.log(r.headers.get('content-security-polic
 `
       The header should contain `'unsafe-eval'` exactly once; if it
       appears in a comma-merged list, the `!` detach is not working.
-- [ ] Repeat for `/play/treasure-cove/` and `/play/krakens-wake/`
+- [ ] Repeat for `/play/treasure-cove/`
 - [ ] Run `node scripts/check-live-game-headers.mjs` from the repo
 
 ## Reporting issues
@@ -214,6 +223,58 @@ These specific things are NOT covered by the Playwright suite:
   stricter about `fetch()` on cross-origin)
 - Cloudflare Pages `_headers` header merging (same-CSP-policy stacking
   bug — `astro preview` does not serve `_headers`)
+
+## Cold-load expectations
+
+Cold loads (first visit, empty cache) are inherently slow because:
+
+- The Pygbag/WASM runtime (~12 MB) must be downloaded from the CDN
+- CPython must compile and initialize inside the WASM sandbox
+- Pygame must be pip-installed from a prebuilt wheel
+- The game archive must be fetched, extracted, and imported
+
+On a typical broadband connection:
+
+- desktop Chromium: 10–30s to `game-ready`
+- emulated mobile: 20–60s to `game-ready`
+- real device mobile: 30–90s (iOS Safari is slower due to WASM JIT limits)
+
+Warm loads (service worker cached, runtime cached by browser):
+
+- desktop: 3–8s
+- mobile: 5–15s
+
+Phase timing can be inspected via `window.__paBootMetrics` in the browser
+console or attached to Playwright test reports.
+
+## Boot phase metrics
+
+The metrics API (`window.PirateArcadeMetrics`) records these phases:
+
+| Mark name                | When                             |
+| ------------------------ | -------------------------------- |
+| `page-script-start`      | Inline script begins             |
+| `pythons-js-requested`   | Pygbag script tag loads          |
+| `python-ready`           | Python interpreter is available  |
+| `boot-start`             | Python `boot()` coroutine starts |
+| `pygame-install-start`   | `pip_install("pygame")` starts   |
+| `archive-fetch-start`    | Game archive fetch starts        |
+| `pygame-install-end`     | Pygame install completes         |
+| `archive-fetch-end`      | Archive download completes       |
+| `archive-extract-start`  | tar.gz extraction begins         |
+| `archive-extract-end`    | Extraction completes             |
+| `display-init-end`       | `pygame.display.set_mode()` done |
+| `input-bridge-installed` | Python key bridge is wired       |
+| `game-object-created`    | Game class instantiated          |
+| `game-ready`             | Game is ready to run             |
+| `loader-hidden`          | Loading overlay hidden           |
+
+Computed durations:
+
+- `pygame-install-duration`, `archive-fetch-duration`,
+  `archive-extract-duration`, `display-init-duration`,
+  `total-to-python-ready`, `total-to-game-ready`,
+  `total-to-loader-hidden`
 
 The Playwright suite catches:
 

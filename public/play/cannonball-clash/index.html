@@ -10,56 +10,45 @@
     <script>
       console.log('INLINE_SCRIPT: starting');
 
-      // Create loading overlay if not present
-      if (!document.getElementById('pirate-arcade-loading-overlay')) {
-        const overlay = document.createElement('div');
-        overlay.id = 'pirate-arcade-loading-overlay';
-        overlay.style.position = 'fixed';
-        overlay.style.inset = 0;
-        overlay.style.background = 'rgba(10,14,23,0.9)';
-        overlay.style.color = '#8a9ab0';
-        overlay.style.display = 'flex';
-        overlay.style.flexDirection = 'column';
-        overlay.style.alignItems = 'center';
-        overlay.style.justifyContent = 'center';
-        overlay.style.zIndex = '1000000';
-        overlay.style.fontFamily = 'monospace';
-        overlay.style.fontSize = '14px';
-        overlay.style.textAlign = 'center';
-        overlay.style.padding = '20px';
-        overlay.style.boxSizing = 'border-box';
-        overlay.innerHTML = `
-          <div id="pirate-arcade-loading-status">Loading game...</div>
-          <div id="pirate-arcade-loading-spinner" style="width: 40px; height: 40px; border: 4px solid #333; border-top-color: #d4a843; border-radius: 50%; animation: spin 1s linear infinite; margin-top: 20px;"></div>
-          <style>
-            @keyframes spin {
-              to { transform: rotate(360deg); }
-            }
-          </style>
-        `;
-        document.body.appendChild(overlay);
-      }
-
-      // Define PirateArcadeLoading
+      // Define PirateArcadeLoading for the static #game-loading overlay.
+      // Operates on the statically-defined HTML overlay (not a JS-created one)
+      // so it works before the DOM is fully parsed. pygame-input-bridge.js
+      // overrides this later with a CSS-class-based version.
       window.PirateArcadeLoading = {
+        _detailEl: null,
+        _overlayEl: null,
+        _slowTimer: null,
+        _ensureEls: function() {
+          if (!this._detailEl) this._detailEl = document.getElementById('game-loading-detail');
+          if (!this._overlayEl) this._overlayEl = document.getElementById('game-loading');
+        },
         set: function(text) {
-          const el = document.getElementById('pirate-arcade-loading-status');
-          if (el) el.textContent = text;
+          this._ensureEls();
+          if (this._detailEl) this._detailEl.textContent = text;
+          if (this._overlayEl) this._overlayEl.classList.remove('hidden', 'game-error');
+          // If more than 4s in a phase, show gentle note
+          if (!this._slowTimer) {
+            this._slowTimer = setTimeout(function () {
+              var note = document.querySelector('#game-loading .loader-note');
+              if (note) note.textContent = 'Still working — first load is slower; repeat visits should be faster.';
+            }, 4000);
+          }
         },
         ready: function(text) {
-          const overlay = document.getElementById('pirate-arcade-loading-overlay');
-          if (overlay) {
-            overlay.style.display = 'none';
-          }
-          if (text) {
-            // Optionally show a ready message for a moment
-            console.log('Ready:', text);
-          }
+          this._ensureEls();
+          if (this._slowTimer) { clearTimeout(this._slowTimer); this._slowTimer = null; }
+          if (text && this._detailEl) this._detailEl.textContent = text;
+          if (this._overlayEl) this._overlayEl.classList.add('hidden');
+          if (text) console.log('Ready:', text);
         },
         error: function(text) {
-          const el = document.getElementById('pirate-arcade-loading-status');
-          if (el) el.textContent = 'Error: ' + text;
-          // Keep overlay visible on error
+          this._ensureEls();
+          if (this._slowTimer) { clearTimeout(this._slowTimer); this._slowTimer = null; }
+          if (this._detailEl) this._detailEl.textContent = 'Error: ' + text;
+          if (this._overlayEl) {
+            this._overlayEl.classList.remove('hidden');
+            this._overlayEl.classList.add('game-error');
+          }
         }
       };
 
@@ -121,7 +110,7 @@
             '        _w.transfer.hidden = True',
             '        _w.canvas.style.visibility = "visible"',
             '        _w.PirateArcadeMetrics.mark("boot-start")',
-            '        _w.PirateArcadeLoading.set("Loading game...")',
+            '        _w.PirateArcadeLoading.set("Starting Python runtime\u2026")',
             '',
             '        # Pre-install pygame wheel from CDN and fetch archive in parallel',
             '        _w.PirateArcadeMetrics.mark("pygame-install-start")',
@@ -185,10 +174,20 @@
             '            "Escape": pg.K_ESCAPE, "p": pg.K_p,',
             '        }',
             '',
+            '        _key_count = 0',
+            '        builtins.__pa_key_event_count__ = 0',
+            '        builtins.__pa_last_key__ = None',
+            '        builtins.__pa_last_key_down__ = False',
+            '',
             '        def __pa_post_key(name, down):',
             '            key = _KEY_MAP.get(str(name))',
             '            if key is None:',
             '                return',
+            '            nonlocal _key_count',
+            '            _key_count += 1',
+            '            builtins.__pa_key_event_count__ = _key_count',
+            '            builtins.__pa_last_key__ = str(name)',
+            '            builtins.__pa_last_key_down__ = down',
             '            if down:',
             '                builtins.__pa_web_keys__.add(key)',
             '                pg.event.post(pg.event.Event(pg.KEYDOWN, key=key))',
@@ -226,9 +225,10 @@
             '                pass',
             '',
             '        _w.PirateArcadeMetrics.mark("game-object-created")',
-            '        _w.PirateArcadeLoading.set("Installing touch input bridge\u2026")',
+            '        _w.PirateArcadeLoading.set("Installing touch controls\u2026")',
             '        game = PongGame(s, WebAudio())',
             '        _w.PirateArcadeMetrics.mark("game-ready")',
+            '        _w.PirateArcadeMetrics.computeDurations()',
             '        _w.PirateArcadeLoading.ready("Ready \u2014 tap START")',
             '        _w.infobox.innerText = "Cannonball Clash loaded! Audio starts after your first click."',
             '        await game.run()',
@@ -288,7 +288,7 @@
     <link rel="preconnect" href="https://pygame-web.github.io">
     <link rel="dns-prefetch" href="https://pygame-web.github.io">
     <link rel="modulepreload" href="https://pygame-web.github.io/cdn/0.9.3/pythons.js">
-    <link rel="preload" href="/play/cannonball-clash/cannonball-clash.tar.gz" as="fetch" crossorigin="use-credentials">
+    <link rel="preload" href="/play/cannonball-clash/cannonball-clash.tar.gz" as="fetch">
     <script src="/play/shared/game-boot-metrics.js"></script>
     <style>
       * { margin: 0; padding: 0; box-sizing: border-box; }

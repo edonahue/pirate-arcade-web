@@ -182,13 +182,14 @@ describe("pygame-input-bridge", () => {
       expect(el.classList.contains("hidden")).toBe(false);
     });
 
-    it("ready hides overlay after 800ms timeout", async () => {
+    it("ready hides overlay immediately and updates detail text", () => {
       const loading = (window as any).PirateArcadeLoading;
       const el = document.getElementById("game-loading")!;
-      loading.ready();
-      expect(el.classList.contains("hidden")).toBe(false);
-      await new Promise((r) => setTimeout(r, 900));
+      loading.ready("Ready!");
       expect(el.classList.contains("hidden")).toBe(true);
+      expect(document.getElementById("game-loading-detail")!.textContent).toBe(
+        "Ready!",
+      );
     });
 
     it("ready sets booted flag immediately", () => {

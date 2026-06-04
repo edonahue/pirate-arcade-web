@@ -29,14 +29,3 @@
   ! Content-Security-Policy
   Content-Security-Policy: default-src 'self'; base-uri 'self'; object-src 'none'; img-src 'self' data: https://pygame-web.github.io; script-src 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval' https://pygame-web.github.io https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com https://pygame-web.github.io; connect-src 'self' https://pygame-web.github.io https://*.pygame-web.github.io https://cdn.pygame.org wss:; frame-src 'self' https://pygame-web.github.io; worker-src 'self' blob: https://pygame-web.github.io; media-src 'self' blob:; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests
 
-/play/krakens-wake/
-  ! Content-Security-Policy
-  Content-Security-Policy: default-src 'self'; base-uri 'self'; object-src 'none'; img-src 'self' data: https://pygame-web.github.io; script-src 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval' https://pygame-web.github.io https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com https://pygame-web.github.io; connect-src 'self' https://pygame-web.github.io https://*.pygame-web.github.io https://cdn.pygame.org wss:; frame-src 'self' https://pygame-web.github.io; worker-src 'self' blob: https://pygame-web.github.io; media-src 'self' blob:; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests
-
-/play/krakens-wake/index.html
-  ! Content-Security-Policy
-  Content-Security-Policy: default-src 'self'; base-uri 'self'; object-src 'none'; img-src 'self' data: https://pygame-web.github.io; script-src 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval' https://pygame-web.github.io https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com https://pygame-web.github.io; connect-src 'self' https://pygame-web.github.io https://*.pygame-web.github.io https://cdn.pygame.org wss:; frame-src 'self' https://pygame-web.github.io; worker-src 'self' blob: https://pygame-web.github.io; media-src 'self' blob:; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests
-
-/play/krakens-wake/*
-  ! Content-Security-Policy
-  Content-Security-Policy: default-src 'self'; base-uri 'self'; object-src 'none'; img-src 'self' data: https://pygame-web.github.io; script-src 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval' https://pygame-web.github.io https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com https://pygame-web.github.io; connect-src 'self' https://pygame-web.github.io https://*.pygame-web.github.io https://cdn.pygame.org wss:; frame-src 'self' https://pygame-web.github.io; worker-src 'self' blob: https://pygame-web.github.io; media-src 'self' blob:; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests
