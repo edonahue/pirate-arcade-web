@@ -11,9 +11,11 @@ function loadScript(path: string): void {
 function setupPongDOM(): void {
   document.body.innerHTML = `
     <div id="game-loading"><div class="loader-title">Loading</div></div>
+    <canvas id="canvas" width="1600" height="900"></canvas>
     <div class="touch-overlay" id="touch-overlay" data-controls="pong">
-      <div class="btn btn-arrow btn-left" data-dir="left">▲</div>
-      <div class="btn btn-arrow btn-right" data-dir="right">▼</div>
+      <div class="touch-drag-zone touch-drag-y" data-dir="drag-y"></div>
+      <div class="btn btn-nudge btn-up" data-dir="left">▲</div>
+      <div class="btn btn-nudge btn-down" data-dir="right">▼</div>
       <div class="btn btn-action" data-dir="action">START</div>
       <div class="btn btn-pause" data-dir="pause">❚❚</div>
     </div>
@@ -23,9 +25,11 @@ function setupPongDOM(): void {
 
 function setupBreakoutDOM(): void {
   document.body.innerHTML = `
+    <canvas id="canvas" width="1600" height="900"></canvas>
     <div class="touch-overlay" id="touch-overlay" data-controls="breakout">
-      <div class="btn btn-arrow btn-left" data-dir="left">◀</div>
-      <div class="btn btn-arrow btn-right" data-dir="right">▶</div>
+      <div class="touch-drag-zone touch-drag-x" data-dir="drag-x"></div>
+      <div class="btn btn-nudge btn-left" data-dir="left">◀</div>
+      <div class="btn btn-nudge btn-right" data-dir="right">▶</div>
       <div class="btn btn-action" data-dir="action">LAUNCH</div>
       <div class="btn btn-pause" data-dir="pause">❚❚</div>
     </div>
@@ -88,9 +92,9 @@ describe("mobile-controls", () => {
 
     it("updates hint text for pong mode", () => {
       const hint = document.getElementById("controls-hint")!;
-      expect(hint.textContent).toContain("▲");
-      expect(hint.textContent).toContain("▼");
+      expect(hint.textContent).toContain("slide");
       expect(hint.textContent).toContain("up/down");
+      expect(hint.textContent).toContain("START");
     });
 
     function dispatchOnBtn(dir: string, pointerId: number) {
@@ -182,9 +186,9 @@ describe("mobile-controls", () => {
 
     it("updates hint text for breakout mode", () => {
       const hint = document.getElementById("controls-hint")!;
-      expect(hint.textContent).toContain("◀");
-      expect(hint.textContent).toContain("▶");
-      expect(hint.textContent).toContain("move");
+      expect(hint.textContent).toContain("slide");
+      expect(hint.textContent).toContain("left/right");
+      expect(hint.textContent).toContain("LAUNCH");
     });
 
     it("dispatches ArrowLeft on left button (breakout)", () => {

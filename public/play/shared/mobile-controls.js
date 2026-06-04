@@ -7,12 +7,10 @@
 
   var held = {};
   var hint = document.getElementById('controls-hint');
+  var dragActive = {};
+  var dragStarted = false;
 
-  // Per-game control mode via data-controls attribute on the overlay.
-  //   "pong"     = Cannonball Clash: left/right keys map to UP/DOWN movement.
-  //   "breakout" = Treasure Cove: left/right keys map to LEFT/RIGHT movement.
-  //   "asteroids"= Kraken's Wake: left/right turn, thrust, fire.
-  //   absent     = default (breakout-style) for backward compat.
+  // Per-game control mode
   var controlMode = '';
   var node = overlay;
   while (node) {
@@ -22,19 +20,14 @@
     }
     node = node.parentNode;
   }
-  var isAsteroids = controlMode === 'asteroids';
   var isPong = controlMode === 'pong';
 
-  // Key mappings per game mode
+  // Key mappings for fallback nudge buttons
   var DIR_KEYS = {
     left: isPong ? ['ArrowUp', 'w'] : ['ArrowLeft', 'a'],
     right: isPong ? ['ArrowDown', 's'] : ['ArrowRight', 'd'],
   };
 
-  // Use the Python input bridge (PirateArcadeInput) which updates
-  // both the pg.key.get_pressed() key state AND the pygame event
-  // queue. Falls back to DOM KeyboardEvent dispatch if the bridge
-  // is unavailable.
   var input = window.PirateArcadeInput;
 
   function hold(k) {
@@ -46,7 +39,6 @@
 
   function pressAndRelease(k) {
     if (input) {
-      // 220ms hold so a 60 FPS pygame polling loop catches it
       input.tap(k, 220);
     }
   }
@@ -58,6 +50,10 @@
     return el && el.nodeType === 1 ? el : null;
   }
 
+  function isDragZone(el) {
+    return el && el.classList.contains('touch-drag-zone');
+  }
+
   function safeHandler(fn) {
     return function (e) {
       try { fn(e); } catch (err) {
@@ -66,9 +62,57 @@
     };
   }
 
+  function getCanvasGameCoords(clientX, clientY) {
+    var canvas = document.getElementById('canvas');
+    if (!canvas) return null;
+    var rect = canvas.getBoundingClientRect();
+    var cw = canvas.width;
+    var ch = canvas.height;
+    if (!cw || !ch || !rect.width || !rect.height) return null;
+    var gameX = ((clientX - rect.left) / rect.width) * cw;
+    var gameY = ((clientY - rect.top) / rect.height) * ch;
+    return { x: Math.round(gameX), y: Math.round(gameY) };
+  }
+
+  function updateDragTarget(e) {
+    var coords = getCanvasGameCoords(e.clientX, e.clientY);
+    if (!coords) return;
+    var dragAxis = dragActive.axis;
+    if (dragAxis === 'y') {
+      if (input) input.setTouchTarget('y', coords.y, true);
+    } else if (dragAxis === 'x') {
+      if (input) input.setTouchTarget('x', coords.x, true);
+    }
+    if (!dragStarted) {
+      dragStarted = true;
+      overlay.classList.add('drag-active');
+    }
+  }
+
+  function clearDragTarget() {
+    if (dragActive.axis) {
+      if (input) input.clearTouchTarget();
+      dragActive.axis = null;
+      dragActive.pointerId = null;
+      dragStarted = false;
+      overlay.classList.remove('drag-active');
+    }
+  }
+
   function handleDown(e) {
     var el = document.elementFromPoint(e.clientX, e.clientY);
     if (!el) return;
+
+    if (isDragZone(el)) {
+      e.preventDefault();
+      var dir = el.getAttribute('data-dir');
+      dragActive.axis = dir === 'drag-x' ? 'x' : 'y';
+      dragActive.pointerId = e.pointerId;
+      try { el.setPointerCapture(e.pointerId); } catch (e) {}
+      updateDragTarget(e);
+      return;
+    }
+
     el = buttonFor(el);
     if (!el) return;
 
@@ -82,15 +126,7 @@
     if (dir === 'left' || dir === 'right') {
       held[e.pointerId] = { keys: DIR_KEYS[dir] };
       held[e.pointerId].keys.forEach(hold);
-    } else if (dir === 'thrust') {
-      held[e.pointerId] = { keys: ['ArrowUp', 'w'] };
-      held[e.pointerId].keys.forEach(hold);
-    } else if (dir === 'fire') {
-      held[e.pointerId] = { keys: [' '] };
-      held[e.pointerId].keys.forEach(hold);
     } else if (dir === 'action') {
-      // Send both Enter (for menus) and Space (for in-game actions like
-      // Treasure Cove ball launch which only accepts pg.K_SPACE)
       if (input) {
         input.keyDown('Enter');
         input.keyDown(' ');
@@ -101,14 +137,13 @@
       }
     } else if (dir === 'pause') {
       pressAndRelease('Escape');
-    } else if (dir === 'up') {
-      pressAndRelease('ArrowUp');
-    } else if (dir === 'down') {
-      pressAndRelease('ArrowDown');
     }
   }
 
   function handleUp(e) {
+    if (dragActive.pointerId === e.pointerId) {
+      clearDragTarget();
+    }
     var entry = held[e.pointerId];
     if (entry) {
       entry.keys.forEach(release);
@@ -120,7 +155,21 @@
     if (el) el.classList.remove('pressed');
   }
 
+  function handleMove(e) {
+    if (dragActive.pointerId === e.pointerId) {
+      e.preventDefault();
+      updateDragTarget(e);
+      return;
+    }
+    if (overlay.classList.contains('active') && held[e.pointerId]) {
+      e.preventDefault();
+    }
+  }
+
   function handleCancel(e) {
+    if (dragActive.pointerId === e.pointerId) {
+      clearDragTarget();
+    }
     var entry = held[e.pointerId];
     if (entry) {
       entry.keys.forEach(release);
@@ -133,23 +182,13 @@
   overlay.addEventListener('pointercancel', safeHandler(handleCancel));
   overlay.addEventListener('pointerleave', safeHandler(handleUp));
   overlay.addEventListener('lostpointercapture', safeHandler(handleCancel));
-
-  document.addEventListener('pointermove', safeHandler(function (e) {
-    if (overlay.classList.contains('active') && held[e.pointerId]) {
-      e.preventDefault();
-    }
-  }), {passive: false});
+  document.addEventListener('pointermove', safeHandler(handleMove), {passive: false});
 
   if (hint) {
-    if (isAsteroids) {
-      hint.textContent =
-        'Touch: \u25C0 \u25B6 turn  \u2022  \u2191 thrust  \u2022  \u23FA fire  \u2022  \u275A\u275A pause';
-    } else if (isPong) {
-      hint.textContent =
-        'Touch: \u25B2 \u25BC up/down  \u2022  \u23CE start  \u2022  \u275A\u275A pause';
+    if (isPong) {
+      hint.textContent = 'Touch: slide ship up/down  \u2022  START  \u2022  \u275A\u275A pause';
     } else {
-      hint.textContent =
-        'Touch: \u25C0 \u25B6 move  \u2022  \u23CE action  \u2022  \u275A\u275A pause';
+      hint.textContent = 'Touch: slide longboat left/right  \u2022  LAUNCH  \u2022  \u275A\u275A pause';
     }
   }
   overlay.classList.add('active');

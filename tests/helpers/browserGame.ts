@@ -900,4 +900,53 @@ export async function getCanvasPixelSample(
   );
 }
 
+/**
+ * Simulate a pointer drag across a target element.
+ * Fires pointerdown at (startX, startY), then pointermove along each
+ * intermediate point, finishing with pointerup at the final point.
+ *
+ * All coordinates are relative to the given selector's bounding box.
+ * Handles both touch and mouse pointer types.
+ */
+export async function pointerDrag(
+  page: Page,
+  selector: string,
+  points: { x: number; y: number }[],
+): Promise<void> {
+  if (points.length < 2) throw new Error("Need at least 2 points for a drag");
+
+  const box = await page.locator(selector).boundingBox();
+  if (!box) throw new Error(`Element not found: ${selector}`);
+
+  const start = points[0];
+  await page.mouse.move(box.x + start.x, box.y + start.y);
+  await page.mouse.down();
+
+  for (let i = 1; i < points.length; i++) {
+    const p = points[i];
+    await page.mouse.move(box.x + p.x, box.y + p.y, { steps: 3 });
+    await page.waitForTimeout(30);
+  }
+
+  const end = points[points.length - 1];
+  await page.mouse.up();
+}
+
+/**
+ * Read PirateArcadeInput debug log from the page.
+ */
+export async function readPirateInputDebug(
+  page: Page,
+): Promise<{ events: any[]; bridgeCalls: any[]; domEvents: any[] }> {
+  return page.evaluate(() => {
+    const d = (window as any).__paInputDebug;
+    if (!d) return { events: [], bridgeCalls: [], domEvents: [] };
+    return {
+      events: d.events,
+      bridgeCalls: d.bridgeCalls,
+      domEvents: d.domEvents,
+    };
+  });
+}
+
 export { test, expect };

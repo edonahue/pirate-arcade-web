@@ -6,6 +6,7 @@ from games.breakout.brick import Brick
 from renderer import draw_fps, draw_flash, HitParticle
 import random
 import math
+import builtins
 
 _BRICK_FLASH_SURFS = []
 for ai in range(8):
@@ -71,12 +72,26 @@ class Gameplay:
     def update(self, dt, keys):
         if keys is None:
             return ('playing', None)
-
-        self.paddle.vx = 0
-        if keys[pg.K_a] or keys[pg.K_LEFT]:
-            self.paddle.vx = -c.PADDLE_BREAKOUT_SPEED
-        if keys[pg.K_d] or keys[pg.K_RIGHT]:
-            self.paddle.vx = c.PADDLE_BREAKOUT_SPEED
+        target_active = bool(getattr(builtins, "__pa_touch_active__", False))
+        target_axis = getattr(builtins, "__pa_touch_axis__", None)
+        target_value = getattr(builtins, "__pa_touch_value__", None)
+        if target_active and target_axis == "x" and target_value is not None:
+            half = self.paddle.width // 2
+            target_x = float(target_value)
+            target_x = max(half, min(c.WINDOW_WIDTH - half, target_x))
+            diff = target_x - self.paddle.x
+            max_step = c.PADDLE_BREAKOUT_SPEED * dt * 1.5
+            if abs(diff) > max_step:
+                self.paddle.x += max(-max_step, min(max_step, diff))
+            else:
+                self.paddle.x = target_x
+            self.paddle.vx = 0
+        else:
+            self.paddle.vx = 0
+            if keys[pg.K_a] or keys[pg.K_LEFT]:
+                self.paddle.vx = -c.PADDLE_BREAKOUT_SPEED
+            if keys[pg.K_d] or keys[pg.K_RIGHT]:
+                self.paddle.vx = c.PADDLE_BREAKOUT_SPEED
 
         self.paddle.update(dt)
 

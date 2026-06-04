@@ -194,8 +194,25 @@
             '            else:',
             '                builtins.__pa_web_keys__.discard(key)',
             '                pg.event.post(pg.event.Event(pg.KEYUP, key=key))',
-            '        builtins.__pa_post_key = __pa_post_key',
-            '        # ── End input bridge shim ──',
+        '        builtins.__pa_post_key = __pa_post_key',
+        '',
+        '        # ── Touch target bridge shim ──',
+        '        builtins.__pa_touch_axis__ = None',
+        '        builtins.__pa_touch_value__ = None',
+        '        builtins.__pa_touch_active__ = False',
+        '        builtins.__pa_touch_event_count__ = 0',
+        '        builtins.__pa_last_touch_axis__ = None',
+        '        builtins.__pa_last_touch_value__ = None',
+        '',
+        '        def __pa_set_touch_target(axis, value, active):',
+        '            builtins.__pa_touch_axis__ = str(axis)',
+        '            builtins.__pa_touch_value__ = float(value)',
+        '            builtins.__pa_touch_active__ = bool(active)',
+        '            builtins.__pa_touch_event_count__ += 1',
+        '            builtins.__pa_last_touch_axis__ = str(axis)',
+        '            builtins.__pa_last_touch_value__ = float(value)',
+        '        builtins.__pa_set_touch_target = __pa_set_touch_target',
+        '        # ── End touch target bridge shim ──',
             '        _w.PirateArcadeMetrics.mark("input-bridge-installed")',
             '',
             '        _w.PirateArcadeMetrics.mark("display-init-start")',
@@ -363,7 +380,7 @@
     </div>
     <div id="game-wrap">
     <a id="back-link" href="/play/">← Back to Arcade</a>
-    <div id="controls-hint">Touch: ◀ ▶ move  •  ⏎ launch  •  ❚❚ pause</div>
+    <div id="controls-hint">Touch: slide longboat left/right  •  LAUNCH  •  ❚❚ pause</div>
     <div id="transfer" align=center>
       <div class="emscripten" id="status">Downloading Python runtime...</div>
       <div class="emscripten"><progress value="0" max="100" id="progress"></progress></div>
@@ -380,12 +397,11 @@
     <div id="pyconsole"><div id="terminal" tabIndex=1 align="left"></div></div>
 
     <div class="touch-overlay" id="touch-overlay" data-controls="breakout">
-      <div class="btn btn-arrow btn-left" data-dir="left">◀</div>
-      <div class="btn btn-arrow btn-right" data-dir="right">▶</div>
-      <div class="btn btn-action" data-dir="action">⏎</div>
-      <div class="btn btn-pause" data-dir="pause">❚❚</div>
-      <div class="btn btn-menu-up" data-dir="up">▲</div>
-      <div class="btn btn-menu-down" data-dir="down">▼</div>
+      <div class="touch-drag-zone touch-drag-x" data-dir="drag-x" role="slider" aria-label="Slide longboat left or right"></div>
+      <div class="btn btn-nudge btn-left" data-dir="left">◀</div>
+      <div class="btn btn-nudge btn-right" data-dir="right">▶</div>
+      <div class="btn btn-action" data-dir="action" role="button" aria-label="Launch ball">LAUNCH</div>
+      <div class="btn btn-pause" data-dir="pause" role="button" aria-label="Pause">❚❚</div>
     </div>
     </div>
 

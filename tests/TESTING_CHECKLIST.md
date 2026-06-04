@@ -70,15 +70,16 @@ At minimum, run through this on:
 
 ### 5. Cannonball Clash - mobile touch controls
 
-- [ ] `◀ ▶` buttons appear on left and right of screen
-- [ ] Hold the left arrow — paddle moves **up** (game-aware `data-controls="pong"`)
-- [ ] Hold the right arrow — paddle moves **down** (game-aware `data-controls="pong"`)
-- [ ] `⏎` (action) button works for menu confirm
+- [ ] Drag zone on left side of screen allows sliding ship up/down
+- [ ] `▲ ▼` nudge buttons appear on left and move ship up/down
+- [ ] `START` pill button (lower-right, not center) works for menu confirm
+- [ ] `START` is NOT a large orange circle centered over the canvas
 - [ ] `❚❚` (pause) button toggles pause
-- [ ] `▲ ▼` (menu up/down) buttons appear and work in menu
+- [ ] Tap `START` then slide vertically on the drag zone to control paddle
+- [ ] After gameplay starts, `START` fades away (opacity 0, pointer-events none)
 - [ ] Touch-and-hold is responsive (no 500ms delay between tap and hold)
-- [ ] Verify that ArrowDown is NOT dispatched when pressing the left/right
-      buttons (Pong mode only dispatches ArrowUp/ArrowDown, not ArrowLeft/ArrowRight)
+- [ ] Verify that ArrowDown is NOT dispatched when pressing the up nudge
+      button (Pong mode only dispatches ArrowUp/ArrowDown, not ArrowLeft/ArrowRight)
 
 ### 6. Treasure Cove - desktop controls
 
@@ -90,13 +91,15 @@ At minimum, run through this on:
 
 ### 7. Treasure Cove - mobile touch controls
 
-- [ ] `◀ ▶` buttons appear and move the paddle left/right on hold
+- [ ] Drag zone on bottom of screen allows sliding longboat left/right
+- [ ] `◀ ▶` nudge buttons appear and move the longboat left/right on hold
       (game-aware `data-controls="breakout"`)
-- [ ] `⏎` launches the ball and confirms menu options
+- [ ] `LAUNCH` pill button (lower-right, not center) launches ball
+- [ ] `LAUNCH` is NOT a large orange circle centered over the canvas
 - [ ] `❚❚` toggles pause
-- [ ] `▲ ▼` work in menu
 - [ ] Verify that ArrowUp/ArrowDown are NOT dispatched when pressing
       left/right (Breakout mode only dispatches ArrowLeft/ArrowRight)
+- [ ] Verify that sliding the drag zone moves the longboat smoothly
 
 ### 8. Audio
 

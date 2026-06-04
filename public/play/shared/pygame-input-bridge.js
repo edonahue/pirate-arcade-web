@@ -139,6 +139,29 @@
       debugLog.bridgeCalls.length = 0;
       debugLog.domEvents.length = 0;
     },
+
+    setTouchTarget: function (axis, value, active) {
+      logEvent('touchTarget', { axis: axis, value: value, active: active });
+      if (!window.python || typeof window.python.PyRun_SimpleString !== 'function') return false;
+      var safeAxis = JSON.stringify(axis);
+      var safeValue = Number.isFinite(value) ? String(Math.round(value)) : '0';
+      var safeActive = active ? 'True' : 'False';
+      var code =
+        'import builtins\n' +
+        'getattr(builtins, \'__pa_set_touch_target\', lambda *a: None)(' +
+        safeAxis + ', ' + safeValue + ', ' + safeActive + ')';
+      try {
+        window.python.PyRun_SimpleString(code);
+        return true;
+      } catch (err) {
+        console.warn('PirateArcadeInput touch target bridge failed', err);
+        return false;
+      }
+    },
+
+    clearTouchTarget: function () {
+      return this.setTouchTarget('none', 0, false);
+    },
   };
 
   // Query Python-side bridge state for tests

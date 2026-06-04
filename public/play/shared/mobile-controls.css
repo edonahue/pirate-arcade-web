@@ -56,7 +56,6 @@
 }
 .touch-overlay.active { display: block; }
 .game-ready .touch-overlay .btn { opacity: 0.25; }
-.game-ready .touch-overlay .btn.pressed { opacity: 0.55; }
 
 .touch-overlay .btn {
   position: absolute; pointer-events: auto; touch-action: none;
@@ -65,21 +64,56 @@
   opacity: 0.3; transition: opacity 0.12s;
 }
 .touch-overlay .btn.pressed { opacity: 0.6; }
-.touch-overlay .btn-arrow {
-  bottom: 0; width: 45%; height: 35%;
-  font-size: 36px; color: rgba(255,255,255,0.45);
+.game-ready .touch-overlay .btn.pressed { opacity: 0.55; }
+
+/* ── Drag zones ── */
+.touch-drag-zone {
+  position: absolute; pointer-events: auto; touch-action: none;
+  z-index: 1;
 }
-.touch-overlay .btn-left { left: 0; }
-.touch-overlay .btn-right { right: 0; }
+.touch-drag-y {
+  top: 0; bottom: 0; left: 0;
+  width: 60%;
+  max-width: 200px;
+}
+.touch-drag-x {
+  left: 0; right: 0; bottom: 0;
+  height: 60%;
+  max-height: 200px;
+}
+
+/* ── Nudge buttons (fallback) ── */
+.touch-overlay .btn-nudge {
+  bottom: max(60px, env(safe-area-inset-bottom, 60px));
+  width: 64px; height: 64px; border-radius: 50%;
+  font-size: 28px; color: rgba(255,255,255,0.5);
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.12);
+}
+.touch-overlay .btn-up { left: max(16px, env(safe-area-inset-left, 16px)); }
+.touch-overlay .btn-down {
+  left: max(16px, env(safe-area-inset-left, 16px));
+  top: auto;
+}
+.touch-overlay .btn-left { left: max(16px, env(safe-area-inset-left, 16px)); }
+.touch-overlay .btn-right {
+  left: max(88px, calc(env(safe-area-inset-left, 16px) + 72px));
+}
+
+/* ── Action pill ── */
 .touch-overlay .btn-action {
-  left: 50%; bottom: calc(6% + env(safe-area-inset-bottom, 0px));
-  width: 72px; height: 72px; margin-left: -36px;
-  border-radius: 50%;
-  background: rgba(212,175,55,0.2);
-  border: 2px solid rgba(212,175,55,0.4);
-  color: #d4af37; font: bold 10px/1 monospace;
+  right: max(16px, env(safe-area-inset-right, 16px));
+  bottom: max(16px, env(safe-area-inset-bottom, 16px));
+  min-width: 84px; height: 44px; padding: 0 18px;
+  border-radius: 999px;
+  background: rgba(212,175,55,0.25);
+  border: 1px solid rgba(212,175,55,0.45);
+  color: #d4af37; font: bold 13px/1 monospace;
   text-transform: uppercase; letter-spacing: 1px;
+  z-index: 10;
 }
+
+/* ── Pause button ── */
 .touch-overlay .btn-pause {
   top: max(10px, env(safe-area-inset-top, 10px));
   right: max(10px, env(safe-area-inset-right, 10px));
@@ -87,24 +121,7 @@
   background: rgba(255,255,255,0.08);
   border: 1px solid rgba(255,255,255,0.15);
   color: #8a9ab0; font: 16px/1 monospace;
-}
-.touch-overlay .btn-menu-up {
-  top: max(60px, calc(env(safe-area-inset-top, 10px) + 50px));
-  right: max(10px, env(safe-area-inset-right, 10px));
-  width: 44px; height: 44px; border-radius: 50%;
-  background: rgba(255,255,255,0.08);
-  border: 1px solid rgba(255,255,255,0.15);
-  color: #8a9ab0; font: 16px/1 monospace;
-  display: none;
-}
-.touch-overlay .btn-menu-down {
-  top: max(110px, calc(env(safe-area-inset-top, 10px) + 100px));
-  right: max(10px, env(safe-area-inset-right, 10px));
-  width: 44px; height: 44px; border-radius: 50%;
-  background: rgba(255,255,255,0.08);
-  border: 1px solid rgba(255,255,255,0.15);
-  color: #8a9ab0; font: 16px/1 monospace;
-  display: none;
+  z-index: 10;
 }
 
 /* ── Controls hint bar (bottom-center) ── */

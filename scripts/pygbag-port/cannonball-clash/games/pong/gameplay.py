@@ -7,6 +7,7 @@ from games.pong.ai import AI
 from renderer import draw_center_line, draw_fps, draw_flash, HitParticle
 import random
 import math
+import builtins
 
 class Gameplay:
     def __init__(self, audio):
@@ -70,11 +71,26 @@ class Gameplay:
     def update(self, dt, keys):
         if keys is None:
             return ('playing', None)
-        self.player_paddle.vy = 0
-        if keys[pg.K_w] or keys[pg.K_UP]:
-            self.player_paddle.vy = -c.PADDLE_SPEED
-        if keys[pg.K_s] or keys[pg.K_DOWN]:
-            self.player_paddle.vy = c.PADDLE_SPEED
+        target_active = bool(getattr(builtins, "__pa_touch_active__", False))
+        target_axis = getattr(builtins, "__pa_touch_axis__", None)
+        target_value = getattr(builtins, "__pa_touch_value__", None)
+        if target_active and target_axis == "y" and target_value is not None:
+            half = self.player_paddle.height // 2
+            target_y = float(target_value)
+            target_y = max(half, min(c.WINDOW_HEIGHT - half, target_y))
+            diff = target_y - self.player_paddle.y
+            max_step = c.PADDLE_SPEED * dt * 1.5
+            if abs(diff) > max_step:
+                self.player_paddle.y += max(-max_step, min(max_step, diff))
+            else:
+                self.player_paddle.y = target_y
+            self.player_paddle.vy = 0
+        else:
+            self.player_paddle.vy = 0
+            if keys[pg.K_w] or keys[pg.K_UP]:
+                self.player_paddle.vy = -c.PADDLE_SPEED
+            if keys[pg.K_s] or keys[pg.K_DOWN]:
+                self.player_paddle.vy = c.PADDLE_SPEED
 
         self.ai.update(self.ai_paddle, self.ball, dt)
         self.player_paddle.update(dt)

@@ -21,11 +21,23 @@ test.describe("Mobile Game Layout", () => {
       name: "Cannonball Clash",
       path: "/play/cannonball-clash/",
       controls: "pong",
+      actionText: /^START$/i,
+      nudgeLeft: '.btn-up[data-dir="left"]',
+      nudgeRight: '.btn-down[data-dir="right"]',
+      nudgeLeftLabel: /[▲↑]/,
+      nudgeRightLabel: /[▼↓]/,
+      hintContains: "slide",
     },
     {
       name: "Treasure Cove",
       path: "/play/treasure-cove/",
       controls: "breakout",
+      actionText: /^LAUNCH$/i,
+      nudgeLeft: '.btn-left[data-dir="left"]',
+      nudgeRight: '.btn-right[data-dir="right"]',
+      nudgeLeftLabel: /[◀←]/,
+      nudgeRightLabel: /[▶→]/,
+      hintContains: "slide",
     },
   ];
 
@@ -83,6 +95,7 @@ test.describe("Mobile Game Layout", () => {
         const controlsHint = page.locator("#controls-hint");
         await expect(controlsHint).toBeVisible();
 
+        // Action button (pill, not orange circle)
         const actionButton = page.locator('.btn-action[data-dir="action"]');
         await expect(actionButton).toBeVisible();
 
@@ -91,6 +104,26 @@ test.describe("Mobile Game Layout", () => {
         if (actionBox) {
           expect(actionBox.width).toBeGreaterThanOrEqual(44);
           expect(actionBox.height).toBeGreaterThanOrEqual(44);
+
+          // Action button must NOT be in the center of the canvas
+          if (canvasBox) {
+            const safeXMin = canvasBox.x + canvasBox.width * 0.3;
+            const safeXMax = canvasBox.x + canvasBox.width * 0.7;
+            const safeYMin = canvasBox.y + canvasBox.height * 0.25;
+            const safeYMax = canvasBox.y + canvasBox.height * 0.75;
+            const actionCenterX = actionBox.x + actionBox.width / 2;
+            const actionCenterY = actionBox.y + actionBox.height / 2;
+            const inCenterX =
+              actionCenterX >= safeXMin && actionCenterX <= safeXMax;
+            const inCenterY =
+              actionCenterY >= safeYMin && actionCenterY <= safeYMax;
+            // Assert NOT in the central gameplay zone
+            expect(inCenterX && inCenterY).toBe(false);
+          }
+
+          // Action button text should match expected content
+          const actionText = await actionButton.textContent();
+          expect(actionText).toMatch(game.actionText);
         }
 
         const pauseButton = page.locator('.btn-pause[data-dir="pause"]');
@@ -103,33 +136,24 @@ test.describe("Mobile Game Layout", () => {
           expect(pauseBox.height).toBeGreaterThanOrEqual(44);
         }
 
-        if (game.controls === "pong") {
-          const leftButton = page.locator('.btn-left[data-dir="left"]');
-          const rightButton = page.locator('.btn-right[data-dir="right"]');
-          await expect(leftButton).toBeVisible();
-          await expect(rightButton).toBeVisible();
+        // Nudge fallback buttons
+        const leftButton = page.locator(game.nudgeLeft);
+        const rightButton = page.locator(game.nudgeRight);
+        await expect(leftButton).toBeVisible();
+        await expect(rightButton).toBeVisible();
 
-          const leftLabel = await leftButton.textContent();
-          const rightLabel = await rightButton.textContent();
-          expect(leftLabel).toMatch(/[▲↑]/);
-          expect(rightLabel).toMatch(/[▼↓]/);
+        const leftLabel = await leftButton.textContent();
+        const rightLabel = await rightButton.textContent();
+        expect(leftLabel).toMatch(game.nudgeLeftLabel);
+        expect(rightLabel).toMatch(game.nudgeRightLabel);
 
-          const hintText = await controlsHint.textContent();
-          expect(hintText!.toLowerCase()).toContain("up/down");
-        } else if (game.controls === "breakout") {
-          const leftButton = page.locator('.btn-left[data-dir="left"]');
-          const rightButton = page.locator('.btn-right[data-dir="right"]');
-          await expect(leftButton).toBeVisible();
-          await expect(rightButton).toBeVisible();
+        // Drag zones exist
+        const dragZone = page.locator(`.touch-drag-zone`);
+        await expect(dragZone).toBeVisible();
 
-          const leftLabel = await leftButton.textContent();
-          const rightLabel = await rightButton.textContent();
-          expect(leftLabel).toMatch(/[◀←]/);
-          expect(rightLabel).toMatch(/[▶→]/);
-
-          const hintText = await controlsHint.textContent();
-          expect(hintText!.toLowerCase()).toContain("move");
-        }
+        // Hint text mentions slides
+        const hintText = await controlsHint.textContent();
+        expect(hintText!.toLowerCase()).toContain(game.hintContains);
 
         await testInfo.attach(`layout-${game.name}`, {
           body: JSON.stringify({

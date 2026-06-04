@@ -10,17 +10,38 @@ class Paddle:
         self.vy = 0
         self.big_timer = 0.0
         self.base_height = c.PADDLE_HEIGHT
-        self._build_glow()
+        self._built = False
 
-    def _build_glow(self):
-        pad = 10
-        w = self.width + pad * 2
-        h = self.height + pad * 2
-        self._glow_surf = pg.Surface((w, h), pg.SRCALPHA)
-        for i in range(pad, 0, -1):
-            alpha = max(0, 40 - (pad - i) * 4)
-            r = pg.Rect(i, i, w - i * 2, h - i * 2)
+    def _build_surfs(self):
+        self._glow_surf = pg.Surface((self.width + 20, self.height + 20), pg.SRCALPHA)
+        for i in range(10, 0, -1):
+            alpha = max(0, 40 - (10 - i) * 4)
+            r = pg.Rect(i, i, self.width + 20 - i * 2, self.height + 20 - i * 2)
             pg.draw.rect(self._glow_surf, (0, 128, 128, alpha), r, border_radius=4)
+        w = self.width
+        h = self.height
+        self._ship_surf = pg.Surface((w, h), pg.SRCALPHA)
+        hull_color = c.PIRATE_DARK_WOOD
+        deck_color = c.PIRATE_BROWN
+        trim_color = c.PIRATE_GOLD
+        mast_color = c.PIRATE_CREAM
+        pg.draw.rect(self._ship_surf, hull_color, (0, 4, w, h - 8))
+        pg.draw.polygon(self._ship_surf, hull_color, [(0, 4), (w // 2, 0), (w - 1, 4)])
+        pg.draw.polygon(self._ship_surf, hull_color, [(0, h - 5), (w // 2, h - 1), (w - 1, h - 5)])
+        pg.draw.rect(self._ship_surf, deck_color, (2, 8, w - 4, h - 16), 1)
+        pg.draw.line(self._ship_surf, trim_color, (0, h // 2 - 1), (w - 1, h // 2 - 1))
+        if h > 30:
+            mast_y1 = 10
+            mast_y2 = h - 10
+            pg.draw.line(self._ship_surf, mast_color, (w // 2, mast_y1), (w // 2, mast_y2), 2)
+            mid = (mast_y1 + mast_y2) // 2
+            pg.draw.polygon(self._ship_surf, c.PIRATE_CREAM, [
+                (w // 2, mid - 2), (w // 2 + 6, mid + 6), (w // 2, mid + 14)
+            ])
+            pg.draw.polygon(self._ship_surf, c.PIRATE_CREAM, [
+                (w // 2, mid - 2), (w // 2 - 6, mid + 6), (w // 2, mid + 14)
+            ])
+        self._built = True
 
     @property
     def rect(self):
@@ -34,27 +55,34 @@ class Paddle:
             self.big_timer -= dt
             if self.big_timer <= 0:
                 self.height = self.base_height
-                self._build_glow()
+                self._built = False
 
     def reset(self):
         self.big_timer = 0.0
         self.height = self.base_height
-        self._build_glow()
+        self._built = False
 
     def activate_big(self):
         self.height = int(self.base_height * c.PADDLE_BIG_MULTIPLIER)
         self.big_timer = c.PADDLE_BIG_DURATION
-        self._build_glow()
+        self._built = False
 
     @property
     def is_big(self):
         return self.big_timer > 0
 
     def draw(self, surface):
+        if not self._built:
+            self._build_surfs()
         gx = self.x - self.width // 2 - 10
         gy = self.y - self.height // 2 - 10
         surface.blit(self._glow_surf, (gx, gy))
-        color = c.PIRATE_TREASURE if self.is_big else c.WHITE
-        pg.draw.rect(surface, color, self.rect)
+        sx = self.x - self.width // 2
+        sy = self.y - self.height // 2
+        if self.is_big:
+            tint = pg.Surface((self.width, self.height), pg.SRCALPHA)
+            tint.fill((255, 200, 50, 80))
+            self._ship_surf.blit(tint, (0, 0), special_flags=pg.BLEND_RGBA_MULT)
+        surface.blit(self._ship_surf, (sx, sy))
         if self.is_big:
             pg.draw.rect(surface, c.POWERUP_COLOR, self.rect, 2)

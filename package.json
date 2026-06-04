@@ -36,6 +36,9 @@
     "test:check-headers": "node scripts/check-cloudflare-headers.mjs",
     "test:live-headers": "node scripts/check-live-game-headers.mjs",
     "test:mobile-runtime": "playwright test tests/game-runtime-csp.spec.ts --project=mobile-safari --project=mobile-chrome",
+    "test:mobile-drag": "playwright test tests/mobile-drag-controls.spec.ts --project=mobile-safari --project=mobile-chrome",
+    "test:game-theming": "playwright test tests/game-theming.spec.ts --project=chromium-desktop",
+    "patch:game-archives": "node scripts/patch-browser-game-archives.mjs",
     "test:lhci": "lhci autorun"
   },
   "engines": {
