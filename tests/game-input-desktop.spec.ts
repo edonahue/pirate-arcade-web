@@ -218,16 +218,23 @@ for (const game of GAMES) {
       await waitForPygbagRuntime(page);
       await unlockAndFocusGame(page);
 
-      // Baseline sample
+      // Start the game from the menu first so movement keys
+      // actually produce visible canvas changes.
+      await page.keyboard.press("Enter");
+      await page.waitForTimeout(300);
+      await page.keyboard.press("Space");
+      await page.waitForTimeout(1000);
+
+      // Baseline sample (after game has started)
       const before = await getCanvasPixelSample(page, 40, 40);
       expect(before).toBeTruthy();
 
-      // Send input
+      // Send movement/input keys
       for (const key of game.testSequence) {
         await page.keyboard.press(key);
         await page.waitForTimeout(80);
       }
-      await page.waitForTimeout(500);
+      await page.waitForTimeout(1000);
 
       // After-input sample
       const after = await getCanvasPixelSample(page, 40, 40);
