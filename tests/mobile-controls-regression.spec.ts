@@ -80,8 +80,8 @@ const ROUTES: GameRoute[] = [
     name: "Cannonball Clash",
     path: "/play/cannonball-clash/",
     buttons: [
-      { dataDir: "left", selector: "#touch-overlay .btn-left" },
-      { dataDir: "right", selector: "#touch-overlay .btn-right" },
+      { dataDir: "left", selector: "#touch-overlay .btn-nudge[data-dir='left']" },
+      { dataDir: "right", selector: "#touch-overlay .btn-nudge[data-dir='right']" },
       { dataDir: "action", selector: "#touch-overlay .btn-action" },
       { dataDir: "pause", selector: "#touch-overlay .btn-pause" },
     ],
@@ -91,8 +91,8 @@ const ROUTES: GameRoute[] = [
     name: "Treasure Cove",
     path: "/play/treasure-cove/",
     buttons: [
-      { dataDir: "left", selector: "#touch-overlay .btn-left" },
-      { dataDir: "right", selector: "#touch-overlay .btn-right" },
+      { dataDir: "left", selector: "#touch-overlay .btn-nudge[data-dir='left']" },
+      { dataDir: "right", selector: "#touch-overlay .btn-nudge[data-dir='right']" },
       { dataDir: "action", selector: "#touch-overlay .btn-action" },
       { dataDir: "pause", selector: "#touch-overlay .btn-pause" },
     ],
