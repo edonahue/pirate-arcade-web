@@ -33,6 +33,7 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci
+      - run: npm run build
       - name: Install Playwright Chromium
         run: npx playwright install chromium
       - name: Health/smoke tests (chromium-desktop)
