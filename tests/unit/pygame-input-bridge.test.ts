@@ -133,6 +133,26 @@ describe("pygame-input-bridge", () => {
       expect(after[1].down).toBe(false);
     });
 
+    it("tap defaults to 200ms hold when holdMs is not provided", async () => {
+      const input = (window as any).PirateArcadeInput;
+      input.tap("Enter");
+      const calls = (window as any).__paInputDebug.bridgeCalls;
+      expect(calls.length).toBe(1);
+      expect(calls[0].key).toBe("Enter");
+      expect(calls[0].down).toBe(true);
+
+      // Should still be held at 50ms (200ms hold means keyUp at ~200ms)
+      await new Promise((r) => setTimeout(r, 50));
+      const mid = (window as any).__paInputDebug.bridgeCalls;
+      expect(mid.length).toBe(1);
+
+      // keyUp should fire after hold expires
+      await new Promise((r) => setTimeout(r, 250));
+      const after = (window as any).__paInputDebug.bridgeCalls;
+      expect(after.length).toBe(2);
+      expect(after[1].down).toBe(false);
+    });
+
     it("keyDown dispatches DOM KeyboardEvent fallback", () => {
       const canvas = document.createElement("canvas");
       canvas.id = "canvas";

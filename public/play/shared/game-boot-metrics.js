@@ -80,4 +80,18 @@
 
   // Mark page script start immediately
   window.PirateArcadeMetrics.mark('page-script-start');
+
+  // Debug signal: set window.__paServiceWorkerReady when the SW is active
+  try {
+    if (navigator.serviceWorker) {
+      navigator.serviceWorker.addEventListener('message', function (event) {
+        if (event.data && event.data.type === 'SW_ACTIVATED') {
+          window.__paServiceWorkerReady = true;
+        }
+      });
+      navigator.serviceWorker.ready.then(function () {
+        window.__paServiceWorkerReady = true;
+      });
+    }
+  } catch (e) { /* SW API not available */ }
 })();

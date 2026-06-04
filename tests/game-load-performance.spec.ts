@@ -1,4 +1,9 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./helpers/browserGame";
+import {
+  collectPageDiagnostics,
+  blockingErrors,
+  attachDiagnostics,
+} from "./helpers/browserGame";
 
 type BootMetrics = Record<string, number>;
 
@@ -78,6 +83,17 @@ test.describe("Game Loading Performance", () => {
         testInfo.annotations.push({
           type: "performance",
           description: `Slow load time detected: ${(totalLoadTime / 1000).toFixed(1)}s`,
+        });
+      }
+
+      // Collect page diagnostics and check for blocking errors
+      const diagnostics = await collectPageDiagnostics(page);
+      attachDiagnostics(testInfo, diagnostics);
+      const blocking = blockingErrors(diagnostics);
+      if (blocking.length > 0) {
+        testInfo.annotations.push({
+          type: "warn",
+          description: `Blocking errors during ${game.name} load: ${blocking.join("; ")}`,
         });
       }
     });
