@@ -5,7 +5,9 @@
 //     network-first HTML, stale-while-revalidate JS/CSS,
 //     cache-first archives, debug signal for tests.
 
-const CACHE_NAME = "pirate-arcade-games-v6";
+import { CACHE_VERSION } from "./play/shared/game-asset-versions.js";
+
+const CACHE_NAME = CACHE_VERSION;
 
 // List of assets to cache - only confirmed browser-playable games.
 // Missing assets are added with individual try/catch so one failure
@@ -68,6 +70,31 @@ self.addEventListener("activate", (event) => {
     clients.forEach((client) => {
       client.postMessage({ type: "SW_ACTIVATED", cache: CACHE_NAME });
     });
+  });
+
+  // Handle cache warming requests from client
+  self.addEventListener("message", (event) => {
+    if (event.data && event.data.type === "WARM_CACHE") {
+      const urls = event.data.urls || [];
+      // Warm cache for the specified URLs
+      event.waitUntil(
+        (async () => {
+          const cache = await caches.open(CACHE_NAME);
+          for (const url of urls) {
+            try {
+              // Use network-first to ensure we get fresh copies
+              const response = await fetch(url, { cache: "no-store" });
+              if (response && response.status === 200) {
+                await cache.put(url, response.clone());
+                console.log("[SW] Warmed cache for:", url);
+              }
+            } catch (err) {
+              console.warn("[SW] Failed to warm cache for", url, ":", err);
+            }
+          }
+        })(),
+      );
+    }
   });
 });
 

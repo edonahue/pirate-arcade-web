@@ -146,6 +146,92 @@ test.describe("Game Theming", () => {
           contentType: "application/json",
         });
       });
+
+      test(`${game.name} paddle region has multiple colors (not plain white)`, async ({
+        page,
+      }, testInfo) => {
+        await page.goto(game.path, { waitUntil: "domcontentloaded" });
+        await waitForPygbagRuntime(page);
+
+        await page.waitForFunction(
+          () => {
+            const m = (window as any).__paBootMetrics;
+            return m !== undefined && m["game-ready"] !== undefined;
+          },
+          { timeout: 120000 },
+        );
+
+        // Wait for canvas to render
+        await page.waitForTimeout(2000);
+
+        // Sample paddle region - multiple points to check for color variety
+        const paddleSamples = [
+          await getCanvasPixelSample(page, 80, 20),
+          await getCanvasPixelSample(page, 80, 40),
+          await getCanvasPixelSample(page, 80, 60),
+          await getCanvasPixelSample(page, 100, 30),
+          await getCanvasPixelSample(page, 120, 30),
+        ].filter(Boolean);
+
+        expect(paddleSamples.length).toBeGreaterThan(0);
+
+        // Extract color values (RGB) from each sample
+        const colors = paddleSamples
+          .map((sample) => {
+            // Sample a few pixels from each sample and average
+            let r = 0,
+              g = 0,
+              b = 0,
+              count = 0;
+            for (let i = 0; i < Math.min(16, sample.data.length); i += 4) {
+              if (sample.data[i + 3] > 0) {
+                // non-transparent
+                r += sample.data[i];
+                g += sample.data[i + 1];
+                b += sample.data[i + 2];
+                count++;
+              }
+            }
+            return {
+              r: Math.round(r / Math.max(1, count)),
+              g: Math.round(g / Math.max(1, count)),
+              b: Math.round(b / Math.max(1, count)),
+            };
+          })
+          .filter((c) => c.r > 0 || c.g > 0 || c.b > 0);
+
+        // Check that we have color variation (not all same color)
+        const firstColor = colors[0];
+        const hasVariation = colors.some(
+          (c) =>
+            Math.abs(c.r - firstColor.r) > 10 ||
+            Math.abs(c.g - firstColor.g) > 10 ||
+            Math.abs(c.b - firstColor.b) > 10,
+        );
+
+        // Paddle should not be a single plain color (especially not white)
+        expect(hasVariation || colors.length < 2).toBe(
+          true,
+          `Paddle region should show color variation, got ${JSON.stringify(colors)}`,
+        );
+
+        // Additionally, check that it's not predominantly white
+        const whiteCount = colors.filter(
+          (c) => c.r > 200 && c.g > 200 && c.b > 200,
+        ).length;
+        expect(whiteCount).toBeLessThan(colors.length);
+
+        // Attach color analysis
+        await testInfo.attach(`color-analysis-${game.id}`, {
+          body: JSON.stringify({
+            paddleSamples: paddleSamples.length,
+            colors: colors,
+            hasColorVariation: hasVariation,
+            whiteCount: whiteCount,
+          }),
+          contentType: "application/json",
+        });
+      });
     }
   });
 });

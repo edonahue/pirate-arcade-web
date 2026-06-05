@@ -62,6 +62,21 @@ npm run test:game-performance
 # Game loading performance in headed mode (watch the boot)
 npm run test:game-performance:headed
 
+# Game visual theming checks (ship/longboat visuals, pixel sampling)
+npm run test:game-theming
+
+# Game archive/source parity check (ensure tarball matches source)
+npm run test:archive-parity
+
+# Game asset versioning validation (ensure ?v= queries are in sync)
+npm run test:game-versions
+
+# Site visual smoke tests (homepage, play, about, build-log)
+npm run test:site-theme
+
+# CSS token validation (ensure all var() references are defined)
+npm run test:css-tokens
+
 # Mobile touch playability (tap/hold movement, action buttons)
 npm run test:mobile-playability
 

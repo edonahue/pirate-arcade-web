@@ -52,7 +52,11 @@ const swCode = readFileSync(swPath, "utf-8");
 if (!swCode.includes("network-first") || !swCode.includes(".tar.gz")) {
   fail("sw.js must use network-first for .tar.gz archives");
 }
-if (!swCode.includes("pirate-arcade-games-v")) {
+// Check for versioned cache name: either hardcoded or imported from game-asset-versions
+if (
+  !swCode.includes("pirate-arcade-games-v") &&
+  !swCode.includes("CACHE_VERSION")
+) {
   fail("sw.js CACHE_NAME must be versioned (pirate-arcade-games-vN)");
 }
 

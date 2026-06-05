@@ -8,6 +8,75 @@ export interface Props {
 
 const { game } = Astro.props;
 const cardHref = `/games/${game.id}/`;
+const isBrowserPlayable = game.status === "browser-playable" && game.browserUrl;
+
+// Prewarm functions with proper typing
+let prewarmTimeout: ReturnType<typeof setTimeout> | null = null;
+
+function triggerGamePrewarm(gameId: string) {
+  // Clear any existing timeout
+  if (prewarmTimeout) {
+    clearTimeout(prewarmTimeout);
+  }
+
+  // Set a short delay to avoid prewarming on accidental hovers
+  prewarmTimeout = setTimeout(() => {
+    prewarmGameResources(gameId);
+  }, 150); // 150ms delay
+}
+
+function cancelGamePrewarm(gameId: string) {
+  if (prewarmTimeout) {
+    clearTimeout(prewarmTimeout);
+    prewarmTimeout = null;
+  }
+}
+
+function prewarmGameResources(gameId: string) {
+  // Only prewarm for browser-playable games
+  if (!["cannonball-clash", "treasure-cove"].includes(gameId)) {
+    return;
+  }
+
+  const baseUrl = `/play/${gameId}/`;
+  const archiveUrl = `/play/${gameId}/${gameId}.tar.gz?v=mobile-v4`;
+
+  // Prefetch the game HTML page
+  prefetchPage(baseUrl);
+
+  // Prefetch the game tarball
+  prefetchResource(archiveUrl, "fetch");
+
+  // Try to warm the service worker cache for same-origin assets
+  warmServiceWorkerCache([baseUrl, archiveUrl]);
+}
+
+function prefetchPage(url: string) {
+  const link = document.createElement("link");
+  link.rel = "prefetch";
+  link.href = url;
+  document.head.appendChild(link);
+}
+
+function prefetchResource(url: string, asType: string) {
+  const link = document.createElement("link");
+  link.rel = "prefetch";
+  link.href = url;
+  if (asType) {
+    link.as = asType;
+  }
+  document.head.appendChild(link);
+}
+
+function warmServiceWorkerCache(urls: string[]) {
+  if ("serviceWorker" in navigator && navigator.serviceWorker.controller) {
+    // Post a message to the service worker to warm cache for these URLs
+    navigator.serviceWorker.controller.postMessage({
+      type: "WARM_CACHE",
+      urls: urls,
+    });
+  }
+}
 ---
 
 <article class="game-chart-frame">
@@ -17,6 +86,24 @@ const cardHref = `/games/${game.id}/`;
         href={cardHref}
         class="game-card__image"
         aria-label={`${game.title} screenshot`}
+        on:pointerenter={isBrowserPlayable
+          ? (e) => triggerGamePrewarm(game.id)
+          : undefined}
+        on:pointerleave={isBrowserPlayable
+          ? (e) => cancelGamePrewarm(game.id)
+          : undefined}
+        on:focus={isBrowserPlayable
+          ? (e) => triggerGamePrewarm(game.id)
+          : undefined}
+        on:blur={isBrowserPlayable
+          ? (e) => cancelGamePrewarm(game.id)
+          : undefined}
+        on:touchstart={isBrowserPlayable
+          ? (e) => {
+              e.preventDefault();
+              triggerGamePrewarm(game.id);
+            }
+          : undefined}
       >
         {
           game.screenshot ? (
@@ -76,3 +163,72 @@ const cardHref = `/games/${game.id}/`;
     <div class="game-chart-frame__brass-corner bottom-right"></div>
   </div>
 </article>
+
+<script>
+  let prewarmTimeout = null;
+
+  function triggerGamePrewarm(gameId) {
+    // Clear any existing timeout
+    if (prewarmTimeout) {
+      clearTimeout(prewarmTimeout);
+    }
+
+    // Set a short delay to avoid prewarming on accidental hovers
+    prewarmTimeout = setTimeout(() => {
+      prewarmGameResources(gameId);
+    }, 150); // 150ms delay
+  }
+
+  function cancelGamePrewarm(gameId) {
+    if (prewarmTimeout) {
+      clearTimeout(prewarmTimeout);
+      prewarmTimeout = null;
+    }
+  }
+
+  function prewarmGameResources(gameId) {
+    // Only prewarm for browser-playable games
+    if (!["cannonball-clash", "treasure-cove"].includes(gameId)) {
+      return;
+    }
+
+    const baseUrl = `/play/${gameId}/`;
+    const archiveUrl = `/play/${gameId}/${gameId}.tar.gz?v=mobile-v4`;
+
+    // Prefetch the game HTML page
+    prefetchPage(baseUrl);
+
+    // Prefetch the game tarball
+    prefetchResource(archiveUrl, "fetch");
+
+    // Try to warm the service worker cache for same-origin assets
+    warmServiceWorkerCache([baseUrl, archiveUrl]);
+  }
+
+  function prefetchPage(url) {
+    const link = document.createElement("link");
+    link.rel = "prefetch";
+    link.href = url;
+    document.head.appendChild(link);
+  }
+
+  function prefetchResource(url, asType) {
+    const link = document.createElement("link");
+    link.rel = "prefetch";
+    link.href = url;
+    if (asType) {
+      link.as = asType;
+    }
+    document.head.appendChild(link);
+  }
+
+  function warmServiceWorkerCache(urls) {
+    if ("serviceWorker" in navigator && navigator.serviceWorker.controller) {
+      // Post a message to the service worker to warm cache for these URLs
+      navigator.serviceWorker.controller.postMessage({
+        type: "WARM_CACHE",
+        urls: urls,
+      });
+    }
+  }
+</script>
