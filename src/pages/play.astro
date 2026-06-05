@@ -164,39 +164,30 @@ import { ASSET_VERSION } from "../../scripts/game-asset-versions.mjs";
   </section>
 </BaseLayout>
 
-<script define:vars={{ ASSET_VERSION }}>
+<script define:vars={{ ASSET_VERSION }} is:inline>
   if (!window.__paGamePrewarmInstalled) {
     window.__paGamePrewarmInstalled = true;
 
-    const prewarmState = new Map<
-      string,
-      {
-        timeout: ReturnType<typeof setTimeout> | null;
-        prefetchedUrls: Set<string>;
-      }
-    >();
+    /** @type {Map<string, {timeout: number|null, prefetchedUrls: Set<string>}>} */
+    var prewarmState = new Map();
 
-    function triggerGamePrewarm(
-      gameId: string,
-      pageUrl: string,
-      archiveUrl: string,
-    ): void {
-      let state = prewarmState.get(gameId);
+    function triggerGamePrewarm(gameId, pageUrl, archiveUrl) {
+      var state = prewarmState.get(gameId);
       if (!state) {
         state = { timeout: null, prefetchedUrls: new Set() };
         prewarmState.set(gameId, state);
       }
       if (state.timeout) clearTimeout(state.timeout);
-      state.timeout = setTimeout(() => {
+      state.timeout = setTimeout(function () {
         if (!state.prefetchedUrls.has(pageUrl)) {
-          const link = document.createElement("link");
+          var link = document.createElement("link");
           link.rel = "prefetch";
           link.href = pageUrl;
           document.head.appendChild(link);
           state.prefetchedUrls.add(pageUrl);
         }
         if (!state.prefetchedUrls.has(archiveUrl)) {
-          const link = document.createElement("link");
+          var link = document.createElement("link");
           link.rel = "prefetch";
           link.href = archiveUrl;
           link.as = "fetch";
@@ -215,34 +206,40 @@ import { ASSET_VERSION } from "../../scripts/game-asset-versions.mjs";
       }, 150);
     }
 
-    function cancelGamePrewarm(gameId: string): void {
-      const state = prewarmState.get(gameId);
-      if (state?.timeout) {
+    function cancelGamePrewarm(gameId) {
+      var state = prewarmState.get(gameId);
+      if (state && state.timeout) {
         clearTimeout(state.timeout);
         state.timeout = null;
       }
     }
 
-    const links = document.querySelectorAll<HTMLAnchorElement>(
+    var links = document.querySelectorAll(
       "a[data-game-id][data-browser-playable=true]",
     );
-    links.forEach((link) => {
-      const gameId = link.getAttribute("data-game-id")!;
-      const pageUrl = link.getAttribute("data-game-page") || "";
-      const archiveUrl = link.getAttribute("data-game-archive") || "";
+    links.forEach(function (link) {
+      var gameId = link.getAttribute("data-game-id");
+      var pageUrl = link.getAttribute("data-game-page") || "";
+      var archiveUrl = link.getAttribute("data-game-archive") || "";
       if (!pageUrl || !archiveUrl) return;
 
-      link.addEventListener("pointerenter", () =>
-        triggerGamePrewarm(gameId, pageUrl, archiveUrl),
-      );
-      link.addEventListener("pointerleave", () => cancelGamePrewarm(gameId));
-      link.addEventListener("focus", () =>
-        triggerGamePrewarm(gameId, pageUrl, archiveUrl),
-      );
-      link.addEventListener("blur", () => cancelGamePrewarm(gameId));
+      link.addEventListener("pointerenter", function () {
+        triggerGamePrewarm(gameId, pageUrl, archiveUrl);
+      });
+      link.addEventListener("pointerleave", function () {
+        cancelGamePrewarm(gameId);
+      });
+      link.addEventListener("focus", function () {
+        triggerGamePrewarm(gameId, pageUrl, archiveUrl);
+      });
+      link.addEventListener("blur", function () {
+        cancelGamePrewarm(gameId);
+      });
       link.addEventListener(
         "touchstart",
-        () => triggerGamePrewarm(gameId, pageUrl, archiveUrl),
+        function () {
+          triggerGamePrewarm(gameId, pageUrl, archiveUrl);
+        },
         { passive: true },
       );
     });
