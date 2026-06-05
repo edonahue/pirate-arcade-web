@@ -43,6 +43,145 @@ test.describe("Mobile Game Layout", () => {
 
   for (const game of GAMES) {
     test.describe(`${game.name}`, () => {
+      test("__paCanvasLayout is exposed with correct geometry", async ({
+        page,
+      }) => {
+        const response = await page.goto(game.path);
+        expect(response?.ok()).toBe(true);
+
+        await page.waitForFunction(
+          () => {
+            const m = (window as any).__paBootMetrics;
+            return m?.["game-ready"] !== undefined;
+          },
+          { timeout: 120000 },
+        );
+
+        await page.waitForFunction(
+          () => {
+            const overlay = document.getElementById("game-loading");
+            return !overlay || overlay.classList.contains("hidden");
+          },
+          { timeout: 120000 },
+        );
+
+        const layout = await page.evaluate(
+          () => (window as any).__paCanvasLayout,
+        );
+
+        expect(layout).toBeTruthy();
+        expect(layout.left).toBeDefined();
+        expect(layout.top).toBeDefined();
+        expect(layout.width).toBeGreaterThan(0);
+        expect(layout.height).toBeGreaterThan(0);
+        expect(layout.right).toBe(layout.left + layout.width);
+        expect(layout.bottom).toBe(layout.top + layout.height);
+        expect(layout.bottomOffset).toBeGreaterThanOrEqual(0);
+        expect(layout.viewportWidth).toBeGreaterThan(0);
+        expect(layout.viewportHeight).toBeGreaterThan(0);
+
+        // Canvas must fit within viewport
+        expect(layout.left).toBeGreaterThanOrEqual(0);
+        expect(layout.top).toBeGreaterThanOrEqual(0);
+        expect(layout.right).toBeLessThanOrEqual(layout.viewportWidth);
+        expect(layout.bottom).toBeLessThanOrEqual(layout.viewportHeight);
+      });
+
+      test("back link z-index is highest", async ({ page }) => {
+        const response = await page.goto(game.path);
+        expect(response?.ok()).toBe(true);
+
+        const backLink = page.locator("#back-link");
+        await expect(backLink).toBeVisible();
+
+        const zIndex = await backLink.evaluate(
+          (el) => window.getComputedStyle(el).zIndex,
+        );
+        expect(zIndex).toBe("1000005");
+
+        // Verify drag zones have lower z-index than back link
+        const dragZoneZ = await page
+          .locator(".touch-drag-zone")
+          .first()
+          .evaluate((el) => parseInt(window.getComputedStyle(el).zIndex) || 0);
+        expect(dragZoneZ).toBeLessThan(parseInt(zIndex) || Infinity);
+      });
+
+      test("drag zones are positioned relative to canvas", async ({ page }) => {
+        const response = await page.goto(game.path);
+        expect(response?.ok()).toBe(true);
+
+        await page.waitForFunction(
+          () => {
+            const m = (window as any).__paBootMetrics;
+            return m?.["game-ready"] !== undefined;
+          },
+          { timeout: 120000 },
+        );
+
+        await page.waitForFunction(
+          () => {
+            const overlay = document.getElementById("game-loading");
+            return !overlay || overlay.classList.contains("hidden");
+          },
+          { timeout: 120000 },
+        );
+
+        // Wait for game-viewport.js to compute layout
+        await page.waitForFunction(() => !!(window as any).__paCanvasLayout, {
+          timeout: 15000,
+        });
+
+        // For each drag zone, check it's bounded by the canvas
+        const dragZones = await page.evaluate(() => {
+          const zones = document.querySelectorAll(".touch-drag-zone");
+          const layout = (window as any).__paCanvasLayout as any;
+          if (!layout) return [];
+
+          return Array.from(zones).map((z) => {
+            const rect = z.getBoundingClientRect();
+            const style = window.getComputedStyle(z);
+            return {
+              left: Math.round(rect.left),
+              top: Math.round(rect.top),
+              right: Math.round(rect.right),
+              bottom: Math.round(rect.bottom),
+              width: Math.round(rect.width),
+              height: Math.round(rect.height),
+              dataDir: (z as HTMLElement).dataset.dir || "",
+              zIndex: parseInt(style.zIndex) || 0,
+            };
+          });
+        });
+
+        expect(dragZones.length).toBeGreaterThan(0);
+
+        const layout = await page.evaluate(
+          () => (window as any).__paCanvasLayout,
+        );
+        const margin = 2; // Allow 2px rounding error
+
+        for (const zone of dragZones) {
+          // Each drag zone should be within or adjacent to canvas bounds
+          if (zone.dataDir.includes("drag-y")) {
+            // Vertical drag zone: on left/right side of canvas
+            expect(zone.top).toBeGreaterThanOrEqual(layout.top - margin);
+            expect(zone.bottom).toBeLessThanOrEqual(layout.bottom + margin);
+          } else if (zone.dataDir.includes("drag-x")) {
+            // Horizontal drag zone: overlaps bottom portion of canvas
+            expect(zone.left).toBeGreaterThanOrEqual(layout.left - margin);
+            expect(zone.right).toBeLessThanOrEqual(layout.right + margin);
+            expect(zone.bottom).toBeLessThanOrEqual(layout.bottom + margin);
+            expect(zone.top).toBeGreaterThanOrEqual(layout.top - margin);
+          }
+
+          // Drag zones must have lower z-index than back link.
+          // (z-index overlap is acceptable — the back-link at 1000005
+          // always sits above drag-zone content.)
+          expect(zone.zIndex).toBeLessThan(1000005);
+        }
+      });
+
       test("should render canvas and touch controls properly", async ({
         page,
       }, testInfo) => {

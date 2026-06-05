@@ -13,8 +13,6 @@ npm run apply:game-versions
 
 # Run the full validation suite
 npm run test:service-worker
-npm run test:game-versions
-npm run test:cache-versioning
 npm run test:archive-parity
 npm run audit:game-archives
 npm run test:css-tokens
@@ -90,15 +88,16 @@ npm run test:archive-parity
 # read-only — does NOT mutate files)
 npm run test:game-versions
 
-# Service worker validity + cache versioning (classic SW, no imports,
-# correct CACHE_VERSION, archive network-first strategy)
-npm run test:cache-versioning
-
-# Combined service-worker + version check
+# Service worker compatibility + cache versioning + HTML consistency
+# (classic SW, no top-level imports, WARM_CACHE lifecycle, correct
+# CACHE_VERSION, archive network-first strategy, ?v= queries)
 npm run test:service-worker
 
 # Site visual smoke tests (homepage, play, about, build-log)
 npm run test:site-theme
+
+# Game prewarm verification (standalone CTAs, GameCard, WARM_CACHE)
+npm run test:game-prewarm
 
 # CSS token validation (ensure all var() references are defined)
 npm run test:css-tokens
@@ -124,7 +123,7 @@ npm run audit:game-archives
 # Apply game asset versions to static files (mutates sw.js, HTML)
 npm run apply:game-versions
 
-# Combined service-worker + version check
+# Service-worker compat + cache versioning + HTML consistency
 npm run test:service-worker
 
 # Live/repo parity check (informational, ALLOW_STALE_LIVE=1 to skip failures)
@@ -156,6 +155,7 @@ tests/
   game-input-mobile.spec.ts     # Mobile touch/orientation (~15 tests)
   game-load-performance.spec.ts # Cold/warm load metrics, resource breakdown
   game-theming.spec.ts          # Visual theming pixel sampling
+  game-prewarm.spec.ts          # Prewarm data attributes + WARM_CACHE
   site-theme.spec.ts            # Visual smoke + prewarm verification
   mobile-game-layout.spec.ts    # Canvas positioning, touch control sizing
   mobile-drag-controls.spec.ts  # Drag-zone input verification

@@ -74,31 +74,60 @@ self.addEventListener("activate", (event) => {
       client.postMessage({ type: "SW_ACTIVATED", cache: CACHE_NAME });
     });
   });
+});
 
-  // Handle cache warming requests from client
-  self.addEventListener("message", (event) => {
-    if (event.data && event.data.type === "WARM_CACHE") {
-      const urls = event.data.urls || [];
-      // Warm cache for the specified URLs
-      event.waitUntil(
-        (async () => {
-          const cache = await caches.open(CACHE_NAME);
-          for (const url of urls) {
-            try {
-              // Use network-first to ensure we get fresh copies
-              const response = await fetch(url, { cache: "no-store" });
-              if (response && response.status === 200) {
-                await cache.put(url, response.clone());
-                console.log("[SW] Warmed cache for:", url);
-              }
-            } catch (err) {
-              console.warn("[SW] Failed to warm cache for", url, ":", err);
-            }
+// WARM_CACHE handling at top-level scope (not nested inside activate).
+// Accepts same-origin URLs only, normalizes relative paths, caches
+// successful 200 responses, and posts a result message back to the client.
+self.addEventListener("message", (event) => {
+  if (!event.data || event.data.type !== "WARM_CACHE") return;
+  const urls = event.data.urls || [];
+  if (!Array.isArray(urls) || urls.length === 0) return;
+
+  event.waitUntil(
+    (async () => {
+      const cache = await caches.open(CACHE_NAME);
+      const results = [];
+      for (const raw of urls) {
+        let normalized;
+        try {
+          // Normalize relative URLs against origin
+          normalized = new URL(raw, self.location.origin).href;
+        } catch {
+          results.push({ url: raw, ok: false, reason: "invalid URL" });
+          continue;
+        }
+        // Reject cross-origin URLs
+        if (!normalized.startsWith(self.location.origin)) {
+          results.push({
+            url: raw,
+            ok: false,
+            reason: "cross-origin rejected",
+          });
+          continue;
+        }
+        try {
+          const response = await fetch(normalized, { cache: "no-store" });
+          if (response.status === 200) {
+            await cache.put(normalized, response.clone());
+            results.push({ url: normalized, ok: true });
+          } else {
+            results.push({
+              url: normalized,
+              ok: false,
+              reason: `HTTP ${response.status}`,
+            });
           }
-        })(),
-      );
-    }
-  });
+        } catch (err) {
+          results.push({ url: normalized, ok: false, reason: err.message });
+        }
+      }
+      // Post result back to the client so tests can verify
+      if (event.source) {
+        event.source.postMessage({ type: "WARM_CACHE_RESULT", results });
+      }
+    })(),
+  );
 });
 
 // Helper: network-first with cache fallback

@@ -1,7 +1,8 @@
 import { test, expect } from "./helpers/browserGame";
 import {
   waitForPygbagRuntime,
-  pointerDrag,
+  pointerTouchDrag,
+  pointerTouchTap,
   readPirateInputDebug,
 } from "./helpers/browserGame";
 
@@ -76,9 +77,9 @@ test.describe("Mobile Drag Controls", () => {
       expect(box!.width).toBeGreaterThan(0);
       expect(box!.height).toBeGreaterThan(0);
 
-      // Drag from center downward/rightward (100px in the axis)
-      const midX = box!.width / 2;
-      const midY = box!.height / 2;
+      // Drag from center downward/rightward (80px in the axis)
+      const midX = box!.x + box!.width / 2;
+      const midY = box!.y + box!.height / 2;
       const offset = 80;
 
       const startPoint = { x: midX, y: midY };
@@ -87,7 +88,9 @@ test.describe("Mobile Drag Controls", () => {
           ? { x: midX, y: midY + offset }
           : { x: midX + offset, y: midY };
 
-      await pointerDrag(page, dragSelector, [startPoint, endPoint]);
+      await pointerTouchDrag(page, [startPoint, endPoint], {
+        selector: dragSelector,
+      });
 
       await page.waitForTimeout(200);
 
@@ -167,14 +170,16 @@ test.describe("Mobile Drag Controls", () => {
       const dragSelector = `.touch-drag-zone[data-dir="drag-${game.dragAxis}"]`;
       await page.waitForSelector(dragSelector, { timeout: 5000 });
 
-      // Start drag and release
+      // Start drag and release via touch-like pointer events
       const box = await page.locator(dragSelector).boundingBox();
       expect(box).toBeTruthy();
 
-      await page.mouse.move(box!.x + box!.width / 2, box!.y + box!.height / 2);
-      await page.mouse.down();
-      await page.waitForTimeout(50);
-      await page.mouse.up();
+      const cx = box!.x + box!.width / 2;
+      const cy = box!.y + box!.height / 2;
+      await pointerTouchTap(page, cx, cy, {
+        selector: dragSelector,
+        holdMs: 150,
+      });
       await page.waitForTimeout(100);
 
       // Python touch active should be False after release

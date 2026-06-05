@@ -306,30 +306,52 @@ compensations:
 
 ## Post-Change Hardening Pass
 
-Run these after any change to `public/sw.js`, game HTML files, or asset
-versions:
+Run these after any change to `public/sw.js`, game HTML files, asset
+versions, mobile controls, or prewarm logic:
 
 ```bash
 # 1. Apply current versions to static files
 npm run apply:game-versions
 
-# 2. Validate
-npm run test:game-versions          # read-only version consistency check
-npm run test:cache-versioning       # SW validity + cache naming
+# 2. Validate (static checks — no browser required)
+npm run test:service-worker         # SW compat + cache versioning + HTML consistency
 npm run test:archive-parity         # source matches shipped tarballs
 npm run audit:game-archives         # archive size / suspicious file scan
 npm run test:css-tokens             # all CSS var() references defined
-npm run test:live-parity            # local blocking checks + live (informational)
+npm run check:dependency-hygiene    # dep classification (dev vs runtime)
+
+# 3. Browser E2E checks (chromium-desktop)
+npm run test:site-theme             # visual smoke + prewarm verification
+npm run test:game-prewarm           # prewarm data attributes + WARM_CACHE
+npm run test:game-performance       # cold/warm load metrics
+
+# 4. Mobile E2E checks
+npm run test:mobile-layout          # canvas positioning, touch control sizing, __paCanvasLayout
+npm run test:mobile-drag            # drag-zone input (touch-like PointerEvents)
+npm run test:mobile-playability     # tap/hold/action button E2E
+npm run test:mobile-regression      # iOS Safari classList.contains bug
+npm run test:mobile-input           # touch/orientation
+
+# 5. Compare repo against live site (post-deploy, informational)
+ALLOW_STALE_LIVE=1 npm run test:live-parity
 ```
 
 ### What each check guards against
 
-| Check                   | Guards against                                                               |
-| ----------------------- | ---------------------------------------------------------------------------- |
-| `test:game-versions`    | Version drift between sw.js, game HTML files, and shared manifest            |
-| `test:cache-versioning` | Broken SW (top-level imports, wrong cache name, missing archive strategy)    |
-| `apply:game-versions`   | Stale version queries after bumping `game-asset-versions.mjs`                |
-| `test:archive-parity`   | Source code changes not reflected in shipped archives                        |
-| `audit:game-archives`   | Suspicious files (`.DS_Store`, `.git/`, test files) in game tarballs         |
-| `test:css-tokens`       | Undefined CSS custom properties causing silent rendering issues              |
-| `test:live-parity`      | Live site drift from repo — local checks are blocking, live is informational |
+| Check                      | Guards against                                                                     |
+| -------------------------- | ---------------------------------------------------------------------------------- |
+| `test:service-worker`      | Broken SW (top-level imports, wrong cache name, WARM_CACHE lifecycle, ?v= queries) |
+| `apply:game-versions`      | Stale version queries after bumping `game-asset-versions.mjs`                      |
+| `test:archive-parity`      | Source code changes not reflected in shipped archives                              |
+| `audit:game-archives`      | Suspicious files (`.DS_Store`, `.git/`, test files) in game tarballs               |
+| `test:css-tokens`          | Undefined CSS custom properties causing silent rendering issues                    |
+| `check:dependency-hygiene` | Misclassified dev dependencies leaking into runtime                                |
+| `test:game-prewarm`        | Missing prewarm data attributes on CTAs, non-browser-playable prewarm bugs         |
+| `test:mobile-layout`       | Canvas-bound drag zones, `__paCanvasLayout` geometry, back-link z-index            |
+| `test:live-parity`         | Live site drift from repo — local checks are blocking, live is informational       |
+
+### Key patterns (WARM_CACHE, prewarm, touch helpers)
+
+- **WARM_CACHE lifecycle**: The SW's `message` listener must be at **top-level scope** (not nested inside `activate`). It validates same-origin, normalizes relative URLs, caches only HTTP 200 responses, and posts `WARM_CACHE_RESULT` back to the client. See `scripts/check-service-worker-compat.mjs` for the exact assertions.
+- **`/play/` prewarm**: Browser-playable game CTAs (both GameCard and standalone) have `data-game-id` and `data-browser-playable="true"` attributes. Hovering triggers `<link rel="prefetch">` insertion and a `WARM_CACHE` postMessage to the SW controller. Desktop-only games (`kraken`, `port-royale`) never fire prewarm.
+- **Mobile touch helpers**: Use `pointerTouchTap`, `pointerTouchDrag`, and `pointerHoldButton` (all in `tests/helpers/browserGame.ts`) to dispatch `PointerEvent`s with `pointerType: "touch"` instead of `page.mouse` / `page.click`. These match the production `mobile-controls.js` handler exactly. Coordinate systems: `pointerTouchDrag` uses absolute viewport `clientX/clientY`; `pointerHoldButton` reads the button's bounding box automatically.
