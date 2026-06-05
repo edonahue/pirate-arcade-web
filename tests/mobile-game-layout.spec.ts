@@ -120,6 +120,80 @@ test.describe("Mobile Game Layout", () => {
         expect(dragZoneZ).toBeLessThan(parseInt(zIndex) || Infinity);
       });
 
+      test("drag zone axes align to canvas region", async ({
+        page,
+      }, testInfo) => {
+        const response = await page.goto(game.path);
+        expect(response?.ok()).toBe(true);
+
+        await page.waitForFunction(
+          () => {
+            const m = (window as any).__paBootMetrics;
+            return m?.["game-ready"] !== undefined;
+          },
+          { timeout: 120000 },
+        );
+
+        await page.waitForFunction(
+          () => {
+            const overlay = document.getElementById("game-loading");
+            return !overlay || overlay.classList.contains("hidden");
+          },
+          { timeout: 120000 },
+        );
+
+        // Wait for game-viewport.js to compute layout
+        await page.waitForFunction(() => !!(window as any).__paCanvasLayout, {
+          timeout: 15000,
+        });
+
+        const layout = await page.evaluate(
+          () => (window as any).__paCanvasLayout,
+        );
+
+        const zones = await page.evaluate(() => {
+          return Array.from(document.querySelectorAll(".touch-drag-zone")).map(
+            (z) => {
+              const rect = z.getBoundingClientRect();
+              return {
+                dataDir: (z as HTMLElement).dataset.dir || "",
+                left: rect.left,
+                top: rect.top,
+                right: rect.right,
+                bottom: rect.bottom,
+                width: rect.width,
+                height: rect.height,
+              };
+            },
+          );
+        });
+
+        for (const zone of zones) {
+          if (zone.dataDir.includes("drag-y")) {
+            // Y-axis drag zone should be on left or right side of canvas
+            const isLeftSide = zone.right <= layout.left + layout.width * 0.3;
+            const isRightSide = zone.left >= layout.left + layout.width * 0.7;
+            expect(isLeftSide || isRightSide).toBe(true);
+            // Should span most of the canvas height
+            expect(zone.top).toBeGreaterThanOrEqual(layout.top - 2);
+            expect(zone.bottom).toBeLessThanOrEqual(layout.bottom + 2);
+          } else if (zone.dataDir.includes("drag-x")) {
+            // X-axis drag zone should overlap bottom portion of canvas
+            expect(zone.top).toBeGreaterThanOrEqual(
+              layout.top + layout.height * 0.5,
+            );
+            expect(zone.bottom).toBeLessThanOrEqual(layout.bottom + 2);
+            expect(zone.left).toBeGreaterThanOrEqual(layout.left - 2);
+            expect(zone.right).toBeLessThanOrEqual(layout.right + 2);
+          }
+        }
+
+        await testInfo.attach(`drag-zone-geometry-${game.name}`, {
+          body: JSON.stringify({ layout, zones }, null, 2),
+          contentType: "application/json",
+        });
+      });
+
       test("drag zones are positioned relative to canvas", async ({ page }) => {
         const response = await page.goto(game.path);
         expect(response?.ok()).toBe(true);

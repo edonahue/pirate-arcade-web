@@ -96,7 +96,7 @@ npm run test:service-worker
 # Site visual smoke tests (homepage, play, about, build-log)
 npm run test:site-theme
 
-# Game prewarm verification (standalone CTAs, GameCard, WARM_CACHE)
+# Game prewarm verification (standalone CTAs, GameCard, WARM_CACHE, single-installer, dedup)
 npm run test:game-prewarm
 
 # CSS token validation (ensure all var() references are defined)
@@ -158,7 +158,7 @@ tests/
   game-input-mobile.spec.ts     # Mobile touch/orientation (~15 tests)
   game-load-performance.spec.ts # Cold/warm load metrics, resource breakdown
   game-theming.spec.ts          # Visual theming pixel sampling
-  game-prewarm.spec.ts          # Prewarm data attributes + WARM_CACHE
+  game-prewarm.spec.ts          # Prewarm data attributes + WARM_CACHE + single-installer + dedup
   site-theme.spec.ts            # Visual smoke + prewarm verification
   mobile-game-layout.spec.ts    # Canvas positioning, touch control sizing
   mobile-navigation.spec.ts    # Back-to-Arcade link visibility and navigation

@@ -339,20 +339,22 @@ ALLOW_STALE_LIVE=1 npm run test:live-parity
 
 ### What each check guards against
 
-| Check                      | Guards against                                                                     |
-| -------------------------- | ---------------------------------------------------------------------------------- |
-| `test:service-worker`      | Broken SW (top-level imports, wrong cache name, WARM_CACHE lifecycle, ?v= queries) |
-| `apply:game-versions`      | Stale version queries after bumping `game-asset-versions.mjs`                      |
-| `test:archive-parity`      | Source code changes not reflected in shipped archives                              |
-| `audit:game-archives`      | Suspicious files (`.DS_Store`, `.git/`, test files) in game tarballs               |
-| `test:css-tokens`          | Undefined CSS custom properties causing silent rendering issues                    |
-| `check:dependency-hygiene` | Misclassified dev dependencies leaking into runtime                                |
-| `test:game-prewarm`        | Missing prewarm data attributes on CTAs, non-browser-playable prewarm bugs         |
-| `test:mobile-layout`       | Canvas-bound drag zones, `__paCanvasLayout` geometry, back-link z-index            |
-| `test:live-parity`         | Live site drift from repo — local checks are blocking, live is informational       |
+| Check                      | Guards against                                                                                                                                                      |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `test:service-worker`      | Broken SW (top-level imports, wrong cache name, WARM_CACHE lifecycle, ?v= queries)                                                                                  |
+| `apply:game-versions`      | Stale version queries after bumping `game-asset-versions.mjs`                                                                                                       |
+| `test:archive-parity`      | Source code changes not reflected in shipped archives                                                                                                               |
+| `audit:game-archives`      | Suspicious files (`.DS_Store`, `.git/`, test files) in game tarballs                                                                                                |
+| `test:css-tokens`          | Undefined CSS custom properties causing silent rendering issues                                                                                                     |
+| `check:dependency-hygiene` | Misclassified dev dependencies leaking into runtime                                                                                                                 |
+| `test:game-prewarm`        | Missing prewarm data attributes on CTAs, non-browser-playable prewarm bugs, duplicate prefetch links, version mismatch in data-game-archive, single-installer guard |
+| `test:mobile-layout`       | Canvas-bound drag zones, `__paCanvasLayout` geometry, back-link z-index, drag-zone axis alignment to canvas region                                                  |
+| `test:live-parity`         | Live site drift from repo — local checks are blocking, live is informational                                                                                        |
 
 ### Key patterns (WARM_CACHE, prewarm, touch helpers)
 
+- **Centralized `/play/` prewarm**: A single `<script>` in `src/pages/play.astro` handles all prewarm logic. It uses `define:vars` to inject `ASSET_VERSION` (the build-time source of truth from `scripts/game-asset-versions.mjs`). It guards against duplicate installation via `window.__paGamePrewarmInstalled`. On `pointerenter`/`focus`/`touchstart` (passive, no `preventDefault()`), it inserts `<link rel="prefetch">` tags and sends a `WARM_CACHE` postMessage. Duplicate events per game ID are deduplicated. The old per-GameCard script was removed to prevent duplicate listeners and hardcoded versions.
 - **WARM_CACHE lifecycle**: The SW's `message` listener must be at **top-level scope** (not nested inside `activate`). It validates same-origin, normalizes relative URLs, caches only HTTP 200 responses, and posts `WARM_CACHE_RESULT` back to the client. See `scripts/check-service-worker-compat.mjs` for the exact assertions.
-- **`/play/` prewarm**: Browser-playable game CTAs (both GameCard and standalone) have `data-game-id` and `data-browser-playable="true"` attributes. Hovering triggers `<link rel="prefetch">` insertion and a `WARM_CACHE` postMessage to the SW controller. Desktop-only games (`kraken`, `port-royale`) never fire prewarm.
+- **`/play/` prewarm**: Browser-playable game CTAs (both GameCard and standalone) have `data-game-id`, `data-browser-playable="true"`, `data-game-page` (same-origin game URL), and `data-game-archive` (versioned `.tar.gz` URL). Hovering/focusing/touching triggers a single `<link rel="prefetch">` insertion per URL and a `WARM_CACHE` postMessage to the SW controller. Desktop-only games (`kraken`, `port-royale`) never fire prewarm.
+- **Why `preventDefault()` is NOT called on `touchstart`**: The centralized prewarm script uses `{ passive: true }` for `touchstart`. Calling `preventDefault()` would block mobile navigation — the browser would not follow the link after the touch. Prewarm is opportunistic, not blocking.
 - **Mobile touch helpers**: Use `pointerTouchTap`, `pointerTouchDrag`, and `pointerHoldButton` (all in `tests/helpers/browserGame.ts`) to dispatch `PointerEvent`s with `pointerType: "touch"` instead of `page.mouse` / `page.click`. These match the production `mobile-controls.js` handler exactly. Coordinate systems: `pointerTouchDrag` uses absolute viewport `clientX/clientY`; `pointerHoldButton` reads the button's bounding box automatically.

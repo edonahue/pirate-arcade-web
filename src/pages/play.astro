@@ -5,6 +5,7 @@ import GameCard from "../components/GameCard.astro";
 import ArcadeFrame from "../components/ArcadeFrame.astro";
 import { games } from "../data/games";
 import { webPageNode } from "../lib/schema";
+import { ASSET_VERSION } from "../../scripts/game-asset-versions.mjs";
 ---
 
 <BaseLayout
@@ -114,6 +115,8 @@ import { webPageNode } from "../lib/schema";
           class="cta cta--primary"
           data-game-id="cannonball-clash"
           data-browser-playable="true"
+          data-game-page="/play/cannonball-clash/"
+          data-game-archive={`/play/cannonball-clash/cannonball-clash.tar.gz?v=${ASSET_VERSION}`}
         >
           Play Cannonball Clash
         </a>
@@ -126,6 +129,8 @@ import { webPageNode } from "../lib/schema";
           class="cta cta--primary"
           data-game-id="treasure-cove"
           data-browser-playable="true"
+          data-game-page="/play/treasure-cove/"
+          data-game-archive={`/play/treasure-cove/treasure-cove.tar.gz?v=${ASSET_VERSION}`}
         >
           Play Treasure Cove
         </a>
@@ -158,3 +163,88 @@ import { webPageNode } from "../lib/schema";
     </div>
   </section>
 </BaseLayout>
+
+<script define:vars={{ ASSET_VERSION }}>
+  if (!window.__paGamePrewarmInstalled) {
+    window.__paGamePrewarmInstalled = true;
+
+    const prewarmState = new Map<
+      string,
+      {
+        timeout: ReturnType<typeof setTimeout> | null;
+        prefetchedUrls: Set<string>;
+      }
+    >();
+
+    function triggerGamePrewarm(
+      gameId: string,
+      pageUrl: string,
+      archiveUrl: string,
+    ): void {
+      let state = prewarmState.get(gameId);
+      if (!state) {
+        state = { timeout: null, prefetchedUrls: new Set() };
+        prewarmState.set(gameId, state);
+      }
+      if (state.timeout) clearTimeout(state.timeout);
+      state.timeout = setTimeout(() => {
+        if (!state.prefetchedUrls.has(pageUrl)) {
+          const link = document.createElement("link");
+          link.rel = "prefetch";
+          link.href = pageUrl;
+          document.head.appendChild(link);
+          state.prefetchedUrls.add(pageUrl);
+        }
+        if (!state.prefetchedUrls.has(archiveUrl)) {
+          const link = document.createElement("link");
+          link.rel = "prefetch";
+          link.href = archiveUrl;
+          link.as = "fetch";
+          document.head.appendChild(link);
+          state.prefetchedUrls.add(archiveUrl);
+        }
+        if (
+          "serviceWorker" in navigator &&
+          navigator.serviceWorker.controller
+        ) {
+          navigator.serviceWorker.controller.postMessage({
+            type: "WARM_CACHE",
+            urls: [pageUrl, archiveUrl],
+          });
+        }
+      }, 150);
+    }
+
+    function cancelGamePrewarm(gameId: string): void {
+      const state = prewarmState.get(gameId);
+      if (state?.timeout) {
+        clearTimeout(state.timeout);
+        state.timeout = null;
+      }
+    }
+
+    const links = document.querySelectorAll<HTMLAnchorElement>(
+      "a[data-game-id][data-browser-playable=true]",
+    );
+    links.forEach((link) => {
+      const gameId = link.getAttribute("data-game-id")!;
+      const pageUrl = link.getAttribute("data-game-page") || "";
+      const archiveUrl = link.getAttribute("data-game-archive") || "";
+      if (!pageUrl || !archiveUrl) return;
+
+      link.addEventListener("pointerenter", () =>
+        triggerGamePrewarm(gameId, pageUrl, archiveUrl),
+      );
+      link.addEventListener("pointerleave", () => cancelGamePrewarm(gameId));
+      link.addEventListener("focus", () =>
+        triggerGamePrewarm(gameId, pageUrl, archiveUrl),
+      );
+      link.addEventListener("blur", () => cancelGamePrewarm(gameId));
+      link.addEventListener(
+        "touchstart",
+        () => triggerGamePrewarm(gameId, pageUrl, archiveUrl),
+        { passive: true },
+      );
+    });
+  }
+</script>
