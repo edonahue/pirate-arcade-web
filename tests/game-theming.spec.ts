@@ -171,7 +171,7 @@ test.describe("Game Theming", () => {
           await getCanvasPixelSample(page, 80, 60),
           await getCanvasPixelSample(page, 100, 30),
           await getCanvasPixelSample(page, 120, 30),
-        ].filter(Boolean);
+        ].filter((s): s is NonNullable<typeof s> => s != null);
 
         expect(paddleSamples.length).toBeGreaterThan(0);
 
@@ -210,10 +210,10 @@ test.describe("Game Theming", () => {
         );
 
         // Paddle should not be a single plain color (especially not white)
-        expect(hasVariation || colors.length < 2).toBe(
-          true,
+        expect(
+          hasVariation || colors.length < 2,
           `Paddle region should show color variation, got ${JSON.stringify(colors)}`,
-        );
+        ).toBe(true);
 
         // Additionally, check that it's not predominantly white
         const whiteCount = colors.filter(

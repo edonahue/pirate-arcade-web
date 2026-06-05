@@ -66,22 +66,22 @@ test.describe("Game Load Performance", () => {
 
     // Attach metrics as JSON for CI
     await page.evaluate(() => {
-      window.lastTestMetrics = {
+      const w = window as any;
+      w.lastTestMetrics = {
         game: "cannonball-clash",
-        metrics: window.PirateArcadeMetrics
-          ? window.PirateArcadeMetrics.getAll()
-          : {},
+        metrics: w.PirateArcadeMetrics ? w.PirateArcadeMetrics.getAll() : {},
       };
     });
 
     // Attach network summary (using only valid PerformanceEntry properties)
     await page.evaluate(() => {
-      window.lastTestNetworkSummary = window.performance
+      const w = window as any;
+      w.lastTestNetworkSummary = w.performance
         .getEntriesByType("resource")
-        .map((entry) => ({
+        .map((entry: any) => ({
           name: entry.name,
           entryType: entry.entryType,
-          initiatorType: (entry.initiatorType as string) || "",
+          initiatorType: entry.initiatorType || "",
           duration: entry.duration,
           startTime: entry.startTime,
         }));
@@ -100,8 +100,9 @@ test.describe("Game Load Performance", () => {
 
     // Check for critical errors
     const hasRuntimeError = await page.evaluate(() => {
+      const w = window as any;
       return (
-        !!window.PirateArcadeLoading &&
+        !!w.PirateArcadeLoading &&
         document
           .getElementById("game-loading")
           ?.classList.contains("game-error")
@@ -175,22 +176,22 @@ test.describe("Game Load Performance", () => {
 
     // Attach metrics as JSON for CI
     await page.evaluate(() => {
-      window.lastTestMetrics = {
+      const w = window as any;
+      w.lastTestMetrics = {
         game: "treasure-cove",
-        metrics: window.PirateArcadeMetrics
-          ? window.PirateArcadeMetrics.getAll()
-          : {},
+        metrics: w.PirateArcadeMetrics ? w.PirateArcadeMetrics.getAll() : {},
       };
     });
 
     // Attach network summary (using only valid PerformanceEntry properties)
     await page.evaluate(() => {
-      window.lastTestNetworkSummary = window.performance
+      const w = window as any;
+      w.lastTestNetworkSummary = w.performance
         .getEntriesByType("resource")
-        .map((entry) => ({
+        .map((entry: any) => ({
           name: entry.name,
           entryType: entry.entryType,
-          initiatorType: (entry.initiatorType as string) || "",
+          initiatorType: entry.initiatorType || "",
           duration: entry.duration,
           startTime: entry.startTime,
         }));
@@ -208,8 +209,9 @@ test.describe("Game Load Performance", () => {
 
     // Check for critical errors
     const hasRuntimeError = await page.evaluate(() => {
+      const w = window as any;
       return (
-        !!window.PirateArcadeLoading &&
+        !!w.PirateArcadeLoading &&
         document
           .getElementById("game-loading")
           ?.classList.contains("game-error")
