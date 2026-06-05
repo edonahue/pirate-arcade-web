@@ -41,6 +41,8 @@
     "patch:game-archives": "node scripts/patch-browser-game-archives.mjs",
     "test:cache-versioning": "node scripts/check-game-cache-versioning.mjs",
     "test:live-parity": "node scripts/check-live-parity.mjs",
+    "test:css-tokens": "node scripts/check-css-tokens.mjs",
+    "test:site-theme": "playwright test tests/site-theme.spec.ts",
     "test:lhci": "lhci autorun"
   },
   "engines": {

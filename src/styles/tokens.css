@@ -38,6 +38,14 @@
   --mono:
     "IBM Plex Mono", "SFMono-Regular", Consolas, "Liberation Mono", monospace;
 
+  /* Design token aliases for backward compatibility and clarity */
+  --gold: var(--brass);
+  --gold-strong: var(--brass-strong);
+  --accent: var(--sea);
+  /* --accent-strong: #4ddbd6; */ /* Using sea-deep for strong accent; adjust if needed */
+  --accent-strong: var(--sea-deep);
+  --focus: var(--brass-strong);
+
   font-family: var(--body);
 }
 
