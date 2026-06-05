@@ -5,6 +5,27 @@
   var overlay = document.getElementById('touch-overlay');
   if (!overlay) return;
 
+  // Debug mode: ?debugTouch=1 shows outlines and logs
+  var debugTouch = window.location.search.includes('debugTouch=1');
+  if (debugTouch) {
+    console.log('[mobile-controls] Debug mode enabled');
+    // Inject debug styles
+    var style = document.createElement('style');
+    style.textContent = `
+      .debug-touch-outline {
+        position: fixed !important;
+        pointer-events: none !important;
+        z-index: 9999999 !important;
+      }
+      .debug-back-link { outline: 3px solid #ff0 !important; }
+      .debug-drag-zone { outline: 3px solid #0ff !important; }
+      .debug-btn-nudge { outline: 3px solid #0f0 !important; }
+      .debug-btn-action { outline: 3px solid #ff0 !important; }
+      .debug-btn-pause { outline: 3px solid #f0f !important; }
+    `;
+    document.head.appendChild(style);
+  }
+
   var held = {};
   var hint = document.getElementById('controls-hint');
   var dragActive = {};
@@ -40,6 +61,36 @@
   function pressAndRelease(k) {
     if (input) {
       input.tap(k, 220);
+    }
+  }
+
+  // Debug helper: show outline around element
+  function debugOutline(el, color, label) {
+    if (!debugTouch || !el) return;
+    el.classList.add('debug-touch-outline');
+    el.style.borderColor = color;
+    if (label) {
+      var labelEl = document.createElement('div');
+      labelEl.style.position = 'fixed';
+      labelEl.style.background = 'rgba(0,0,0,0.7)';
+      labelEl.style.color = '#fff';
+      labelEl.style.font = '10px monospace';
+      labelEl.style.padding = '2px 4px';
+      labelEl.style.borderRadius = '2px';
+      labelEl.style.zIndex = '9999999';
+      labelEl.style.pointerEvents = 'none';
+      labelEl.textContent = label;
+      
+      var rect = el.getBoundingClientRect();
+      labelEl.style.left = (rect.left + rect.width/2 - 20) + 'px';
+      labelEl.style.top = (rect.top - 20) + 'px';
+      document.body.appendChild(labelEl);
+      
+      // Clean up after short delay
+      setTimeout(() => {
+        labelEl.remove();
+        el.classList.remove('debug-touch-outline');
+      }, 1500);
     }
   }
 
@@ -129,6 +180,10 @@
     var target = e.target;
     while (target) {
       if (target.hasAttribute && target.hasAttribute('data-no-touch-control')) {
+        if (debugTouch) {
+          console.log('[mobile-controls] Back link click allowed');
+          debugOutline(target, '#ff0', 'Back-link');
+        }
         return; // Let browser handle natively (navigation)
       }
       target = target.parentNode;
@@ -147,6 +202,10 @@
     if (btn && handleButton(btn, e)) return;
 
     if (isDragZone(el)) {
+      if (debugTouch) {
+        console.log('[mobile-controls] Drag zone activated');
+        debugOutline(el, '#0ff', 'Drag-zone');
+      }
       e.preventDefault();
       var ddir = el.getAttribute('data-dir');
       dragActive.axis = ddir === 'drag-x' ? 'x' : 'y';
@@ -162,6 +221,10 @@
     var target = e.target;
     while (target) {
       if (target.hasAttribute && target.hasAttribute('data-no-touch-control')) {
+        if (debugTouch) {
+          console.log('[mobile-controls] Back link click allowed');
+          debugOutline(target, '#ff0', 'Back-link');
+        }
         return; // Let browser handle natively
       }
       target = target.parentNode;
@@ -169,6 +232,10 @@
 
     if (dragActive.pointerId === e.pointerId) {
       clearDragTarget();
+      if (debugTouch) {
+        console.log('[mobile-controls] Drag target cleared');
+        // Could outline the drag zone here but it's already released
+      }
     }
     var entry = held[e.pointerId];
     if (entry) {
@@ -178,7 +245,12 @@
     var el = document.elementFromPoint(e.clientX, e.clientY);
     if (!el) return;
     el = buttonFor(el);
-    if (el) el.classList.remove('pressed');
+    if (el) {
+      el.classList.remove('pressed');
+      if (debugTouch) {
+        debugOutline(el, '#0f0', 'Button released');
+      }
+    }
   }
 
   function handleMove(e) {
@@ -186,6 +258,10 @@
     var target = e.target;
     while (target) {
       if (target.hasAttribute && target.hasAttribute('data-no-touch-control')) {
+        if (debugTouch) {
+          console.log('[mobile-controls] Back link area touched - ignored');
+          debugOutline(target, '#ff0', 'Back-link area');
+        }
         return; // Let browser handle natively
       }
       target = target.parentNode;
@@ -193,6 +269,10 @@
 
     if (dragActive.pointerId === e.pointerId) {
       e.preventDefault();
+      if (debugTouch) {
+        // Outline would be distracting during drag, so just log
+        console.log('[mobile-controls] Dragging...');
+      }
       updateDragTarget(e);
       return;
     }

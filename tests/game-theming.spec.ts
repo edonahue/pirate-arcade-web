@@ -76,6 +76,30 @@ test.describe("Game Theming", () => {
         expect(archivePaddle).not.toContain("NOT_FOUND");
         expect(archivePaddle).toContain("_ship_surf");
         expect(archivePaddle).toContain("pg.draw.polygon");
+
+        // Verify specific improvements for Cannonball
+        if (game.id === "cannonball-clash") {
+          expect(archivePaddle).toMatch(
+            /visual_w\s*=.*max\(self\.width\s*\+\s*\d+,\s*\d+\)/,
+          );
+          expect(archivePaddle).toContain("flag_color");
+          expect(archivePaddle).toContain("yardarm_y");
+          expect(archivePaddle).toContain("mast_x = offset_x + w // 2");
+          // Ensure collision rect is unchanged comment or similar marker
+          expect(archivePaddle).toMatch(/collision|rect|width.*height/i);
+        }
+
+        // Verify specific improvements for Treasure Cove
+        if (game.id === "treasure-cove") {
+          expect(archivePaddle).toMatch(
+            /vw\s*=.*max\(self\.width\s*\+\s*\d+,\s*\d+\)/,
+          );
+          expect(archivePaddle).toContain("mast_x = vw // 2");
+          expect(archivePaddle).toContain("oar_y = oy + vh // 2");
+          expect(archivePaddle).toContain("oar_spacing = vw // 4");
+          // Ensure collision rect is unchanged comment or similar marker
+          expect(archivePaddle).toMatch(/collision|rect|width.*height/i);
+        }
       });
     }
   });

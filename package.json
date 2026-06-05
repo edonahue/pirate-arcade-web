@@ -40,6 +40,7 @@
     "test:game-theming": "playwright test tests/game-theming.spec.ts --project=chromium-desktop",
     "patch:game-archives": "node scripts/patch-browser-game-archives.mjs",
     "test:cache-versioning": "node scripts/check-game-cache-versioning.mjs",
+    "test:live-parity": "node scripts/check-live-parity.mjs",
     "test:lhci": "lhci autorun"
   },
   "engines": {

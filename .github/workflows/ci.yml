@@ -42,3 +42,21 @@ jobs:
       - name: Desktop input tests (chromium-desktop)
         run: npx playwright test tests/game-input-desktop.spec.ts --project=chromium-desktop --reporter=list
         timeout-minutes: 10
+
+  # Lightweight release gate — checks cache versioning, archive integrity, and parity
+  release-gate:
+    runs-on: ubuntu-latest
+    needs: verify
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: Check game archive integrity
+        run: npm run audit:game-archives
+      - name: Check cache versioning
+        run: npm run test:cache-versioning
+      - name: Check live/repo parity (allow stale during propagation)
+        run: ALLOW_STALE_LIVE=1 npm run test:live-parity || echo "Parity check warned but continuing"

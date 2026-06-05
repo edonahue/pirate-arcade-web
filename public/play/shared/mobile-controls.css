@@ -72,14 +72,18 @@
   z-index: 1;
 }
 .touch-drag-y {
-  top: 0; bottom: 0; left: 0;
-  width: 60%;
-  max-width: 200px;
+  left: var(--game-canvas-left, 0);
+  top: var(--game-canvas-top, 0);
+  height: var(--game-canvas-height, 100%);
+  width: calc(var(--game-canvas-width, 100%) * 0.28);
+  /* Ensure it doesn't overlap Back link area - add top margin if needed */
+  /* Will be adjusted via JS if canvas bounds not available */
 }
 .touch-drag-x {
-  left: 0; right: 0; bottom: 0;
-  height: 60%;
-  max-height: 200px;
+  left: var(--game-canvas-left, 0);
+  bottom: var(--game-canvas-bottom, 0);
+  width: var(--game-canvas-width, 100%);
+  height: calc(var(--game-canvas-height, 100%) * 0.35);
 }
 
 /* ── Nudge buttons (fallback) ── */

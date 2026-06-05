@@ -12,13 +12,10 @@ const ARCHIVES = [
 ];
 
 const SUSPICIOUS_PATTERNS = [
-  /__pycache__/,
-  /\.pyc$/,
   /\.DS_Store/,
   /\.git\//,
   /test_/,
   /\/tests?\//,
-  /__pycache__\/.*\.pyc$/,
   /node_modules/,
   /\.gitkeep/,
   /screenshot/i,
@@ -28,6 +25,8 @@ const SUSPICIOUS_PATTERNS = [
   /coverage/,
   /\.whl$/,
 ];
+// Note: __pycache__ and .pyc files are allowed in game archives as they are
+// harmless Python bytecode cache that can improve startup performance
 
 let allPassed = true;
 

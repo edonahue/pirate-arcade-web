@@ -34,6 +34,29 @@
     canvas.style.left = Math.round((vw - cssW) / 2) + 'px';
     canvas.style.top = Math.round((vh - cssH) / 2) + 'px';
     canvas.style.margin = '0';
+
+    // Expose canvas bounds as CSS custom properties for mobile controls
+    var canvasLeft = Math.round((vw - cssW) / 2);
+    var canvasTop = Math.round((vh - cssH) / 2);
+    var canvasRight = canvasLeft + cssW;
+    var canvasBottom = canvasTop + cssH;
+    
+    document.documentElement.style.setProperty('--game-canvas-left', canvasLeft + 'px');
+    document.documentElement.style.setProperty('--game-canvas-top', canvasTop + 'px');
+    document.documentElement.style.setProperty('--game-canvas-width', cssW + 'px');
+    document.documentElement.style.setProperty('--game-canvas-height', cssH + 'px');
+    document.documentElement.style.setProperty('--game-canvas-right', canvasRight + 'px');
+    document.documentElement.style.setProperty('--game-canvas-bottom', canvasBottom + 'px');
+    
+    // Also expose as window property for tests
+    window.__paCanvasLayout = {
+      left: canvasLeft,
+      top: canvasTop,
+      width: cssW,
+      height: cssH,
+      right: canvasRight,
+      bottom: canvasBottom
+    };
   }
 
   var resizeTimer = null;
