@@ -327,6 +327,7 @@ npm run test:game-performance       # cold/warm load metrics
 
 # 4. Mobile E2E checks
 npm run test:mobile-layout          # canvas positioning, touch control sizing, __paCanvasLayout
+npm run test:mobile-navigation      # back-to-arcade link visibility + tap
 npm run test:mobile-drag            # drag-zone input (touch-like PointerEvents)
 npm run test:mobile-playability     # tap/hold/action button E2E
 npm run test:mobile-regression      # iOS Safari classList.contains bug

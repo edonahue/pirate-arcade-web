@@ -111,6 +111,9 @@ npm run test:mobile-playability
 # Mobile layout (canvas positioning, touch control sizing)
 npm run test:mobile-layout
 
+# Mobile navigation (back-to-arcade link)
+npm run test:mobile-navigation
+
 # Mobile runtime CSP check (no EvalError on game routes)
 npm run test:mobile-runtime
 
@@ -158,6 +161,7 @@ tests/
   game-prewarm.spec.ts          # Prewarm data attributes + WARM_CACHE
   site-theme.spec.ts            # Visual smoke + prewarm verification
   mobile-game-layout.spec.ts    # Canvas positioning, touch control sizing
+  mobile-navigation.spec.ts    # Back-to-Arcade link visibility and navigation
   mobile-drag-controls.spec.ts  # Drag-zone input verification
   mobile-touch-playability.spec.ts # Tap/hold/action button E2E
   mobile-controls-regression.spec.ts # iOS Safari classList.contains bug

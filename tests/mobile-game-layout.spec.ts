@@ -85,6 +85,19 @@ test.describe("Mobile Game Layout", () => {
         expect(layout.top).toBeGreaterThanOrEqual(0);
         expect(layout.right).toBeLessThanOrEqual(layout.viewportWidth);
         expect(layout.bottom).toBeLessThanOrEqual(layout.viewportHeight);
+
+        // canvas.getBoundingClientRect() must agree with __paCanvasLayout
+        const canvasBox = await page.locator("canvas.emscripten").boundingBox();
+        if (canvasBox) {
+          expect(Math.abs(canvasBox.x - layout.left)).toBeLessThanOrEqual(2);
+          expect(Math.abs(canvasBox.y - layout.top)).toBeLessThanOrEqual(2);
+          expect(Math.abs(canvasBox.width - layout.width)).toBeLessThanOrEqual(
+            2,
+          );
+          expect(
+            Math.abs(canvasBox.height - layout.height),
+          ).toBeLessThanOrEqual(2);
+        }
       });
 
       test("back link z-index is highest", async ({ page }) => {
@@ -274,6 +287,30 @@ test.describe("Mobile Game Layout", () => {
           expect(pauseBox.width).toBeGreaterThanOrEqual(44);
           expect(pauseBox.height).toBeGreaterThanOrEqual(44);
         }
+
+        // elementFromPoint at back-link center resolves to #back-link
+        const backLinkEl = page.locator("#back-link");
+        const backTop = await page.evaluate(() => {
+          const el = document.getElementById("back-link");
+          if (!el) return null;
+          const box = el.getBoundingClientRect();
+          const cx = box.left + box.width / 2;
+          const cy = box.top + box.height / 2;
+          const top = document.elementFromPoint(cx, cy);
+          if (!top) return null;
+          let cur = top as HTMLElement | null;
+          while (cur) {
+            if (
+              cur.id === "back-link" ||
+              cur.getAttribute("data-no-touch-control") !== null
+            ) {
+              return cur.id || cur.tagName;
+            }
+            cur = cur.parentElement;
+          }
+          return top.id || top.tagName;
+        });
+        expect(backTop).toBe("back-link");
 
         // Nudge fallback buttons
         const leftButton = page.locator(game.nudgeLeft);

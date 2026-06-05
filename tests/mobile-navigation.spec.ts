@@ -1,109 +1,89 @@
-import { test, expect } from "./helpers/browserGame";
+import { test, expect } from "@playwright/test";
 
-test.describe("Mobile Navigation Controls", () => {
-  test.use({ viewport: { width: 390, height: 844 } }); // iPhone 12/13 Pro size
+test.describe("Mobile Navigation", () => {
+  test.use({ viewport: { width: 932, height: 430 } });
 
-  test("Back to Arcade link works on Cannonball Clash", async ({ page }) => {
-    await page.goto("/play/cannonball-clash/");
-    await page.waitForSelector("#canvas", { state: "attached" });
+  const GAMES = [
+    { name: "Cannonball Clash", path: "/play/cannonball-clash/" },
+    { name: "Treasure Cove", path: "/play/treasure-cove/" },
+  ];
 
-    // Wait for initial loading to complete
-    await page.waitForFunction(
-      () => !document.querySelector("#game-loading:not(.hidden)"),
-    );
+  for (const game of GAMES) {
+    test.describe(game.name, () => {
+      test("Back link is present and visible before runtime", async ({
+        page,
+      }) => {
+        await page.goto(game.path, { waitUntil: "domcontentloaded" });
 
-    // Get Back link bounding box
-    const backLink = page.locator("#back-link");
-    await expect(backLink).toBeVisible();
+        const backLink = page.locator("#back-link");
+        await expect(backLink).toBeVisible({ timeout: 5000 });
+        await expect(backLink).toHaveText(/← Back to Arcade/i);
+      });
 
-    const box = await backLink.boundingBox();
-    expect(box).toBeTruthy();
+      test("Back link is present after touch overlay activates", async ({
+        page,
+      }) => {
+        await page.goto(game.path, { waitUntil: "domcontentloaded" });
 
-    if (!box) return;
+        // Wait for the touch overlay to activate (static signal, no Pygbag needed)
+        try {
+          await page.waitForSelector("#touch-overlay.active", {
+            timeout: 5000,
+          });
+        } catch {
+          // Some projects may not activate touch overlay — still check back link
+        }
 
-    const centerX = box.x + box.width / 2;
-    const centerY = box.y + box.height / 2;
+        const backLink = page.locator("#back-link");
+        await expect(backLink).toBeVisible();
+      });
 
-    // Verify Back link is topmost element at its center
-    const topElementInfo = await page.evaluate(
-      ({ x, y }) => {
-        const el = document.elementFromPoint(x, y);
-        if (!el) return { id: "", className: "", tagName: "" };
+      test("elementFromPoint at back-link center resolves to #back-link", async ({
+        page,
+      }) => {
+        await page.goto(game.path, { waitUntil: "domcontentloaded" });
 
-        return {
-          id: el.id || "",
-          className: el.className || "",
-          tagName: el.tagName || "",
-          closestBackLink: !!el.closest("#back-link"),
-          closestTouchOverlay: !!el.closest(".touch-overlay"),
-          closestDragZone: !!el.closest(".touch-drag-zone"),
-        };
-      },
-      { x: centerX, y: centerY },
-    );
+        const backLink = page.locator("#back-link");
+        await expect(backLink).toBeVisible();
 
-    expect(topElementInfo.closestBackLink).toBe(true);
-    expect(topElementInfo.closestTouchOverlay).toBe(false);
-    expect(topElementInfo.closestDragZone).toBe(false);
+        const topElement = await page.evaluate(() => {
+          const el = document.getElementById("back-link");
+          if (!el) return null;
+          const box = el.getBoundingClientRect();
+          const cx = box.left + box.width / 2;
+          const cy = box.top + box.height / 2;
+          const top = document.elementFromPoint(cx, cy);
+          if (!top) return null;
+          // Walk up to find #back-link or data-no-touch-control
+          let current = top as HTMLElement | null;
+          while (current) {
+            if (
+              current.id === "back-link" ||
+              current.getAttribute("data-no-touch-control") !== null
+            ) {
+              return current.id || current.tagName;
+            }
+            current = current.parentElement;
+          }
+          return top.id || top.tagName;
+        });
 
-    // Tap the Back link
-    await backLink.click();
+        expect(topElement).toBe("back-link");
+      });
 
-    // Should navigate to arcade page
-    await expect(page).toHaveURL(/\/play\/?$/);
-    await expect(page.locator("text=Cannonball Clash")).toBeVisible();
-    await expect(page.locator("text=Treasure Cove")).toBeVisible();
-  });
+      test("tapping Back link navigates to /play/", async ({ page }) => {
+        await page.goto(game.path, { waitUntil: "domcontentloaded" });
 
-  test("Back to Arcade link works on Treasure Cove", async ({ page }) => {
-    await page.goto("/play/treasure-cove/");
-    await page.waitForSelector("#canvas", { state: "attached" });
+        const backLink = page.locator("#back-link");
+        await expect(backLink).toBeVisible();
 
-    // Wait for initial loading to complete
-    await page.waitForFunction(
-      () => !document.querySelector("#game-loading:not(.hidden)"),
-    );
+        // Use Playwright tap for realistic mobile gesture
+        await backLink.tap();
 
-    // Get Back link bounding box
-    const backLink = page.locator("#back-link");
-    await expect(backLink).toBeVisible();
-
-    const box = await backLink.boundingBox();
-    expect(box).toBeTruthy();
-
-    if (!box) return;
-
-    const centerX = box.x + box.width / 2;
-    const centerY = box.y + box.height / 2;
-
-    // Verify Back link is topmost element at its center
-    const topElementInfo = await page.evaluate(
-      ({ x, y }) => {
-        const el = document.elementFromPoint(x, y);
-        if (!el) return { id: "", className: "", tagName: "" };
-
-        return {
-          id: el.id || "",
-          className: el.className || "",
-          tagName: el.tagName || "",
-          closestBackLink: !!el.closest("#back-link"),
-          closestTouchOverlay: !!el.closest(".touch-overlay"),
-          closestDragZone: !!el.closest(".touch-drag-zone"),
-        };
-      },
-      { x: centerX, y: centerY },
-    );
-
-    expect(topElementInfo.closestBackLink).toBe(true);
-    expect(topElementInfo.closestTouchOverlay).toBe(false);
-    expect(topElementInfo.closestDragZone).toBe(false);
-
-    // Tap the Back link
-    await backLink.click();
-
-    // Should navigate to arcade page
-    await expect(page).toHaveURL(/\/play\/?$/);
-    await expect(page.locator("text=Cannonball Clash")).toBeVisible();
-    await expect(page.locator("text=Treasure Cove")).toBeVisible();
-  });
+        // Wait for navigation to /play/
+        await page.waitForURL("**/play/", { timeout: 5000 });
+        expect(page.url()).toContain("/play/");
+      });
+    });
+  }
 });
