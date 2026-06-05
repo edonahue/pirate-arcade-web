@@ -39,15 +39,21 @@
 - [ ] Port Kraken's Wake (Asteroids) to browser
 - [ ] Port Port Royale Tycoon (board game) to browser
 
-## Phase 3: Polish
+## Phase 3: Playable Arcade Lab Polish ✓ (Live)
 
-- [ ] CRT scanline effect (tasteful, toggleable, performance-conscious)
+- [x] CRT scanline effect (tasteful, toggleable, performance-conscious)
+- [x] Custom 404 page ("Lost at Sea" themed, Cloudflare \_redirects catch-all)
+- [x] Model/tooling comparison table on experiment page (ToolingTable + ModelObservations on /source)
+- [x] Play page refactor: browser vs desktop sections, "Before you launch" panel, porting roadmap
+- [x] ArcadeStatusPanel: data-driven per-game compatibility matrix
+- [x] Agent guardrails (AGENTS.md + .opencode/skill)
+- [x] Browser-game shell drift safety (consistency script + manifest comments)
+- [x] A11y pass: heading hierarchy, focus-visible, reduced-motion confirmed
+- [ ] CRT scanline effect toggle (accessibility opt-out)
 - [ ] Pixel/arcade accent animations (score counter, selection highlight)
 - [ ] Nautical chart map background motif for hero or sections
 - [ ] Performance audit (Lighthouse target: 90+ all categories)
-- [ ] Accessibility audit (keyboard nav, screen reader, contrast)
-- [x] Custom 404 page ("Lost at Sea" themed, Cloudflare \_redirects catch-all)
-- [ ] Model/tooling comparison table on experiment page
+- [ ] Full accessibility audit (screen reader, contrast testing)
 
 ## Maybe / Future
 

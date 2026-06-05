@@ -3,9 +3,13 @@ import BaseLayout from "../layouts/BaseLayout.astro";
 import Hero from "../components/Hero.astro";
 import GameCard from "../components/GameCard.astro";
 import ArcadeFrame from "../components/ArcadeFrame.astro";
+import ArcadeStatusPanel from "../components/ArcadeStatusPanel.astro";
 import { games } from "../data/games";
 import { webPageNode } from "../lib/schema";
 import { ASSET_VERSION } from "../../scripts/game-asset-versions.mjs";
+
+const browserGames = games.filter((g) => g.status === "browser-playable");
+const desktopGames = games.filter((g) => g.status === "desktop-available");
 ---
 
 <BaseLayout
@@ -41,12 +45,83 @@ import { ASSET_VERSION } from "../../scripts/game-asset-versions.mjs";
 
   <section class="section">
     <div class="section__header">
-      <p class="section__eyebrow">How to play</p>
-      <h2 class="section__title">Desktop Apps</h2>
+      <p class="section__eyebrow">Browser</p>
+      <h2 class="section__title">Play Now</h2>
       <p class="section__description">
-        Two games are now <strong>playable in the browser</strong> via Pygbag/WebAssembly:
-        Cannonball Clash and Treasure Cove. The remaining two games are still desktop-only
-        for now — download the latest release below.
+        Two games are playable in your browser via Pygbag/WebAssembly. Each game
+        loads a ~12 MB CPython runtime on first visit (cached on repeat visits).
+        Audio unlocks after the first click or tap.
+      </p>
+    </div>
+
+    <div class="play-now__ctas">
+      {
+        browserGames.map((game) => (
+          <div class="text-center mt-2">
+            <a
+              href={game.browserUrl!}
+              target="_blank"
+              rel="noopener noreferrer"
+              class="cta cta--primary"
+              data-game-id={game.id}
+              data-browser-playable="true"
+              data-game-page={game.browserUrl!}
+              data-game-archive={`/play/${game.id}/${game.id}.tar.gz?v=${ASSET_VERSION}`}
+            >
+              Play {game.title}
+            </a>
+          </div>
+        ))
+      }
+    </div>
+
+    <div class="before-launch mt-4">
+      <div class="before-launch__inner">
+        <p class="before-launch__heading">Before you launch</p>
+        <ul class="before-launch__list">
+          <li>
+            <strong>First visit:</strong> ~12 MB CPython runtime downloads once —
+            repeat visits load from cache.
+          </li>
+          <li>
+            <strong>Audio:</strong> Starts after your first click or tap (browser
+            autoplay policy).
+          </li>
+          <li>
+            <strong>Controls:</strong> Keyboard works best. On-screen touch controls
+            available on mobile.
+          </li>
+          <li>
+            <strong>Orientation:</strong> Landscape recommended for the best experience.
+          </li>
+          <li>
+            <strong>Loading time:</strong> First load takes 10–30s depending on connection.
+            The loading screen shows progress.
+          </li>
+        </ul>
+        <p class="before-launch__footnote">
+          See the{" "}
+          <a href="/build-log/browser-port-feasibility">feasibility analysis</a
+          >{" "}
+          and{" "}
+          <a href="/build-log/shipping-first-browser-port">first port post</a>{
+            " "
+          }
+          for the technical details.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <ArcadeStatusPanel />
+
+  <section class="section">
+    <div class="section__header">
+      <p class="section__eyebrow">Desktop</p>
+      <h2 class="section__title">Desktop Collection</h2>
+      <p class="section__description">
+        All four games are available as desktop downloads. Kraken's Wake and
+        Port Royale Tycoon are desktop-only for now (see roadmap below).
       </p>
     </div>
 
@@ -55,7 +130,7 @@ import { ASSET_VERSION } from "../../scripts/game-asset-versions.mjs";
         href="https://github.com/edonahue/pirate-arcade/releases"
         target="_blank"
         rel="noopener noreferrer"
-        class="cta cta--primary"
+        class="cta cta--gold"
       >
         Download Latest Release
       </a>
@@ -63,10 +138,6 @@ import { ASSET_VERSION } from "../../scripts/game-asset-versions.mjs";
 
     <div class="release-details mt-2">
       <div class="release-details__grid">
-        <div class="release-details__item">
-          <span class="release-details__label">Latest version</span>
-          <span class="release-details__value">v2.0.0</span>
-        </div>
         <div class="release-details__item">
           <span class="release-details__label">Windows</span>
           <span class="release-details__value">Standalone .exe</span>
@@ -78,6 +149,10 @@ import { ASSET_VERSION } from "../../scripts/game-asset-versions.mjs";
         <div class="release-details__item">
           <span class="release-details__label">macOS</span>
           <span class="release-details__value">Build from source</span>
+        </div>
+        <div class="release-details__item">
+          <span class="release-details__label">Source</span>
+          <span class="release-details__value">MIT license</span>
         </div>
       </div>
       <p class="release-details__note">
@@ -91,74 +166,18 @@ import { ASSET_VERSION } from "../../scripts/game-asset-versions.mjs";
 
   <section class="section">
     <div class="section__header">
-      <p class="section__eyebrow">Feasibility</p>
-      <h2 class="section__title">Browser Ports</h2>
+      <p class="section__eyebrow">Roadmap</p>
+      <h2 class="section__title">Remaining Ports</h2>
       <p class="section__description">
-        Two games are now playable in the browser via Pygbag/WebAssembly:
-        <strong>Cannonball Clash</strong> and <strong>Treasure Cove</strong>.
-        The CPython runtime (~12 MB) loads on first visit; each game code bundle
-        is under 20 KB. Game audio is synthesized in-browser via Web Audio API.
-        Audio starts after your first click (browser autoplay rules).
-        <br /><br />
-        See the <a href="/build-log/shipping-first-browser-port"
-          >first shipping post</a
-        > and the <a href="/build-log/porting-the-second-game-treasure-cove"
-          >second port post</a
-        > for the full story on what it takes to get Python+Pygame games running in
-        the browser.
+        Kraken's Wake (Asteroids variant) and Port Royale Tycoon (trading board
+        game) are desktop-only while browser-porting work continues. Each game
+        requires individual audio and renderer fixes for the Pygbag environment.
       </p>
-      <div class="text-center mt-2">
-        <a
-          href="/play/cannonball-clash/"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="cta cta--primary"
-          data-game-id="cannonball-clash"
-          data-browser-playable="true"
-          data-game-page="/play/cannonball-clash/"
-          data-game-archive={`/play/cannonball-clash/cannonball-clash.tar.gz?v=${ASSET_VERSION}`}
-        >
-          Play Cannonball Clash
-        </a>
-      </div>
-      <div class="text-center mt-2">
-        <a
-          href="/play/treasure-cove/"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="cta cta--primary"
-          data-game-id="treasure-cove"
-          data-browser-playable="true"
-          data-game-page="/play/treasure-cove/"
-          data-game-archive={`/play/treasure-cove/treasure-cove.tar.gz?v=${ASSET_VERSION}`}
-        >
-          Play Treasure Cove
-        </a>
-      </div>
-      <p
-        class="section__description mt-1"
-        style="font-size:0.85em;color:#6b7a8f;"
-      >
-        Works best with a keyboard. On-screen touch controls available on
-        mobile.
-      </p>
-      <p class="section__description mt-2">
+      <p class="section__description mt-1">
         <a href="/build-log/browser-port-feasibility">
           Read the feasibility analysis
         </a>
         {" \u2014 "}Pygbag vs Canvas rewrite trade-offs.
-      </p>
-    </div>
-  </section>
-
-  <section class="section">
-    <div class="section__header">
-      <p class="section__eyebrow">Roadmap</p>
-      <h2 class="section__title">Remaining Ports</h2>
-      <p class="section__description">
-        With Cannonball Clash and Treasure Cove shipped, the same approach will
-        be used to port Kraken's Wake and Port Royale Tycoon to the browser.
-        Each game requires individual audio and renderer fixes.
       </p>
     </div>
   </section>
@@ -245,3 +264,82 @@ import { ASSET_VERSION } from "../../scripts/game-asset-versions.mjs";
     });
   }
 </script>
+
+<style>
+  .play-now__ctas {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .before-launch {
+    max-width: 580px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .before-launch__inner {
+    padding: 1.25rem 1.5rem;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    border-left: 3px solid var(--accent);
+  }
+
+  .before-launch__heading {
+    font-family: var(--mono);
+    font-size: 0.6875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--accent);
+    margin-bottom: 0.75rem;
+  }
+
+  .before-launch__list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .before-launch__list li {
+    font-size: 0.8125rem;
+    color: var(--muted);
+    line-height: 1.5;
+    padding-left: 1rem;
+    position: relative;
+  }
+
+  .before-launch__list li::before {
+    content: "\25B8";
+    position: absolute;
+    left: 0;
+    color: var(--accent);
+  }
+
+  .before-launch__list li strong {
+    color: var(--ink);
+  }
+
+  .before-launch__footnote {
+    margin-top: 0.75rem;
+    font-size: 0.75rem;
+    color: var(--muted);
+    text-align: center;
+  }
+
+  .before-launch__footnote a {
+    color: var(--accent);
+  }
+
+  @media (min-width: 640px) {
+    .play-now__ctas {
+      flex-direction: row;
+      justify-content: center;
+      gap: 1rem;
+    }
+  }
+</style>

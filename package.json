@@ -48,6 +48,7 @@
     "test:css-tokens": "node scripts/check-css-tokens.mjs",
     "test:game-prewarm": "playwright test tests/game-prewarm.spec.ts --project=chromium-desktop",
     "test:site-theme": "playwright test tests/site-theme.spec.ts",
+    "test:browser-game-consistency": "node scripts/check-browser-game-consistency.mjs",
     "test:service-worker": "node scripts/check-service-worker-compat.mjs",
     "check:dependency-hygiene": "node scripts/check-dependency-hygiene.mjs",
     "test:lhci": "lhci autorun"
