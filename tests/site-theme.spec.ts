@@ -33,6 +33,43 @@ test.describe("Site Visual Theme", () => {
     await expect(page.locator("text=Desktop app available")).toHaveCount(2);
   });
 
+  test("Play page prewarm fires on game card interaction", async ({ page }) => {
+    await page.goto("/play/");
+
+    // Hover over Cannonball Clash link — prewarm should fire
+    const cbLink = page.locator('a[data-game-id="cannonball-clash"]').first();
+    await expect(cbLink).toBeVisible();
+
+    // Set up preload link detector
+    await page.evaluate(() => {
+      (window as any).__prewarmObserved = false;
+      const observer = new MutationObserver((mutations) => {
+        for (const m of mutations) {
+          for (const node of Array.from(m.addedNodes)) {
+            if (
+              (node as HTMLLinkElement).rel === "prefetch" &&
+              ((node as HTMLLinkElement).href || "").includes(
+                "cannonball-clash",
+              )
+            ) {
+              (window as any).__prewarmObserved = true;
+            }
+          }
+        }
+      });
+      observer.observe(document.head, { childList: true });
+    });
+
+    // Trigger pointerenter to fire prewarm
+    await cbLink.dispatchEvent("pointerenter");
+    await page.waitForTimeout(300);
+
+    const prewarmed = await page.evaluate(
+      () => (window as any).__prewarmObserved,
+    );
+    expect(prewarmed).toBe(true);
+  });
+
   test("About page loads", async ({ page }) => {
     await page.goto("/about/");
     await expect(page.locator("text=ABOUT")).toBeVisible();

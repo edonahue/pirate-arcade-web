@@ -81,7 +81,7 @@
 }
 .touch-drag-x {
   left: var(--game-canvas-left, 0);
-  bottom: var(--game-canvas-bottom, 0);
+  bottom: var(--game-canvas-bottom-offset, 0);
   width: var(--game-canvas-width, 100%);
   height: calc(var(--game-canvas-height, 100%) * 0.35);
 }

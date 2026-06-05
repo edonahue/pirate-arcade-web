@@ -1,9 +1,27 @@
 # Testing
 
-This document describes the Playwright test harness for the Pirate Arcade
-website, with a focus on the browser games. For the **manual real-device
-smoke checklist** (iOS Safari, Android Chrome, etc.), see
+**This file documents the Playwright test harness.** For the manual
+real-device smoke checklist, see
 [`tests/TESTING_CHECKLIST.md`](tests/TESTING_CHECKLIST.md).
+
+For the **Post-Change Hardening Pass** checklist (CI checks, version
+apply, local parity, cache validation, archive audit), run:
+
+```bash
+# Apply current versions to static files
+npm run apply:game-versions
+
+# Run the full validation suite
+npm run test:service-worker
+npm run test:game-versions
+npm run test:cache-versioning
+npm run test:archive-parity
+npm run audit:game-archives
+npm run test:css-tokens
+
+# Compare repo against live site (post-deploy, informational)
+ALLOW_STALE_LIVE=1 npm run test:live-parity
+```
 
 ---
 
@@ -68,14 +86,25 @@ npm run test:game-theming
 # Game archive/source parity check (ensure tarball matches source)
 npm run test:archive-parity
 
-# Game asset versioning validation (ensure ?v= queries are in sync)
+# Game asset versioning validation (ensure ?v= queries are in sync,
+# read-only — does NOT mutate files)
 npm run test:game-versions
+
+# Service worker validity + cache versioning (classic SW, no imports,
+# correct CACHE_VERSION, archive network-first strategy)
+npm run test:cache-versioning
+
+# Combined service-worker + version check
+npm run test:service-worker
 
 # Site visual smoke tests (homepage, play, about, build-log)
 npm run test:site-theme
 
 # CSS token validation (ensure all var() references are defined)
 npm run test:css-tokens
+
+# Dependency hygiene (check for misclassified deps)
+npm run check:dependency-hygiene
 
 # Mobile touch playability (tap/hold movement, action buttons)
 npm run test:mobile-playability
@@ -91,6 +120,18 @@ npm run test:mobile-regression
 
 # Audit browser game archives for size, suspicious files
 npm run audit:game-archives
+
+# Apply game asset versions to static files (mutates sw.js, HTML)
+npm run apply:game-versions
+
+# Combined service-worker + version check
+npm run test:service-worker
+
+# Live/repo parity check (informational, ALLOW_STALE_LIVE=1 to skip failures)
+npm run test:live-parity
+
+# Dependency hygiene check
+npm run check:dependency-hygiene
 
 # HTML report of the most recent run
 npm run test:e2e:report
@@ -109,10 +150,17 @@ name from `playwright.config.ts`).
 playwright.config.ts            # 5 projects + webServer (astro preview)
 tests/
   helpers/
-    browserGame.ts              # Shared helpers (diagnostics, runtime, input)
+    browserGame.ts              # Shared helpers (diagnostics, runtime, input, touch)
   browser-games.spec.ts         # Health/smoke (~18 tests)
   game-input-desktop.spec.ts    # Desktop keyboard/mouse (~12 tests)
   game-input-mobile.spec.ts     # Mobile touch/orientation (~15 tests)
+  game-load-performance.spec.ts # Cold/warm load metrics, resource breakdown
+  game-theming.spec.ts          # Visual theming pixel sampling
+  site-theme.spec.ts            # Visual smoke + prewarm verification
+  mobile-game-layout.spec.ts    # Canvas positioning, touch control sizing
+  mobile-drag-controls.spec.ts  # Drag-zone input verification
+  mobile-touch-playability.spec.ts # Tap/hold/action button E2E
+  mobile-controls-regression.spec.ts # iOS Safari classList.contains bug
   a11y.spec.ts                  # Accessibility (axe-core, ~7 tests)
   TESTING_CHECKLIST.md          # Manual real-device checklist
 ```
@@ -275,14 +323,33 @@ The shared helpers cover three categories:
   canvas, focuses, presses each key, then waits for a state change.
 - `unlockAndFocusGame(page)` — single click + focus + brief wait
   (browser autoplay policies).
-- `dispatchTouchSequence(page, touchPoints, holdMs)` — dispatches
-  `pointerstart` and `pointerend` events to `#touch-overlay`,
+- `dispatchTouchSequence(page, touchPoints, holdMs, options?)` — dispatches
+  `pointerdown`/`pointerup` events to `#touch-overlay`,
   matching the pointer event handlers in
-  `public/play/shared/mobile-controls.js`.
+  `public/play/shared/mobile-controls.js`. Can also fire
+  `lostpointercapture`/`pointercancel`/`pointerleave` for regression
+  coverage (iPhone Safari teardown bug).
+- `pointerHoldButton(page, selector, holdMs, options?)` — dispatches
+  pointer events against a specific button locator, using its bounding
+  box for `clientX/clientY`. Fire optional `lostpointercapture` teardown.
 - `getCanvasPixelSample(page, w, h)` — returns `ImageData` for byte-
   level before/after comparison.
-- `hasJavaScriptDialogs(page)` — temporarily overrides
+- `pointerTouchTap(page, x, y, options?)` — dispatches
+  `pointerdown`/`pointerup` with `pointerType: "touch"` at absolute
+  viewport coordinates. For tapping buttons at known positions.
+- `pointerTouchDrag(page, points, options?)` — dispatches
+  `pointerdown` at first point, `pointermove` at each intermediate,
+  `pointerup` at final point. All coords are absolute viewport
+  `clientX/clientY`. Use for simulating drag-zone interactions.
+- `topElementAtCenter(page, selector)` — finds the top-most element
+  at the center of a selector's bounding box. Useful for verifying
+  which element receives touch events at drag-zone center points.
+- `installDialogCapture(page)` — overrides `window.alert/confirm/prompt`
+  via `addInitScript` before any page JS runs. Call BEFORE `page.goto()`.
+- `dialogWasCalled(page)` — checks whether any dialog was raised.
+- `hasJavaScriptDialogs(page)` — **deprecated.** Temporarily overrides
   `window.alert/confirm/prompt` and reports whether any were called.
+  Prefer `installDialogCapture` + `dialogWasCalled`.
 
 ---
 

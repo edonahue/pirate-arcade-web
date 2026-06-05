@@ -22,8 +22,11 @@
     var vv = window.visualViewport || window;
     var vw = vv.width;
     var vh = vv.height;
+    var vvOffL = (vv.offsetLeft) | 0;
+    var vvOffT = (vv.offsetTop) | 0;
     if (vw < 100 || vh < 100) return;
 
+    // Account for visual viewport offset (mobile Safari keyboard, zoom)
     var scale = Math.min(vw / cw, vh / ch);
     var cssW = Math.round(cw * scale);
     var cssH = Math.round(ch * scale);
@@ -31,15 +34,20 @@
     canvas.style.width = cssW + 'px';
     canvas.style.height = cssH + 'px';
     canvas.style.position = 'absolute';
-    canvas.style.left = Math.round((vw - cssW) / 2) + 'px';
-    canvas.style.top = Math.round((vh - cssH) / 2) + 'px';
+    canvas.style.left = Math.round((vw - cssW) / 2 + vvOffL) + 'px';
+    canvas.style.top = Math.round((vh - cssH) / 2 + vvOffT) + 'px';
     canvas.style.margin = '0';
 
     // Expose canvas bounds as CSS custom properties for mobile controls
-    var canvasLeft = Math.round((vw - cssW) / 2);
-    var canvasTop = Math.round((vh - cssH) / 2);
+    var canvasLeft = Math.round((vw - cssW) / 2 + vvOffL);
+    var canvasTop = Math.round((vh - cssH) / 2 + vvOffT);
     var canvasRight = canvasLeft + cssW;
     var canvasBottom = canvasTop + cssH;
+    var canvasBottomOffset = vh - (canvasTop + cssH) + vvOffT;
+    // bottom-offset is the distance from viewport bottom to canvas bottom edge,
+    // for use with CSS `bottom:` which positions from containing block bottom.
+    // vh is viewport height; canvasTop+cssH is canvas bottom from top-origin.
+    // vvOffT handles case when visual viewport is offset.
     
     document.documentElement.style.setProperty('--game-canvas-left', canvasLeft + 'px');
     document.documentElement.style.setProperty('--game-canvas-top', canvasTop + 'px');
@@ -47,6 +55,7 @@
     document.documentElement.style.setProperty('--game-canvas-height', cssH + 'px');
     document.documentElement.style.setProperty('--game-canvas-right', canvasRight + 'px');
     document.documentElement.style.setProperty('--game-canvas-bottom', canvasBottom + 'px');
+    document.documentElement.style.setProperty('--game-canvas-bottom-offset', canvasBottomOffset + 'px');
     
     // Also expose as window property for tests
     window.__paCanvasLayout = {
@@ -55,7 +64,10 @@
       width: cssW,
       height: cssH,
       right: canvasRight,
-      bottom: canvasBottom
+      bottom: canvasBottom,
+      bottomOffset: canvasBottomOffset,
+      viewportWidth: vw,
+      viewportHeight: vh
     };
   }
 

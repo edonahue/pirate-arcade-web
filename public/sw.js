@@ -4,9 +4,12 @@
 // v4: robust install (no single-asset failure kills whole SW),
 //     network-first HTML, stale-while-revalidate JS/CSS,
 //     cache-first archives, debug signal for tests.
+//
+// NOTE: This is a CLASSIC service worker (not module). The CACHE_VERSION
+// constant is populated by scripts/apply-game-asset-versions.mjs when
+// versions change. Do NOT add top-level import statements.
 
-import { CACHE_VERSION } from "./play/shared/game-asset-versions.js";
-
+const CACHE_VERSION = "pirate-arcade-games-v7";
 const CACHE_NAME = CACHE_VERSION;
 
 // List of assets to cache - only confirmed browser-playable games.

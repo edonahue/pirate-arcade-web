@@ -301,3 +301,35 @@ compensations:
 2. **Live header checker** (`scripts/check-live-game-headers.mjs`) — fetches
    the deployed site and inspects the actual `Content-Security-Policy`
    header. Run manually after each deploy.
+
+---
+
+## Post-Change Hardening Pass
+
+Run these after any change to `public/sw.js`, game HTML files, or asset
+versions:
+
+```bash
+# 1. Apply current versions to static files
+npm run apply:game-versions
+
+# 2. Validate
+npm run test:game-versions          # read-only version consistency check
+npm run test:cache-versioning       # SW validity + cache naming
+npm run test:archive-parity         # source matches shipped tarballs
+npm run audit:game-archives         # archive size / suspicious file scan
+npm run test:css-tokens             # all CSS var() references defined
+npm run test:live-parity            # local blocking checks + live (informational)
+```
+
+### What each check guards against
+
+| Check                   | Guards against                                                               |
+| ----------------------- | ---------------------------------------------------------------------------- |
+| `test:game-versions`    | Version drift between sw.js, game HTML files, and shared manifest            |
+| `test:cache-versioning` | Broken SW (top-level imports, wrong cache name, missing archive strategy)    |
+| `apply:game-versions`   | Stale version queries after bumping `game-asset-versions.mjs`                |
+| `test:archive-parity`   | Source code changes not reflected in shipped archives                        |
+| `audit:game-archives`   | Suspicious files (`.DS_Store`, `.git/`, test files) in game tarballs         |
+| `test:css-tokens`       | Undefined CSS custom properties causing silent rendering issues              |
+| `test:live-parity`      | Live site drift from repo — local checks are blocking, live is informational |

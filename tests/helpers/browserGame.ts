@@ -949,4 +949,133 @@ export async function readPirateInputDebug(
   });
 }
 
+/**
+ * Dispatch a touch-style tap at a viewport position.
+ * Uses pointerdown → pointerup with pointerType: "touch" to match
+ * the production mobile-controls.js handler exactly.
+ */
+export async function pointerTouchTap(
+  page: Page,
+  x: number,
+  y: number,
+  options?: { selector?: string; holdMs?: number },
+): Promise<void> {
+  const selector = options?.selector ?? "#touch-overlay";
+  const holdMs = options?.holdMs ?? 100;
+
+  await page.dispatchEvent(selector, "pointerdown", {
+    clientX: x,
+    clientY: y,
+    pointerId: 1,
+    pointerType: "touch",
+    isPrimary: true,
+    button: 0,
+    buttons: 1,
+    pressure: 0.5,
+    bubbles: true,
+    cancelable: true,
+  });
+
+  await page.waitForTimeout(holdMs);
+
+  await page.dispatchEvent(selector, "pointerup", {
+    clientX: x,
+    clientY: y,
+    pointerId: 1,
+    pointerType: "touch",
+    isPrimary: true,
+    button: 0,
+    buttons: 0,
+    pressure: 0,
+    bubbles: true,
+    cancelable: true,
+  });
+}
+
+/**
+ * Dispatch a touch-style drag across viewport points.
+ * Fires pointerdown at the first point, then pointermove at each
+ * intermediate point (if any), then pointerup at the final point.
+ * All coordinates are absolute viewport positions (clientX/Y).
+ */
+export async function pointerTouchDrag(
+  page: Page,
+  points: { x: number; y: number }[],
+  options?: { selector?: string; moveSteps?: number },
+): Promise<void> {
+  if (points.length < 2) throw new Error("Need at least 2 points for a drag");
+  const selector = options?.selector ?? "#touch-overlay";
+  const moveSteps = options?.moveSteps ?? 5;
+
+  // pointerdown at first point
+  const start = points[0];
+  await page.dispatchEvent(selector, "pointerdown", {
+    clientX: start.x,
+    clientY: start.y,
+    pointerId: 1,
+    pointerType: "touch",
+    isPrimary: true,
+    button: 0,
+    buttons: 1,
+    pressure: 0.5,
+    bubbles: true,
+    cancelable: true,
+  });
+
+  // pointermove along intermediate points
+  for (let i = 1; i < points.length; i++) {
+    const p = points[i];
+    await page.dispatchEvent(selector, "pointermove", {
+      clientX: p.x,
+      clientY: p.y,
+      pointerId: 1,
+      pointerType: "touch",
+      isPrimary: true,
+      button: 0,
+      buttons: 1,
+      pressure: 0.5,
+      bubbles: true,
+      cancelable: true,
+    });
+    await page.waitForTimeout(30);
+  }
+
+  // pointerup at final point
+  const end = points[points.length - 1];
+  await page.dispatchEvent(selector, "pointerup", {
+    clientX: end.x,
+    clientY: end.y,
+    pointerId: 1,
+    pointerType: "touch",
+    isPrimary: true,
+    button: 0,
+    buttons: 0,
+    pressure: 0,
+    bubbles: true,
+    cancelable: true,
+  });
+}
+
+/**
+ * Find the top-most element at the center of a given selector's bounding box.
+ * Useful for verifying which element would receive touch events at a
+ * drag zone's center point.
+ */
+export async function topElementAtCenter(
+  page: Page,
+  selector: string,
+): Promise<string | null> {
+  return page.evaluate((sel) => {
+    const el = document.querySelector(sel);
+    if (!el) return null;
+    const box = el.getBoundingClientRect();
+    const cx = box.left + box.width / 2;
+    const cy = box.top + box.height / 2;
+    const top = document.elementFromPoint(cx, cy);
+    return top
+      ? `${top.tagName.toLowerCase()}#${top.id}.${top.className.split(" ").join(".")}`
+      : null;
+  }, selector);
+}
+
 export { test, expect };

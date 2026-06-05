@@ -49,6 +49,12 @@ function fail(msg) {
 // --- Check sw.js ---
 const swPath = resolve(ROOT, "public/sw.js");
 const swCode = readFileSync(swPath, "utf-8");
+
+// No top-level imports — must be classic SW
+if (/^\s*import\s/s.test(swCode)) {
+  fail("sw.js has top-level import — must be classic service worker");
+}
+
 if (!swCode.includes("network-first") || !swCode.includes(".tar.gz")) {
   fail("sw.js must use network-first for .tar.gz archives");
 }
