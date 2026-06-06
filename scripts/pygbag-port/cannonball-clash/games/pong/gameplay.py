@@ -14,8 +14,8 @@ class Gameplay:
         self.audio = audio
         self.score_font = pg.font.Font(c.FONT_NAME, c.FONT_SIZE_SCORE)
         self.hud_font = pg.font.Font(c.FONT_NAME, c.FONT_SIZE_HUD)
-self.player_paddle = Paddle(c.PADDLE_MARGIN, c.WINDOW_HEIGHT // 2, side='left')
-self.ai_paddle = Paddle(c.WINDOW_WIDTH - c.PADDLE_MARGIN, c.WINDOW_HEIGHT // 2, side='right')
+        self.player_paddle = Paddle(c.PADDLE_MARGIN, c.WINDOW_HEIGHT // 2, side='left')
+        self.ai_paddle = Paddle(c.WINDOW_WIDTH - c.PADDLE_MARGIN, c.WINDOW_HEIGHT // 2, side='right')
         self.ball = Ball()
         self.ai = AI()
         self.player_score = 0

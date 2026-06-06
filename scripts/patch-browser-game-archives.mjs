@@ -64,6 +64,21 @@ for (const game of GAMES) {
     }
   }
 
+  // Strip all __pycache__ directories (nested below top-level)
+  const stripPycache = (dir) => {
+    for (const e of readdirSync(dir, { withFileTypes: true })) {
+      const p = resolve(dir, e.name);
+      if (e.isDirectory()) {
+        if (e.name === "__pycache__") {
+          rmSync(p, { recursive: true, force: true });
+        } else {
+          stripPycache(p);
+        }
+      }
+    }
+  };
+  stripPycache(assetsDir);
+
   // Create tarball with assets/ at root
   const outFile = resolve(destDir, `${game.id}.tar.gz`);
   execSync(`tar -czf "${outFile}" -C "${tmp}" assets`, {
