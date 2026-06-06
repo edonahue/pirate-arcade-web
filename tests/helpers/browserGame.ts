@@ -901,6 +901,44 @@ export async function getCanvasPixelSample(
 }
 
 /**
+ * Get a canvas pixel sample at specific coordinates (viewport-relative).
+ * Useful for sampling specific game regions like paddles.
+ */
+export async function getCanvasPixelSampleAt(
+  page: Page,
+  x: number,
+  y: number,
+  sampleWidth: number = 20,
+  sampleHeight: number = 20,
+): Promise<{ data: Uint8ClampedArray; width: number; height: number } | null> {
+  return page.evaluate(
+    ({ x, y, sampleWidth, sampleHeight }) => {
+      const c = document.getElementById("canvas") as HTMLCanvasElement | null;
+      if (!c) return null;
+
+      const ctx = c.getContext("2d");
+      if (!ctx) return null;
+
+      // Convert viewport coordinates to canvas coordinates
+      const rect = c.getBoundingClientRect();
+      const canvasX = Math.floor((x - rect.left) * (c.width / rect.width));
+      const canvasY = Math.floor((y - rect.top) * (c.height / rect.height));
+
+      const w = Math.min(c.width - canvasX, sampleWidth);
+      const h = Math.min(c.height - canvasY, sampleHeight);
+      if (w < 1 || h < 1 || canvasX < 0 || canvasY < 0) return null;
+
+      try {
+        return ctx.getImageData(canvasX, canvasY, w, h);
+      } catch {
+        return null;
+      }
+    },
+    { x, y, sampleWidth, sampleHeight },
+  );
+}
+
+/**
  * Simulate a pointer drag across a target element.
  * Fires pointerdown at (startX, startY), then pointermove along each
  * intermediate point, finishing with pointerup at the final point.

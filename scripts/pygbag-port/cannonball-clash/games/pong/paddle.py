@@ -25,6 +25,12 @@ class Paddle:
         h = self.height
         self._ship_surf = pg.Surface((visual_w, h), pg.SRCALPHA)
 
+        # HITBOX NOTE: Collision rect is 16px wide (PADDLE_WIDTH), centered on self.x.
+        # Visual ship is ~56px wide (width + 40), also centered on self.x.
+        # The visual extends ~20px beyond the hitbox on each side.
+        # This is intentional for the elegant ship aesthetic but means the
+        # visual boundary does not match the collision boundary.
+
         is_player = self.side == 'left'
         accent_color = c.PIRATE_TEAL if is_player else c.PIRATE_RED
         hull_color = c.PIRATE_DARK_WOOD

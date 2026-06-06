@@ -8,6 +8,44 @@ from renderer import draw_fps, draw_flash, HitParticle
 import random
 import math
 
+_NEBULA_LAYERS = [
+    {"color": (*c.PIRATE_BLOOD[:3], 25), "radius": 280, "pos": (0.2, 0.3)},
+    {"color": (*c.PIRATE_NAVY[:3], 35), "radius": 220, "pos": (0.7, 0.2)},
+    {"color": (*c.PIRATE_FLAME[:3], 15), "radius": 180, "pos": (0.5, 0.7)},
+    {"color": (*c.PIRATE_TEAL[:3], 20), "radius": 150, "pos": (0.8, 0.8)},
+]
+
+_STARS = None
+
+def _init_stars():
+    global _STARS
+    if _STARS is not None:
+        return
+    random.seed(0xDEADBEEF)
+    _STARS = []
+    for _ in range(120):
+        x = random.randint(0, c.WINDOW_WIDTH)
+        y = random.randint(0, c.WINDOW_HEIGHT)
+        brightness = random.randint(60, 200)
+        size = random.choice([1, 1, 1, 2, 2, 3])
+        twinkle = random.random() < 0.3
+        _STARS.append((x, y, brightness, size, twinkle))
+
+def _draw_background(surface):
+    surface.fill(c.PIRATE_NAVY)
+    for layer in _NEBULA_LAYERS:
+        cx = int(c.WINDOW_WIDTH * layer["pos"][0])
+        cy = int(c.WINDOW_HEIGHT * layer["pos"][1])
+        r = layer["radius"]
+        temp = pg.Surface((r * 2, r * 2), pg.SRCALPHA)
+        pg.draw.circle(temp, layer["color"], (r, r), r)
+        surface.blit(temp, (cx - r, cy - r), special_flags=pg.BLEND_ALPHA_SDL2)
+    _init_stars()
+    for x, y, brightness, size, twinkle in _STARS:
+        if twinkle:
+            brightness = max(40, brightness + int(30 * math.sin(pg.time.get_ticks() * 0.003 + x * 0.01)))
+        pg.draw.circle(surface, (brightness, brightness, brightness), (x, y), size)
+
 class Gameplay:
     def __init__(self, audio):
         self.audio = audio
@@ -181,7 +219,7 @@ class Gameplay:
                 HitParticle(x, y, color=(255, 215, 0)))
 
     def draw(self, surface, fps=0):
-        surface.fill(c.PIRATE_NAVY)
+        _draw_background(surface)
 
         for p in self.hit_particles:
             p.draw(surface)

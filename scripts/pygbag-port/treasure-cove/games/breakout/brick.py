@@ -2,39 +2,53 @@ import pygame as pg
 import constants as c
 
 # Richer fortress palette — stone-like hues with pirate flavor per row
+# Enhanced for row readability: better luminance/hue separation between adjacent rows
 BRICK_FORTRESS_COLORS = [
-    (100, 55, 45),    # Row 0 — dark stone / iron
-    (130, 75, 55),    # Row 1 — weathered brick
-    (155, 100, 65),   # Row 2 — terracotta
-    (175, 130, 70),   # Row 3 — sandstone
-    (160, 150, 90),   # Row 4 — limestone
-    (130, 155, 110),  # Row 5 — mossy stone
-    (100, 150, 140),  # Row 6 — sea-weathered
-    (180, 170, 130),  # Row 7 — pale stone (treasure vault)
+    (85, 40, 35),     # Row 0 — dark iron stone (deep)
+    (120, 65, 45),    # Row 1 — weathered brick (distinct from row 0)
+    (160, 90, 50),    # Row 2 — terracotta (warm orange-brown)
+    (185, 120, 55),   # Row 3 — golden sandstone (lighter, yellow-tinted)
+    (150, 140, 80),   # Row 4 — limestone (pale yellow-gray)
+    (95, 145, 95),    # Row 5 — mossy stone (green tint for contrast)
+    (80, 135, 145),   # Row 6 — sea-weathered (cool blue-gray)
+    (195, 185, 135),  # Row 7 — pale treasure vault (warm cream)
 ]
 
 # Bevel highlight colors (lighter edge)
 BRICK_HIGHLIGHT = [
-    (130, 75, 60),
-    (160, 95, 70),
-    (185, 120, 80),
-    (200, 150, 85),
-    (180, 170, 105),
-    (150, 175, 125),
-    (120, 170, 155),
-    (200, 190, 145),
+    (115, 65, 50),
+    (150, 90, 60),
+    (190, 115, 65),
+    (215, 145, 70),
+    (175, 165, 95),
+    (120, 170, 115),
+    (105, 160, 160),
+    (215, 205, 150),
 ]
 
 # Bevel shadow colors (darker edge)
 BRICK_SHADOW = [
-    (70, 35, 30),
-    (95, 50, 35),
-    (115, 70, 40),
-    (135, 95, 45),
-    (120, 110, 60),
-    (95, 115, 75),
-    (70, 110, 100),
-    (140, 130, 95),
+    (55, 25, 20),
+    (85, 40, 30),
+    (110, 60, 35),
+    (130, 85, 35),
+    (110, 100, 50),
+    (70, 110, 65),
+    (55, 95, 95),
+    (135, 125, 85),
+]
+
+# Row-specific accent colors for subtle vertical marker on each brick
+# Helps distinguish rows at a glance while maintaining stone aesthetic
+BRICK_ROW_ACCENT = [
+    (180, 60, 40),    # Row 0 — deep crimson
+    (200, 120, 40),   # Row 1 — burnt orange
+    (220, 160, 30),   # Row 2 — gold
+    (180, 200, 60),   # Row 3 — olive gold
+    (120, 180, 100),  # Row 4 — sage green
+    (80, 180, 140),   # Row 5 — teal
+    (60, 140, 180),   # Row 6 — ocean blue
+    (220, 190, 80),   # Row 7 — warm amber
 ]
 
 class Brick:
@@ -44,6 +58,7 @@ class Brick:
         self.color = BRICK_FORTRESS_COLORS[row]
         self.highlight = BRICK_HIGHLIGHT[row]
         self.shadow = BRICK_SHADOW[row]
+        self.accent = BRICK_ROW_ACCENT[row]
         self.health = 1
         self.x = c.BRICK_LEFT + col * (c.BRICK_WIDTH + c.BRICK_PADDING)
         self.y = c.BRICK_MARGIN_TOP + row * (c.BRICK_HEIGHT + c.BRICK_PADDING)
@@ -124,6 +139,11 @@ class Brick:
         # Stone joint lines (horizontal)
         joint_y = r.y + bh // 2
         pg.draw.line(surface, self.shadow, (r.x + 2, joint_y), (r.x + bw - 2, joint_y), 1)
+
+        # Subtle row accent marker — thin vertical line near left edge
+        # Helps distinguish rows while maintaining fortress aesthetic
+        accent_x = r.x + 3
+        pg.draw.line(surface, self.accent, (accent_x, r.y + 4), (accent_x, r.y + bh - 4), 1)
 
         # Crack detail if damaged (health < original)
         if self.health < 1:

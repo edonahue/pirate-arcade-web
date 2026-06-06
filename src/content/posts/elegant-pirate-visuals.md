@@ -46,9 +46,15 @@ The breakout bricks were rainbow-colored rectangles. They are now fortress-style
 - **Gold glow preserved**: The last-hit brick still pulses gold.
 - **Collision rectangles unchanged** (standard brick grid).
 
-### Kraken's Wake (Asteroids) — No Visual Changes
+### Kraken's Wake (Asteroids) — Nebula Background + Polish
 
-The Kraken's Wake ship was already a layered polygon sprite (hull, deck, mast, sails, flame effect). Colors were already cohesive with the pirate palette — no changes needed for this pass.
+The Kraken's Wake ship was already a layered polygon sprite (hull, deck, mast, sails, flame effect). Colors were already cohesive with the pirate palette. This pass adds:
+
+- **Nebula backdrop**: Subtle colored nebula clouds using the pirate palette (blood red, teal, flame orange, deep navy) layered behind the action. Four semi-transparent radial gradients create depth without overwhelming the gameplay.
+- **Twinkling starfield**: 120 procedural stars with slight twinkle animation, seeded deterministically for consistency.
+- **Procedural only**: No image assets — all background elements drawn at runtime with Pygame primitives.
+
+The enemy barrels (formerly "asteroids") already had a detailed wooden barrel appearance with bands, cross-bracing, and varied wood tones — no changes needed there.
 
 ## Design Decisions
 
@@ -70,7 +76,7 @@ The `_build_surfs` method caches the ship surface per instance, so the faction i
 
 ### Why Teal for Player, Rum-Red for AI
 
-The existing CSS design tokens already define `--pirate-teal` and `--pirate-red` as accent colors. Using the same colors in-game creates visual cohesion between the site theme and game visuals.
+The existing CSS design tokens define `--sea` (teal) and `--rum` (red) as accent colors. The Python constants use `PIRATE_TEAL` and `PIRATE_RED` which map to the same hue families. Using the same color families in-game creates visual cohesion between the site theme and game visuals.
 
 ## Known Gaps
 
@@ -84,15 +90,14 @@ The ship visuals extend ~40px wider than the collision rectangle (16px wide). Th
 
 On mobile in landscape, the visual overhang is less noticeable because the canvas is scaled down.
 
-### No Kraken's Wake Visual Pass
+### No Kraken Tentacle Visual
 
-Kraken's Wake (Asteroids) was reviewed and its ship was already visually adequate, but:
+Kraken's Wake now has a nebula backdrop, but:
 
-- It uses a plain black background with white stars — no nebula or ocean backdrop
-- There's no kraken tentacle visual (the enemy is abstract triangles)
-- The flame effect is simple (red/orange/yellow ellipses)
+- The enemy barrels (abstract "asteroids") have no kraken tentacle visual — they remain wooden barrels
+- The flame effect is still simple (procedural animated polygons)
 
-This was deprioritized because the ship itself already reads as a pirate vessel, and the game's visual identity is "space pirates" — the abstract style works.
+This is acceptable because the game's visual identity is "space pirates" — the abstract barrel enemies work within that theme.
 
 ### Fortress Bricks Replace Rainbow Color Coding
 
@@ -116,10 +121,10 @@ This is tracked as a possible future enhancement but was out of scope for this p
 
 A new Playwright test (`tests/game-theming.spec.ts`) protects the visuals:
 
-- **Source-marker checks**: Each game archive is inspected for key identifiers in the Python source (e.g., `_ship_surf`, `crate`, `lantern`, `crow`, `accent_color`, `cannon_port`).
-- **Pixel rendering**: The test boots each game, clicks to start, and samples canvas pixels to confirm non-trivial rendering.
-- **Three games covered**: Cannonball Clash, Treasure Cove, and Kraken's Wake.
-- **CI skip for Kraken's Wake**: The game's Pygbag boot fails in the test environment (BrowserFS not found, canvas stays 1x1). The test soft-skips after a 30-second timeout.
+- **Source-marker checks** (moved to `scripts/check-game-theming.mjs`): Each game archive is inspected for key identifiers in the Python source (e.g., `_ship_surf`, `crate`, `lantern`, `accent_color`, `cannon_port`).
+- **Pixel rendering**: The test boots each game, clicks to start, and samples canvas regions to confirm non-background rendering.
+- **Three games covered**: Cannonball Clash, Treasure Cove, and Kraken's Wake all pass visual smoke checks.
+- **CI note**: Kraken's Wake previously soft-skipped due to BrowserFS issues; current test environment boots all three games successfully.
 
 The manual visual smoke checklist in `tests/TESTING_CHECKLIST.md` also got a new section:
 
@@ -139,12 +144,20 @@ The manual visual smoke checklist in `tests/TESTING_CHECKLIST.md` also got a new
 
 ## Files Changed
 
-| File                                                          | Change                                                                           |
-| ------------------------------------------------------------- | -------------------------------------------------------------------------------- |
-| `scripts/pygbag-port/cannonball-clash/games/pong/paddle.py`   | Elegant side-profile ship with `side` param, hull, cannon ports, teal/rum accent |
-| `scripts/pygbag-port/cannonball-clash/games/pong/gameplay.py` | Updated Paddle constructors to pass `side='left'`/`side='right'`                 |
-| `scripts/pygbag-port/treasure-cove/games/breakout/paddle.py`  | Elegant longboat with treasure crate, crow's nest, lantern, oars                 |
-| `scripts/pygbag-port/treasure-cove/games/breakout/brick.py`   | Stone bevel fortress bricks with 8-row stone palette                             |
-| `tests/game-theming.spec.ts`                                  | Source-marker checks for all 3 games, pixel rendering, CI skip for Kraken's Wake |
-| `tests/TESTING_CHECKLIST.md`                                  | Visual/art direction smoke checklist added                                       |
-| `ROADMAP.md`                                                  | Visual polish items marked complete                                              |
+| File                                                           | Change                                                                           |
+| -------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| `scripts/pygbag-port/cannonball-clash/games/pong/paddle.py`    | Elegant side-profile ship with `side` param, hull, cannon ports, teal/rum accent |
+| `scripts/pygbag-port/cannonball-clash/games/pong/gameplay.py`  | Updated Paddle constructors to pass `side='left'`/`side='right'`                 |
+| `scripts/pygbag-port/treasure-cove/games/breakout/paddle.py`   | Elegant longboat with treasure crate, crow's nest, lantern, oars                 |
+| `scripts/pygbag-port/treasure-cove/games/breakout/brick.py`    | Stone bevel fortress bricks with 8-row stone palette + row accent markers        |
+| `scripts/pygbag-port/krakens-wake/games/asteroids/gameplay.py` | Nebula backdrop + twinkling starfield                                            |
+| `tests/game-theming.spec.ts`                                   | Visual smoke checks for all 3 games                                              |
+| `scripts/check-game-theming.mjs`                               | Source-marker checks for all 3 games (Node.js)                                   |
+| `tests/TESTING_CHECKLIST.md`                                   | Visual/art direction smoke checklist added                                       |
+| `ROADMAP.md`                                                   | Visual polish items marked complete                                              |
+| `src/data/publicDomainArt.ts`                                  | Howard Pyle public domain art manifest                                           |
+| `public/images/art/*.webp`                                     | 4 Pyle illustrations (optimized WebP)                                            |
+| `src/components/Hero.astro`                                    | Optional decorative background image support                                     |
+| `src/components/Footer.astro`                                  | PD art attribution                                                               |
+| `src/styles/components.css`                                    | Hero/section art styles                                                          |
+| `src/pages/index.astro`                                        | Hero background + experiment section art                                         |

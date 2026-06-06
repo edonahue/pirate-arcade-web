@@ -3,12 +3,25 @@ export interface Props {
   title: string;
   subtitle?: string;
   eyebrow?: string;
+  backgroundImage?: string;
 }
 
-const { title, subtitle, eyebrow } = Astro.props;
+const { title, subtitle, eyebrow, backgroundImage } = Astro.props;
 ---
 
 <section class="hero">
+  {
+    backgroundImage && (
+      <img
+        class="hero__bg"
+        src={backgroundImage}
+        alt=""
+        aria-hidden="true"
+        decoding="async"
+        loading="lazy"
+      />
+    )
+  }
   {eyebrow && <p class="hero__eyebrow">{eyebrow}</p>}
   <h1 class="hero__title">{title}</h1>
   {subtitle && <p class="hero__subtitle">{subtitle}</p>}
