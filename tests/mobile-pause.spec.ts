@@ -42,9 +42,7 @@ test.describe("mobile pause button", () => {
 });
 
 test.describe("PirateArcadeInput.pause()", () => {
-  test("PirateArcadeInput.pause exists and sends Escape", async ({
-    page,
-  }) => {
+  test("PirateArcadeInput.pause exists and sends Escape", async ({ page }) => {
     await page.goto("/play/cannonball-clash/", {
       waitUntil: "domcontentloaded",
     });
