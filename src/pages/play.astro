@@ -4,6 +4,7 @@ import Hero from "../components/Hero.astro";
 import GameCard from "../components/GameCard.astro";
 import ArcadeFrame from "../components/ArcadeFrame.astro";
 import ArcadeStatusPanel from "../components/ArcadeStatusPanel.astro";
+import CaptainsLog from "../components/CaptainsLog.astro";
 import { games } from "../data/games";
 import { webPageNode } from "../lib/schema";
 import { ASSET_VERSION } from "../../scripts/game-asset-versions.mjs";
@@ -14,20 +15,20 @@ const desktopGames = games.filter((g) => g.status === "desktop-available");
 
 <BaseLayout
   title="Play"
-  description="Choose your game from the Pirate Arcade collection. Desktop apps available now; two browser ports are live."
+  description="Choose your game from the Pirate Arcade collection. Desktop apps available now; three browser ports are live."
   current="play"
   jsonLd={[
     webPageNode(
       "/play/",
       "Play Pirate Arcade",
-      "Choose your game from the Pirate Arcade collection. Desktop apps available now; two browser ports are live.",
+      "Choose your game from the Pirate Arcade collection. Desktop apps available now; three browser ports are live.",
       "CollectionPage",
     ),
   ]}
 >
   <Hero
     title="THE ARCADE"
-    subtitle="Pirate-themed arcade games. Cannonball Clash and Treasure Cove
+    subtitle="Pirate-themed arcade games. Cannonball Clash, Treasure Cove, and Kraken's Wake
     are playable in your browser now. Desktop downloads available for all four games."
     eyebrow="Pick your game"
   />
@@ -48,9 +49,9 @@ const desktopGames = games.filter((g) => g.status === "desktop-available");
       <p class="section__eyebrow">Browser</p>
       <h2 class="section__title">Play Now</h2>
       <p class="section__description">
-        Two games are playable in your browser via Pygbag/WebAssembly. Each game
-        loads a ~12 MB CPython runtime on first visit (cached on repeat visits).
-        Audio unlocks after the first click or tap.
+        {browserGames.length} games are playable in your browser via Pygbag/WebAssembly.
+        Each game loads a ~12 MB CPython runtime on first visit (cached on repeat
+        visits). Audio unlocks after the first click or tap.
       </p>
     </div>
 
@@ -67,6 +68,7 @@ const desktopGames = games.filter((g) => g.status === "desktop-available");
               data-browser-playable="true"
               data-game-page={game.browserUrl!}
               data-game-archive={`/play/${game.id}/${game.id}.tar.gz?v=${ASSET_VERSION}`}
+              data-captains-log={game.id}
             >
               Play {game.title}
             </a>
@@ -169,9 +171,10 @@ const desktopGames = games.filter((g) => g.status === "desktop-available");
       <p class="section__eyebrow">Roadmap</p>
       <h2 class="section__title">Remaining Ports</h2>
       <p class="section__description">
-        Kraken's Wake (Asteroids variant) and Port Royale Tycoon (trading board
-        game) are desktop-only while browser-porting work continues. Each game
-        requires individual audio and renderer fixes for the Pygbag environment.
+        Port Royale Tycoon (trading board game) is the only remaining
+        desktop-only game. Kraken's Wake is now playable in the browser. Each
+        port requires individual audio and renderer fixes for the Pygbag
+        environment.
       </p>
       <p class="section__description mt-1">
         <a href="/build-log/browser-port-feasibility">
@@ -181,6 +184,8 @@ const desktopGames = games.filter((g) => g.status === "desktop-available");
       </p>
     </div>
   </section>
+
+  <CaptainsLog games={games} />
 </BaseLayout>
 
 <script define:vars={{ ASSET_VERSION }} is:inline>
@@ -240,6 +245,7 @@ const desktopGames = games.filter((g) => g.status === "desktop-available");
       var gameId = link.getAttribute("data-game-id");
       var pageUrl = link.getAttribute("data-game-page") || "";
       var archiveUrl = link.getAttribute("data-game-archive") || "";
+      var captainsLogId = link.getAttribute("data-captains-log");
       if (!pageUrl || !archiveUrl) return;
 
       link.addEventListener("pointerenter", function () {
@@ -261,6 +267,20 @@ const desktopGames = games.filter((g) => g.status === "desktop-available");
         },
         { passive: true },
       );
+
+      // Captain's Log: record launch on click (before navigation)
+      if (captainsLogId) {
+        link.addEventListener("click", function () {
+          if (window.__paCaptainsLog && window.__paCaptainsLog.addEntry) {
+            window.__paCaptainsLog.addEntry(
+              captainsLogId,
+              link.textContent?.trim() || gameId,
+              pageUrl,
+            );
+            window.__paCaptainsLog.incrementLaunchCount(captainsLogId);
+          }
+        });
+      }
     });
   }
 </script>
@@ -333,6 +353,14 @@ const desktopGames = games.filter((g) => g.status === "desktop-available");
 
   .before-launch__footnote a {
     color: var(--accent);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  .release-details__note a,
+  .section__description a {
+    text-decoration: underline;
+    text-underline-offset: 2px;
   }
 
   @media (min-width: 640px) {
@@ -343,3 +371,5 @@ const desktopGames = games.filter((g) => g.status === "desktop-available");
     }
   }
 </style>
+
+<script is:inline src="/scripts/captains-log.js"></script>

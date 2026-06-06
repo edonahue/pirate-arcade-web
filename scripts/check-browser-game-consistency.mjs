@@ -24,7 +24,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const root = resolve(__dirname, "..");
 
-const GAMES = ["cannonball-clash", "treasure-cove"];
+const GAMES = ["cannonball-clash", "treasure-cove", "krakens-wake"];
 
 const REQUIRED_API = [
   "window.PirateArcadeLoading",

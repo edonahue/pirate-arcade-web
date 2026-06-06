@@ -6,6 +6,8 @@ export type GameStatus =
   | "browser-planned"
   | "experimental";
 
+export type ControlMode = "pong" | "breakout" | "asteroids";
+
 export interface Game {
   id: string;
   title: string;
@@ -16,6 +18,7 @@ export interface Game {
   desktopUrl?: string;
   browserUrl?: string;
   screenshot?: string;
+  controlMode?: ControlMode;
   features?: string[];
 }
 

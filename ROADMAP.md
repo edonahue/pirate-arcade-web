@@ -36,7 +36,7 @@
 - [x] Browser game audio (Web Audio API synthesis, in-game mute toggle)
 - [x] Shipping post documenting changes, test results, remaining issues
 - [x] Port Treasure Cove (Breakout) to browser
-- [ ] Port Kraken's Wake (Asteroids) to browser
+- [x] Port Kraken's Wake (Asteroids) to browser
 - [ ] Port Port Royale Tycoon (board game) to browser
 
 ## Phase 3: Playable Arcade Lab Polish ✓ (Live)
@@ -58,6 +58,7 @@
 ## Maybe / Future
 
 - [ ] Client-side high scores (localStorage only, no backend)
+- [ ] "Captain's Log" local play history panel (localStorage, no backend)
 - [ ] Sound effects or ambience on the website
 - [ ] Privacy-respecting analytics (Plausible or similar, self-hosted free tier)
 - [ ] RSS feed for build log

@@ -1,0 +1,173 @@
+---
+import type { Game } from "../data/games";
+
+interface Props {
+  games: Game[];
+}
+
+const { games } = Astro.props;
+const gamesData = games.map((g) => ({ id: g.id, classic: g.classic }));
+---
+
+<div id="captains-log" class="captains-log" hidden>
+  <style>
+    .captains-log {
+      max-width: 580px;
+      margin: 2rem auto 0;
+      padding: 1.25rem 1.5rem;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      border-left: 3px solid var(--accent);
+    }
+
+    .captains-log__header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1rem;
+    }
+
+    .captains-log__heading {
+      font-family: var(--mono);
+      font-size: 0.6875rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--accent);
+      margin: 0;
+    }
+
+    .captains-log__clear {
+      font-family: var(--mono);
+      font-size: 0.6875rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      background: none;
+      border: 1px solid var(--line);
+      border-radius: 4px;
+      padding: 0.25rem 0.75rem;
+      cursor: pointer;
+      transition:
+        color 0.15s,
+        border-color 0.15s,
+        background 0.15s;
+    }
+
+    .captains-log__clear:hover {
+      color: var(--accent);
+      border-color: var(--accent);
+      background: rgba(212, 175, 55, 0.1);
+    }
+
+    .captains-log__clear:focus-visible {
+      outline: 2px solid var(--focus);
+      outline-offset: 2px;
+    }
+
+    .captains-log__empty {
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.8125rem;
+      padding: 1rem 0;
+    }
+
+    .captains-log__list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .captains-log__item {
+      display: flex;
+      flex-direction: column;
+      gap: 0.375rem;
+      padding: 0.75rem;
+      background: rgba(10, 14, 23, 0.5);
+      border: 1px solid var(--line);
+      border-radius: 6px;
+    }
+
+    .captains-log__item-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+    }
+
+    .captains-log__game-name {
+      font-weight: 600;
+      color: var(--ink);
+      font-size: 0.875rem;
+    }
+
+    .captains-log__game-classic {
+      font-family: var(--mono);
+      font-size: 0.6875rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .captains-log__meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      font-size: 0.75rem;
+      color: var(--muted);
+      font-family: var(--mono);
+    }
+
+    .captains-log__meta-item {
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+    }
+
+    .captains-log__meta-label {
+      color: var(--accent);
+    }
+
+    .captains-log__note {
+      margin-top: 1rem;
+      font-size: 0.6875rem;
+      color: var(--muted);
+      text-align: center;
+      line-height: 1.5;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .captains-log__clear {
+        transition: none;
+      }
+    }
+  </style>
+
+  <div class="captains-log__header">
+    <h3 class="captains-log__heading">Captain's Log</h3>
+    <button
+      type="button"
+      class="captains-log__clear"
+      id="captains-log-clear"
+      aria-label="Clear local play history"
+    >
+      Clear log
+    </button>
+  </div>
+
+  <ul class="captains-log__list" id="captains-log-list">
+    <!-- Populated by JavaScript -->
+  </ul>
+
+  <p class="captains-log__note">
+    This log is stored only in your browser's localStorage. No data leaves your
+    device.
+  </p>
+</div>
+
+<script define:vars={{ gamesData }}>
+  window.__PA_GAMES_DATA = gamesData;
+</script>

@@ -1,3 +1,4 @@
+import asyncio
 import pygame as pg
 import constants as c
 import highscores as hs
@@ -84,8 +85,7 @@ class AsteroidsGame:
         self._g_over_text = self.title_font.render("DAVY JONES' LOCKER", True, c.PIRATE_GAME_OVER)
         self._g_over_score = (-1, None)
 
-    def run(self):
-        clock = pg.time.Clock()
+    async def run(self):
         fullscreen = False
 
         while True:
@@ -104,10 +104,11 @@ class AsteroidsGame:
                     elif result == 'quit':
                         return 'quit'
 
-            dt = clock.tick(c.FPS) / 1000.0
+            dt = 1 / 60
             self._update(dt)
-            self._draw(clock.get_fps())
+            self._draw(60)
             pg.display.flip()
+            await asyncio.sleep(0)
 
     def _handle_key(self, key):
         if self.state == 'menu':
