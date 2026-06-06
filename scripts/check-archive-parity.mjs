@@ -18,13 +18,22 @@ const GAMES = [
     id: "cannonball-clash",
     sourceDir: "scripts/pygbag-port/cannonball-clash/games/pong",
     archivePath: "public/play/cannonball-clash/cannonball-clash.tar.gz",
+    archiveGameDir: "pong",
     keyFiles: ["paddle.py", "gameplay.py"],
   },
   {
     id: "treasure-cove",
     sourceDir: "scripts/pygbag-port/treasure-cove/games/breakout",
     archivePath: "public/play/treasure-cove/treasure-cove.tar.gz",
+    archiveGameDir: "breakout",
     keyFiles: ["paddle.py", "gameplay.py"],
+  },
+  {
+    id: "krakens-wake",
+    sourceDir: "scripts/pygbag-port/krakens-wake/games/asteroids",
+    archivePath: "public/play/krakens-wake/krakens-wake.tar.gz",
+    archiveGameDir: "asteroids",
+    keyFiles: ["ship.py", "gameplay.py"],
   },
 ];
 
@@ -47,7 +56,7 @@ for (const game of GAMES) {
       let archiveContent;
       try {
         archiveContent = execSync(
-          `tar xzf "${archivePath}" --to-stdout assets/games/${game.id === "cannonball-clash" ? "pong" : "breakout"}/${file} 2>/dev/null`,
+          `tar xzf "${archivePath}" --to-stdout assets/games/${game.archiveGameDir}/${file} 2>/dev/null`,
           { encoding: "utf-8", stdio: ["pipe", "pipe", "ignore"] },
         );
       } catch (err) {

@@ -49,6 +49,14 @@
 - [x] Agent guardrails (AGENTS.md + .opencode/skill)
 - [x] Browser-game shell drift safety (consistency script + manifest comments)
 - [x] A11y pass: heading hierarchy, focus-visible, reduced-motion confirmed
+- [x] Elegant pirate ship paddle visuals (Pong side-profile ships with
+      hull/deck/sail/flag/cannon ports, player teal vs AI rum accents)
+- [x] Elegant longboat paddle visuals (Breakout skiff with hull/deck/sail/oars/
+      treasure crate/crow's nest/lantern)
+- [x] Fortress brick visuals (stone bevel effect, pirate stone palette,
+      joint/crack details)
+- [x] Archives repacked with updated Python source for all three games
+- [x] visual/art direction smoke checklist added to manual test docs
 - [ ] CRT scanline effect toggle (accessibility opt-out)
 - [ ] Pixel/arcade accent animations (score counter, selection highlight)
 - [ ] Nautical chart map background motif for hero or sections

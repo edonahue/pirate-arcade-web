@@ -317,6 +317,27 @@ Warm loads (service worker cached, runtime cached by browser):
 Phase timing can be inspected via `window.__paBootMetrics` in the browser
 console or attached to Playwright test reports.
 
+## Visual / art direction smoke checklist
+
+Optional manual pass to verify game visuals after a theming update.
+Use `?debugTouch=1` to inspect control overlays.
+
+- [ ] Cannonball Clash: player paddle (left) reads as a ship, not a rectangle
+- [ ] Cannonball Clash: AI paddle (right) has distinct red/rum accent
+- [ ] Cannonball Clash: power-up state adds gold glow
+- [ ] Treasure Cove: longboat paddle reads as a skiff/barge, not a rectangle
+- [ ] Treasure Cove: treasure cargo crate is visible amidships
+- [ ] Treasure Cove: bricks have stone bevel appearance, not plain rectangles
+- [ ] Treasure Cove: bricks show row-specific stone palette
+- [ ] Kraken's Wake: ship has layered polygon sprite, sails, and flame effect
+- [ ] Ball collision still feels aligned with visual paddle (no misleading
+      wide hitbox)
+- [ ] Mobile landscape: ship/longboat still readable at reduced scale
+- [ ] `prefers-reduced-motion` respected (no unnecessary animation)
+- [ ] Archive source markers (`_ship_surf`, `PIRATE_*`) confirmed via
+      `test:game-theming` Playwright pass
+- [ ] Screenshots reflect new visuals if captured
+
 ## Boot phase metrics
 
 The metrics API (`window.PirateArcadeMetrics`) records these phases:
@@ -414,6 +435,7 @@ ALLOW_STALE_LIVE=1 npm run test:live-parity
 | `audit:game-archives`      | Suspicious files (`.DS_Store`, `.git/`, test files) in game tarballs                                                                                                |
 | `test:css-tokens`          | Undefined CSS custom properties causing silent rendering issues                                                                                                     |
 | `check:dependency-hygiene` | Misclassified dev dependencies leaking into runtime                                                                                                                 |
+| `test:game-theming`        | Visual theming regressions — paddle/longboat/ship source markers, color diversity, pixel rendering                                                                  |
 | `test:game-prewarm`        | Missing prewarm data attributes on CTAs, non-browser-playable prewarm bugs, duplicate prefetch links, version mismatch in data-game-archive, single-installer guard |
 | `test:mobile-layout`       | Canvas-bound drag zones, `__paCanvasLayout` geometry, back-link z-index, drag-zone axis alignment to canvas region                                                  |
 | `test:live-parity`         | Live site drift from repo — local checks are blocking, live is informational                                                                                        |

@@ -81,7 +81,9 @@ npm run test:game-performance:headed
 # Game visual theming checks (ship/longboat visuals, pixel sampling)
 npm run test:game-theming
 
-# Game archive/source parity check (ensure tarball matches source)
+# Game archive/source parity check (ensure tarball matches source —
+# covers cannonball-clash (pong/), treasure-cove (breakout/), and
+# krakens-wake (asteroids/))
 npm run test:archive-parity
 
 # Game asset versioning validation (ensure ?v= queries are in sync,
@@ -151,7 +153,8 @@ tests/
   game-input-desktop.spec.ts    # Desktop keyboard/mouse (~12 tests)
   game-input-mobile.spec.ts     # Mobile touch/orientation (~15 tests)
   game-load-performance.spec.ts # Cold/warm load metrics, resource breakdown
-  game-theming.spec.ts          # Visual theming pixel sampling
+  game-theming.spec.ts          # Visual theming: ship/longboat source markers, archive parity,
+                                #   paddle color diversity, pixel rendering, Kraken's Wake CI skip
   game-prewarm.spec.ts          # Prewarm data attributes + WARM_CACHE + single-installer + dedup
   site-theme.spec.ts            # Visual smoke + prewarm verification
   mobile-game-layout.spec.ts    # Canvas positioning, touch control sizing

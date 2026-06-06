@@ -18,8 +18,8 @@ test.describe("Site Visual Theme", () => {
     await expect(page.locator("text=Kraken's Wake")).toBeVisible();
     await expect(page.locator("text=Port Royale Tycoon")).toBeVisible();
 
-    // Check browser-play CTAs
-    await expect(page.locator("text=Play in Browser →")).toHaveCount(2);
+    // Check browser-play CTAs — all three browser-playable games
+    await expect(page.locator("text=Play in Browser →")).toHaveCount(3);
   });
 
   test("Play page shows browser-playable games", async ({ page }) => {
@@ -29,8 +29,8 @@ test.describe("Site Visual Theme", () => {
     await expect(page.locator("text=Cannonball Clash")).toBeVisible();
     await expect(page.locator("text=Treasure Cove")).toBeVisible();
 
-    // Check for desktop-only labels
-    await expect(page.locator("text=Desktop app available")).toHaveCount(2);
+    // Check for desktop-only labels — only Port Royale Tycoon is desktop-only
+    await expect(page.locator("text=Desktop app available")).toHaveCount(1);
   });
 
   test("Play page prewarm fires on game card interaction", async ({ page }) => {

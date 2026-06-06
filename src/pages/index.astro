@@ -53,15 +53,15 @@ import { webPageNode } from "../lib/schema";
       <p class="section__eyebrow">Browser Play</p>
       <h2 class="section__title">Play in Browser Now</h2>
       <p class="section__description">
-        Two games are playable immediately in your browser via
-        Pygbag/WebAssembly: Cannonball Clash and Treasure Cove. The CPython
-        runtime (~12 MB) loads on first visit; audio starts after your first
-        click. Works best with a keyboard, with on-screen touch controls
-        available on mobile.
+        Three games are playable immediately in your browser via
+        Pygbag/WebAssembly: Cannonball Clash, Treasure Cove, and Kraken's Wake.
+        Each loads a ~12 MB CPython runtime on first visit; audio starts after
+        your first click. Works best with a keyboard, with on-screen touch
+        controls available on mobile.
       </p>
     </div>
     <div class="text-center mt-2">
-      <div class="space-x-4">
+      <div class="play-home__ctas">
         <a
           href="/play/cannonball-clash/"
           target="_blank"
@@ -78,6 +78,14 @@ import { webPageNode } from "../lib/schema";
         >
           Play Treasure Cove
         </a>
+        <a
+          href="/play/krakens-wake/"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="cta cta--outline"
+        >
+          Play Kraken's Wake
+        </a>
       </div>
     </div>
     <p class="section__description mt-4 text-center text-sm">
@@ -87,8 +95,18 @@ import { webPageNode } from "../lib/schema";
       {" • "}
       <a href="/build-log/porting-the-second-game-treasure-cove"
         >See the technical details</a
-      >
+      >{" • "}
+      <a href="/build-log/browser-port-feasibility">Porting roadmap</a>
     </p>
+    <style>
+      .play-home__ctas {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        justify-content: center;
+        align-items: center;
+      }
+    </style>
   </section>
 
   <div class="section-divider" aria-hidden="true">

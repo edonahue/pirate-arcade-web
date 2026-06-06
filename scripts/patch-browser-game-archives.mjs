@@ -30,6 +30,7 @@ const DEST = resolve(ROOT, "public/play");
 const GAMES = [
   { id: "cannonball-clash", srcDir: "cannonball-clash" },
   { id: "treasure-cove", srcDir: "treasure-cove" },
+  { id: "krakens-wake", srcDir: "krakens-wake" },
 ];
 
 for (const game of GAMES) {
