@@ -58,6 +58,10 @@
     "test:public-domain-art": "node scripts/check-public-domain-art.mjs",
     "test:game-theming-source": "node scripts/check-game-theming.mjs",
     "check:dependency-hygiene": "node scripts/check-dependency-hygiene.mjs",
+    "verify:release": "node scripts/verify-release.mjs",
+    "verify:release:fast": "node scripts/verify-release.mjs --fast",
+    "verify:release:full": "node scripts/verify-release.mjs",
+    "test:performance-budgets": "node scripts/check-performance-budgets.mjs",
     "test:lhci": "lhci autorun"
   },
   "engines": {

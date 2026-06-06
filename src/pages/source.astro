@@ -4,6 +4,7 @@ import CTAButton from "../components/CTAButton.astro";
 import ToolingTable from "../components/ToolingTable.astro";
 import ModelObservations from "../components/ModelObservations.astro";
 import { webPageNode } from "../lib/schema";
+import { publicDomainArt } from "../data/publicDomainArt";
 ---
 
 <BaseLayout
@@ -243,5 +244,69 @@ import { webPageNode } from "../lib/schema";
         </a>
       </li>
     </ul>
+  </section>
+
+  <section class="section">
+    <div class="section__header">
+      <p class="section__eyebrow">Art &amp; Attribution</p>
+      <h2 class="section__title">Public-Domain Illustrations</h2>
+      <p class="section__description">
+        This site uses four illustrations by Howard Pyle (1853–1911) from
+        <em>Howard Pyle's Book of Pirates</em> (1921). All are public domain in the
+        United States (author died 1911; published before 1931). Source files are
+        from <a
+          href="https://commons.wikimedia.org/wiki/Category:Howard_Pyle%27s_Book_of_Pirates_(1921)"
+          target="_blank"
+          rel="noopener noreferrer">Wikimedia Commons</a
+        >.
+      </p>
+    </div>
+
+    <div class="art-provenance-grid">
+      {
+        publicDomainArt.map((art) => (
+          <article class="art-provenance-card">
+            <img
+              src={`/images/art/${art.filename}`}
+              alt={art.alt}
+              width={art.width}
+              height={art.height}
+              loading="lazy"
+              class="art-provenance__image"
+            />
+            <div class="art-provenance__meta">
+              <h3 class="art-provenance__title">{art.title}</h3>
+              <p class="art-provenance__desc">{art.alt}</p>
+              <dl class="art-provenance__details">
+                <dt>Author</dt>
+                <dd>{art.author}</dd>
+                <dt>Year</dt>
+                <dd>{art.year}</dd>
+                <dt>Collection</dt>
+                <dd>{art.collection}</dd>
+                <dt>License</dt>
+                <dd>{art.license}</dd>
+                <dt>Source</dt>
+                <dd>
+                  <a
+                    href={art.sourcePage}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Wikimedia Commons
+                  </a>
+                </dd>
+              </dl>
+            </div>
+          </article>
+        ))
+      }
+    </div>
+
+    <p class="art-provenance__note">
+      All images are optimized WebP conversions of the original public-domain
+      scans. They are used decoratively on this site (hero backgrounds, section
+      accents) with <code>aria-hidden="true"</code> or empty alt where appropriate.
+    </p>
   </section>
 </BaseLayout>

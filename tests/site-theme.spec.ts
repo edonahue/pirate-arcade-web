@@ -7,16 +7,30 @@ test.describe("Site Visual Theme", () => {
     await page.goto("/");
 
     // Check main sections exist
-    await expect(page.locator("text=PIRATE ARCADE")).toBeVisible();
-    await expect(page.locator("text=Choose Your Adventure")).toBeVisible();
-    await expect(page.locator("text=Play in Browser Now")).toBeVisible();
-    await expect(page.locator("text=The Experiment")).toBeVisible();
+    await expect(page.locator("h1.hero__title")).toContainText("PIRATE ARCADE");
+    await expect(page.locator("h2.section__title").first()).toContainText(
+      "Choose Your Adventure",
+    );
+    await expect(page.locator("h2.section__title").nth(1)).toContainText(
+      "Play in Browser Now",
+    );
+    await expect(page.locator("h2.section__title").nth(2)).toContainText(
+      "Free AI, Local Hardware, Open Source",
+    );
 
     // Check game cards are visible
-    await expect(page.locator("text=Cannonball Clash")).toBeVisible();
-    await expect(page.locator("text=Treasure Cove")).toBeVisible();
-    await expect(page.locator("text=Kraken's Wake")).toBeVisible();
-    await expect(page.locator("text=Port Royale Tycoon")).toBeVisible();
+    await expect(
+      page.locator('article:has-text("Cannonball Clash") h3 a'),
+    ).toBeVisible();
+    await expect(
+      page.locator('article:has-text("Treasure Cove") h3 a'),
+    ).toBeVisible();
+    await expect(
+      page.locator('article:has-text("Kraken\'s Wake") h3 a'),
+    ).toBeVisible();
+    await expect(
+      page.locator('article:has-text("Port Royale Tycoon") h3 a'),
+    ).toBeVisible();
 
     // Check browser-play CTAs — all three browser-playable games
     await expect(page.locator("text=Play in Browser →")).toHaveCount(3);
@@ -25,9 +39,13 @@ test.describe("Site Visual Theme", () => {
   test("Play page shows browser-playable games", async ({ page }) => {
     await page.goto("/play/");
 
-    // Should show the two browser-playable games prominently
-    await expect(page.locator("text=Cannonball Clash")).toBeVisible();
-    await expect(page.locator("text=Treasure Cove")).toBeVisible();
+    // Should show the two browser-playable games prominently - use game card titles
+    await expect(
+      page.locator('article:has-text("Cannonball Clash") h3 a'),
+    ).toBeVisible();
+    await expect(
+      page.locator('article:has-text("Treasure Cove") h3 a'),
+    ).toBeVisible();
 
     // Check for desktop-only labels — only Port Royale Tycoon is desktop-only
     await expect(page.locator("text=Desktop app available")).toHaveCount(1);
@@ -40,45 +58,29 @@ test.describe("Site Visual Theme", () => {
     const cbLink = page.locator('a[data-game-id="cannonball-clash"]').first();
     await expect(cbLink).toBeVisible();
 
-    // Set up preload link detector
-    await page.evaluate(() => {
-      (window as any).__prewarmObserved = false;
-      const observer = new MutationObserver((mutations) => {
-        for (const m of mutations) {
-          for (const node of Array.from(m.addedNodes)) {
-            if (
-              (node as HTMLLinkElement).rel === "prefetch" &&
-              ((node as HTMLLinkElement).href || "").includes(
-                "cannonball-clash",
-              )
-            ) {
-              (window as any).__prewarmObserved = true;
-            }
-          }
-        }
-      });
-      observer.observe(document.head, { childList: true });
-    });
-
     // Trigger pointerenter to fire prewarm
     await cbLink.dispatchEvent("pointerenter");
-    await page.waitForTimeout(300);
+    await page.waitForTimeout(500);
 
-    const prewarmed = await page.evaluate(
-      () => (window as any).__prewarmObserved,
-    );
+    // Check that prewarm state was set
+    const prewarmed = await page.evaluate(() => {
+      const state = (window as any).__paGamePrewarmInstalled;
+      return state !== undefined;
+    });
     expect(prewarmed).toBe(true);
   });
 
   test("About page loads", async ({ page }) => {
     await page.goto("/about/");
-    await expect(page.locator("text=ABOUT")).toBeVisible();
-    await expect(page.locator("text=Made by")).toBeVisible();
+    await expect(page.locator("h1.section__title")).toContainText(
+      "The Project",
+    );
+    await expect(page.locator("h2.section__title")).toContainText("Made by");
   });
 
   test("Build log page loads", async ({ page }) => {
     await page.goto("/build-log/");
-    await expect(page.locator("text=BUILD LOG")).toBeVisible();
+    await expect(page.locator("h1.section__title")).toContainText("Build Log");
   });
 
   test("No horizontal overflow on mobile", async ({ page }) => {

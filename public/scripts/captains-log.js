@@ -9,7 +9,31 @@
   const STORAGE_KEY = "pirate-arcade-captains-log";
   const MAX_ENTRIES = 20;
 
+  // Detect if localStorage is available (fails in Safari private mode)
+  function isStorageAvailable() {
+    try {
+      const testKey = "__storage_test__";
+      localStorage.setItem(testKey, testKey);
+      localStorage.removeItem(testKey);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  const STORAGE_WORKS = isStorageAvailable();
+
+  function saveLog(log) {
+    if (!STORAGE_WORKS) return;
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(log));
+    } catch {
+      // Ignore quota exceeded or other errors
+    }
+  }
+
   function getLog() {
+    if (!STORAGE_WORKS) return [];
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (!raw) return [];
@@ -18,25 +42,6 @@
       return parsed.filter(isValidEntry);
     } catch {
       return [];
-    }
-  }
-
-  function isValidEntry(entry) {
-    return (
-      entry &&
-      typeof entry === "object" &&
-      typeof entry.gameId === "string" &&
-      typeof entry.title === "string" &&
-      typeof entry.timestamp === "number" &&
-      typeof entry.route === "string"
-    );
-  }
-
-  function saveLog(log) {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(log));
-    } catch {
-      // Ignore quota exceeded or other errors
     }
   }
 
@@ -61,6 +66,7 @@
   }
 
   function clearLog() {
+    if (!STORAGE_WORKS) return [];
     try {
       localStorage.removeItem(STORAGE_KEY);
     } catch {
@@ -86,6 +92,7 @@
   }
 
   function getLaunchCount(gameId) {
+    if (!STORAGE_WORKS) return 1;
     try {
       const raw = localStorage.getItem(STORAGE_KEY + "-counts");
       if (!raw) return 1;
@@ -97,6 +104,7 @@
   }
 
   function incrementLaunchCount(gameId) {
+    if (!STORAGE_WORKS) return;
     try {
       const raw = localStorage.getItem(STORAGE_KEY + "-counts");
       const counts = raw ? JSON.parse(raw) : {};

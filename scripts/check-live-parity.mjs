@@ -26,7 +26,7 @@ const { ASSET_VERSION, CACHE_VERSION } =
 const ROOT = resolve(__dirname, "..");
 const LIVE_BASE = process.env.LIVE_BASE || "https://pirate-arcade.com";
 const ALLOW_STALE_LIVE = process.env.ALLOW_STALE_LIVE === "1";
-const GAMES = ["cannonball-clash", "treasure-cove"];
+const GAMES = ["cannonball-clash", "treasure-cove", "krakens-wake"];
 
 const checks = [];
 let passed = 0;
@@ -289,6 +289,48 @@ async function run() {
     );
   } catch (err) {
     check("TC fetch", false, err.message);
+  }
+
+  // Check Kraken's Wake
+  try {
+    const kwText = await fetchText(`${LIVE_BASE}/play/krakens-wake/`);
+    check(
+      "KW has data-no-touch-control on back link",
+      kwText.includes('<a id="back-link" href="/play/" data-no-touch-control>'),
+      "Should have data-no-touch-control attribute",
+    );
+
+    check(
+      "KW has correct asset version query",
+      kwText.includes(`krakens-wake.tar.gz?v=${ASSET_VERSION}`) &&
+        kwText.includes(`mobile-controls.css?v=${ASSET_VERSION}`) &&
+        kwText.includes(`mobile-controls.js?v=${ASSET_VERSION}`) &&
+        kwText.includes(`pygame-input-bridge.js?v=${ASSET_VERSION}`) &&
+        kwText.includes(`game-viewport.js?v=${ASSET_VERSION}`),
+      `All assets should use v=${ASSET_VERSION}`,
+    );
+
+    check(
+      "KW has correct hint text",
+      kwText.includes(
+        "W / Up thrust • A/D or Left/Right turn • Space fire • Esc pause",
+      ) || kwText.includes("TURN  •  THRUST  •  FIRE  •  PAUSE"),
+      "Should have mobile-appropriate hint text",
+    );
+
+    check(
+      "KW loading overlay shows game-ready",
+      kwText.includes("game-ready"),
+      "Should reference game-ready event for loader dismiss",
+    );
+
+    check(
+      "KW loading overlay has phase detail",
+      kwText.includes("game-loading-detail"),
+      "Should show phase details during load",
+    );
+  } catch (err) {
+    check("KW fetch", false, err.message);
   }
 
   // Check homepage

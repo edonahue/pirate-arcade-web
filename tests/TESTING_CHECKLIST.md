@@ -24,6 +24,27 @@ Use this checklist before each release to catch what automation misses.
 - Before merging a change to `public/play/shared/mobile-controls.css`
 - Before each Cloudflare Pages deploy that touches `public/play/`
 
+## Release Candidate Quick Path (10-minute smoke pass)
+
+For a quick confidence check before sharing or deploying:
+
+- [ ] `npm run verify:release:fast` passes (static checks + build)
+- [ ] Desktop: open `/` → click "Get the Arcade" → confirm `/play/` loads
+- [ ] Desktop: open `/play/cannonball-clash/` → tap canvas → press Enter → confirm paddle moves with ArrowUp/ArrowDown
+- [ ] Desktop: open `/play/treasure-cove/` → tap canvas → press Space → confirm ball launches
+- [ ] Desktop: open `/play/krakens-wake/` → tap canvas → press ArrowUp → confirm thrust works
+- [ ] iPad Safari (real device): open `/play/` → rotate to landscape → tap Cannonball Clash → confirm START visible, slide works, PAUSE shows text
+- [ ] iPad Safari: confirm Treasure Cove LAUNCH works, slide works
+- [ ] iPad Safari: confirm Kraken's Wake TURN/THRUST/FIRE/PAUSE labels visible
+- [ ] iPhone Safari (real device): open `/play/cannonball-clash/` → tap START → slide works → PAUSE works
+- [ ] Android Chrome (real device): same as iPhone
+- [ ] All three games: pause → resume → confirm no stuck controls
+- [ ] Back to Arcade link works from all game pages
+- [ ] Repeat load: reload any game page → confirm loads faster from cache (under 15s)
+- [ ] Audio: first tap unlocks audio on all devices
+
+If all above pass → ready to share/deploy. If any fail → run full checklist below.
+
 ## Devices to test
 
 At minimum, run through this on:
