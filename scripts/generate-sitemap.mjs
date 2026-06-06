@@ -6,6 +6,7 @@ const DIST = "dist";
 const EXTRA_STATIC_PATHS = [
   "/play/cannonball-clash/",
   "/play/treasure-cove/",
+  "/play/krakens-wake/",
   "/feed.xml",
 ];
 

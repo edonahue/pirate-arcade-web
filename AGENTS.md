@@ -46,3 +46,9 @@ npm run test:mobile-layout
 - Vanilla CSS via tokens — no Tailwind or CSS-in-JS
 - Never add paid cloud services or backends
 - Every game is a data point in the AI experiment
+
+## Copy & Tone
+
+- Follow `COPY_GUIDE.md` for tone zones, vocabulary, and banned words
+- Run `npm run test:copy-tone` (if implemented) or `npm run verify:release:fast` before pushing
+- Update game status in `src/data/games.json` only — single source of truth

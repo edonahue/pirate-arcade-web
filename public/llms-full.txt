@@ -8,9 +8,9 @@ The project asks how much of a complete, inspectable, public software project on
 
 ## Games
 
-- Cannonball Clash: a naval Pong riff with power-ups, procedural audio, AI opponent support, and browser play.
-- Treasure Cove: a treasure-hunt brick breaker with score combos, paddle power-up, procedural audio, and browser play.
-- Kraken's Wake: an Asteroids-style sea-monster survival game in the desktop release.
+- Cannonball Clash: a naval Pong riff with power-ups, procedural audio, AI opponent support, and browser play at https://pirate-arcade.com/play/cannonball-clash/.
+- Treasure Cove: a treasure-hunt brick breaker with score combos, paddle power-up, procedural audio, and browser play at https://pirate-arcade.com/play/treasure-cove/.
+- Kraken's Wake: an Asteroids-style sea-monster survival game, playable in browser at https://pirate-arcade.com/play/krakens-wake/.
 - Port Royale Tycoon: a pirate property-trading board game in the desktop release.
 
 ## Technology

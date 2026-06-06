@@ -65,3 +65,9 @@ npm run test:mobile-layout
 - No ads, tracking, accounts, or leaderboards
 - Every game is a data point in the AI experiment
 - Mobile tests use real touch helpers (`pointerTouchTap`, `pointerHoldButton` from test utils)
+
+## Copy & Tone
+
+- Follow `COPY_GUIDE.md` for tone zones, vocabulary, and banned words
+- Run `npm run test:copy-tone` (if implemented) or `npm run verify:release:fast` before pushing
+- Update game status in `src/data/games.json` only — single source of truth

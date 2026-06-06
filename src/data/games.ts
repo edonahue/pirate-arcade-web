@@ -23,6 +23,14 @@ export interface Game {
   controlMode?: ControlMode;
   touchDifficulty?: TouchDifficulty;
   features?: string[];
+  touchControls?: string;
+  keyboardControls?: string;
+  howToPlay?: string;
+  tips?: string;
+  firstPlayTip?: string;
+  touchDifficultyLabel?: string;
+  availabilityNote?: string;
+  seoDescription?: string;
 }
 
 export const games: Game[] = gamesData as Game[];

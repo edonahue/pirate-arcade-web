@@ -9,7 +9,7 @@ test.describe("Site Visual Theme", () => {
     // Check main sections exist
     await expect(page.locator("h1.hero__title")).toContainText("PIRATE ARCADE");
     await expect(page.locator("h2.section__title").first()).toContainText(
-      "Choose Your Adventure",
+      "Four Classic Arcade Games",
     );
     await expect(page.locator("h2.section__title").nth(1)).toContainText(
       "Play in Browser Now",

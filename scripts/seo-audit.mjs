@@ -22,6 +22,7 @@ const importantRoutes = [
   "https://pirate-arcade.com/games/port-royale-tycoon/",
   "https://pirate-arcade.com/play/cannonball-clash/",
   "https://pirate-arcade.com/play/treasure-cove/",
+  "https://pirate-arcade.com/play/krakens-wake/",
 ];
 
 function fail(message) {
@@ -71,6 +72,25 @@ for (const route of importantRoutes) {
 
 if (/localhost|127\.0\.0\.1|<loc>http:/.test(home + sitemap)) {
   fail("found invalid local or http URL in SEO output");
+}
+
+// Check for stale "two browser ports" reference
+if (/two browser ports|two browser-playable/i.test(home + sitemap)) {
+  fail('found stale "two browser ports" reference');
+}
+
+// Check for stale "desktop-only" or "desktop game" for Kraken's Wake
+if (
+  /krakens?-wake.*desktop-only|desktop-only.*krakens?-wake|krakens?-wake.*desktop game/i.test(
+    home + sitemap,
+  )
+) {
+  fail('found stale "desktop-only" claim for Kraken\'s Wake');
+}
+
+// Check that Kraken's Wake is marked as browser-playable
+if (!/play\/krakens-wake/i.test(home + sitemap)) {
+  fail("missing /play/krakens-wake/ reference");
 }
 
 if (!process.exitCode) {
