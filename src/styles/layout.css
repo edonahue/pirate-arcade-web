@@ -546,10 +546,19 @@
   margin-bottom: 0.375rem;
 }
 
-.site-footer__col p {
+.site-footer__grid > div p {
   font-size: 0.875rem;
   color: var(--muted);
   line-height: 1.5;
+}
+
+.site-footer__grid > div p a {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.site-footer__grid > div p a:hover {
+  color: var(--accent);
 }
 
 .site-footer__links {

@@ -1,6 +1,7 @@
 ---
 import type { Game } from "../data/games";
 import StatusBadge from "./StatusBadge.astro";
+import { ASSET_VERSION } from "../../scripts/game-asset-versions.mjs";
 
 export interface Props {
   game: Game;
@@ -10,6 +11,10 @@ const { game } = Astro.props;
 const cardHref = `/games/${game.id}/`;
 const isBrowserPlayable = game.status === "browser-playable" && game.browserUrl;
 const linkId = `game-card-link-${game.id}`;
+const browserUrl = isBrowserPlayable ? game.browserUrl! : "";
+const archiveUrl = isBrowserPlayable
+  ? `${browserUrl}${game.id}.tar.gz?v=${ASSET_VERSION}`
+  : "";
 ---
 
 <article class="game-chart-frame">
@@ -22,6 +27,8 @@ const linkId = `game-card-link-${game.id}`;
         id={linkId}
         data-game-id={game.id}
         data-browser-playable={isBrowserPlayable}
+        data-game-page={browserUrl}
+        data-game-archive={archiveUrl}
       >
         {
           game.screenshot ? (
@@ -68,7 +75,15 @@ const linkId = `game-card-link-${game.id}`;
         />
         {
           game.browserUrl && game.status === "browser-playable" && (
-            <a href={game.browserUrl} class="game-card__play-link">
+            <a
+              href={game.browserUrl}
+              class="game-card__play-link"
+              data-game-id={game.id}
+              data-browser-playable="true"
+              data-game-page={browserUrl}
+              data-game-archive={archiveUrl}
+              data-captains-log={game.id}
+            >
               Play in Browser →
             </a>
           )
@@ -81,82 +96,3 @@ const linkId = `game-card-link-${game.id}`;
     <div class="game-chart-frame__brass-corner bottom-right"></div>
   </div>
 </article>
-
-<script>
-  let prewarmTimeout: ReturnType<typeof setTimeout> | null = null;
-
-  function triggerGamePrewarm(gameId: string): void {
-    if (prewarmTimeout) {
-      clearTimeout(prewarmTimeout);
-    }
-    prewarmTimeout = setTimeout(() => {
-      prewarmGameResources(gameId);
-    }, 150);
-  }
-
-  function cancelGamePrewarm(): void {
-    if (prewarmTimeout) {
-      clearTimeout(prewarmTimeout);
-      prewarmTimeout = null;
-    }
-  }
-
-  function prewarmGameResources(gameId: string): void {
-    if (!["cannonball-clash", "treasure-cove"].includes(gameId)) {
-      return;
-    }
-
-    const baseUrl = `/play/${gameId}/`;
-    const archiveUrl = `/play/${gameId}/${gameId}.tar.gz?v=mobile-v4`;
-
-    prefetchPage(baseUrl);
-    prefetchResource(archiveUrl, "fetch");
-    warmServiceWorkerCache([baseUrl, archiveUrl]);
-  }
-
-  function prefetchPage(url: string): void {
-    const link = document.createElement("link");
-    link.rel = "prefetch";
-    link.href = url;
-    document.head.appendChild(link);
-  }
-
-  function prefetchResource(url: string, asType: string): void {
-    const link = document.createElement("link");
-    link.rel = "prefetch";
-    link.href = url;
-    if (asType) {
-      link.as = asType;
-    }
-    document.head.appendChild(link);
-  }
-
-  function warmServiceWorkerCache(urls: string[]): void {
-    if ("serviceWorker" in navigator && navigator.serviceWorker.controller) {
-      navigator.serviceWorker.controller.postMessage({
-        type: "WARM_CACHE",
-        urls: urls,
-      });
-    }
-  }
-
-  // Attach prewarm event listeners via DOM data attributes
-  const links = document.querySelectorAll<HTMLAnchorElement>(
-    "a[data-game-id][data-browser-playable=true]",
-  );
-  links.forEach((link) => {
-    const gameId = link.getAttribute("data-game-id")!;
-    link.addEventListener("pointerenter", () => triggerGamePrewarm(gameId));
-    link.addEventListener("pointerleave", () => cancelGamePrewarm());
-    link.addEventListener("focus", () => triggerGamePrewarm(gameId));
-    link.addEventListener("blur", () => cancelGamePrewarm());
-    link.addEventListener(
-      "touchstart",
-      (e: Event) => {
-        e.preventDefault();
-        triggerGamePrewarm(gameId);
-      },
-      { passive: false },
-    );
-  });
-</script>

@@ -1,4 +1,5 @@
 import { test, expect } from "./helpers/browserGame";
+import { pointerTouchTap, pointerHoldButton } from "./helpers/browserGame";
 
 const MOBILE_PROJECTS = ["mobile-chrome", "mobile-safari"];
 
@@ -137,29 +138,7 @@ test.describe("mobile touch playability", () => {
         const cx = box.x + box.width / 2;
         const cy = box.y + box.height / 2;
 
-        await page.dispatchEvent(sel, "pointerdown", {
-          clientX: cx,
-          clientY: cy,
-          pointerId: 1,
-          pointerType: "touch",
-          isPrimary: true,
-          button: 0,
-          buttons: 1,
-          bubbles: true,
-          cancelable: true,
-        });
-        await page.waitForTimeout(100);
-        await page.dispatchEvent(sel, "pointerup", {
-          clientX: cx,
-          clientY: cy,
-          pointerId: 1,
-          pointerType: "touch",
-          isPrimary: true,
-          button: 0,
-          buttons: 0,
-          bubbles: true,
-          cancelable: true,
-        });
+        await pointerTouchTap(page, cx, cy, { selector: sel, holdMs: 100 });
         await page.waitForTimeout(500);
 
         const actionCalls: BridgeCall[] = await page.evaluate(function (aks) {
@@ -212,38 +191,7 @@ test.describe("mobile touch playability", () => {
           const btn = page.locator(sel);
           await btn.waitFor({ state: "visible", timeout: 10000 });
 
-          const box = await btn.boundingBox();
-          if (!box) {
-            test.skip(true, move.dir + " button not visible");
-            return;
-          }
-
-          const cx = box.x + box.width / 2;
-          const cy = box.y + box.height / 2;
-
-          await page.dispatchEvent(sel, "pointerdown", {
-            clientX: cx,
-            clientY: cy,
-            pointerId: 3,
-            pointerType: "touch",
-            isPrimary: true,
-            button: 0,
-            buttons: 1,
-            bubbles: true,
-            cancelable: true,
-          });
-          await page.waitForTimeout(400);
-          await page.dispatchEvent(sel, "pointerup", {
-            clientX: cx,
-            clientY: cy,
-            pointerId: 3,
-            pointerType: "touch",
-            isPrimary: true,
-            button: 0,
-            buttons: 0,
-            bubbles: true,
-            cancelable: true,
-          });
+          await pointerHoldButton(page, sel, 400);
           await page.waitForTimeout(200);
         }
 

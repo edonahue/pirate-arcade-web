@@ -42,11 +42,17 @@
     node = node.parentNode;
   }
   var isPong = controlMode === 'pong';
+  var isBreakout = controlMode === 'breakout';
+  var isAsteroids = controlMode === 'asteroids';
 
   // Key mappings for fallback nudge buttons
   var DIR_KEYS = {
-    left: isPong ? ['ArrowUp', 'w'] : ['ArrowLeft', 'a'],
-    right: isPong ? ['ArrowDown', 's'] : ['ArrowRight', 'd'],
+    left: isPong ? ['ArrowUp', 'w'] : isBreakout ? ['ArrowLeft', 'a'] : ['ArrowLeft', 'a'],
+    right: isPong ? ['ArrowDown', 's'] : isBreakout ? ['ArrowRight', 'd'] : ['ArrowRight', 'd'],
+    up: ['ArrowUp', 'w'],
+    down: ['ArrowDown', 's'],
+    thrust: ['ArrowUp', 'w'],
+    fire: ['Space'],
   };
 
   var input = window.PirateArcadeInput;
@@ -158,6 +164,15 @@
     try { btn.setPointerCapture(e.pointerId); } catch (e) {}
     if (d === 'left' || d === 'right') {
       held[e.pointerId] = { keys: DIR_KEYS[d] };
+      held[e.pointerId].keys.forEach(hold);
+    } else if (d === 'up' || d === 'down') {
+      held[e.pointerId] = { keys: DIR_KEYS[d] };
+      held[e.pointerId].keys.forEach(hold);
+    } else if (d === 'thrust') {
+      held[e.pointerId] = { keys: DIR_KEYS.thrust };
+      held[e.pointerId].keys.forEach(hold);
+    } else if (d === 'fire') {
+      held[e.pointerId] = { keys: DIR_KEYS.fire };
       held[e.pointerId].keys.forEach(hold);
     } else if (d === 'action') {
       document.body.classList.add('game-started');
@@ -311,8 +326,12 @@
   if (hint) {
     if (isPong) {
       hint.textContent = 'Touch: slide ship up/down  \u2022  START  \u2022  \u275A\u275A pause';
-    } else {
+    } else if (isBreakout) {
       hint.textContent = 'Touch: slide longboat left/right  \u2022  LAUNCH  \u2022  \u275A\u275A pause';
+    } else if (isAsteroids) {
+      hint.textContent = 'Touch: turn left/right  \u2022  THRUST  \u2022  FIRE  \u2022  \u275A\u275A pause';
+    } else {
+      hint.textContent = 'Touch: slide left/right  \u2022  ACTION  \u2022  \u275A\u275A pause';
     }
   }
   overlay.classList.add('active');

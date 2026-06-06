@@ -1,6 +1,8 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
 import CTAButton from "../components/CTAButton.astro";
+import ToolingTable from "../components/ToolingTable.astro";
+import ModelObservations from "../components/ModelObservations.astro";
 import { webPageNode } from "../lib/schema";
 ---
 
@@ -122,6 +124,40 @@ import { webPageNode } from "../lib/schema";
         View on GitHub
       </CTAButton>
     </div>
+  </section>
+
+  <section class="section">
+    <div class="section__header">
+      <p class="section__eyebrow">Experiment</p>
+      <h2 class="section__title">AI Development Stack</h2>
+      <p class="section__description">
+        Every tool used to build this project was free-to-use: open-source
+        frameworks, free-tier cloud services, and local hardware. No paid AI
+        models, no cloud compute, no subscriptions.
+      </p>
+    </div>
+
+    <ToolingTable />
+
+    <div class="section__header mt-4">
+      <h2 class="section__title">Model Run Observations</h2>
+      <p class="section__description">
+        Notes on what each model was asked to generate and how well it
+        performed. These are session notes, not benchmarks.
+      </p>
+    </div>
+
+    <ModelObservations />
+
+    <p class="text-center mt-2" style="font-size:0.8125rem;color:var(--muted);">
+      See the
+      <a
+        href="https://github.com/edonahue/pirate-arcade/blob/main/EXPERIMENT.md"
+        target="_blank"
+        rel="noopener noreferrer">full experiment log</a
+      >
+      in the desktop repo for the complete methodology and desktop-game-specific notes.
+    </p>
   </section>
 
   <section class="section">

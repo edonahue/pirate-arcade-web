@@ -87,12 +87,19 @@ comma-separated list to submit only changed URLs.
 
 ## Local Development
 
+**Node.js requirement:** >=22.12.0 (Astro 6). The project includes `.nvmrc`
+— use `nvm use` or equivalent to switch.
+
 ```bash
 source ~/.nvm/nvm.sh
 nvm use
 npm install
 npm run dev
 ```
+
+If `nvm use` fails, upgrade your Node.js. `typecheck` and `build` will fail
+with an unsupported-version error otherwise. Other checks (format, css-tokens,
+lint, browser-game consistency, service-worker, archive parity) are version-agnostic.
 
 ## Deployment
 

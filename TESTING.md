@@ -96,7 +96,7 @@ npm run test:service-worker
 # Site visual smoke tests (homepage, play, about, build-log)
 npm run test:site-theme
 
-# Game prewarm verification (standalone CTAs, GameCard, WARM_CACHE)
+# Game prewarm verification (standalone CTAs, GameCard, WARM_CACHE, single-installer, dedup)
 npm run test:game-prewarm
 
 # CSS token validation (ensure all var() references are defined)
@@ -110,6 +110,9 @@ npm run test:mobile-playability
 
 # Mobile layout (canvas positioning, touch control sizing)
 npm run test:mobile-layout
+
+# Mobile navigation (back-to-arcade link)
+npm run test:mobile-navigation
 
 # Mobile runtime CSP check (no EvalError on game routes)
 npm run test:mobile-runtime
@@ -155,9 +158,10 @@ tests/
   game-input-mobile.spec.ts     # Mobile touch/orientation (~15 tests)
   game-load-performance.spec.ts # Cold/warm load metrics, resource breakdown
   game-theming.spec.ts          # Visual theming pixel sampling
-  game-prewarm.spec.ts          # Prewarm data attributes + WARM_CACHE
+  game-prewarm.spec.ts          # Prewarm data attributes + WARM_CACHE + single-installer + dedup
   site-theme.spec.ts            # Visual smoke + prewarm verification
   mobile-game-layout.spec.ts    # Canvas positioning, touch control sizing
+  mobile-navigation.spec.ts    # Back-to-Arcade link visibility and navigation
   mobile-drag-controls.spec.ts  # Drag-zone input verification
   mobile-touch-playability.spec.ts # Tap/hold/action button E2E
   mobile-controls-regression.spec.ts # iOS Safari classList.contains bug

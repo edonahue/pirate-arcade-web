@@ -58,8 +58,12 @@ jobs:
       - run: npm ci
       - name: Check game archive integrity
         run: npm run audit:game-archives
-      - name: Check service-worker compat + cache versioning + HTML consistency
+      - name: Check service-worker compat (classic SW, WARM_CACHE lifecycle)
         run: npm run test:service-worker
+      - name: Check cache versioning (?v= queries, network-first archives)
+        run: npm run test:cache-versioning
+      - name: Check game HTML version consistency
+        run: npm run test:game-versions
       - name: Check archive/source parity
         run: npm run test:archive-parity
       - name: Check dependency hygiene

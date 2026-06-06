@@ -1,0 +1,67 @@
+---
+name: pirate-arcade-site
+description: Pirate Arcade website — Astro 6, Cloudflare Pages, vanilla CSS tokens
+---
+
+# Pirate Arcade Site Skill
+
+## Architecture
+
+- **Framework:** Astro 6 (static output, no SSR)
+- **CSS:** Token-based — `src/styles/tokens.css`, `base.css`, `layout.css`, `components.css`, `content.css`, `utilities.css`, `responsive.css`
+- **Hosting:** Cloudflare Pages free tier
+- **CI:** GitHub Actions — run full validation before pushing
+
+## Brand Voice
+
+- Modern pirate arcade + public builder notebook
+- Playful but not cheesy
+- Honest about what works and what's experimental
+- No ads, tracking, accounts, or paid services
+- Pirate puns welcome, emojis only when requested
+
+## Critical Files — Do Not Edit Lightly
+
+| File                       | Why fragile                                                           |
+| -------------------------- | --------------------------------------------------------------------- |
+| `public/play/*/index.html` | Pygbag CDN pinned (0.9.3). Must validate with Playwright after edits. |
+| `public/_headers`          | Route-specific CSP. `unsafe-eval` ONLY on `/play/*` routes.           |
+| `public/sw.js`             | Classic SW (no `import`). CACHE_VERSION inlined by build.             |
+| `src/data/games.json`      | Source of truth. `browserUrl` only for browser-playable games.        |
+
+## Game Asset Versions
+
+Always use `ASSET_VERSION` from `scripts/game-asset-versions.mjs` for archive URLs. Never hardcode version strings.
+
+## Game Data
+
+- Browser-playable: cannonball-clash (`/play/cannonball-clash/`), treasure-cove (`/play/treasure-cove/`)
+- Desktop-only: krakens-wake, port-royale-tycoon (linked to GH releases)
+- Prewarm uses `passive: true` touchstart with no `preventDefault()`
+- Runtime globals in `public/play/shared/`: `__paCanvasLayout`, `__paBootMetrics`, `PirateArcadeInput`
+
+## Validation Commands (run in order)
+
+```sh
+npm run format:check
+npx astro check             # Node >=22.12
+npm run build
+npm run seo:audit
+npm run test:css-tokens
+npm run check:dependency-hygiene
+npm run test:service-worker
+npm run test:archive-parity
+npm run audit:game-archives
+npm run test:browser-games:chromium
+npm run test:a11y
+npm run test:mobile-layout
+```
+
+## Constraints
+
+- Plan mode first for any multi-file change
+- Vanilla CSS via design tokens — no Tailwind or CSS-in-JS
+- No paid cloud services, backends, databases
+- No ads, tracking, accounts, or leaderboards
+- Every game is a data point in the AI experiment
+- Mobile tests use real touch helpers (`pointerTouchTap`, `pointerHoldButton` from test utils)

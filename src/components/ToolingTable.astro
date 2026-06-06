@@ -1,0 +1,99 @@
+---
+import { tooling } from "../data/experiment";
+---
+
+<div class="tooling-table-wrapper">
+  <table class="tooling-table">
+    <thead>
+      <tr>
+        <th>Tool</th>
+        <th>Category</th>
+        <th>Used for</th>
+        <th>Cost</th>
+      </tr>
+    </thead>
+    <tbody>
+      {
+        tooling.map((entry) => (
+          <tr>
+            <td class="tooling-table__name">{entry.name}</td>
+            <td>
+              <span
+                class={`tooling-table__category tooling-table__category--${entry.category.replace(/[^a-z]/g, "")}`}
+              >
+                {entry.category}
+              </span>
+            </td>
+            <td class="tooling-table__used-for">{entry.usedFor.join("; ")}</td>
+            <td class="tooling-table__cost">{entry.cost}</td>
+          </tr>
+        ))
+      }
+    </tbody>
+  </table>
+</div>
+
+<style>
+  .tooling-table-wrapper {
+    overflow-x: auto;
+  }
+
+  .tooling-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+  }
+
+  .tooling-table th,
+  .tooling-table td {
+    padding: 0.625rem 0.75rem;
+    text-align: left;
+    border-bottom: 1px solid var(--line);
+    vertical-align: top;
+  }
+
+  .tooling-table th {
+    font-family: var(--mono);
+    font-size: 0.6875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+  }
+
+  .tooling-table__name {
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  .tooling-table__category {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 0.6875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 0.1875rem 0.5rem;
+    border-radius: 4px;
+    background: var(--surface);
+    color: var(--muted);
+    border: 1px solid var(--line);
+    white-space: nowrap;
+  }
+
+  .tooling-table__used-for {
+    font-size: 0.8125rem;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+
+  .tooling-table__cost {
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    white-space: nowrap;
+    color: var(--accent);
+  }
+
+  .tooling-table a:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+</style>

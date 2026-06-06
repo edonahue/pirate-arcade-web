@@ -18,6 +18,7 @@ const CACHE_NAME = CACHE_VERSION;
 const ASSETS_TO_CACHE = [
   "/play/cannonball-clash/",
   "/play/treasure-cove/",
+  "/play/krakens-wake/",
   "/play/shared/game-boot-metrics.js",
   "/play/shared/pygame-input-bridge.js",
   "/play/shared/mobile-controls.js",
@@ -25,6 +26,7 @@ const ASSETS_TO_CACHE = [
   "/play/shared/audio-bridge.js",
   "/play/cannonball-clash/cannonball-clash.tar.gz",
   "/play/treasure-cove/treasure-cove.tar.gz",
+  "/play/krakens-wake/krakens-wake.tar.gz",
   "/favicon.svg",
 ];
 
@@ -184,7 +186,8 @@ self.addEventListener("fetch", (event) => {
   const isGameShell =
     url.pathname.startsWith("/play/shared/") ||
     url.pathname.startsWith("/play/cannonball-clash/") ||
-    url.pathname.startsWith("/play/treasure-cove/");
+    url.pathname.startsWith("/play/treasure-cove/") ||
+    url.pathname.startsWith("/play/krakens-wake/");
   if (
     isGameShell &&
     (event.request.destination === "script" ||

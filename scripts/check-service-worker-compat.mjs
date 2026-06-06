@@ -31,9 +31,13 @@ const GAMES = [
     id: "treasure-cove",
     html: "public/play/treasure-cove/index.html",
   },
+  {
+    id: "krakens-wake",
+    html: "public/play/krakens-wake/index.html",
+  },
 ];
 
-const DESKTOP_ONLY_ASSETS = [/kraken/, /port-royale/];
+const DESKTOP_ONLY_ASSETS = [/port-royale/];
 
 let failures = 0;
 

@@ -1,10 +1,11 @@
-/* Treasure Cove — Web Audio API sound synthesis bridge.
+/* Kraken's Wake — Web Audio API sound synthesis bridge.
  *
  * Exposes window.PirateArcadeAudio which the Python game code calls
  * via platform.window.PirateArcadeAudio.play(name).
  *
  * Sound frequencies match the desktop procedural-audio originals:
- *   ../localgame/audio.py → _make_tone(freq, dur), _make_brick_break_tone(), etc.
+ *   audio.py → _make_cannon_tone, _make_treasure_tone, _make_victory_tone,
+ *              _make_explosion_tone, _make_life_lost_tone
  *
  * No external dependencies. AudioContext is created lazily on init(),
  * which must be called after a user gesture (UME) per browser autoplay rules.
@@ -93,17 +94,52 @@
     }
   }
 
+  // --- noise helper for cannon/explosion ---
+  function noiseBurst(dur, vol) {
+    if (!ready || muted) return;
+    var t = ctx.currentTime;
+    var buffer = ctx.createBuffer(1, ctx.sampleRate * dur, ctx.sampleRate);
+    var data = buffer.getChannelData(0);
+    for (var i = 0; i < data.length; i++) {
+      data[i] = (Math.random() * 2 - 1) * vol;
+    }
+    var src = ctx.createBufferSource();
+    src.buffer = buffer;
+    var env = ctx.createGain();
+    env.gain.setValueAtTime(vol, t);
+    env.gain.exponentialRampToValueAtTime(0.001, t + dur);
+    src.connect(env).connect(gain);
+    src.start(t);
+    src.stop(t + dur + 0.01);
+  }
+
   // --- sound map (matches desktop audio.py) ---
 
   var sounds = {
-    paddle_hit: function () { tone(440, 0.1, 0.4); },
-    wall_hit:   function () { tone(220, 0.08, 0.3); },
-    brick_break: function () { dual(600, 900, 0.12, 0.3, 0.2); },
-    life_lost:  function () { dual(200, 150, 0.3, 0.4, 0.3); },
-    level_win:  function () { chord([523, 659, 784], 0.5, [0.35, 0.25, 0.25]); },
-    score:      function () { tone(180, 0.3, 0.35); },
-    powerup:    function () { tone(660, 0.15, 0.4); },
-    victory:    function () { chord([523, 659, 784], 0.5, [0.35, 0.25, 0.25]); },
+    // cannon_fire: 180Hz + 300Hz + noise, 0.15s
+    cannon_fire: function () {
+      tone(180, 0.15, 0.5);
+      tone(300, 0.15, 0.3);
+      noiseBurst(0.15, 0.5);
+    },
+    // treasure: 880Hz + 1100Hz, 0.2s
+    treasure: function () {
+      dual(880, 1100, 0.2, 0.3, 0.2);
+    },
+    // level_win: victory chord (523, 659, 784), 0.5s
+    level_win: function () {
+      chord([523, 659, 784], 0.5, [0.35, 0.25, 0.25]);
+    },
+    // barrel_break: explosion (100Hz + 200Hz + noise), 0.2s
+    barrel_break: function () {
+      tone(100, 0.2, 0.4);
+      tone(200, 0.2, 0.3);
+      noiseBurst(0.2, 0.6);
+    },
+    // life_lost: 200Hz + 150Hz, 0.3s
+    life_lost: function () {
+      dual(200, 150, 0.3, 0.4, 0.3);
+    },
   };
 
   function play(name) {

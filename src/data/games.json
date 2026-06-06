@@ -9,6 +9,7 @@
     "browserUrl": "/play/cannonball-clash/",
     "desktopUrl": "https://github.com/edonahue/pirate-arcade/releases",
     "screenshot": "/images/screenshot-cannonball-clash.png",
+    "controlMode": "pong",
     "features": ["1-2 players", "AI opponent", "Power-ups", "Procedural audio"]
   },
   {
@@ -21,6 +22,7 @@
     "browserUrl": "/play/treasure-cove/",
     "desktopUrl": "https://github.com/edonahue/pirate-arcade/releases",
     "screenshot": "/images/screenshot-treasure-cove.png",
+    "controlMode": "breakout",
     "features": [
       "8 brick rows",
       "Score combos",
@@ -30,13 +32,15 @@
   },
   {
     "id": "krakens-wake",
-    "title": "Kraken’s Wake",
+    "title": "Kraken's Wake",
     "classic": "Asteroids",
     "description": "Navigate treacherous waters and blast sea monsters. Watch for the Kraken — it hits hard.",
-    "status": "desktop-available",
-    "statusLabel": "Desktop app available",
+    "status": "browser-playable",
+    "statusLabel": "Play in browser now",
+    "browserUrl": "/play/krakens-wake/",
     "desktopUrl": "https://github.com/edonahue/pirate-arcade/releases",
     "screenshot": "/images/screenshot-krakens-wake.png",
+    "controlMode": "asteroids",
     "features": ["Ship combat", "Wave survival", "Treasure pickups", "3 lives"]
   },
   {
