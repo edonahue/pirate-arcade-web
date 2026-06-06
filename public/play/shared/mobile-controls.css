@@ -194,3 +194,33 @@
   color: #f5b6b6; font: bold 11px/1 monospace;
   text-transform: uppercase; letter-spacing: 1px;
 }
+
+/* ── Compact landscape (mobile) ── */
+@media (pointer: coarse) and (max-height: 500px) {
+  .touch-overlay .btn-nudge {
+    width: 48px; height: 48px; font-size: 22px;
+  }
+  .touch-overlay .btn-up {
+    bottom: max(100px, env(safe-area-inset-bottom, 100px));
+  }
+  .touch-overlay .btn-down {
+    bottom: max(48px, env(safe-area-inset-bottom, 48px));
+  }
+  .touch-overlay .btn-left {
+    bottom: max(48px, env(safe-area-inset-bottom, 48px));
+  }
+  .touch-overlay .btn-right {
+    left: max(72px, calc(env(safe-area-inset-left, 16px) + 56px));
+    bottom: max(48px, env(safe-area-inset-bottom, 48px));
+  }
+  .touch-overlay .btn-action {
+    min-width: 72px; height: 38px; padding: 0 14px;
+    font-size: 11px;
+  }
+  .touch-overlay .btn-thrust {
+    width: 72px; height: 72px; font-size: 10px;
+  }
+  .touch-overlay .btn-fire {
+    width: 64px; height: 64px; font-size: 10px;
+  }
+}

@@ -121,7 +121,18 @@ At minimum, run through this on:
 - [ ] After ship destruction, the game-over/menu state is navigable via touch
 - [ ] Pause + resume via touch does not leave stuck thrust or rotation
 
-### 10. Pause button (all games, special attention)
+### 10. Mobile landscape canvas size
+
+- [ ] Verify `viewport-fit=cover` in meta viewport tag (notched devices)
+- [ ] In landscape orientation, canvas fills most of viewport height (≥90%)
+- [ ] Canvas aspect ratio is preserved (not stretched or distorted)
+- [ ] `__paCanvasLayout.canvasAreaRatio` > 0.65 in landscape
+- [ ] Control buttons remain tappable despite reduced vertical space
+- [ ] Rotating portrait → landscape re-fits canvas within 500ms
+- [ ] No part of the canvas extends beyond the visible viewport
+- [ ] `env(safe-area-inset-*)` respected on notched devices
+
+### 11. Pause button (all games, special attention)
 
 - [ ] On each game, tap `❚❚` during gameplay
 - [ ] Confirm the pause overlay/menu appears (game is visibly paused)
@@ -134,7 +145,7 @@ At minimum, run through this on:
 - [ ] On Cannonball Clash specifically: pause then paddle movement still works after resume
 - [ ] On Treasure Cove specifically: pause then paddle movement and ball launch still work after resume
 
-### 11. Audio
+### 12. Audio
 
 - [ ] First user interaction unlocks audio (browser policy)
 - [ ] Sound effects are audible during gameplay
@@ -143,7 +154,7 @@ At minimum, run through this on:
 - [ ] Audio remains consistent after pausing and resuming
 - [ ] Audio resumes after switching tabs and returning
 
-### 9. Loading overlay and viewport fitting (mobile only)
+### 13. Loading overlay and viewport fitting (mobile only)
 
 - [ ] On first load, `#game-loading` overlay is centered with spinner
       and title text
@@ -157,42 +168,42 @@ At minimum, run through this on:
       class on body, `game-viewport.js` still runs and fits canvas if
       touch is not detected, but the overlay is hidden immediately)
 
-### 10. Orientation lock (mobile only)
+### 14. Orientation lock (mobile only)
 
 - [ ] Hold the device in portrait -> rotate-device overlay appears
 - [ ] Rotate to landscape -> overlay disappears
 - [ ] Game is paused / hidden while in portrait
 - [ ] Game resumes when rotating back to landscape
 
-### 11. Background/foreground
+### 15. Background/foreground
 
 - [ ] Switch to another app for 10 seconds, then return
 - [ ] Game is still running, no error overlay
 - [ ] Audio resumed appropriately (paused if other app uses audio)
 - [ ] Repeat with the device locked, then unlocked
 
-### 12. Reload and refresh
+### 16. Reload and refresh
 
 - [ ] Reload the page (F5 / pull-to-refresh)
 - [ ] Runtime downloads again from cache (should be <5s on warm cache)
 - [ ] Game starts cleanly
 - [ ] No console errors in Web Inspector / DevTools
 
-### 13. Performance
+### 17. Performance
 
 - [ ] Frame rate is smooth (>30 FPS typical) on a mid-range device
 - [ ] No visible stuttering during normal gameplay
 - [ ] Memory usage stays stable over 5 minutes of play
       (check in browser dev tools)
 
-### 14. Network errors
+### 18. Network errors
 
 - [ ] Open DevTools Network tab
 - [ ] All requests return 2xx (or expected redirects)
 - [ ] No 4xx / 5xx on critical assets (tar.gz, wasm, css, js)
 - [ ] No CSP violation reports in the console
 
-### 14b. Caching behavior
+### 19. Caching behavior
 
 - [ ] First cold load: game archive is fetched from network (Status 200)
 - [ ] After SW install completes, reload the page
@@ -201,7 +212,7 @@ At minimum, run through this on:
 - [ ] HTML page should show `(from ServiceWorker)` with `(from cache)` only if offline
 - [ ] All SW-cached assets show correct cache strategy behavior
 
-### 15. Debug mode (`?debugTouch=1`)
+### 20. Debug mode (`?debugTouch=1`)
 
 Append `?debugTouch=1` to any game URL to enable visual outlines and
 console logging for touch controls. Example:
@@ -224,7 +235,7 @@ Use this to:
 - Confirm drag zone boundaries don't overlap the pause button
 - Log the exact sequence of pointer events during a tap
 
-### 16. CSP headers
+### 21. CSP headers
 
 - [ ] Open DevTools -> Network -> click the page request
 - [ ] Inspect Response Headers
@@ -237,7 +248,7 @@ Use this to:
       in `_headers` is broken)
 - [ ] No `unsafe-eval` leaks to other routes (e.g. `/`, `/play/`)
 
-### 17. CSP fix verification (post-`_headers` deployment)
+### 22. CSP fix verification (post-`_headers` deployment)
 
 - [ ] Open `https://pirate-arcade.com/play/cannonball-clash/` in a
       private tab after cache clear

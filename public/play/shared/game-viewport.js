@@ -26,7 +26,6 @@
     var vvOffT = (vv.offsetTop) | 0;
     if (vw < 100 || vh < 100) return;
 
-    // Account for visual viewport offset (mobile Safari keyboard, zoom)
     var scale = Math.min(vw / cw, vh / ch);
     var cssW = Math.round(cw * scale);
     var cssH = Math.round(ch * scale);
@@ -38,17 +37,12 @@
     canvas.style.top = Math.round((vh - cssH) / 2 + vvOffT) + 'px';
     canvas.style.margin = '0';
 
-    // Expose canvas bounds as CSS custom properties for mobile controls
     var canvasLeft = Math.round((vw - cssW) / 2 + vvOffL);
     var canvasTop = Math.round((vh - cssH) / 2 + vvOffT);
     var canvasRight = canvasLeft + cssW;
     var canvasBottom = canvasTop + cssH;
     var canvasBottomOffset = vh - (canvasTop + cssH) + vvOffT;
-    // bottom-offset is the distance from viewport bottom to canvas bottom edge,
-    // for use with CSS `bottom:` which positions from containing block bottom.
-    // vh is viewport height; canvasTop+cssH is canvas bottom from top-origin.
-    // vvOffT handles case when visual viewport is offset.
-    
+
     document.documentElement.style.setProperty('--game-canvas-left', canvasLeft + 'px');
     document.documentElement.style.setProperty('--game-canvas-top', canvasTop + 'px');
     document.documentElement.style.setProperty('--game-canvas-width', cssW + 'px');
@@ -56,8 +50,7 @@
     document.documentElement.style.setProperty('--game-canvas-right', canvasRight + 'px');
     document.documentElement.style.setProperty('--game-canvas-bottom', canvasBottom + 'px');
     document.documentElement.style.setProperty('--game-canvas-bottom-offset', canvasBottomOffset + 'px');
-    
-    // Also expose as window property for tests
+
     window.__paCanvasLayout = {
       left: canvasLeft,
       top: canvasTop,
@@ -67,7 +60,13 @@
       bottom: canvasBottom,
       bottomOffset: canvasBottomOffset,
       viewportWidth: vw,
-      viewportHeight: vh
+      viewportHeight: vh,
+      scale: scale,
+      viewportArea: vw * vh,
+      canvasArea: cssW * cssH,
+      canvasAreaRatio: (cssW * cssH) / (vw * vh),
+      orientation: vw > vh ? 'landscape' : 'portrait',
+      isMobileLandscape: (isCoarse || hasTouch) && vw > vh,
     };
   }
 
@@ -77,6 +76,7 @@
     resizeTimer = setTimeout(fitCanvas, 100);
   }
 
+  var bootRetries = 0;
   var bootCheck = setInterval(function () {
     if (!canvas) {
       canvas = document.getElementById('canvas');
@@ -85,16 +85,15 @@
     var cw = canvas.width, ch = canvas.height;
     if (cw > 10 && ch > 10) {
       clearInterval(bootCheck);
-      // Do NOT hide the loading overlay here — the input bridge
-      // manages that via PirateArcadeLoading.ready().
-      // Just fit the canvas and mark the body ready for CSS.
       addBodyClass('game-ready');
       removeBodyClass('game-loading');
       fitCanvas();
+    } else if (++bootRetries > 60) {
+      // Give up after ~18s — canvas may not boot (e.g. Kraken's Wake in CI)
+      clearInterval(bootCheck);
     }
   }, 300);
 
-  // Observe canvas attribute changes (Pygbag sets width/height)
   if (window.MutationObserver && canvas) {
     var observer = new MutationObserver(function () {
       var cw = canvas.width, ch = canvas.height;
@@ -109,7 +108,6 @@
     observer.observe(canvas, { attributes: true, attributeFilter: ['width', 'height'] });
   }
 
-  // VisualViewport API (mobile Safari)
   if (window.visualViewport) {
     window.visualViewport.addEventListener('resize', scheduleFit);
     window.visualViewport.addEventListener('scroll', scheduleFit);
@@ -118,8 +116,13 @@
   window.addEventListener('orientationchange', function () {
     setTimeout(scheduleFit, 300);
   });
+  window.addEventListener('pageshow', scheduleFit);
+  window.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'visible') scheduleFit();
+  });
 
   setTimeout(fitCanvas, 500);
   setTimeout(fitCanvas, 1500);
   setTimeout(fitCanvas, 3000);
+  setTimeout(fitCanvas, 8000);
 })();

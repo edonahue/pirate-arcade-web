@@ -35,8 +35,8 @@ npm run test:mobile-layout
 
 ## Game data notes
 
-- Browser-playable: cannonball-clash, treasure-cove
-- Desktop-only: krakens-wake, port-royale-tycoon
+- Browser-playable: cannonball-clash, treasure-cove, krakens-wake
+- Desktop-only: port-royale-tycoon
 - Prewarm uses passive touchstart, no `preventDefault()`
 - `__paCanvasLayout`, `__paBootMetrics`, `PirateArcadeInput` are runtime globals from shared scripts
 

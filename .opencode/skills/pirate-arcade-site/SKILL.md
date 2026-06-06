@@ -35,8 +35,8 @@ Always use `ASSET_VERSION` from `scripts/game-asset-versions.mjs` for archive UR
 
 ## Game Data
 
-- Browser-playable: cannonball-clash (`/play/cannonball-clash/`), treasure-cove (`/play/treasure-cove/`)
-- Desktop-only: krakens-wake, port-royale-tycoon (linked to GH releases)
+- Browser-playable: cannonball-clash (`/play/cannonball-clash/`), treasure-cove (`/play/treasure-cove/`), krakens-wake (`/play/krakens-wake/`)
+- Desktop-only: port-royale-tycoon (linked to GH releases)
 - Prewarm uses `passive: true` touchstart with no `preventDefault()`
 - Runtime globals in `public/play/shared/`: `__paCanvasLayout`, `__paBootMetrics`, `PirateArcadeInput`
 

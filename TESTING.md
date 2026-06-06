@@ -123,17 +123,11 @@ npm run test:mobile-regression
 # Audit browser game archives for size, suspicious files
 npm run audit:game-archives
 
-# Apply game asset versions to static files (mutates sw.js, HTML)
-npm run apply:game-versions
-
-# Service-worker compat + cache versioning + HTML consistency
-npm run test:service-worker
+# Mobile pause regression
+npm run test:mobile-pause
 
 # Live/repo parity check (informational, ALLOW_STALE_LIVE=1 to skip failures)
 npm run test:live-parity
-
-# Dependency hygiene check
-npm run check:dependency-hygiene
 
 # HTML report of the most recent run
 npm run test:e2e:report
