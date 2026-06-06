@@ -162,6 +162,11 @@
     clearTouchTarget: function () {
       return this.setTouchTarget('none', 0, false);
     },
+
+    pause: function () {
+      logEvent('pause', {});
+      this.tap('Escape', 120);
+    },
   };
 
   // Query Python-side bridge state for tests

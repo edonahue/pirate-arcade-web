@@ -101,7 +101,40 @@ At minimum, run through this on:
       left/right (Breakout mode only dispatches ArrowLeft/ArrowRight)
 - [ ] Verify that sliding the drag zone moves the longboat smoothly
 
-### 8. Audio
+### 8. Kraken's Wake - desktop controls
+
+- [ ] `ArrowLeft` / `A` rotates the ship port (counter-clockwise)
+- [ ] `ArrowRight` / `D` rotates the ship starboard (clockwise)
+- [ ] `ArrowUp` / `W` applies thrust
+- [ ] `Space` fires cannons
+- [ ] `Escape` pauses and resumes
+- [ ] `P` toggles pause
+- [ ] `Enter` confirms menu options
+
+### 9. Kraken's Wake - mobile touch controls
+
+- [ ] `◀ ▶` rotation nudge buttons appear and rotate ship on hold
+- [ ] `THRUST` button (lower-right, large circle) applies thrust on hold
+- [ ] `FIRE` button (bottom-center) fires cannons
+- [ ] `❚❚` pause button toggles pause
+- [ ] `▲ ▼` menu navigation buttons work in menu/pause screens
+- [ ] After ship destruction, the game-over/menu state is navigable via touch
+- [ ] Pause + resume via touch does not leave stuck thrust or rotation
+
+### 10. Pause button (all games, special attention)
+
+- [ ] On each game, tap `❚❚` during gameplay
+- [ ] Confirm the pause overlay/menu appears (game is visibly paused)
+- [ ] Tap `❚❚` again (or tap Resume) to unpause
+- [ ] Game state resumes correctly (no stuck keys, no frozen frame)
+- [ ] Repeat sequence: play → pause → resume → play (3 cycles)
+- [ ] Pause does not trigger any movement/action/drag zone behavior
+- [ ] `#back-link` remains tappable while pause overlay is showing
+- [ ] On Kraken's Wake specifically: pause then fire/thrust still works after resume
+- [ ] On Cannonball Clash specifically: pause then paddle movement still works after resume
+- [ ] On Treasure Cove specifically: pause then paddle movement and ball launch still work after resume
+
+### 11. Audio
 
 - [ ] First user interaction unlocks audio (browser policy)
 - [ ] Sound effects are audible during gameplay
@@ -168,20 +201,43 @@ At minimum, run through this on:
 - [ ] HTML page should show `(from ServiceWorker)` with `(from cache)` only if offline
 - [ ] All SW-cached assets show correct cache strategy behavior
 
-### 15. CSP headers
+### 15. Debug mode (`?debugTouch=1`)
+
+Append `?debugTouch=1` to any game URL to enable visual outlines and
+console logging for touch controls. Example:
+
+    https://pirate-arcade.com/play/krakens-wake/?debugTouch=1
+
+This adds:
+
+- Yellow outline on Back link area
+- Cyan outline on drag zones
+- Green outline on nudge buttons
+- Yellow outline on action buttons
+- Magenta outline on pause buttons
+- Console logs for each touch event handler
+
+Use this to:
+
+- Verify the pause button receives pointer events
+- Check if Back link is intercepting touches near the pause button
+- Confirm drag zone boundaries don't overlap the pause button
+- Log the exact sequence of pointer events during a tap
+
+### 16. CSP headers
 
 - [ ] Open DevTools -> Network -> click the page request
 - [ ] Inspect Response Headers
 - [ ] `Content-Security-Policy` is present
-- [ ] For `/play/cannonball-clash/` and `/play/treasure-cove/`:
-      the CSP includes `script-src ... 'unsafe-eval' ...` (required
-      for Pygbag runtime)
+- [ ] For `/play/cannonball-clash/`, `/play/treasure-cove/`, and
+      `/play/krakens-wake/`: the CSP includes
+      `script-src ... 'unsafe-eval' ...` (required for Pygbag runtime)
 - [ ] The CSP for game routes does NOT contain a comma-separated
       duplicate from the global `/*` rule (if it does, the `!` detach
       in `_headers` is broken)
 - [ ] No `unsafe-eval` leaks to other routes (e.g. `/`, `/play/`)
 
-### 16. CSP fix verification (post-`_headers` deployment)
+### 17. CSP fix verification (post-`_headers` deployment)
 
 - [ ] Open `https://pirate-arcade.com/play/cannonball-clash/` in a
       private tab after cache clear

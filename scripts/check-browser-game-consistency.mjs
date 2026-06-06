@@ -169,18 +169,22 @@ const versions = contents.map((c) => {
   const match = c.match(versionPattern);
   return match ? match[2] : null;
 });
-if (versions[0] && versions[1] && versions[0] === versions[1]) {
-  ok(`shared script version consistent (${versions[0]})`);
+const allSameVersion = versions.every((v) => v && v === versions[0]);
+if (allSameVersion) {
+  ok(`shared script version consistent across all games (${versions[0]})`);
 } else {
-  fail(`shared script version mismatch: ${versions[0]} vs ${versions[1]}`);
+  const uniq = [...new Set(versions)];
+  fail(`shared script version mismatch: ${uniq.join(", ")}`);
 }
 
 // Same lang attribute
 const langMatch = contents.map((c) => c.match(/<html\s+lang="([^"]+)"/)?.[1]);
-if (langMatch[0] && langMatch[1] && langMatch[0] === langMatch[1]) {
-  ok(`html lang consistent (${langMatch[0]})`);
+const allSameLang = langMatch.every((l) => l && l === langMatch[0]);
+if (allSameLang) {
+  ok(`html lang consistent across all games (${langMatch[0]})`);
 } else {
-  fail(`html lang mismatch`);
+  const uniq = [...new Set(langMatch)];
+  fail(`html lang mismatch: ${uniq.join(", ")}`);
 }
 
 console.log("");

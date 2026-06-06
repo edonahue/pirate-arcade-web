@@ -185,7 +185,9 @@
         }, 220);
       }
     } else if (d === 'pause') {
-      pressAndRelease('Escape');
+      if (input) {
+        input.pause();
+      }
     }
     return true;
   }
