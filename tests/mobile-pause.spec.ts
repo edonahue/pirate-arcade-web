@@ -1,5 +1,20 @@
 import { test, expect } from "@playwright/test";
 
+interface PirateArcadeInput {
+  tap(key: string, holdMs?: number): void;
+  pause(): void;
+  keyDown(key: string): void;
+  keyUp(key: string): void;
+  setTouchTarget(axis: string, value: number, active: boolean): void;
+  clearTouchTarget(): void;
+}
+
+declare global {
+  interface Window {
+    PirateArcadeInput?: PirateArcadeInput;
+  }
+}
+
 const GAMES = [
   { id: "cannonball-clash", path: "/play/cannonball-clash/" },
   { id: "treasure-cove", path: "/play/treasure-cove/" },
