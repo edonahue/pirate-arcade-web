@@ -15,6 +15,13 @@ const browserUrl = isBrowserPlayable ? game.browserUrl! : "";
 const archiveUrl = isBrowserPlayable
   ? `${browserUrl}${game.id}.tar.gz?v=${ASSET_VERSION}`
   : "";
+const touchDifficulty = game.touchDifficulty
+  ? {
+      easy: { label: "Easiest on touch", color: "var(--sea)" },
+      medium: { label: "Medium on touch", color: "var(--brass)" },
+      harder: { label: "Harder on touch", color: "var(--rum)" },
+    }[game.touchDifficulty]
+  : null;
 ---
 
 <article class="game-chart-frame">
@@ -73,6 +80,16 @@ const archiveUrl = isBrowserPlayable
                 : "experimental"}
           label={game.statusLabel}
         />
+        {
+          touchDifficulty && (
+            <span
+              class="game-card__touch-difficulty"
+              style={`color: ${touchDifficulty.color}`}
+            >
+              {touchDifficulty.label}
+            </span>
+          )
+        }
         {
           game.browserUrl && game.status === "browser-playable" && (
             <a

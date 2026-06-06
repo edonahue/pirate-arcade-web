@@ -10,6 +10,7 @@
     "desktopUrl": "https://github.com/edonahue/pirate-arcade/releases",
     "screenshot": "/images/screenshot-cannonball-clash.png",
     "controlMode": "pong",
+    "touchDifficulty": "easy",
     "features": ["1-2 players", "AI opponent", "Power-ups", "Procedural audio"]
   },
   {
@@ -23,6 +24,7 @@
     "desktopUrl": "https://github.com/edonahue/pirate-arcade/releases",
     "screenshot": "/images/screenshot-treasure-cove.png",
     "controlMode": "breakout",
+    "touchDifficulty": "medium",
     "features": [
       "8 brick rows",
       "Score combos",
@@ -41,6 +43,7 @@
     "desktopUrl": "https://github.com/edonahue/pirate-arcade/releases",
     "screenshot": "/images/screenshot-krakens-wake.png",
     "controlMode": "asteroids",
+    "touchDifficulty": "harder",
     "features": ["Ship combat", "Wave survival", "Treasure pickups", "3 lives"]
   },
   {

@@ -138,6 +138,86 @@
   border: 1px solid rgba(255,255,255,0.15);
   color: #8a9ab0; font: 16px/1 monospace;
   z-index: 10;
+  display: flex; align-items: center; justify-content: center;
+}
+
+/* Tablet/iPad: show PAUSE text, larger controls, higher visibility */
+@media (pointer: coarse) and (min-width: 700px) and (min-height: 550px) {
+  .touch-overlay .btn-pause {
+    width: auto;
+    min-width: 80px;
+    height: 52px;
+    border-radius: 999px;
+    padding: 0 16px;
+    font: bold 13px/1 monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    background: rgba(255,255,255,0.12);
+    border-color: rgba(255,255,255,0.25);
+    color: #b8c4d4;
+  }
+  .touch-overlay .btn-pause::before {
+    content: 'PAUSE';
+  }
+  .touch-overlay .btn-pause::after {
+    content: '';
+  }
+
+  /* Higher visibility for ready-state buttons on tablets */
+  .game-ready .touch-overlay .btn {
+    opacity: 0.45;
+  }
+
+  /* Larger nudge buttons on tablets */
+  .touch-overlay .btn-nudge {
+    width: 80px; height: 80px; font-size: 32px;
+    background: rgba(255,255,255,0.1);
+    border-color: rgba(255,255,255,0.2);
+  }
+  .touch-overlay .btn-up {
+    bottom: max(160px, env(safe-area-inset-bottom, 160px));
+  }
+  .touch-overlay .btn-down {
+    bottom: max(76px, env(safe-area-inset-bottom, 76px));
+  }
+  .touch-overlay .btn-left {
+    bottom: max(76px, env(safe-area-inset-bottom, 76px));
+  }
+  .touch-overlay .btn-right {
+    left: max(112px, calc(env(safe-area-inset-left, 16px) + 96px));
+    bottom: max(76px, env(safe-area-inset-bottom, 76px));
+  }
+
+  /* Larger action pill on tablets */
+  .touch-overlay .btn-action {
+    min-width: 120px; height: 56px; padding: 0 24px;
+    font-size: 15px; letter-spacing: 1.5px;
+  }
+
+  /* Larger THRUST/FIRE buttons on tablets */
+  .touch-overlay .btn-thrust {
+    width: 128px; height: 128px; font-size: 13px;
+  }
+  .touch-overlay .btn-fire {
+    width: 112px; height: 112px; font-size: 13px;
+  }
+
+  /* Larger hint text on tablets */
+  #controls-hint {
+    font-size: 13px; padding: 8px 18px;
+  }
+}
+
+/* iPad Pro / larger tablets in landscape - even more room */
+@media (pointer: coarse) and (min-width: 1000px) and (min-height: 600px) and (orientation: landscape) {
+  .touch-overlay .btn-pause {
+    min-width: 100px; height: 56px; font-size: 14px;
+  }
+  .touch-overlay .btn-nudge { width: 96px; height: 96px; }
+  .touch-overlay .btn-action { min-width: 140px; height: 60px; font-size: 16px; }
+  .touch-overlay .btn-thrust { width: 144px; height: 144px; font-size: 14px; }
+  .touch-overlay .btn-fire { width: 128px; height: 128px; font-size: 14px; }
+  #controls-hint { font-size: 14px; }
 }
 
 /* ── Controls hint bar (bottom-center) ── */

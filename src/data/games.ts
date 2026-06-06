@@ -8,6 +8,8 @@ export type GameStatus =
 
 export type ControlMode = "pong" | "breakout" | "asteroids";
 
+export type TouchDifficulty = "easy" | "medium" | "harder";
+
 export interface Game {
   id: string;
   title: string;
@@ -19,6 +21,7 @@ export interface Game {
   browserUrl?: string;
   screenshot?: string;
   controlMode?: ControlMode;
+  touchDifficulty?: TouchDifficulty;
   features?: string[];
 }
 

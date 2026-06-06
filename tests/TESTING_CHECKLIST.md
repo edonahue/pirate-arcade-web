@@ -447,3 +447,69 @@ ALLOW_STALE_LIVE=1 npm run test:live-parity
 - **`/play/` prewarm**: Browser-playable game CTAs (both GameCard and standalone) have `data-game-id`, `data-browser-playable="true"`, `data-game-page` (same-origin game URL), and `data-game-archive` (versioned `.tar.gz` URL). Hovering/focusing/touching triggers a single `<link rel="prefetch">` insertion per URL and a `WARM_CACHE` postMessage to the SW controller. Desktop-only games (`kraken`, `port-royale`) never fire prewarm.
 - **Why `preventDefault()` is NOT called on `touchstart`**: The centralized prewarm script uses `{ passive: true }` for `touchstart`. Calling `preventDefault()` would block mobile navigation — the browser would not follow the link after the touch. Prewarm is opportunistic, not blocking.
 - **Mobile touch helpers**: Use `pointerTouchTap`, `pointerTouchDrag`, and `pointerHoldButton` (all in `tests/helpers/browserGame.ts`) to dispatch `PointerEvent`s with `pointerType: "touch"` instead of `page.mouse` / `page.click`. These match the production `mobile-controls.js` handler exactly. Coordinate systems: `pointerTouchDrag` uses absolute viewport `clientX/clientY`; `pointerHoldButton` reads the button's bounding box automatically.
+
+---
+
+## iPad Safari Touch Clarity Checklist
+
+This section focuses on the normal touch experience on iPad Safari — no separate kid mode, just making the existing controls clearer and more forgiving for touch users including children who are already iPad-aware.
+
+### 1. iPad Safari launch (cold cache)
+
+- [ ] Open `/play/` on real iPad Safari
+- [ ] Turn iPad sideways (landscape)
+- [ ] Confirm the page recommends/communicates landscape orientation
+- [ ] Tap "Play in Browser →" for Cannonball Clash
+- [ ] Confirm loading message is friendly: "First visit can take a little while. Repeat visits are faster."
+
+### 2. Cannonball Clash — easiest first game
+
+- [ ] Confirm START pill button is obvious (lower-right, gold border)
+- [ ] Confirm sliding ship up/down works on left drag zone
+- [ ] Confirm START fades after gameplay begins
+- [ ] Confirm PAUSE button shows "PAUSE" text on iPad (not just ❚❚)
+- [ ] Confirm Back to Arcade link remains tappable
+- [ ] Confirm drag zone feels responsive (no delay between slide and ship movement)
+- [ ] Confirm hint shows: "Slide ship up/down • START • PAUSE"
+
+### 3. Treasure Cove
+
+- [ ] Confirm LAUNCH pill button is obvious (lower-right)
+- [ ] Confirm sliding longboat left/right works on bottom drag zone
+- [ ] Confirm LAUNCH fires the ball
+- [ ] Confirm PAUSE button shows "PAUSE" text on iPad
+- [ ] Confirm hint shows: "Slide longboat left/right • LAUNCH • PAUSE"
+
+### 4. Kraken's Wake — harder on touch
+
+- [ ] Confirm TURN buttons (◀ ▶) rotate ship
+- [ ] Confirm THRUST button (large green circle) applies thrust on hold
+- [ ] Confirm FIRE button (bottom-center red circle) fires cannons
+- [ ] Confirm PAUSE button shows "PAUSE" text on iPad
+- [ ] Confirm pause + resume does not leave stuck thrust/turn
+- [ ] Confirm hint shows: "TURN • THRUST • FIRE • PAUSE"
+
+### 5. General iPad layout & controls
+
+- [ ] Canvas fills most of viewport in landscape (≥90% height)
+- [ ] Controls are visible but don't dominate the screen
+- [ ] Buttons are large enough (≥44×44, preferably ≥52×52 on iPad)
+- [ ] Pause and Back to Arcade are far apart and both obvious
+- [ ] No control overlaps the central gameplay area
+- [ ] First-load message is reassuring, not technical
+- [ ] No keyboard required for any touch flow
+- [ ] Repeat visit loads faster from cache (under 15s)
+
+### 6. iPad bug-report template
+
+If something is confusing or broken on a real iPad, capture:
+
+- iPad model (e.g., "iPad Air 2022", "iPad Pro 12.9" 2021)
+- iPadOS version (e.g., "17.4.1")
+- Safari vs Home Screen web app
+- Orientation (portrait/landscape)
+- Game (Cannonball Clash / Treasure Cove / Kraken's Wake)
+- First load or repeat load
+- What the user tried to do
+- What happened
+- Screenshot or screen recording if available

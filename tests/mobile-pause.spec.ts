@@ -45,10 +45,10 @@ test.describe("mobile pause button", () => {
         expect(count).toBe(1);
       });
 
-      test("controls-hint mentions pause", async ({ page }) => {
+      test("controls-hint mentions PAUSE", async ({ page }) => {
         await page.goto(game.path, { waitUntil: "domcontentloaded" });
 
-        await expect(page.locator("#controls-hint")).toContainText("pause", {
+        await expect(page.locator("#controls-hint")).toContainText("PAUSE", {
           timeout: 5000,
         });
       });

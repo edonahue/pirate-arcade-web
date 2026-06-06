@@ -327,13 +327,13 @@
 
   if (hint) {
     if (isPong) {
-      hint.textContent = 'Touch: slide ship up/down  \u2022  START  \u2022  \u275A\u275A pause';
+      hint.textContent = 'Slide ship up/down  \u2022  START  \u2022  PAUSE';
     } else if (isBreakout) {
-      hint.textContent = 'Touch: slide longboat left/right  \u2022  LAUNCH  \u2022  \u275A\u275A pause';
+      hint.textContent = 'Slide longboat left/right  \u2022  LAUNCH  \u2022  PAUSE';
     } else if (isAsteroids) {
-      hint.textContent = 'Touch: turn left/right  \u2022  THRUST  \u2022  FIRE  \u2022  \u275A\u275A pause';
+      hint.textContent = 'TURN  \u2022  THRUST  \u2022  FIRE  \u2022  PAUSE';
     } else {
-      hint.textContent = 'Touch: slide left/right  \u2022  ACTION  \u2022  \u275A\u275A pause';
+      hint.textContent = 'Slide  \u2022  ACTION  \u2022  PAUSE';
     }
   }
   overlay.classList.add('active');

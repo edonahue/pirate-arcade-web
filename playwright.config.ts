@@ -49,6 +49,18 @@ export default defineConfig({
       name: "mobile-safari",
       use: { ...devices["iPhone 13"] },
     },
+    // iPad projects for touch clarity / layout testing
+    {
+      name: "ipad-safari",
+      use: { ...devices["iPad (gen 7)"] },
+    },
+    {
+      name: "ipad-landscape",
+      use: {
+        ...devices["iPad (gen 7)"],
+        viewport: { width: 1024, height: 768 },
+      },
+    },
     // Mobile projects above use Playwright device descriptors (Pixel 5
     // and iPhone 13) as a smoke-test baseline, but emulation is NOT a
     // substitute for real-device testing. Real iOS Safari has stricter

@@ -494,6 +494,19 @@
   outline-offset: 2px;
 }
 
+.game-card__touch-difficulty {
+  font-family: var(--mono);
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid currentColor;
+  border-radius: 4px;
+  opacity: 0.9;
+  white-space: nowrap;
+  margin-left: 0.5rem;
+}
+
 /* Add subtle scanline effect for CRT feel - only if not reducing motion */
 @media (prefers-reduced-motion: no-preference) {
   .game-card__image::after {
