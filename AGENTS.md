@@ -15,6 +15,7 @@ Modern pirate arcade + public builder notebook. Playful but not cheesy. Honest a
 - `public/sw.js` — classic service worker (no `import`). CACHE_VERSION inlined by build script. WARM_CACHE listener at top scope.
 - `src/data/games.json` — source of truth. Browser-playable entries have `browserUrl`, desktop-only entries don't.
 - `ASSET_VERSION` from `scripts/game-asset-versions.mjs` — must use for versioned archive URLs. No hardcoded versions.
+- `public/images/screenshot-*.png` — committed static production assets. Refresh only via `npm run capture:screenshots`; do not hand-edit or generate at build time.
 
 ## Validation (run in order before pushing)
 
@@ -32,7 +33,37 @@ npm run test:visual-polish       # Mobile visual layout/contrast (88 tests)
 npm run test:browser-games:chromium  # Playwright
 npm run test:a11y
 npm run test:mobile-layout
+npm run test:screenshot-assets   # PNG IHDR/format/size/distinctness check
 ```
+
+## Browser game screenshots
+
+Production screenshots for the 3 browser-playable games
+(`cannonball-clash`, `treasure-cove`, `krakens-wake`) live in
+`public/images/screenshot-<id>.png` as 1280×720 PNGs. They are committed
+static assets — no runtime generation on user devices.
+
+**Regenerate** when a game's visuals, theming, or Pygbag boot path
+changes meaningfully:
+
+```sh
+npm run capture:screenshots  # builds + boots astro preview + Playwright captures
+npm run test:screenshot-assets  # IHDR/size/distinctness validator
+```
+
+The capture script (`scripts/capture-browser-game-screenshots.mjs`)
+boots each game shell in headless Chromium, waits for
+`__paBootMetrics["game-ready"]` + `#game-loading.hidden` + a sized
+visible canvas, hides the shell UI overlays, presses the per-game
+start key (Enter / Space), waits ~3s for gameplay frames, then reads
+`canvas.toDataURL("image/png")` and resizes 1600×900 → 1280×720 via
+Sharp. The validator (`scripts/check-screenshot-assets.mjs`) is a
+no-dep PNG IHDR parser that asserts: file exists, size 5 KB–2 MB,
+width ≥ 1280, height ≥ 720, aspect within 2% of 16:9, 8-bit RGB or
+RGBA, and all 3 are byte-distinct.
+
+Port Royale Tycoon is desktop-only and uses a separate desktop
+screenshot — do not capture it from `/play/`.
 
 ## Game data notes
 

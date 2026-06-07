@@ -134,6 +134,12 @@ npm run test:mobile-pause
 # Live/repo parity check (informational, ALLOW_STALE_LIVE=1 to skip failures)
 npm run test:live-parity
 
+# Screenshot assets — IHDR/format/size/distinctness validator (no deps)
+npm run test:screenshot-assets
+
+# Refresh production screenshots (real browser-gameplay frames, 1280x720 PNG)
+npm run capture:screenshots
+
 # HTML report of the most recent run
 npm run test:e2e:report
 ```
@@ -441,12 +447,93 @@ Playwright emulation covers most regressions, but it does **not** catch:
 - iOS Safari audio policy differences
 - Real touch event timing (emulated events are instant)
 - iOS-specific Pygbag/WASM behavior
-- Hardware-mediated orientation changes
+- Hardware-mediated orientation events
 - Real GPU rasterization performance
 
 For these, see [`tests/TESTING_CHECKLIST.md`](tests/TESTING_CHECKLIST.md).
 It walks through what to check on a real iPhone, Android device, and
 iPad before each release.
+
+---
+
+## Browser game screenshots
+
+The 3 production browser-game screenshots
+(`public/images/screenshot-{cannonball-clash,treasure-cove,krakens-wake}.png`)
+are committed static assets at 1280×720. They are NOT generated at
+build time or on user devices — they are refreshed manually when a
+game's visuals, theming, or boot path changes.
+
+### Capture (real in-game frames)
+
+```sh
+npm run capture:screenshots
+```
+
+Chained as: `astro build && node scripts/capture-browser-game-screenshots.mjs`.
+
+The script (`scripts/capture-browser-game-screenshots.mjs`):
+
+1. Starts `astro preview` on `127.0.0.1:4321` (override with
+   `PA_CAPTURE_HOST` / `PA_CAPTURE_PORT`).
+2. For each of the 3 games, launches a headless Chromium context at
+   `1280×720` viewport, navigates to `/play/<id>/`, clicks once to
+   unlock audio and create a user gesture for autoplay, waits for:
+   - `__paBootMetrics["game-ready"]` set
+   - `#game-loading.hidden` class added
+   - `canvas#canvas` sized (>100×100) and `visibility: visible`
+3. Hides the shell UI overlays (`#back-link`, `#controls-hint`,
+   `#infobox`, `#touch-overlay`), presses the per-game start key
+   (Enter for cannonball & krakens, Space for treasure), waits 3s for
+   a few gameplay frames to render, re-hides any UI that re-appeared.
+4. Reads `canvas.toDataURL("image/png")` in the page, decodes the
+   dataURL in Node, resizes the 1600×900 internal frame down to
+   1280×720 via Sharp (already a dependency), and writes the PNG.
+5. Stops `astro preview` (always).
+
+Per-game start key, ready-timeout (90s), and post-start settle (3s)
+are constants at the top of the script. Console errors during
+capture are logged but non-fatal; the "PyMain: BrowserFS not found"
+warning is expected (Pygbag internal noise).
+
+### Validate (no-dep PNG IHDR parser)
+
+```sh
+npm run test:screenshot-assets
+```
+
+Asserts for each of the 3 PNGs:
+
+- File exists at the expected path.
+- File size is 5 KB – 2 MB.
+- Valid PNG signature (8-byte magic).
+- IHDR width ≥ 1280, height ≥ 720, aspect within 2% of 16:9.
+- Bit depth 8, color type 2 (RGB) or 6 (RGBA).
+- All 3 are byte-distinct (SHA-256 mismatch check).
+
+Exits 0 on success, 1 on any failure. Included in
+`verify:release:fast`.
+
+### When to refresh
+
+- A game gained or lost a major visual element (e.g. new paddle
+  shape, new brick row, new nebula).
+- A game's boot path changed and the previous screenshot might be a
+  loading screen or stale state.
+- A Pygbag/pythons.js version bump changed canvas behavior
+  (resolution, alpha channel, etc.).
+
+Do not refresh for small gameplay tuning — the validator is strict
+on dimensions/ratio but the screenshots stay valid across minor
+visual tweaks.
+
+### Port Royale Tycoon
+
+Desktop-only. The desktop screenshot in
+`public/images/screenshot-port-royale-tycoon.png` is produced by
+`scripts/capture-screenshots.py` (SDL_VIDEODRIVER=dummy + Pillow).
+**Do not capture it from `/play/`** — there is no browser shell for
+that game.
 
 ---
 

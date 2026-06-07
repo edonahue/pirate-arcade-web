@@ -56,7 +56,18 @@ npm run test:visual-polish       # Mobile visual layout/contrast (88 tests)
 npm run test:browser-games:chromium
 npm run test:a11y
 npm run test:mobile-layout
+npm run test:screenshot-assets   # PNG IHDR/size/distinctness validator
 ```
+
+## Screenshots
+
+Production screenshots in `public/images/screenshot-<id>.png` are
+**committed static assets**, 1280×720 PNG, refreshed only via
+`npm run capture:screenshots` (Playwright + headless Chromium +
+Sharp resize). `npm run test:screenshot-assets` is a no-dep IHDR
+validator (size 5KB–2MB, ≥1280×720, 16:9 ±2%, 8-bit RGB/RGBA,
+all 3 distinct). Port Royale Tycoon is desktop-only — do not
+capture from `/play/`.
 
 ## Constraints
 

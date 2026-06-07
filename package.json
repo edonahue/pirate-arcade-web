@@ -65,7 +65,9 @@
     "test:performance-budgets": "node scripts/check-performance-budgets.mjs",
     "test:visual-polish": "playwright test tests/mobile-visual-polish.spec.ts",
     "test:visual-contrast": "node scripts/check-visual-contrast.mjs",
-    "test:lhci": "lhci autorun"
+    "test:lhci": "lhci autorun",
+    "test:screenshot-assets": "node scripts/check-screenshot-assets.mjs",
+    "capture:screenshots": "astro build && node scripts/capture-browser-game-screenshots.mjs"
   },
   "engines": {
     "node": ">=22"

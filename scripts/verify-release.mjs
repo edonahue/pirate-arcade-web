@@ -30,6 +30,7 @@ const FAST_GATE = [
   { name: "Audit game archives", cmd: "npm run audit:game-archives" },
   { name: "Public domain art", cmd: "npm run test:public-domain-art" },
   { name: "Game theming source", cmd: "npm run test:game-theming-source" },
+  { name: "Screenshot assets", cmd: "npm run test:screenshot-assets" },
 ];
 
 const FULL_GATE = [
