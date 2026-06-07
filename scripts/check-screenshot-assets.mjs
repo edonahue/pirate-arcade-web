@@ -1,15 +1,16 @@
 #!/usr/bin/env node
 /**
- * Validate the 3 production browser-game screenshots in public/images/.
+ * Validate browser-playable game screenshots in public/images/.
  *
- * For each of cannonball-clash, treasure-cove, krakens-wake, this script:
- *   1. Confirms the file exists and is between 5 KB and 2 MB.
- *   2. Verifies the PNG signature (8-byte magic).
- *   3. Parses the IHDR chunk (no external deps — small inline parser).
- *   4. Asserts width >= 1280, height >= 720, aspect ratio within 2% of 16:9,
+ * Game list is read from src/data/games.json (browser-playable entries).
+ * For each game:
+ *   1. File exists, size 5 KB–2 MB.
+ *   2. PNG signature valid.
+ *   3. IHDR: width ≥ 1280, height ≥ 720, aspect within 2% of 16:9,
  *      bit depth 8, color type 2 (RGB) or 6 (RGBA).
- *   5. Hashes the file bytes (SHA-256, first 16 hex chars) and asserts that
- *      all 3 are distinct (no accidental copy-paste).
+ *   4. Visual content check: decompresses IDAT with built-in zlib,
+ *      defilters scanlines, samples pixels for brightness & diversity.
+ *   5. SHA-256 distinctness (no accidental duplicate).
  *
  * Exits 0 on success, 1 on any failure.
  *
@@ -18,18 +19,21 @@
  */
 
 import { readFile, stat } from "node:fs/promises";
+import { readFileSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createHash } from "node:crypto";
+import zlib from "node:zlib";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(__dirname, "..");
 
-const GAMES = [
-  { id: "cannonball-clash" },
-  { id: "treasure-cove" },
-  { id: "krakens-wake" },
-];
+const gamesMeta = JSON.parse(
+  readFileSync(resolve(REPO_ROOT, "src/data/games.json"), "utf-8"),
+);
+const GAMES = gamesMeta
+  .filter((g) => g.status === "browser-playable")
+  .map((g) => ({ id: g.id }));
 
 const MIN_W = 1280;
 const MIN_H = 720;
@@ -60,6 +64,109 @@ function formatBytes(n) {
   if (n < 1024) return `${n} B`;
   if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
   return `${(n / (1024 * 1024)).toFixed(2)} MB`;
+}
+
+function checkVisualContent(buf, meta) {
+  const { width, height, bitDepth, colorType } = meta;
+  if (bitDepth !== 8 || (colorType !== 2 && colorType !== 6)) return;
+
+  const bpp = colorType === 6 ? 4 : 3;
+  const stride = 1 + width * bpp;
+
+  // Collect IDAT chunks
+  const idatChunks = [];
+  let off = 33; // 8 sig + 25 IHDR
+  while (off + 8 <= buf.length) {
+    const len = buf.readUInt32BE(off);
+    const type = buf.slice(off + 4, off + 8).toString("ascii");
+    if (type === "IDAT") idatChunks.push(buf.slice(off + 8, off + 8 + len));
+    if (type === "IEND") break;
+    off += 12 + len;
+  }
+  if (idatChunks.length === 0) return;
+
+  const compressed = Buffer.concat(idatChunks);
+  let raw;
+  try {
+    raw = zlib.inflateSync(compressed);
+  } catch {
+    return;
+  }
+  if (raw.length < stride) return;
+
+  // Defilter scanlines
+  const pixels = Buffer.alloc(height * stride);
+  for (let y = 0; y < height; y++) {
+    const rowOff = y * stride;
+    const filter = raw[rowOff];
+    pixels[rowOff] = 0;
+    for (let i = 0; i < width * bpp; i++) {
+      const rawByte = raw[rowOff + 1 + i];
+      const left = i >= bpp ? pixels[rowOff + 1 + i - bpp] : 0;
+      const above = y > 0 ? pixels[(y - 1) * stride + 1 + i] : 0;
+      const aboveLeft =
+        i >= bpp && y > 0 ? pixels[(y - 1) * stride + 1 + i - bpp] : 0;
+      let val;
+      switch (filter) {
+        case 0:
+          val = rawByte;
+          break;
+        case 1:
+          val = (rawByte + left) & 0xff;
+          break;
+        case 2:
+          val = (rawByte + above) & 0xff;
+          break;
+        case 3:
+          val = (rawByte + Math.floor((left + above) / 2)) & 0xff;
+          break;
+        case 4: {
+          const p = left + above - aboveLeft;
+          const pa = Math.abs(p - left);
+          const pb = Math.abs(p - above);
+          const pc = Math.abs(p - aboveLeft);
+          val =
+            (rawByte +
+              (pa <= pb && pa <= pc ? left : pb <= pc ? above : aboveLeft)) &
+            0xff;
+          break;
+        }
+        default:
+          val = rawByte;
+      }
+      pixels[rowOff + 1 + i] = val;
+    }
+  }
+
+  // Sample pixels across the image
+  const values = [];
+  for (let y = 0; y < height; y += 20) {
+    const rowBase = y * stride + 1;
+    for (let xi = 0; xi < 5; xi++) {
+      const px = Math.round((xi * (width - 1)) / 4);
+      const pixelOff = rowBase + px * bpp;
+      if (pixelOff + 3 <= pixels.length) {
+        values.push(
+          pixels[pixelOff],
+          pixels[pixelOff + 1],
+          pixels[pixelOff + 2],
+        );
+      }
+    }
+  }
+
+  if (values.length === 0) return;
+
+  const avg = values.reduce((a, b) => a + b, 0) / values.length;
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+
+  if (avg < 15) {
+    throw new Error(`image too dark (avg brightness ${avg.toFixed(1)} < 15)`);
+  }
+  if (max - min <= 5) {
+    throw new Error(`pixel values nearly uniform (range ${max - min} ≤ 5)`);
+  }
 }
 
 const errors = [];
@@ -96,6 +203,7 @@ for (const { id } of GAMES) {
     if (colorType !== 2 && colorType !== 6) {
       throw new Error(`color type ${colorType} != 2 (RGB) or 6 (RGBA)`);
     }
+    checkVisualContent(buf, { width, height, bitDepth, colorType });
     const h = createHash("sha256").update(buf).digest("hex").slice(0, 16);
     if (hashes.has(h)) {
       throw new Error(`byte-identical to ${hashes.get(h)} (likely copy-paste)`);

@@ -1,5 +1,7 @@
 # ROADMAP
 
+<!-- Current HEAD: 37c63a5 -->
+
 ## Phase 0: Foundation ✓ (Live)
 
 - [x] Astro site scaffold with CSS design tokens
@@ -20,7 +22,7 @@
 
 ## Phase 1: Content & Assets
 
-- [x] Real game screenshots for all 4 games (via `scripts/capture-screenshots.py`)
+- [x] Real game screenshots for all 4 games (via `scripts/capture-browser-game-screenshots.mjs`)
 - [x] Real OG image (1200×630 PNG) — composite of 4 screenshots + title
 - [x] Release infrastructure build-log post: "Launching on Free Infrastructure"
 - [x] Favicon refinement (skull-and-crossbones, gold + white)
@@ -62,6 +64,18 @@
 - [ ] Nautical chart map background motif for hero or sections
 - [ ] Performance audit (Lighthouse target: 90+ all categories)
 - [ ] Full accessibility audit (screen reader, contrast testing)
+
+## Phase 4: Maintenance Hardening ✓ (Live)
+
+- [x] Screenshot capture pipeline: Node.js Playwright + Sharp + HTTP polling + error allowlist
+- [x] Screenshot validation: pixel content analysis via built-in zlib (decompress + defilter + sample)
+- [x] Game lists data-driven from `src/data/games.json` (cache-versioning, capture, validator)
+- [x] Dependency hygiene: `sharp` classified as devDependency
+- [x] Release gate cleanup: copy-tone, check-headers, visual-contrast, performance-budgets in fast gate
+- [x] CI alignment: release-gate job mirrors fast gate
+- [x] Dependabot config (npm + Actions, weekly)
+- [x] Documentation chain: MAINTENANCE.md created, README/AGENTS/SKILL/DEPLOYMENT linked
+- [x] ROADMAP updated to current commit
 
 ## Maybe / Future
 

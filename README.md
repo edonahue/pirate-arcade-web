@@ -16,14 +16,21 @@ A pirate-themed arcade collection and an experiment in zero-cost AI-assisted dev
 ## Scripts
 
 ```bash
-npm run dev        # Start dev server
-npm run build      # Build to dist/
-npm run preview    # Preview production build
-npm run typecheck  # Run astro check (type checking)
-npm run format     # Format with Prettier
-npm run seo:audit  # Inspect built SEO/indexing files
-npm run check      # Format check + typecheck + build + seo:audit
+npm run dev                   # Start dev server
+npm run build                 # Build to dist/
+npm run preview               # Preview production build
+npm run typecheck             # Run astro check (type checking)
+npm run format                # Format with Prettier
+npm run seo:audit             # Inspect built SEO/indexing files
+npm run check                 # Format check + typecheck + build + seo:audit
+npm run capture:screenshots   # Capture in-game screenshots (build + Playwright)
+npm run test:screenshot-assets # Validate screenshot files (format + pixel content)
+npm run verify:release:fast   # Fast release gate (~20 deterministic checks)
+npm run verify:release:full   # Full release gate (fast + Playwright)
 ```
+
+See [MAINTENANCE.md](./MAINTENANCE.md) for detailed documentation on each
+script, validation workflow, service worker, security headers, and more.
 
 ## Project Structure
 
@@ -109,4 +116,4 @@ See [DEPLOYMENT.md](./DEPLOYMENT.md) for Cloudflare Pages setup instructions.
 
 MIT
 
-<!-- Last updated: Thu Jun  4 09:03:26 PM EDT 2026 -->
+<!-- Last updated: Sat Jun  6 02:54:43 AM EDT 2026 -->

@@ -16,8 +16,11 @@ const FAST_GATE = [
   { name: "Typecheck", cmd: "npm run typecheck" },
   { name: "Build", cmd: "npm run build" },
   { name: "SEO audit", cmd: "npm run seo:audit" },
+  { name: "Copy tone", cmd: "npm run test:copy-tone" },
   { name: "CSS tokens", cmd: "npm run test:css-tokens" },
+  { name: "Visual contrast", cmd: "npm run test:visual-contrast" },
   { name: "Dependency hygiene", cmd: "npm run check:dependency-hygiene" },
+  { name: "Cloudflare headers", cmd: "npm run test:check-headers" },
   {
     name: "Browser game consistency",
     cmd: "npm run test:browser-game-consistency",
@@ -31,6 +34,10 @@ const FAST_GATE = [
   { name: "Public domain art", cmd: "npm run test:public-domain-art" },
   { name: "Game theming source", cmd: "npm run test:game-theming-source" },
   { name: "Screenshot assets", cmd: "npm run test:screenshot-assets" },
+  {
+    name: "Performance budgets",
+    cmd: "npm run test:performance-budgets",
+  },
 ];
 
 const FULL_GATE = [

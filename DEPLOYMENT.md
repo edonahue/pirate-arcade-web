@@ -80,6 +80,21 @@ npm run build
 
 The build should create static output in `dist/` and generate a sitemap.
 
+## Post-deploy
+
+After Cloudflare Pages deploys:
+
+1. Visit [pirate-arcade.com](https://pirate-arcade.com) and verify the home page loads.
+2. Visit a game route (`/play/cannonball-clash/`) and verify 200 + CSP intact.
+3. Check `https://pirate-arcade.com/sitemap.xml` is accessible.
+4. Check `https://pirate-arcade.com/robots.txt` is accessible.
+5. Verify Chrome DevTools > Network shows `_headers` directives applied (HSTS, CSP, X-Content-Type-Options).
+6. Run `npm run test:live-parity` against the production domain.
+7. Run `npm run test:check-headers` locally to confirm CSP hasn't regressed.
+8. If screenshots were refreshed, run `npm run test:screenshot-assets` locally.
+
+For ongoing maintenance, see [MAINTENANCE.md](./MAINTENANCE.md).
+
 ## Troubleshooting
 
 ### Cloudflare asks for a deploy or version command
