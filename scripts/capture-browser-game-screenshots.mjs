@@ -1,10 +1,15 @@
 #!/usr/bin/env node
 /**
- * Capture real in-game screenshots from the 3 browser-playable Pygbag
- * games (Cannonball Clash, Treasure Cove, Kraken's Wake) by booting
- * each game shell in headless Chromium via Playwright, waiting for the
- * runtime to signal `game-ready`, simulating a start input, hiding the
- * shell UI, and snapshotting the live canvas via `canvas.toDataURL()`.
+ * Capture real in-game screenshots from all browser-playable Pygbag
+ * games by booting each game shell in headless Chromium via Playwright,
+ * waiting for the runtime to signal `game-ready`, simulating a start
+ * input, hiding the shell UI, and snapshotting the live canvas.
+ *
+ * Game list is read from `src/data/games.json` (filtering to
+ * browser-playable). Start keys and post-start inputs are in small
+ * per-game maps. Preview readiness is detected via HTTP polling rather
+ * than stdout parsing. Console errors are classified with an allowlist
+ * of known harmless Pygbag noise.
  *
  * Output: `public/images/screenshot-<id>.png` at exactly 1280x720 PNG.
  *
@@ -12,25 +17,7 @@
  *   npm run build
  *   node scripts/capture-browser-game-screenshots.mjs
  *
- * The package script `npm run capture:screenshots` chains the build for you.
- *
- * The script:
- *   1. Verifies `dist/play/cannonball-clash/index.html` exists (i.e. the
- *      site was built); otherwise fails with a clear message.
- *   2. Starts `astro preview` on a free port (default 4321) and waits for
- *      the server to be ready.
- *   3. For each of the 3 games, launches a headless Chromium context at
- *      1280x720 viewport, navigates to `/play/<id>/`, unlocks audio with
- *      a synthetic click, waits for `__paBootMetrics["game-ready"]` AND
- *      `#game-loading.hidden` AND canvas visible + sized, hides the
- *      shell UI (#back-link, #controls-hint, #infobox, #touch-overlay),
- *      presses the per-game start key, waits 3s for a few gameplay
- *      frames to render, hides any UI that re-appeared, then reads
- *      `canvas.toDataURL("image/png")` from the page.
- *   4. Decodes the dataURL in Node, resizes the captured 1600x900 frame
- *      down to 1280x720 via Sharp (already a dep), and writes the
- *      output PNG to `public/images/screenshot-<id>.png`.
- *   5. Stops `astro preview` (always).
+ * The package script `npm run capture:screenshots` chains the build.
  *
  * Port Royale Tycoon is intentionally NOT captured here (desktop-only).
  */
@@ -39,7 +26,7 @@ import { chromium } from "playwright";
 import sharp from "sharp";
 import { spawn } from "node:child_process";
 import { mkdir, stat } from "node:fs/promises";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { setTimeout as wait } from "node:timers/promises";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -48,11 +35,21 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(__dirname, "..");
 const OUT_DIR = resolve(REPO_ROOT, "public", "images");
 
-const GAMES = [
-  { id: "cannonball-clash", title: "Cannonball Clash", startKey: "Enter" },
-  { id: "treasure-cove", title: "Treasure Cove", startKey: "Space" },
-  { id: "krakens-wake", title: "Kraken's Wake", startKey: "Enter" },
-];
+const gamesMeta = JSON.parse(
+  readFileSync(resolve(REPO_ROOT, "src/data/games.json"), "utf-8"),
+);
+const START_KEYS = {
+  "cannonball-clash": "Enter",
+  "treasure-cove": "Space",
+  "krakens-wake": "Enter",
+};
+const GAMES = gamesMeta
+  .filter((g) => g.status === "browser-playable")
+  .map((g) => ({
+    id: g.id,
+    title: g.title,
+    startKey: START_KEYS[g.id] ?? "Enter",
+  }));
 
 const OUT_W = 1280;
 const OUT_H = 720;
@@ -68,6 +65,32 @@ const HIDE_UI_SELECTORS = [
   "#infobox",
   "#touch-overlay",
 ];
+
+/** Known harmless console.error patterns from Pygbag / game shells. */
+const ALLOWED_ERROR_PATTERNS = [
+  /PyMain: BrowserFS not found/i,
+  /pygbag.*failed to load sound/i,
+  /pygbag.*sound.*not supported/i,
+  /Pygbag.*unable to/i,
+  /404.*favicon/i,
+  /404.*\.ico/i,
+];
+
+async function waitForHttpOk(url, timeoutMs) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    try {
+      const res = await fetch(url);
+      if (res.ok || res.status === 304) return;
+    } catch {
+      // not ready yet
+    }
+    await wait(500);
+  }
+  throw new Error(
+    `Preview at ${url} not ready within ${timeoutMs}ms (process may have failed to start or port is in use)`,
+  );
+}
 
 function startPreview() {
   return new Promise((resolveP, rejectP) => {
@@ -88,16 +111,10 @@ function startPreview() {
       },
     );
     let settled = false;
-    const onChunk = (chunk) => {
-      const s = chunk.toString();
-      process.stdout.write(`[preview] ${s}`);
-      if (!settled && /https?:\/\//i.test(s)) {
-        settled = true;
-        setTimeout(() => resolveP(proc), 400);
-      }
-    };
-    proc.stdout.on("data", onChunk);
+
+    proc.stdout.on("data", (c) => process.stdout.write(`[preview] ${c}`));
     proc.stderr.on("data", (c) => process.stderr.write(`[preview-err] ${c}`));
+
     proc.on("exit", (code) => {
       if (!settled) {
         settled = true;
@@ -108,12 +125,21 @@ function startPreview() {
         );
       }
     });
-    setTimeout(() => {
-      if (!settled) {
-        settled = true;
-        resolveP(proc);
-      }
-    }, PREVIEW_START_TIMEOUT_MS);
+
+    // Poll HTTP until we get a 200 or timeout
+    waitForHttpOk(PREVIEW_URL, PREVIEW_START_TIMEOUT_MS)
+      .then(() => {
+        if (!settled) {
+          settled = true;
+          resolveP(proc);
+        }
+      })
+      .catch((err) => {
+        if (!settled) {
+          settled = true;
+          rejectP(err);
+        }
+      });
   });
 }
 
@@ -158,6 +184,25 @@ async function waitForGameReady(page) {
   );
 }
 
+async function captureDiagnostics(page) {
+  const bootMetrics = await page
+    .evaluate(() => window.__paBootMetrics)
+    .catch(() => null);
+  const loadingDetail = await page
+    .evaluate(() => {
+      const el = document.getElementById("game-loading-detail");
+      return el ? el.textContent : null;
+    })
+    .catch(() => null);
+  const canvasState = await page
+    .evaluate(() => {
+      const c = document.getElementById("canvas");
+      return c ? { w: c.width, h: c.height } : null;
+    })
+    .catch(() => null);
+  return { bootMetrics, loadingDetail, canvasState };
+}
+
 async function captureGame(browser, game) {
   const url = `${PREVIEW_URL}/play/${game.id}/`;
   const ctx = await browser.newContext({
@@ -167,13 +212,19 @@ async function captureGame(browser, game) {
     isMobile: false,
   });
   const page = await ctx.newPage();
-  const consoleErrors = [];
+  const allowlistedErrors = [];
+  const criticalErrors = [];
   page.on("pageerror", (err) =>
-    consoleErrors.push(`pageerror: ${err.message}`),
+    criticalErrors.push(`pageerror: ${err.message}`),
   );
   page.on("console", (msg) => {
     if (msg.type() === "error") {
-      consoleErrors.push(`console.error: ${msg.text()}`);
+      const text = msg.text();
+      if (ALLOWED_ERROR_PATTERNS.some((p) => p.test(text))) {
+        allowlistedErrors.push(text);
+      } else {
+        criticalErrors.push(`console.error: ${text}`);
+      }
     }
   });
 
@@ -194,6 +245,17 @@ async function captureGame(browser, game) {
     await page.keyboard.press(game.startKey);
     await wait(POST_START_SETTLE_MS);
     await hideShellUI(page);
+
+    // Check that the game didn't crash or revert to loading
+    const diag = await captureDiagnostics(page);
+    if (
+      diag.canvasState &&
+      (diag.canvasState.w < 100 || diag.canvasState.h < 100)
+    ) {
+      throw new Error(
+        `canvas shrank to ${diag.canvasState.w}x${diag.canvasState.h} after start — game may have crashed`,
+      );
+    }
 
     const dataURL = await page.evaluate(() => {
       const c = document.getElementById("canvas");
@@ -219,12 +281,26 @@ async function captureGame(browser, game) {
       `  \u2713 ${game.id}: ${OUT_W}x${OUT_H} ${(s.size / 1024).toFixed(1)} KB`,
     );
 
-    if (consoleErrors.length) {
+    if (allowlistedErrors.length) {
       console.warn(
-        `  ! ${consoleErrors.length} non-fatal console error(s) during capture of ${game.id}:`,
+        `  [allowlisted] ${allowlistedErrors.length} known harmless error(s):`,
       );
-      for (const e of consoleErrors.slice(0, 5)) console.warn(`    ${e}`);
+      for (const e of allowlistedErrors.slice(0, 3)) console.warn(`    ${e}`);
     }
+  } catch (err) {
+    // Print diagnostics on failure for debugging
+    const diag = await captureDiagnostics(page).catch(() => ({}));
+    console.error(`  \u2717 failed: ${err.message}`);
+    if (diag.bootMetrics) {
+      console.error(`    __paBootMetrics: ${JSON.stringify(diag.bootMetrics)}`);
+    }
+    if (diag.loadingDetail) {
+      console.error(`    #game-loading-detail: "${diag.loadingDetail}"`);
+    }
+    if (diag.canvasState) {
+      console.error(`    canvas: ${diag.canvasState.w}x${diag.canvasState.h}`);
+    }
+    throw err;
   } finally {
     await page.close();
     await ctx.close();

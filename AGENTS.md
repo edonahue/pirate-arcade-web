@@ -17,23 +17,20 @@ Modern pirate arcade + public builder notebook. Playful but not cheesy. Honest a
 - `ASSET_VERSION` from `scripts/game-asset-versions.mjs` — must use for versioned archive URLs. No hardcoded versions.
 - `public/images/screenshot-*.png` — committed static production assets. Refresh only via `npm run capture:screenshots`; do not hand-edit or generate at build time.
 
-## Validation (run in order before pushing)
+## Validation
+
+See [MAINTENANCE.md](./MAINTENANCE.md) for detailed documentation.
+
+Before pushing, run:
 
 ```sh
-npm run format:check        # Prettier
-npx astro check             # Typecheck (requires Node >=22.12)
-npm run build               # Astro build
-npm run seo:audit           # HTML/CSS audit
-npm run test:css-tokens     # Token coverage
-npm run check:dependency-hygiene
-npm run test:service-worker
-npm run test:archive-parity
-npm run audit:game-archives
-npm run test:visual-polish       # Mobile visual layout/contrast (88 tests)
-npm run test:browser-games:chromium  # Playwright
-npm run test:a11y
-npm run test:mobile-layout
-npm run test:screenshot-assets   # PNG IHDR/format/size/distinctness check
+npm run verify:release:fast   # all deterministic checks, ~2 min
+```
+
+Or for a full validation including Playwright:
+
+```sh
+npm run verify:release:full   # adds a11y, mobile, iPad, theme, browser game tests
 ```
 
 ## Browser game screenshots
@@ -56,11 +53,13 @@ boots each game shell in headless Chromium, waits for
 `__paBootMetrics["game-ready"]` + `#game-loading.hidden` + a sized
 visible canvas, hides the shell UI overlays, presses the per-game
 start key (Enter / Space), waits ~3s for gameplay frames, then reads
-`canvas.toDataURL("image/png")` and resizes 1600×900 → 1280×720 via
+`canvas.toDataURL("image/png")` and resizes 1600x900 → 1280x720 via
 Sharp. The validator (`scripts/check-screenshot-assets.mjs`) is a
 no-dep PNG IHDR parser that asserts: file exists, size 5 KB–2 MB,
 width ≥ 1280, height ≥ 720, aspect within 2% of 16:9, 8-bit RGB or
-RGBA, and all 3 are byte-distinct.
+RGBA, and all 3 are byte-distinct. It also decompresses IDAT data
+with built-in zlib to check pixel brightness and diversity (catches
+blank/dark screenshots).
 
 Port Royale Tycoon is desktop-only and uses a separate desktop
 screenshot — do not capture it from `/play/`.
@@ -82,5 +81,5 @@ screenshot — do not capture it from `/play/`.
 ## Copy & Tone
 
 - Follow `COPY_GUIDE.md` for tone zones, vocabulary, and banned words
-- Run `npm run test:copy-tone` (if implemented) or `npm run verify:release:fast` before pushing
+- Run `npm run test:copy-tone` or `npm run verify:release:fast` before pushing
 - Update game status in `src/data/games.json` only — single source of truth

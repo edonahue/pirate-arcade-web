@@ -126,7 +126,8 @@
     "fast-string-truncated-width": "^3.0.3",
     "fast-string-width": "^3.0.2",
     "fast-wrap-ansi": "^0.2.2",
-    "smol-toml": "^1.6.1"
+    "smol-toml": "^1.6.1",
+    "sharp": "^0.34.5"
   },
   "description": "A pirate-themed arcade collection and an experiment in zero-cost AI-assisted development.",
   "main": "index.js",
@@ -489,7 +490,6 @@
     "serve-static": "^1.16.3",
     "set-blocking": "^2.0.0",
     "setprototypeof": "^1.2.0",
-    "sharp": "^0.34.5",
     "shiki": "^4.1.0",
     "side-channel": "^1.1.0",
     "side-channel-list": "^1.0.1",

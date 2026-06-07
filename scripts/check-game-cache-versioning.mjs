@@ -19,18 +19,16 @@ import { fileURLToPath } from "url";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, "..");
 
-const GAMES = [
-  {
-    id: "cannonball-clash",
-    html: "public/play/cannonball-clash/index.html",
-    archiveFile: "cannonball-clash.tar.gz",
-  },
-  {
-    id: "treasure-cove",
-    html: "public/play/treasure-cove/index.html",
-    archiveFile: "treasure-cove.tar.gz",
-  },
-];
+const gamesMeta = JSON.parse(
+  readFileSync(resolve(ROOT, "src/data/games.json"), "utf-8"),
+);
+const GAMES = gamesMeta
+  .filter((g) => g.status === "browser-playable")
+  .map((g) => ({
+    id: g.id,
+    html: `public/play/${g.id}/index.html`,
+    archiveFile: `${g.id}.tar.gz`,
+  }));
 
 const SHARED_ASSETS = [
   "/play/shared/mobile-controls.css",

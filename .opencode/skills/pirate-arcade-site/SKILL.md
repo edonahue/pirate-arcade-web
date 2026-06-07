@@ -18,7 +18,7 @@ description: Pirate Arcade website — Astro 6, Cloudflare Pages, vanilla CSS to
 - Playful but not cheesy
 - Honest about what works and what's experimental
 - No ads, tracking, accounts, or paid services
-- Pirate puns welcome, emojis only when requested
+- Emojis only when requested
 
 ## Critical Files — Do Not Edit Lightly
 
@@ -40,23 +40,20 @@ Always use `ASSET_VERSION` from `scripts/game-asset-versions.mjs` for archive UR
 - Prewarm uses `passive: true` touchstart with no `preventDefault()`
 - Runtime globals in `public/play/shared/`: `__paCanvasLayout`, `__paBootMetrics`, `PirateArcadeInput`
 
-## Validation Commands (run in order)
+## Validation
+
+See [MAINTENANCE.md](../../../MAINTENANCE.md) for detailed documentation.
+
+Before pushing:
 
 ```sh
-npm run format:check
-npx astro check             # Node >=22.12
-npm run build
-npm run seo:audit
-npm run test:css-tokens
-npm run check:dependency-hygiene
-npm run test:service-worker
-npm run test:archive-parity
-npm run audit:game-archives
-npm run test:visual-polish       # Mobile visual layout/contrast (88 tests)
-npm run test:browser-games:chromium
-npm run test:a11y
-npm run test:mobile-layout
-npm run test:screenshot-assets   # PNG IHDR/size/distinctness validator
+npm run verify:release:fast   # all deterministic checks, ~2 min
+```
+
+Or full:
+
+```sh
+npm run verify:release:full   # adds a11y, mobile, iPad, theme, browser game tests
 ```
 
 ## Screenshots
@@ -81,5 +78,5 @@ capture from `/play/`.
 ## Copy & Tone
 
 - Follow `COPY_GUIDE.md` for tone zones, vocabulary, and banned words
-- Run `npm run test:copy-tone` (if implemented) or `npm run verify:release:fast` before pushing
+- Run `npm run test:copy-tone` or `npm run verify:release:fast` before pushing
 - Update game status in `src/data/games.json` only — single source of truth
