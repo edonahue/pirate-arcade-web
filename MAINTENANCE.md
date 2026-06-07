@@ -84,8 +84,8 @@ npm run verify:release:fast
 
 `public/sw.js` is a classic service worker (no `import` statements).
 
-**Cache version** (`CACHE_VERSION` in `sw.js:12`) must match
-`CACHE_VERSION` in `scripts/game-asset-versions.mjs:5`. Both are
+**Cache version** (`CACHE_VERSION` constant in `public/sw.js`) must match
+`CACHE_VERSION` in `scripts/game-asset-versions.mjs`. Both are
 `"pirate-arcade-games-v8"`. Bump both when game assets change.
 
 **Cache behavior:**

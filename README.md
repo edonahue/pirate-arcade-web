@@ -25,8 +25,22 @@ npm run seo:audit             # Inspect built SEO/indexing files
 npm run check                 # Format check + typecheck + build + seo:audit
 npm run capture:screenshots   # Capture in-game screenshots (build + Playwright)
 npm run test:screenshot-assets # Validate screenshot files (format + pixel content)
-npm run verify:release:fast   # Fast release gate (~20 deterministic checks)
+npm run verify:release:fast   # Fast release gate (~19 deterministic checks)
 npm run verify:release:full   # Full release gate (fast + Playwright)
+npm run test:browser-game-shells # Validate browser game shell consistency
+npm run test:service-worker   # Validate SW compatibility
+npm run test:cache-versioning # Validate cache versioning
+npm run test:game-versions    # Validate game HTML version consistency
+npm run test:archive-parity   # Validate archive/source parity
+npm run audit:game-archives   # Audit game archives
+npm run test:public-domain-art # Validate public domain art
+npm run test:game-theming-source # Validate game theming source
+npm run test:performance-budgets # Validate performance budgets
+npm run test:visual-contrast  # Validate WCAG AA contrast
+npm run test:copy-tone        # Validate copy tone
+npm run test:check-headers    # Validate Cloudflare headers
+npm run test:css-tokens       # Validate CSS token usage
+npm run check:dependency-hygiene # Validate dependency classification
 ```
 
 See [MAINTENANCE.md](./MAINTENANCE.md) for detailed documentation on each

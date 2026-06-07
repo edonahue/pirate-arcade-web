@@ -1,13 +1,23 @@
 import { readdirSync, readFileSync, writeFileSync } from "node:fs";
-import { join, relative } from "node:path";
+import { join, relative, resolve } from "node:path";
 
 const SITE_URL = "https://pirate-arcade.com";
 const DIST = "dist";
+
+// Read games.json for data-driven extra paths
+const gamesPath = resolve("src/data/games.json");
+const gamesMeta = JSON.parse(readFileSync(gamesPath, "utf-8"));
+
 const EXTRA_STATIC_PATHS = [
-  "/play/cannonball-clash/",
-  "/play/treasure-cove/",
-  "/play/krakens-wake/",
+  "/play/",
+  ...gamesMeta
+    .filter((g) => g.status === "browser-playable")
+    .map((g) => `/play/${g.id}/`),
   "/feed.xml",
+  "/robots.txt",
+  "/sitemap.xml",
+  "/llms.txt",
+  "/llms-full.txt",
 ];
 
 function walk(dir) {
@@ -47,13 +57,21 @@ const lastmod = new Map([
   ["/source/", "2026-06-01"],
   ["/build-log/", "2026-06-01"],
   ["/feed.xml", "2026-06-01"],
-  ["/games/cannonball-clash/", "2026-06-01"],
-  ["/games/treasure-cove/", "2026-06-01"],
-  ["/games/krakens-wake/", "2026-06-01"],
-  ["/games/port-royale-tycoon/", "2026-06-01"],
-  ["/play/cannonball-clash/", "2026-06-01"],
-  ["/play/treasure-cove/", "2026-06-01"],
+  ["/robots.txt", "2026-06-01"],
+  ["/sitemap.xml", "2026-06-01"],
+  ["/llms.txt", "2026-06-01"],
+  ["/llms-full.txt", "2026-06-01"],
 ]);
+
+// Add game detail routes from games.json
+for (const game of gamesMeta) {
+  lastmod.set(`/games/${game.id}/`, "2026-06-01");
+}
+
+// Add browser play routes for browser-playable games
+for (const game of gamesMeta.filter((g) => g.status === "browser-playable")) {
+  lastmod.set(`/play/${game.id}/`, "2026-06-01");
+}
 
 for (const file of walk("src/content/posts").filter((f) => f.endsWith(".md"))) {
   const slug = file.split("/").pop().replace(/\.md$/, "");
@@ -82,9 +100,9 @@ const xml = `<?xml version="1.0" encoding="UTF-8"?>
 ${urls
   .map(
     (url) => `  <url>
-    <loc>${escapeXml(url.loc)}</loc>
-    <lastmod>${url.lastmod}</lastmod>
-  </url>`,
+  <loc>${escapeXml(url.loc)}</loc>
+  <lastmod>${url.lastmod}</lastmod>
+</url>`,
   )
   .join("\n")}
 </urlset>

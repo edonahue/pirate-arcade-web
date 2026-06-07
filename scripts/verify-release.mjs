@@ -21,10 +21,6 @@ const FAST_GATE = [
   { name: "Visual contrast", cmd: "npm run test:visual-contrast" },
   { name: "Dependency hygiene", cmd: "npm run check:dependency-hygiene" },
   { name: "Cloudflare headers", cmd: "npm run test:check-headers" },
-  {
-    name: "Browser game consistency",
-    cmd: "npm run test:browser-game-consistency",
-  },
   { name: "Browser game shells", cmd: "npm run test:browser-game-shells" },
   { name: "Service worker", cmd: "npm run test:service-worker" },
   { name: "Cache versioning", cmd: "npm run test:cache-versioning" },

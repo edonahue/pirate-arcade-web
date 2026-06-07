@@ -5,10 +5,44 @@ updates:
     schedule:
       interval: "weekly"
       day: "monday"
-    open-pull-requests-limit: 10
+    open-pull-requests-limit: 5
+    versioning-strategy: increase-if-necessary
     groups:
-      dev-dependencies:
+      dev-deps-testing:
         dependency-type: "development"
+        patterns:
+          - "@playwright/test"
+          - "@axe-core/playwright"
+          - "playwright*"
+          - "puppeteer-core"
+          - "vitest"
+          - "lighthouse"
+          - "@lhci/cli"
+          - "chai"
+      dev-deps-astro:
+        dependency-type: "development"
+        patterns:
+          - "astro"
+          - "@astrojs/*"
+          - "prettier*"
+          - "prettier-plugin-astro"
+      dev-deps-typescript:
+        dependency-type: "development"
+        patterns:
+          - "typescript"
+          - "typescript-*"
+      dev-deps-build:
+        dependency-type: "development"
+        patterns:
+          - "esbuild"
+          - "vite"
+          - "rollup"
+          - "sharp"
+      dev-deps-lint:
+        dependency-type: "development"
+        patterns:
+          - "eslint*"
+          - "@typescript-eslint/*"
       production-dependencies:
         dependency-type: "production"
     labels:
@@ -21,7 +55,12 @@ updates:
     schedule:
       interval: "weekly"
       day: "monday"
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 3
+    allow:
+      - dependency-type: "direct"
+        update-type: "version-update:semver-patch"
+      - dependency-type: "direct"
+        update-type: "version-update:semver-minor"
     labels:
       - "dependencies"
       - "github-actions"

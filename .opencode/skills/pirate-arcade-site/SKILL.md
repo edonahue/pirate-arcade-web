@@ -56,6 +56,8 @@ Or full:
 npm run verify:release:full   # adds a11y, mobile, iPad, theme, browser game tests
 ```
 
+Fast gate checks: format, typecheck, build, SEO audit, copy tone, CSS tokens, visual contrast, dependency hygiene, cloudflare headers, browser game shells, service worker, cache versioning, game versions, archive parity & audit, public domain art, game theming source, screenshot assets, performance budgets.
+
 ## Screenshots
 
 Production screenshots in `public/images/screenshot-<id>.png` are

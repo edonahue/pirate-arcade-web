@@ -2,32 +2,46 @@
 /**
  * Performance budget checks.
  * Ensures asset sizes and page weights stay within reasonable limits.
+ * All sizes are GZIPPED (using zlib.gzipSync) to reflect real-world
+ * transfer sizes over the wire with compression enabled.
  */
 
 import { readFileSync, statSync, readdirSync } from "fs";
 import { join, extname, dirname } from "path";
 import { fileURLToPath } from "url";
+import { gzipSync } from "zlib";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const root = dirname(__dirname);
 
 const BUDGETS = {
-  // Public images
+  // Public images (raw PNGs — these are already compressed)
   "public/images/art": { maxTotalKB: 1500, maxSingleKB: 600 },
   "public/images": { maxTotalKB: 3000, maxSingleKB: 2000, exclude: ["art"] },
 
-  // Game archives
+  // Game archives (already .tar.gz — already compressed)
   "public/play": { maxTotalKB: 200, maxSingleKB: 100 },
 
-  // Built HTML pages
+  // Built HTML pages (gzipped)
   dist: { maxHtmlKB: 100 },
 
-  // JS/CSS bundles (approximate from dist)
+  // JS/CSS bundles (gzipped)
   "dist/assets": { maxJsKB: 150, maxCssKB: 50 },
 };
 
 let allPassed = true;
+
+function getGzippedSizeKB(filePath) {
+  try {
+    const content = readFileSync(filePath);
+    const gzipped = gzipSync(content);
+    return gzipped.length / 1024;
+  } catch {
+    // Fallback to raw size if gzip fails
+    return statSync(filePath).size / 1024;
+  }
+}
 
 function checkDirectory(dirPath, budget) {
   if (
@@ -54,40 +68,52 @@ function checkDirectory(dirPath, budget) {
       }
 
       const ext = extname(entry.name).toLowerCase();
-      const stats = statSync(fullPath);
-      const sizeKB = stats.size / 1024;
+      // Use gzipped size for text-based assets, raw size for already-compressed files
+      const isTextAsset = [
+        ".html",
+        ".js",
+        ".css",
+        ".json",
+        ".xml",
+        ".txt",
+        ".svg",
+        ".webmanifest",
+      ].includes(ext);
+      const sizeKB = isTextAsset
+        ? getGzippedSizeKB(fullPath)
+        : statSync(fullPath).size / 1024;
 
       totalKB += sizeKB;
       maxSingleKB = Math.max(maxSingleKB, sizeKB);
 
-      // Check single file limits
+      // Check single file limits (applies to raw size for non-text, gzipped for text)
       if (budget.maxSingleKB && sizeKB > budget.maxSingleKB) {
         console.log(
-          `  ❌ ${fullPath}: ${sizeKB.toFixed(1)}KB exceeds single file limit of ${budget.maxSingleKB}KB`,
+          `  ❌ ${fullPath}: ${sizeKB.toFixed(1)}KB ${isTextAsset ? "(gzipped)" : "(raw)"} exceeds single file limit of ${budget.maxSingleKB}KB`,
         );
         allPassed = false;
       }
 
-      // Check HTML size
+      // Check HTML size (gzipped)
       if (ext === ".html" && budget.maxHtmlKB && sizeKB > budget.maxHtmlKB) {
         console.log(
-          `  ❌ ${fullPath}: ${sizeKB.toFixed(1)}KB exceeds HTML limit of ${budget.maxHtmlKB}KB`,
+          `  ❌ ${fullPath}: ${sizeKB.toFixed(1)}KB (gzipped) exceeds HTML limit of ${budget.maxHtmlKB}KB`,
         );
         allPassed = false;
       }
 
-      // Check JS size
+      // Check JS size (gzipped)
       if (ext === ".js" && budget.maxJsKB && sizeKB > budget.maxJsKB) {
         console.log(
-          `  ❌ ${fullPath}: ${sizeKB.toFixed(1)}KB exceeds JS limit of ${budget.maxJsKB}KB`,
+          `  ❌ ${fullPath}: ${sizeKB.toFixed(1)}KB (gzipped) exceeds JS limit of ${budget.maxJsKB}KB`,
         );
         allPassed = false;
       }
 
-      // Check CSS size
+      // Check CSS size (gzipped)
       if (ext === ".css" && budget.maxCssKB && sizeKB > budget.maxCssKB) {
         console.log(
-          `  ❌ ${fullPath}: ${sizeKB.toFixed(1)}KB exceeds CSS limit of ${budget.maxCssKB}KB`,
+          `  ❌ ${fullPath}: ${sizeKB.toFixed(1)}KB (gzipped) exceeds CSS limit of ${budget.maxCssKB}KB`,
         );
         allPassed = false;
       }
@@ -109,7 +135,7 @@ function checkDirectory(dirPath, budget) {
   }
 }
 
-console.log("📏 Checking performance budgets...\n");
+console.log("📏 Checking performance budgets (gzipped for text assets)...\n");
 
 for (const [dir, budget] of Object.entries(BUDGETS)) {
   const fullPath = join(root, dir);

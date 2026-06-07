@@ -1,6 +1,6 @@
 # ROADMAP
 
-<!-- Current HEAD: 37c63a5 -->
+<!-- Current HEAD: 0dbe6e2 (maintenance hardening complete) -->
 
 ## Phase 0: Foundation ✓ (Live)
 

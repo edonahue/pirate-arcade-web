@@ -19,7 +19,12 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const root = resolve(__dirname, "..");
 
-const GAMES = ["cannonball-clash", "treasure-cove", "krakens-wake"];
+// Read game list from games.json (single source of truth)
+const gamesPath = resolve(root, "src/data/games.json");
+const gamesMeta = JSON.parse(readFileSync(gamesPath, "utf-8"));
+const GAMES = gamesMeta
+  .filter((g) => g.status === "browser-playable")
+  .map((g) => g.id);
 
 let failures = 0;
 

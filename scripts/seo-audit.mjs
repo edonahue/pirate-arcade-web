@@ -1,4 +1,5 @@
 import { existsSync, readFileSync } from "node:fs";
+import { resolve } from "node:path";
 
 const requiredFiles = [
   "dist/robots.txt",
@@ -9,26 +10,55 @@ const requiredFiles = [
   "dist/index.html",
 ];
 
-const importantRoutes = [
-  "https://pirate-arcade.com/",
-  "https://pirate-arcade.com/play/",
-  "https://pirate-arcade.com/build-log/",
-  "https://pirate-arcade.com/about/",
-  "https://pirate-arcade.com/source/",
-  "https://pirate-arcade.com/feed.xml",
-  "https://pirate-arcade.com/games/cannonball-clash/",
-  "https://pirate-arcade.com/games/treasure-cove/",
-  "https://pirate-arcade.com/games/krakens-wake/",
-  "https://pirate-arcade.com/games/port-royale-tycoon/",
-  "https://pirate-arcade.com/play/cannonball-clash/",
-  "https://pirate-arcade.com/play/treasure-cove/",
-  "https://pirate-arcade.com/play/krakens-wake/",
+// Core routes that must always exist
+const CORE_ROUTES = [
+  "/",
+  "/play/",
+  "/build-log/",
+  "/about/",
+  "/source/",
+  "/feed.xml",
+  "/sitemap.xml",
 ];
 
 function fail(message) {
   console.error(`seo-audit: ${message}`);
   process.exitCode = 1;
 }
+
+for (const file of requiredFiles) {
+  if (!existsSync(file)) fail(`missing ${file}`);
+}
+
+if (process.exitCode) process.exit();
+
+// Read games.json for data-driven routes
+const gamesPath = resolve("src/data/games.json");
+const gamesMeta = JSON.parse(readFileSync(gamesPath, "utf-8"));
+
+// Build importantRoutes from games.json
+const importantRoutes = new Set([
+  ...CORE_ROUTES,
+  "/feed.xml",
+  "/robots.txt",
+  "/sitemap.xml",
+  "/llms.txt",
+  "/llms-full.txt",
+]);
+
+// Add game detail routes for all games
+for (const game of gamesMeta) {
+  importantRoutes.add(`/games/${game.id}/`);
+}
+
+// Add browser play routes for browser-playable games
+for (const game of gamesMeta.filter((g) => g.status === "browser-playable")) {
+  importantRoutes.add(`/play/${game.id}/`);
+}
+
+const importantRoutesList = [...importantRoutes].map(
+  (p) => `https://pirate-arcade.com${p}`,
+);
 
 for (const file of requiredFiles) {
   if (!existsSync(file)) fail(`missing ${file}`);
@@ -64,7 +94,7 @@ if (!robots.includes("Sitemap: https://pirate-arcade.com/sitemap.xml")) {
   fail("robots.txt does not point to sitemap.xml");
 }
 
-for (const route of importantRoutes) {
+for (const route of importantRoutesList) {
   if (!sitemap.includes(`<loc>${route}</loc>`)) {
     fail(`sitemap missing ${route}`);
   }

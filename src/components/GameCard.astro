@@ -15,13 +15,6 @@ const browserUrl = isBrowserPlayable ? game.browserUrl! : "";
 const archiveUrl = isBrowserPlayable
   ? `${browserUrl}${game.id}.tar.gz?v=${ASSET_VERSION}`
   : "";
-const touchDifficulty = game.touchDifficulty
-  ? {
-      easy: { label: "Easiest on touch", color: "var(--sea)" },
-      medium: { label: "Medium on touch", color: "var(--brass)" },
-      harder: { label: "Harder on touch", color: "var(--rum)" },
-    }[game.touchDifficulty]
-  : null;
 const touchDifficultyLabel = game.touchDifficulty
   ? {
       easy: "Easiest on touch",
@@ -90,7 +83,7 @@ const touchDifficultyLabel = game.touchDifficulty
             context="paper"
           />
           {
-            touchDifficulty && touchDifficultyLabel && (
+            game.touchDifficulty && touchDifficultyLabel && (
               <span
                 class={`game-card__touch-difficulty game-card__touch-difficulty--${game.touchDifficulty}`}
               >

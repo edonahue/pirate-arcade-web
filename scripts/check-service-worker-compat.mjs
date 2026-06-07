@@ -22,22 +22,17 @@ import { fileURLToPath } from "url";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, "..");
 
-const GAMES = [
-  {
-    id: "cannonball-clash",
-    html: "public/play/cannonball-clash/index.html",
-  },
-  {
-    id: "treasure-cove",
-    html: "public/play/treasure-cove/index.html",
-  },
-  {
-    id: "krakens-wake",
-    html: "public/play/krakens-wake/index.html",
-  },
-];
+// Read game list from games.json (single source of truth)
+const gamesPath = resolve(ROOT, "src/data/games.json");
+const gamesMeta = JSON.parse(readFileSync(gamesPath, "utf-8"));
+const GAMES = gamesMeta
+  .filter((g) => g.status === "browser-playable")
+  .map((g) => ({ id: g.id, html: `public/play/${g.id}/index.html` }));
 
-const DESKTOP_ONLY_ASSETS = [/port-royale/];
+// Desktop-only game IDs from games.json (for ASSETS_TO_CACHE check)
+const DESKTOP_ONLY_IDS = gamesMeta
+  .filter((g) => g.status !== "browser-playable")
+  .map((g) => g.id);
 
 let failures = 0;
 
@@ -64,22 +59,52 @@ if (
 }
 
 // 3. WARM_CACHE message listener at TOP-LEVEL scope (not nested inside activate)
-//    We check that 'self.addEventListener("message",' appears after the activate handler closes.
-//    The activate handler ends with }); on its own line, so we look for message addEventListener
-//    after that pattern.
-const activateEndIndex = swCode.lastIndexOf(
-  "});",
-  swCode.indexOf("self.addEventListener('fetch'"),
-);
-const messageListenerIndex = swCode.indexOf('self.addEventListener("message",');
+// Find the message listener (support both single and double quotes)
+const messageListenerRegex = /self\.addEventListener\(["']message["']/;
+const messageListenerMatch = messageListenerRegex.exec(swCode);
+const messageListenerIndex = messageListenerMatch
+  ? messageListenerMatch.index
+  : -1;
+
 if (messageListenerIndex === -1) {
   fail(
     'sw.js must have a top-level self.addEventListener("message", ...) for WARM_CACHE',
   );
-} else if (messageListenerIndex < activateEndIndex) {
-  fail(
-    "WARM_CACHE message listener is nested inside activate — must be at top-level scope",
-  );
+} else {
+  // Verify the message listener is at top level (not nested inside activate)
+  // Check that there are more opening braces before the listener than closing braces
+  // This is a simple heuristic: count braces up to the listener position
+  let braceDepth = 0;
+  for (let i = 0; i < messageListenerIndex; i++) {
+    const ch = swCode[i];
+    if (ch === "{") braceDepth++;
+    else if (ch === "}") braceDepth--;
+  }
+  // At top level, brace depth should be 0 (or 1 if inside IIFE, but not inside activate function)
+  // The activate handler is an event listener callback, so it adds one level of nesting
+  // If we're at depth >= 1, we might be inside a function
+  // More robust: check that the listener is NOT between "addEventListener('activate'" and its closing
+  const activateStart = swCode.indexOf("addEventListener('activate'");
+  if (activateStart !== -1 && messageListenerIndex > activateStart) {
+    // Find the end of the activate callback by matching braces
+    let depth = 0;
+    let activateEnd = -1;
+    for (let i = activateStart; i < swCode.length; i++) {
+      if (swCode[i] === "{") depth++;
+      else if (swCode[i] === "}") {
+        depth--;
+        if (depth === 0) {
+          activateEnd = i;
+          break;
+        }
+      }
+    }
+    if (activateEnd !== -1 && messageListenerIndex < activateEnd) {
+      fail(
+        "WARM_CACHE message listener is nested inside activate — must be at top-level scope",
+      );
+    }
+  }
 }
 
 // 4. WARM_CACHE validates same-origin
@@ -112,13 +137,14 @@ if (swCode.includes("WARM_CACHE")) {
 }
 
 // 7. ASSETS_TO_CACHE only includes browser-playable games (no desktop-only)
-const assetsSection = swCode.slice(
-  swCode.indexOf("ASSETS_TO_CACHE"),
-  swCode.indexOf("];"),
-);
-for (const pattern of DESKTOP_ONLY_ASSETS) {
-  if (pattern.test(assetsSection)) {
-    fail(`ASSETS_TO_CACHE must not contain desktop-only game: ${pattern}`);
+const assetsSectionStart = swCode.indexOf("ASSETS_TO_CACHE");
+const assetsSectionEnd = swCode.indexOf("];", assetsSectionStart);
+if (assetsSectionStart !== -1 && assetsSectionEnd !== -1) {
+  const assetsSection = swCode.slice(assetsSectionStart, assetsSectionEnd + 2);
+  for (const id of DESKTOP_ONLY_IDS) {
+    if (assetsSection.includes(id)) {
+      fail(`ASSETS_TO_CACHE must not contain desktop-only game: ${id}`);
+    }
   }
 }
 

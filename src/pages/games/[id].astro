@@ -14,40 +14,9 @@ export function getStaticPaths() {
 const { game } = Astro.props;
 const gameUrl = `/games/${game.id}/`;
 const title = `${game.title} — Pirate Arcade`;
-const description = `${game.title} is a pirate-themed ${game.classic} arcade game in Pirate Arcade. ${game.description}`;
-
-const touchControls: Record<string, string> = (game.touchControls ?? {
-  "cannonball-clash": "Slide ship up/down  •  START  •  PAUSE",
-  "treasure-cove": "Slide longboat left/right  •  LAUNCH  •  PAUSE",
-  "krakens-wake": "TURN  •  THRUST  •  FIRE  •  PAUSE",
-}) as Record<string, string>;
-
-const keyboardControls: Record<string, string> = (game.keyboardControls ?? {
-  "cannonball-clash":
-    "ArrowUp / W — move up • ArrowDown / S — move down • Space / Escape — pause • Enter — confirm",
-  "treasure-cove":
-    "ArrowLeft / A — move left • ArrowRight / D — move right • Space — launch ball • Escape — pause • Enter — confirm",
-  "krakens-wake":
-    "ArrowLeft / A — turn left • ArrowRight / D — turn right • ArrowUp / W — thrust • Space — fire • Escape / P — pause • Enter — confirm",
-}) as Record<string, string>;
-
-const howToPlay: Record<string, string> = (game.howToPlay ?? {
-  "cannonball-clash":
-    "Defend your fortress and sink your opponent's ship with well-aimed cannon shots. First to 11 hits wins. Use the slide zone or nudge buttons to move your ship up and down. Tap START to begin each round.",
-  "treasure-cove":
-    "Smash through the fortress walls to reach the treasure hoard. Slide the longboat left and right to bounce the ball. Tap LAUNCH to serve. Each brick row has different durability — watch for cracks!",
-  "krakens-wake":
-    "Navigate treacherous waters and blast sea monsters. Turn your ship, thrust forward, and fire cannons to survive waves. Collect treasure pickups for bonus points. Watch for the Kraken — it hits hard!",
-}) as Record<string, string>;
-
-const tips: Record<string, string> = (game.tips ?? {
-  "cannonball-clash":
-    "The AI ramps up in difficulty. Power-ups (gold glow) make your paddle bigger temporarily. Audio unlocks after your first tap.",
-  "treasure-cove":
-    "Bricks show row-specific stone colors. The last-hit brick pulses gold. The ball speeds up over time. Lives: 3.",
-  "krakens-wake":
-    "THRUST applies forward momentum; let go to coast. FIRE has a cooldown. Treasure pickups give bonus points. 3 lives per game.",
-}) as Record<string, string>;
+const description =
+  game.seoDescription ??
+  `${game.title} is a pirate-themed ${game.classic} arcade game in Pirate Arcade. ${game.description}`;
 ---
 
 <BaseLayout
@@ -96,25 +65,19 @@ const tips: Record<string, string> = (game.tips ?? {
       </p>
 
       <h2>How to play</h2>
-      <p>{howToPlay[game.id]}</p>
+      <p>{game.howToPlay}</p>
 
       <h2>Touch controls</h2>
-      <p class="controls-summary">{touchControls[game.id]}</p>
+      <p class="controls-summary">{game.touchControls}</p>
 
       <h2>Keyboard controls</h2>
-      <p class="controls-summary">{keyboardControls[game.id]}</p>
+      <p class="controls-summary">{game.keyboardControls}</p>
 
       <h2>Tips</h2>
-      <p>{tips[game.id]}</p>
+      <p>{game.tips}</p>
 
       <h2>Availability</h2>
-      <p>
-        {
-          game.browserUrl
-            ? "This game is playable in the browser now via Pygbag and WebAssembly, and it is also included in the desktop release."
-            : "This game is available in the desktop release now. The Pygbag/WebAssembly pipeline proved effective for arcade games, but a turn-based board game with point-and-click controls needs a different approach. A browser version is under evaluation (see the build log for details)."
-        }
-      </p>
+      <p>{game.availabilityNote}</p>
 
       {
         game.features && game.features.length > 0 && (

@@ -92,11 +92,11 @@ if (!deps.includes("astro") && !devDeps.includes("astro")) {
   failures++;
 }
 
-// Check that sharp (used for image optimization) is accounted for
+// Check that sharp (used for screenshot capture + Astro image service at build) is accounted for
 if (deps.includes("sharp")) {
-  // OK, sharp is a runtime dep needed by Astro image optimization
+  // OK
 } else if (devDeps.includes("sharp")) {
-  // Also OK
+  // OK (moved to devDependencies; used by Astro image service at build time and capture script)
 } else {
   // Not critical, just note it
 }

@@ -5,6 +5,10 @@ on:
     branches: [main]
   pull_request:
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   verify:
     runs-on: ubuntu-latest
@@ -42,9 +46,19 @@ jobs:
       - name: Desktop input tests (chromium-desktop)
         run: npx playwright test tests/game-input-desktop.spec.ts --project=chromium-desktop --reporter=list
         timeout-minutes: 10
+      - name: Upload Playwright artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-results
+          path: |
+            test-results/
+            playwright-report/
+          retention-days: 7
 
   # Fast release gate — runs all non-Playwright deterministic checks
   # from FAST_GATE (minus steps already done in verify job).
+  # Delegates to verify-release.mjs to avoid drift between CI and local validation.
   release-gate:
     runs-on: ubuntu-latest
     needs: verify
@@ -56,37 +70,5 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
-      - name: SEO audit
-        run: npm run seo:audit
-      - name: Copy tone
-        run: npm run test:copy-tone
-      - name: CSS tokens
-        run: npm run test:css-tokens
-      - name: Visual contrast
-        run: npm run test:visual-contrast
-      - name: Dependency hygiene
-        run: npm run check:dependency-hygiene
-      - name: Cloudflare headers
-        run: npm run test:check-headers
-      - name: Browser game consistency
-        run: npm run test:browser-game-consistency
-      - name: Browser game shells
-        run: npm run test:browser-game-shells
-      - name: Service worker compat
-        run: npm run test:service-worker
-      - name: Cache versioning
-        run: npm run test:cache-versioning
-      - name: Game HTML version consistency
-        run: npm run test:game-versions
-      - name: Archive parity
-        run: npm run test:archive-parity
-      - name: Audit game archives
-        run: npm run audit:game-archives
-      - name: Public domain art
-        run: npm run test:public-domain-art
-      - name: Game theming source
-        run: npm run test:game-theming-source
-      - name: Screenshot assets
-        run: npm run test:screenshot-assets
-      - name: Performance budgets
-        run: npm run test:performance-budgets
+      - name: Fast release gate
+        run: npm run verify:release:fast
