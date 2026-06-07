@@ -4,7 +4,7 @@
   var canvas = document.getElementById('canvas');
   var body = document.body;
 
-  if (isCoarse || hasTouch) body.classList.add('mobile-touch');
+  if (body && (isCoarse || hasTouch)) body.classList.add('mobile-touch');
 
   function addBodyClass(name) {
     if (name) body.classList.add(name);

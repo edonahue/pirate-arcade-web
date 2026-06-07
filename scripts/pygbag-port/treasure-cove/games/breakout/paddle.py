@@ -137,6 +137,3 @@ class Paddle:
         sx = int(self.x - self.width // 2)
         sy = int(self.y - self.height // 2 - 7)
         surface.blit(self._ship_surf, (sx, sy))
-        inner = self.rect.inflate(-8, -8)
-        if inner.width > 0 and inner.height > 0:
-            pg.draw.rect(surface, c.PIRATE_BROWN_DARK, inner, border_radius=3)

@@ -149,6 +149,7 @@ const GAMES = [
     path: "/play/cannonball-clash/",
   },
   { id: "treasure-cove", name: "Treasure Cove", path: "/play/treasure-cove/" },
+  { id: "krakens-wake", name: "Kraken's Wake", path: "/play/krakens-wake/" },
 ];
 
 for (const game of GAMES) {

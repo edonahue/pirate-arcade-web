@@ -275,10 +275,8 @@ export async function expectTouchOverlayWired(page: Page): Promise<void> {
   const overlay = page.locator("#touch-overlay");
   await expect(overlay).toHaveCount(1);
 
-  const arrowLeft = page.locator('#touch-overlay .btn-nudge[data-dir="left"]');
-  const arrowRight = page.locator(
-    '#touch-overlay .btn-nudge[data-dir="right"]',
-  );
+  const arrowLeft = page.locator('#touch-overlay [data-dir="left"]');
+  const arrowRight = page.locator('#touch-overlay [data-dir="right"]');
   const action = page.locator('#touch-overlay .btn-action[data-dir="action"]');
   const pause = page.locator('#touch-overlay .btn-pause[data-dir="pause"]');
 

@@ -61,15 +61,15 @@ for (const gameDir of GAMES) {
   try {
     let content = readFileSync(indexPath, "utf8");
 
-    // Update inline script archive URL
+    // Update inline script archive URL (preserves existing " or ' quote style)
     content = content.replace(
-      /url = _w\.location\.href \+ "[^"]+\.tar\.gz\?v=mobile-v\d+"/g,
-      `url = _w.location.href + "${gameDir}.tar.gz?v=${ASSET_VERSION}"`,
+      /(url = _w\.location\.href \+ )(['"])[^'"]+\.tar\.gz\?v=mobile-v\d+\2/g,
+      `$1$2${gameDir}.tar.gz?v=${ASSET_VERSION}$2`,
     );
 
-    // Update preload link
+    // Update preload link (handles optional crossorigin attribute)
     content = content.replace(
-      /<link rel="preload" href="\/play\/[^"]+\.tar\.gz\?v=mobile-v\d+" as="fetch">/g,
+      /<link rel="preload" href="\/play\/[^"]+\.tar\.gz\?v=mobile-v\d+" as="fetch"(?: crossorigin="[^"]+")?>/g,
       `<link rel="preload" href="/play/${gameDir}/${gameDir}.tar.gz?v=${ASSET_VERSION}" as="fetch">`,
     );
 

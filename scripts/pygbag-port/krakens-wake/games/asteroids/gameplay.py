@@ -31,15 +31,26 @@ def _init_stars():
         twinkle = random.random() < 0.3
         _STARS.append((x, y, brightness, size, twinkle))
 
-def _draw_background(surface):
-    surface.fill(c.PIRATE_NAVY)
+_NEBULA_SURFACES = None
+
+def _init_nebula():
+    global _NEBULA_SURFACES
+    if _NEBULA_SURFACES is not None:
+        return
+    _NEBULA_SURFACES = []
     for layer in _NEBULA_LAYERS:
         cx = int(c.WINDOW_WIDTH * layer["pos"][0])
         cy = int(c.WINDOW_HEIGHT * layer["pos"][1])
         r = layer["radius"]
         temp = pg.Surface((r * 2, r * 2), pg.SRCALPHA)
         pg.draw.circle(temp, layer["color"], (r, r), r)
-        surface.blit(temp, (cx - r, cy - r), special_flags=pg.BLEND_ALPHA_SDL2)
+        _NEBULA_SURFACES.append((temp, cx - r, cy - r))
+
+def _draw_background(surface):
+    surface.fill(c.PIRATE_NAVY)
+    _init_nebula()
+    for surf, bx, by in _NEBULA_SURFACES:
+        surface.blit(surf, (bx, by), special_flags=pg.BLEND_ALPHA_SDL2)
     _init_stars()
     for x, y, brightness, size, twinkle in _STARS:
         if twinkle:

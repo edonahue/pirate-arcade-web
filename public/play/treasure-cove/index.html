@@ -117,7 +117,7 @@
             '        _w.PirateArcadeMetrics.mark("archive-fetch-start")',
             '        _w.PirateArcadeLoading.set("Installing Pygame and downloading game package\u2026")',
             '        import aio.pep0723',
-            '        url = _w.location.href + "treasure-cove.tar.gz?v=mobile-v4"',
+            '        url = _w.location.href + "treasure-cove.tar.gz?v=mobile-v5"',
             '        async def fetch_archive():',
             '            async with platform.fopen(url, "rb") as f:',
             '                return f.read()',
@@ -132,6 +132,7 @@
             '        d = "/tmp/game_extract"',
             '        os.makedirs(d, exist_ok=True)',
             '        tarfile.open(fileobj=io.BytesIO(data)).extractall(d)',
+'        _w.PirateArcadeMetrics.mark("archive-extract-end")',
             '',
             '        # Init pygame display, then import game modules',
             '        a = os.path.join(d, "assets")',
@@ -305,7 +306,7 @@
     <link rel="preconnect" href="https://pygame-web.github.io">
     <link rel="dns-prefetch" href="https://pygame-web.github.io">
     <link rel="modulepreload" href="https://pygame-web.github.io/cdn/0.9.3/pythons.js">
-    <link rel="preload" href="/play/treasure-cove/treasure-cove.tar.gz?v=mobile-v4" as="fetch">
+    <link rel="preload" href="/play/treasure-cove/treasure-cove.tar.gz?v=mobile-v5" as="fetch">
     <script src="/play/shared/game-boot-metrics.js"></script>
     <style>
       * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -354,7 +355,7 @@
       }
 
     </style>
-    <link rel="stylesheet" href="/play/shared/mobile-controls.css?v=mobile-v4">
+    <link rel="stylesheet" href="/play/shared/mobile-controls.css?v=mobile-v5">
     <!-- Service Worker Registration -->
     <script>
       if ('serviceWorker' in navigator) {
@@ -456,8 +457,8 @@
     }
     </script>
 
-    <script src="/play/shared/pygame-input-bridge.js?v=mobile-v4"></script>
-    <script src="/play/shared/game-viewport.js?v=mobile-v4"></script>
-    <script src="/play/shared/mobile-controls.js?v=mobile-v4"></script>
+    <script src="/play/shared/pygame-input-bridge.js?v=mobile-v5"></script>
+    <script src="/play/shared/game-viewport.js?v=mobile-v5"></script>
+    <script src="/play/shared/mobile-controls.js?v=mobile-v5"></script>
   </body>
 </html>

@@ -12,131 +12,114 @@ class Paddle:
         self.base_height = c.PADDLE_HEIGHT
         self._built = False
         self.side = side  # 'left' (player) or 'right' (AI)
+        self._visual_w = 80  # wide enough to read as ship at browser scale
 
     def _build_surfs(self):
-        self._glow_surf = pg.Surface((self.width + 20, self.height + 20), pg.SRCALPHA)
-        for i in range(10, 0, -1):
-            alpha = max(0, 40 - (10 - i) * 4)
-            r = pg.Rect(i, i, self.width + 20 - i * 2, self.height + 20 - i * 2)
-            pg.draw.rect(self._glow_surf, (0, 128, 128, alpha), r, border_radius=4)
-
-        visual_w = max(self.width + 40, 60)
-        w = self.width
+        vw = self._visual_w
         h = self.height
-        self._ship_surf = pg.Surface((visual_w, h), pg.SRCALPHA)
+        is_player = self.side == 'left'
+
+        # Outer glow — teal for player, red for AI — helps separate from navy bg
+        glow_color = (0, 128, 128) if is_player else (139, 0, 0)
+        self._glow_surf = pg.Surface((vw + 24, h + 24), pg.SRCALPHA)
+        for i in range(12, 0, -1):
+            alpha = max(16, 48 - (12 - i) * 4)
+            r = pg.Rect(i, i, vw + 24 - i * 2, h + 24 - i * 2)
+            pg.draw.rect(self._glow_surf, (*glow_color, alpha), r, border_radius=8)
+
+        self._ship_surf = pg.Surface((vw, h), pg.SRCALPHA)
 
         # HITBOX NOTE: Collision rect is 16px wide (PADDLE_WIDTH), centered on self.x.
-        # Visual ship is ~56px wide (width + 40), also centered on self.x.
-        # The visual extends ~20px beyond the hitbox on each side.
-        # This is intentional for the elegant ship aesthetic but means the
-        # visual boundary does not match the collision boundary.
+        # Visual ship is 80px wide (self._visual_w), also centered on self.x.
+        # The visual extends ~32px beyond the hitbox on each side.
+        # This is intentional — the broad silhouette makes paddles recognizable as
+        # ships at browser/iPad canvas scale. The ball bounces off the 16px core.
 
-        is_player = self.side == 'left'
+        # Layout: a 32px margin on each side of the 16px hitbox = 80px total
+        left_margin = (vw - self.width) // 2  # 32
+
+        # Color identities
         accent_color = c.PIRATE_TEAL if is_player else c.PIRATE_RED
         hull_color = c.PIRATE_DARK_WOOD
         deck_color = c.PIRATE_BROWN
         trim_color = c.PIRATE_GOLD
-        mast_color = c.PIRATE_TAN
+        sail_color = c.PIRATE_CREAM
         flag_color = accent_color
-        bow_side = 1 if is_player else -1
 
-        offset_x = (visual_w - w) // 2
-
+        # Bow faces inward (toward center of screen), stern faces outward
         if is_player:
-            bow_inner_x = offset_x + w - 2
-            bow_outer_x = offset_x + w + 2
-            stern_inner_x = offset_x + 2
-            stern_outer_x = offset_x - 2
+            bow_x = vw - left_margin       # right side of paddle
+            stern_x = left_margin           # left side of paddle
+            bow_tip = vw - 2
+            stern_tip = 2
         else:
-            bow_inner_x = offset_x + 2
-            bow_outer_x = offset_x - 2
-            stern_inner_x = offset_x + w - 2
-            stern_outer_x = offset_x + w + 2
+            bow_x = left_margin             # left side of paddle
+            stern_x = vw - left_margin      # right side of paddle
+            bow_tip = 2
+            stern_tip = vw - 2
 
-        # Hull — pointed bow toward center, rounded stern toward edge
+        # ── Broad hull ──
+        # Lower hull body — the main dark mass
+        hull_top = h // 2 - 18
+        hull_bot = h // 2 + 18
         pg.draw.polygon(self._ship_surf, hull_color, [
-            (stern_outer_x, h // 2 - 4),
-            (stern_inner_x, 3),
-            (stern_inner_x, h - 3),
-            (stern_outer_x, h // 2 + 4),
-        ])
-        # Bow extension
-        pg.draw.polygon(self._ship_surf, hull_color, [
-            (stern_inner_x, 3),
-            (bow_inner_x, 3),
-            (bow_outer_x, h // 2),
-            (bow_inner_x, h - 3),
-            (stern_inner_x, h - 3),
+            (stern_tip, hull_top),
+            (bow_tip, hull_top),
+            (bow_tip, hull_bot),
+            (stern_tip, hull_bot),
         ])
 
-        # Deck planks
-        deck_top = 5
-        deck_bot = h - 5
-        pg.draw.rect(self._ship_surf, deck_color, (
-            min(stern_inner_x, bow_inner_x) + 2,
-            deck_top,
-            abs(bow_inner_x - stern_inner_x) - 4,
-            deck_bot - deck_top,
-        ))
+        # Hull bottom curve (belly)
+        belly_y = h // 2 + 22
+        pg.draw.ellipse(self._ship_surf, hull_color,
+                        pg.Rect(stern_x - 4, h // 2 + 6, abs(bow_x - stern_x) + 8, 28))
 
-        # Gold gunwale line
-        gunwale_y = 4
+        # Hull top curve (deck line)
+        pg.draw.ellipse(self._ship_surf, deck_color,
+                        pg.Rect(stern_x - 2, hull_top - 2, abs(bow_x - stern_x) + 4, 12))
+
+        # Deck plank area
+        deck_w = abs(bow_x - stern_x)
+        pg.draw.rect(self._ship_surf, deck_color,
+                     (min(stern_x, bow_x) + 2, hull_top + 4, deck_w - 4, 10))
+
+        # Gold gunwale (top edge trim)
         pg.draw.line(self._ship_surf, trim_color,
-                     (min(stern_inner_x, bow_inner_x) + 1, gunwale_y),
-                     (max(stern_inner_x, bow_inner_x) - 1, gunwale_y), 1)
+                     (stern_x, hull_top - 1), (bow_x, hull_top - 1), 2)
 
-        # Gold keel line
-        keel_y = h - 4
+        # Gold keel (bottom edge trim)
+        keel_y = h // 2 + 20
         pg.draw.line(self._ship_surf, trim_color,
-                     (min(stern_inner_x, bow_inner_x) + 1, keel_y),
-                     (max(stern_inner_x, bow_inner_x) - 1, keel_y), 1)
+                     (stern_x, keel_y), (bow_x, keel_y), 2)
 
-        # Mast
-        mast_x = (stern_inner_x + bow_inner_x) // 2
-        mast_top = 7
-        mast_bot = h - 7
-        pg.draw.line(self._ship_surf, mast_color, (mast_x, mast_top), (mast_x, mast_bot), 3)
+        # ── Mast and sails ──
+        mast_x = (stern_x + bow_x) // 2
+        mast_top = 6
+        mast_bot = hull_top + 4
+        pg.draw.line(self._ship_surf, c.PIRATE_TAN, (mast_x, mast_top), (mast_x, mast_bot), 4)
 
-        # Yardarm (crossbar)
+        # Yardarm — wide enough to make sail shape visible
         yardarm_y = h // 3
-        spread = int(w * 0.45)
+        yardarm_spread = deck_w // 2
         pg.draw.line(self._ship_surf, trim_color,
-                     (mast_x - spread, yardarm_y),
-                     (mast_x + spread, yardarm_y), 2)
+                     (mast_x - yardarm_spread, yardarm_y),
+                     (mast_x + yardarm_spread, yardarm_y), 2)
 
-        # Sail — main triangular sail on the bow side of the mast
-        sail_spread = max(14, w // 2)
-        sail_top = mast_top + 4
-        sail_bot = yardarm_y + 6
-        if is_player:
-            sail_pts = [(mast_x, sail_top),
-                        (mast_x + sail_spread, sail_bot),
-                        (mast_x - int(sail_spread * 0.4), sail_bot)]
-        else:
-            sail_pts = [(mast_x, sail_top),
-                        (mast_x - sail_spread, sail_bot),
-                        (mast_x + int(sail_spread * 0.4), sail_bot)]
-        pg.draw.polygon(self._ship_surf, c.PIRATE_CREAM, sail_pts)
-        pg.draw.polygon(self._ship_surf, c.PIRATE_SAND, sail_pts, 1)
+        # Main sail — broad triangle fills most of the visual width
+        sail_spread = deck_w // 2 - 2
+        sail_top = mast_top + 6
+        sail_bot = yardarm_y + 8
+        sail_pts = [
+            (mast_x, sail_top),
+            (mast_x + sail_spread if is_player else mast_x - sail_spread, sail_bot),
+            (mast_x + -sail_spread if is_player else mast_x + sail_spread, sail_bot),
+        ]
+        pg.draw.polygon(self._ship_surf, sail_color, sail_pts)
+        pg.draw.polygon(self._ship_surf, c.PIRATE_SAND, sail_pts, 2)
 
-        # Jib sail (smaller forward triangle)
-        jib_spread = max(8, w // 3)
-        jib_top = mast_top + 10
-        jib_bot = h // 2 - 4
-        if is_player:
-            jib_pts = [(mast_x, jib_top),
-                       (mast_x + jib_spread, jib_bot),
-                       (mast_x - int(jib_spread * 0.3), jib_bot)]
-        else:
-            jib_pts = [(mast_x, jib_top),
-                       (mast_x - jib_spread, jib_bot),
-                       (mast_x + int(jib_spread * 0.3), jib_bot)]
-        pg.draw.polygon(self._ship_surf, (235, 225, 210), jib_pts)
-        pg.draw.polygon(self._ship_surf, c.PIRATE_SAND, jib_pts, 1)
-
-        # Flag at top of mast
-        flag_h = 6
-        flag_w = 5
+        # ── Flag at mast top ──
+        flag_h = 8
+        flag_w = 7
         if is_player:
             flag_pts = [(mast_x, mast_top - 1),
                         (mast_x + flag_w, mast_top - 1 - flag_h // 2),
@@ -147,29 +130,37 @@ class Paddle:
                         (mast_x, mast_top - 1 - flag_h)]
         pg.draw.polygon(self._ship_surf, flag_color, flag_pts)
 
-        # Cannon ports
+        # ── Accent stripe — teal for player, red for AI ──
+        stripe_y = h // 2 + 14
+        pg.draw.line(self._ship_surf, accent_color,
+                     (stern_x + 2, stripe_y), (bow_x - 2, stripe_y), 3)
+
+        # ── Bowsprit (small forward point) ──
+        if is_player:
+            sprit_pts = [(bow_x - 2, hull_top - 4),
+                         (bow_tip + 6, h // 2),
+                         (bow_x - 2, h // 2 + 26)]
+        else:
+            sprit_pts = [(bow_x + 2, hull_top - 4),
+                         (bow_tip - 6, h // 2),
+                         (bow_x + 2, h // 2 + 26)]
+        pg.draw.polygon(self._ship_surf, hull_color, sprit_pts)
+
+        # ── Cannon ports (small dark squares along hull side) ──
         port_color = c.PIRATE_CANNON
-        port_count = max(2, h // 25)
-        port_spacing = (h - 16) / (port_count + 1)
+        port_count = 3
+        port_start_y = hull_top + 8
+        port_spacing = (hull_bot - hull_top - 12) // (port_count + 1)
         for i in range(port_count):
-            py = int(10 + port_spacing * (i + 1))
-            port_w = 4
-            port_h = 3
+            py = int(port_start_y + port_spacing * (i + 1))
             if is_player:
                 pg.draw.rect(self._ship_surf, port_color,
-                             (bow_inner_x - port_w - 1, py, port_w, port_h))
+                             (bow_x - 7, py, 5, 3))
             else:
                 pg.draw.rect(self._ship_surf, port_color,
-                             (stern_inner_x + 1, py, port_w, port_h))
+                             (stern_x + 2, py, 5, 3))
 
-        # Accent stripe — teal for player, rum for AI
-        stripe_x1 = min(stern_inner_x, bow_inner_x) + 2
-        stripe_x2 = max(stern_inner_x, bow_inner_x) - 2
-        pg.draw.line(self._ship_surf, accent_color,
-                     (stripe_x1, h - 8), (stripe_x2, h - 8), 2)
-
-        self._offset_x = offset_x
-        self._visual_w = visual_w
+        self._offset_x = left_margin
         self._built = True
 
     @property
@@ -203,9 +194,11 @@ class Paddle:
     def draw(self, surface):
         if not self._built:
             self._build_surfs()
-        gx = self.x - self.width // 2 - 10
-        gy = self.y - self.height // 2 - 10
+        # Glow centered on collision rect
+        gx = self.x - self._visual_w // 2 - 12
+        gy = self.y - self.height // 2 - 12
         surface.blit(self._glow_surf, (gx, gy))
+        # Ship centered on paddle position
         sx = self.x - self._visual_w // 2
         sy = self.y - self.height // 2
         if self.is_big:

@@ -59,29 +59,14 @@ test.describe("Game Theming - Visual Smoke Checks", () => {
     }, testInfo) => {
       await page.goto(game.path, { waitUntil: "domcontentloaded" });
 
-      if (game.id === "krakens-wake") {
-        try {
-          await page.waitForFunction(
-            () => {
-              const m = (window as any).__paBootMetrics;
-              return m !== undefined && m["game-ready"] !== undefined;
-            },
-            { timeout: 30000 },
-          );
-        } catch {
-          testInfo.slow();
-          return;
-        }
-      } else {
-        await waitForPygbagRuntime(page);
-        await page.waitForFunction(
-          () => {
-            const m = (window as any).__paBootMetrics;
-            return m !== undefined && m["game-ready"] !== undefined;
-          },
-          { timeout: 120000 },
-        );
-      }
+      await waitForPygbagRuntime(page);
+      await page.waitForFunction(
+        () => {
+          const m = (window as any).__paBootMetrics;
+          return m !== undefined && m["game-ready"] !== undefined;
+        },
+        { timeout: 120000 },
+      );
 
       await page.waitForTimeout(2000);
 
@@ -110,29 +95,14 @@ test.describe("Game Theming - Visual Smoke Checks", () => {
     }, testInfo) => {
       await page.goto(game.path, { waitUntil: "domcontentloaded" });
 
-      if (game.id === "krakens-wake") {
-        try {
-          await page.waitForFunction(
-            () => {
-              const m = (window as any).__paBootMetrics;
-              return m !== undefined && m["game-ready"] !== undefined;
-            },
-            { timeout: 30000 },
-          );
-        } catch {
-          testInfo.slow();
-          return;
-        }
-      } else {
-        await waitForPygbagRuntime(page);
-        await page.waitForFunction(
-          () => {
-            const m = (window as any).__paBootMetrics;
-            return m !== undefined && m["game-ready"] !== undefined;
-          },
-          { timeout: 120000 },
-        );
-      }
+      await waitForPygbagRuntime(page);
+      await page.waitForFunction(
+        () => {
+          const m = (window as any).__paBootMetrics;
+          return m !== undefined && m["game-ready"] !== undefined;
+        },
+        { timeout: 120000 },
+      );
 
       // Start the game (click to unlock audio, press Enter/Space)
       await unlockAndStartGame(page, []);

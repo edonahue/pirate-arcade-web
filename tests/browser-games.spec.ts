@@ -51,6 +51,20 @@ const GAMES: GameSpec[] = [
     path: "/play/treasure-cove/",
     desktopKeys: ["ArrowLeft", "ArrowRight", "Space", "Enter", "Escape"],
   },
+  {
+    id: "krakens-wake",
+    name: "Kraken's Wake",
+    path: "/play/krakens-wake/",
+    desktopKeys: [
+      "ArrowUp",
+      "ArrowDown",
+      "ArrowLeft",
+      "ArrowRight",
+      "Space",
+      "Enter",
+      "Escape",
+    ],
+  },
 ];
 
 // Restrict the heavy WASM startup tests to desktop projects. Mobile

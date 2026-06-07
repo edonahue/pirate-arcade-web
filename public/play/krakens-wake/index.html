@@ -10,36 +10,6 @@
     <script>
       console.log('INLINE_SCRIPT: starting');
 
-      // Create loading overlay if not present
-      if (!document.getElementById('pirate-arcade-loading-overlay')) {
-        const overlay = document.createElement('div');
-        overlay.id = 'pirate-arcade-loading-overlay';
-        overlay.style.position = 'fixed';
-        overlay.style.inset = 0;
-        overlay.style.background = 'rgba(10,14,23,0.9)';
-        overlay.style.color = '#8a9ab0';
-        overlay.style.display = 'flex';
-        overlay.style.flexDirection = 'column';
-        overlay.style.alignItems = 'center';
-        overlay.style.justifyContent = 'center';
-        overlay.style.zIndex = '1000000';
-        overlay.style.fontFamily = 'monospace';
-        overlay.style.fontSize = '14px';
-        overlay.style.textAlign = 'center';
-        overlay.style.padding = '20px';
-        overlay.style.boxSizing = 'border-box';
-        overlay.innerHTML = `
-          <div id="pirate-arcade-loading-status">Loading game...</div>
-          <div id="pirate-arcade-loading-spinner" style="width: 40px; height: 40px; border: 4px solid #333; border-top-color: #d4a843; border-radius: 50%; animation: spin 1s linear infinite; margin-top: 20px;"></div>
-          <style>
-            @keyframes spin {
-              to { transform: rotate(360deg); }
-            }
-          </style>
-        `;
-        document.body.appendChild(overlay);
-      }
-
       // Define PirateArcadeLoading for the static #game-loading overlay.
       // Operates on the statically-defined HTML overlay (not a JS-created one)
       // so it works before the DOM is fully parsed. pygame-input-bridge.js
@@ -114,18 +84,21 @@
           };
         }
       }, 10);
-      setTimeout(function() { clearInterval(check); }, 30000);
+      setTimeout(function() { clearInterval(check); }, 10000);
     })();
 
     console.log('INLINE_SCRIPT: cross_file replacement done');
+    if (window.PirateArcadeMetrics) window.PirateArcadeMetrics.mark('cross-file-replaced');
 
     // Poll for Python interpreter and inject game startup code via blocks[0].
     console.log('INJECT_SCRIPT: setting up poll');
+    if (window.PirateArcadeMetrics) window.PirateArcadeMetrics.mark('pythons-js-requested');
     (function() {
       var pyReady = setInterval(function() {
         if (typeof window.python === 'object' && window.python !== null && typeof window.python.PyRun_SimpleString === 'function') {
           clearInterval(pyReady);
           console.log('JS_INJECT: python ready, injecting startup code');
+          if (window.PirateArcadeMetrics) window.PirateArcadeMetrics.mark('python-ready');
 
           var gameCode = [
             'import sys, asyncio, tarfile, io, os',
@@ -133,22 +106,33 @@
             'async def boot():',
             '    import __EMSCRIPTEN__ as platform',
             '    try:',
-            '        platform.window.transfer.hidden = True',
-            '        platform.window.canvas.style.visibility = "visible"',
-            '        platform.window.infobox.innerText = "loading game..."',
+            "        _w = platform.window",
+            "        _w.transfer.hidden = True",
+            '        _w.canvas.style.visibility = "visible"',
+            "        _w.PirateArcadeMetrics.mark('boot-start')",
+            "        _w.PirateArcadeLoading.set('Starting game engine\u2026')",
             '',
             '        # Pre-install pygame wheel from CDN and fetch archive in parallel',
+            "        _w.PirateArcadeMetrics.mark('pygame-install-start')",
+            "        _w.PirateArcadeMetrics.mark('archive-fetch-start')",
+            "        _w.PirateArcadeLoading.set('Installing Pygame and downloading game package\u2026')",
             '        import aio.pep0723',
-            '        url = platform.window.location.href + "krakens-wake.tar.gz?v=mobile-v4"',
+            "        url = _w.location.href + 'krakens-wake.tar.gz?v=mobile-v5'",
             '        async def fetch_archive():',
             '            async with platform.fopen(url, "rb") as f:',
             '                return f.read()',
             '        archive_task = asyncio.create_task(fetch_archive())',
             '        await aio.pep0723.pip_install("pygame")',
             '        data = await archive_task',
+            "        _w.PirateArcadeMetrics.mark('pygame-install-end')",
+            "        _w.PirateArcadeMetrics.mark('archive-fetch-end')",
+            '',
+            "        _w.PirateArcadeMetrics.mark('archive-extract-start')",
+            "        _w.PirateArcadeLoading.set('Extracting game files\u2026')",
             '        d = "/tmp/game_extract"',
             '        os.makedirs(d, exist_ok=True)',
             '        tarfile.open(fileobj=io.BytesIO(data)).extractall(d)',
+            "        _w.PirateArcadeMetrics.mark('archive-extract-end')",
             '',
             '        # Init pygame display, then import game modules',
             '        a = os.path.join(d, "assets")',
@@ -246,19 +230,19 @@
         '        builtins.__pa_set_touch_target = __pa_set_touch_target',
         '        # ── End touch target bridge shim ──',
         '',
-        '        platform.window.PirateArcadeMetrics.mark("input-bridge-installed")',
+        "        _w.PirateArcadeMetrics.mark('input-bridge-installed')",
         '',
-        '        platform.window.PirateArcadeMetrics.mark("display-init-start")',
-        '        platform.window.PirateArcadeLoading.set("Initializing display\u2026")',
+        "        _w.PirateArcadeMetrics.mark('display-init-start')",
+        "        _w.PirateArcadeLoading.set('Initializing display\u2026')",
         '        import constants as c',
         '        s = pg.display.set_mode((c.WINDOW_WIDTH, c.WINDOW_HEIGHT))',
-        '        pg.display.set_caption("Kraken\'s Wake")',
-        '        platform.window.PirateArcadeMetrics.mark("display-init-end")',
+        "        pg.display.set_caption(\"Kraken's Wake\")",
+        "        _w.PirateArcadeMetrics.mark('display-init-end')",
         '        from games.asteroids.game import AsteroidsGame',
             '',
             '        class WebAudio:',
             '            def __init__(self):',
-            '                self._js = platform.window.PirateArcadeAudio',
+            '                self._js = _w.PirateArcadeAudio',
             '                self._js.init()',
             '                self._muted = False',
             '            @property',
@@ -274,12 +258,18 @@
             '            def load(self, *a, **kw):',
             '                pass',
             '',
+            "        _w.PirateArcadeMetrics.mark('game-object-created')",
+            "        _w.PirateArcadeLoading.set('Setting up game\u2026')",
             '        game = AsteroidsGame(s, WebAudio())',
-            '        platform.window.infobox.innerText = "Kraken\u2019s Wake loaded! Audio starts after your first click."',
+            "        _w.PirateArcadeMetrics.mark('game-ready')",
+            "        _w.PirateArcadeMetrics.computeDurations()",
+            "        _w.PirateArcadeLoading.ready('Ready \u2014 tap to play')",
+            '        _w.infobox.innerText = "Kraken\u2019s Wake loaded! Audio starts after your first click."',
             '        await game.run()',
             '    except Exception as e:',
             '        sys.print_exception(e)',
-            '        platform.window.infobox.innerText = "Error: " + str(e)',
+            '        msg = str(e) if str(e) else type(e).__name__',
+            "        _w.PirateArcadeLoading.error('Error: ' + msg)",
             '',
             'asyncio.ensure_future(boot())',
           ].join('\n');
@@ -332,11 +322,8 @@
     <link rel="preconnect" href="https://pygame-web.github.io">
     <link rel="dns-prefetch" href="https://pygame-web.github.io">
     <link rel="modulepreload" href="https://pygame-web.github.io/cdn/0.9.3/pythons.js">
-    <link rel="preload" href="/play/krakens-wake/krakens-wake.tar.gz?v=mobile-v4" as="fetch" crossorigin="use-credentials">
+    <link rel="preload" href="/play/krakens-wake/krakens-wake.tar.gz?v=mobile-v5" as="fetch">
       <script src="/play/shared/game-boot-metrics.js"></script>
-      <script src="/play/shared/pygame-input-bridge.js?v=mobile-v4"></script>
-      <script src="/play/shared/game-viewport.js?v=mobile-v4"></script>
-      <script src="/play/shared/mobile-controls.js?v=mobile-v4"></script>
     <style>
       * { margin: 0; padding: 0; box-sizing: border-box; }
       html, body { width: 100%; height: 100%; overflow: hidden; background: #0a0e17; color: #b8c4d4; }
@@ -384,7 +371,7 @@
       }
 
     </style>
-    <link rel="stylesheet" href="/play/shared/mobile-controls.css?v=mobile-v4">
+    <link rel="stylesheet" href="/play/shared/mobile-controls.css?v=mobile-v5">
   </head>
   <body>
     <div id="rotate-device"><div class="icon">↻</div><div>Rotate your device to landscape</div><div style="margin-top:0.5rem;font-size:13px;color:#6b7a8f;">This game is designed for landscape orientation.</div></div>
@@ -466,7 +453,10 @@
     }
     </script>
 
-    <script src="/play/shared/mobile-controls.js"></script>
+    <script src="/play/shared/pygame-input-bridge.js?v=mobile-v5"></script>
+    <script src="/play/shared/game-viewport.js?v=mobile-v5"></script>
+    <script src="/play/shared/mobile-controls.js?v=mobile-v5"></script>
+
     <!-- Service Worker Registration -->
     <script>
       if ('serviceWorker' in navigator) {

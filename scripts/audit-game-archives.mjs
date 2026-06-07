@@ -9,6 +9,7 @@ import * as tar from "tar";
 const ARCHIVES = [
   "public/play/cannonball-clash/cannonball-clash.tar.gz",
   "public/play/treasure-cove/treasure-cove.tar.gz",
+  "public/play/krakens-wake/krakens-wake.tar.gz",
 ];
 
 const SUSPICIOUS_PATTERNS = [
