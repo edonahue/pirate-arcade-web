@@ -55,6 +55,7 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci
+      - run: npm run build
       - name: SEO audit
         run: npm run seo:audit
       - name: Copy tone
