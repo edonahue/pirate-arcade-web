@@ -94,10 +94,10 @@
 
 /* Build Log nav item - abbreviate on very narrow screens */
 @media (max-width: 480px) {
-  .site-nav a[href="/build-log/"] {
+  .site-nav a[data-nav-key="build-log"] {
     font-size: 0;
   }
-  .site-nav a[href="/build-log/"]::before {
+  .site-nav a[data-nav-key="build-log"]::before {
     content: "Log";
     font-size: 0.6875rem;
     font-family: var(--mono);
@@ -107,7 +107,7 @@
 }
 
 @media (max-width: 380px) {
-  .site-nav a[href="/build-log/"]::before {
+  .site-nav a[data-nav-key="build-log"]::before {
     font-size: 0.5625rem;
   }
 }
@@ -147,18 +147,18 @@
 
 /* Game card touch difficulty badge variants */
 .game-card__touch-difficulty--easy {
-  color: var(--sea);
-  border-color: var(--sea);
+  color: var(--paper-badge-easy-fg);
+  border-color: var(--paper-badge-easy-border);
 }
 
 .game-card__touch-difficulty--medium {
-  color: var(--brass);
-  border-color: var(--brass);
+  color: var(--paper-badge-medium-fg);
+  border-color: var(--paper-badge-medium-border);
 }
 
 .game-card__touch-difficulty--harder {
-  color: var(--rum);
-  border-color: var(--rum);
+  color: var(--paper-badge-harder-fg);
+  border-color: var(--paper-badge-harder-border);
 }
 
 /* Game card mobile spacing improvements */

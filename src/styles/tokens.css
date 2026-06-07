@@ -45,28 +45,32 @@
   /* --accent-strong: #4ddbd6; */ /* Using sea-deep for strong accent; adjust if needed */
   --accent-strong: var(--sea-deep);
   --focus: var(--brass-strong);
+  --focus-paper: #7a5a20;
 
-  /* Paper-specific badge/contrast tokens */
-  --paper-badge-available-fg: var(--brass);
+  /* Paper-specific badge/contrast tokens
+     Badge text uses paper-ink-strong for WCAG AA 4.5:1 legibility
+     on parchment backgrounds. Accent colors are preserved via
+     borders and subtle background tints. */
+  --paper-badge-available-fg: var(--paper-ink-strong);
   --paper-badge-available-bg: rgba(201, 164, 92, 0.12);
   --paper-badge-available-border: var(--brass);
-  --paper-badge-planned-fg: var(--sea);
+  --paper-badge-planned-fg: var(--paper-ink-strong);
   --paper-badge-planned-bg: rgba(42, 166, 161, 0.12);
   --paper-badge-planned-border: var(--sea);
-  --paper-badge-experimental-fg: var(--rum);
+  --paper-badge-experimental-fg: var(--paper-ink-strong);
   --paper-badge-experimental-bg: rgba(140, 52, 40, 0.12);
   --paper-badge-experimental-border: var(--rum);
-  --paper-badge-post-fg: var(--brass);
+  --paper-badge-post-fg: var(--paper-ink-strong);
   --paper-badge-post-bg: rgba(201, 164, 92, 0.12);
   --paper-badge-post-border: var(--brass);
 
-  --paper-badge-easy-fg: var(--sea);
+  --paper-badge-easy-fg: var(--paper-ink-strong);
   --paper-badge-easy-bg: rgba(42, 166, 161, 0.12);
   --paper-badge-easy-border: var(--sea);
-  --paper-badge-medium-fg: var(--brass);
+  --paper-badge-medium-fg: var(--paper-ink-strong);
   --paper-badge-medium-bg: rgba(201, 164, 92, 0.12);
   --paper-badge-medium-border: var(--brass);
-  --paper-badge-harder-fg: var(--rum);
+  --paper-badge-harder-fg: var(--paper-ink-strong);
   --paper-badge-harder-bg: rgba(140, 52, 40, 0.12);
   --paper-badge-harder-border: var(--rum);
 
@@ -75,7 +79,7 @@
   --paper-chip-border: var(--line);
 
   --paper-cta-bg: var(--surface-soft);
-  --paper-cta-fg: var(--brass);
+  --paper-cta-fg: var(--ink);
   --paper-cta-border: var(--brass);
 
   --focus: var(--brass-strong);
@@ -125,4 +129,7 @@
     "IBM Plex Mono", "SFMono-Regular", Consolas, "Liberation Mono", monospace;
 
   font-family: var(--body);
+
+  --focus: #8a6a28;
+  --focus-paper: #7a5a20;
 }

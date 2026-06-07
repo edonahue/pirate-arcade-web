@@ -55,13 +55,25 @@ const desktopGames = games.filter((g) => g.status === "desktop-available");
       </p>
     </div>
 
+    <div class="play-status">
+      <span class="play-status__item">
+        <span class="play-status__count">{browserGames.length}</span>
+        browser-ready
+      </span>
+      <span class="play-status__item play-status__item--muted">
+        {desktopGames.length} desktop-only
+      </span>
+      <span class="play-status__repeat">
+        First visit downloads ~12 MB. Cached after that.
+      </span>
+    </div>
+
     <div class="play-now__ctas">
       {
         browserGames.map((game) => (
           <div class="text-center mt-2">
             <a
               href={game.browserUrl!}
-              target="_blank"
               rel="noopener noreferrer"
               class="cta cta--primary"
               data-game-id={game.id}
@@ -256,10 +268,15 @@ const desktopGames = games.filter((g) => g.status === "desktop-available");
       }
     }
 
+    var isDesktop = window.matchMedia("(pointer: fine)").matches;
     var links = document.querySelectorAll(
       "a[data-game-id][data-browser-playable=true]",
     );
     links.forEach(function (link) {
+      // Open in new tab on desktop (fine pointer); same tab on mobile (coarse pointer)
+      if (isDesktop) {
+        link.setAttribute("target", "_blank");
+      }
       var gameId = link.getAttribute("data-game-id");
       var pageUrl = link.getAttribute("data-game-page") || "";
       var archiveUrl = link.getAttribute("data-game-archive") || "";
@@ -379,6 +396,55 @@ const desktopGames = games.filter((g) => g.status === "desktop-available");
   .section__description a {
     text-decoration: underline;
     text-underline-offset: 2px;
+  }
+
+  .play-status {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    margin-top: -0.25rem;
+    margin-bottom: 1.25rem;
+    font-family: var(--mono);
+    font-size: 0.6875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+  }
+
+  .play-status__item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+
+  .play-status__item--muted {
+    opacity: 0.6;
+  }
+
+  .play-status__count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.25rem;
+    height: 1.25rem;
+    border-radius: 50%;
+    background: var(--accent);
+    color: var(--ink);
+    font-size: 0.625rem;
+    font-weight: 600;
+    line-height: 1;
+  }
+
+  .play-status__repeat {
+    width: 100%;
+    text-align: center;
+    color: var(--muted);
+    font-size: 0.625rem;
+    text-transform: none;
+    letter-spacing: normal;
+    opacity: 0.7;
   }
 
   @media (min-width: 640px) {

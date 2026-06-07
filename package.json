@@ -64,7 +64,7 @@
     "test:copy-tone": "node scripts/check-copy-tone.mjs",
     "test:performance-budgets": "node scripts/check-performance-budgets.mjs",
     "test:visual-polish": "playwright test tests/mobile-visual-polish.spec.ts",
-    "test:visual-contrast": "playwright test tests/mobile-visual-polish.spec.ts --project=chromium-desktop",
+    "test:visual-contrast": "node scripts/check-visual-contrast.mjs",
     "test:lhci": "lhci autorun"
   },
   "engines": {

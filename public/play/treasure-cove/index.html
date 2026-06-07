@@ -110,7 +110,7 @@
             '        _w.transfer.hidden = True',
             '        _w.canvas.style.visibility = "visible"',
             '        _w.PirateArcadeMetrics.mark("boot-start")',
-            '        _w.PirateArcadeLoading.set("Starting Python runtime\u2026")',
+            '        _w.PirateArcadeLoading.set("Starting game engine\u2026")',
             '',
             '        # Pre-install pygame wheel from CDN and fetch archive in parallel',
             '        _w.PirateArcadeMetrics.mark("pygame-install-start")',
@@ -383,8 +383,8 @@
     <div id="game-loading" role="status" aria-live="polite">
       <div class="loader-title">Loading Treasure Cove</div>
       <div class="loader-spinner" aria-hidden="true"></div>
-      <div id="game-loading-detail">Starting Python runtime…</div>
-      <div class="loader-note">First visit can take a little while. Repeat visits are faster.</div>
+      <div id="game-loading-detail">Starting game engine…</div>
+      <div class="loader-note">First visit downloads ~12 MB. Repeat visits load from cache.</div>
     </div>
     <div id="game-wrap">
     <a id="back-link" href="/play/" data-no-touch-control>← Back to Arcade</a>

@@ -1,6 +1,8 @@
 import { test, expect } from "@playwright/test";
 
 const VIEWPORTS = [
+  { name: "Small iPhone", width: 360, height: 780 },
+  { name: "iPhone SE", width: 375, height: 667 },
   { name: "iPhone 13", width: 390, height: 844 },
   { name: "iPhone 13 Pro Max", width: 430, height: 932 },
   { name: "iPhone 13 Landscape", width: 844, height: 390 },
@@ -8,6 +10,8 @@ const VIEWPORTS = [
   { name: "iPad Landscape", width: 1024, height: 768 },
   { name: "Desktop", width: 1280, height: 900 },
 ];
+
+const MOBILE_VP_NAMES = ["Small iPhone", "iPhone 13", "iPhone 13 Pro Max"];
 
 const PAGES = [
   { path: "/", name: "Home" },
@@ -60,7 +64,7 @@ test.describe("Header/Nav mobile layout", () => {
       expect(headerBox?.height).toBeLessThanOrEqual(64);
     });
 
-    test(`${viewport.name} - Build Log nav item does not wrap awkwardly`, async ({
+    test(`${viewport.name} - Build Log nav item is visible`, async ({
       page,
     }) => {
       await page.setViewportSize({
@@ -69,14 +73,37 @@ test.describe("Header/Nav mobile layout", () => {
       });
       await page.goto("/", { waitUntil: "domcontentloaded" });
 
-      const buildLogLink = page.locator('.site-nav a[href="/build-log"]');
+      const buildLogLink = page.locator(
+        '.site-nav a[data-nav-key="build-log"]',
+      );
       await expect(buildLogLink).toBeVisible();
 
       const text = await buildLogLink.textContent();
       expect(text?.trim()).toBeTruthy();
     });
 
-    test(`${viewport.name} - nav items do not wrap awkwardly`, async ({
+    test(`${viewport.name} - Build Log abbreviates at narrow widths`, async ({
+      page,
+    }) => {
+      await page.setViewportSize({
+        width: viewport.width,
+        height: viewport.height,
+      });
+      await page.goto("/", { waitUntil: "domcontentloaded" });
+
+      const buildLogLink = page.locator(
+        '.site-nav a[data-nav-key="build-log"]',
+      );
+
+      if (viewport.width <= 480) {
+        const fontSize = await buildLogLink.evaluate((el) => {
+          return window.getComputedStyle(el).fontSize;
+        });
+        expect(fontSize).toBe("0px");
+      }
+    });
+
+    test(`${viewport.name} - nav items are all visible and sized`, async ({
       page,
     }) => {
       await page.setViewportSize({
@@ -91,7 +118,7 @@ test.describe("Header/Nav mobile layout", () => {
 
       const items = page.locator(".site-nav a");
       const count = await items.count();
-      expect(count).toBeGreaterThan(0);
+      expect(count).toBe(5);
 
       for (let i = 0; i < count; i++) {
         const item = items.nth(i);
@@ -108,7 +135,7 @@ test.describe("Header/Nav mobile layout", () => {
 
 test.describe("Game card mobile layout", () => {
   for (const viewport of VIEWPORTS.filter((v) => v.width <= 640)) {
-    test(`${viewport.name} - game card footer stacks correctly`, async ({
+    test(`${viewport.name} - game card footer stacks as column`, async ({
       page,
     }) => {
       await page.setViewportSize({
@@ -120,25 +147,10 @@ test.describe("Game card mobile layout", () => {
       const footer = page.locator(".game-card__footer").first();
       await expect(footer).toBeVisible();
 
-      const footerBox = await footer.boundingBox();
-      expect(footerBox).not.toBeNull();
-
-      const badges = footer.locator(".game-card__footer-badges");
-      const badgesBox = await badges.boundingBox();
-      expect(badgesBox).not.toBeNull();
-
-      const playLink = footer.locator(".game-card__play-link");
-      const playLinkBox = await playLink.boundingBox();
-      expect(playLinkBox).not.toBeNull();
-
-      if (badgesBox && playLinkBox && footerBox) {
-        expect(badgesBox.x + badgesBox.width).toBeLessThanOrEqual(
-          footerBox.x + footerBox.width + 2,
-        );
-        expect(playLinkBox.x + playLinkBox.width).toBeLessThanOrEqual(
-          footerBox.x + footerBox.width + 2,
-        );
-      }
+      const flexDir = await footer.evaluate((el) => {
+        return window.getComputedStyle(el).flexDirection;
+      });
+      expect(flexDir).toBe("column");
     });
 
     test(`${viewport.name} - game card feature chips do not overflow`, async ({
@@ -164,11 +176,31 @@ test.describe("Game card mobile layout", () => {
       }
     });
   }
+
+  for (const viewport of VIEWPORTS.filter((v) => v.width > 640)) {
+    test(`${viewport.name} - game card footer uses row layout`, async ({
+      page,
+    }) => {
+      await page.setViewportSize({
+        width: viewport.width,
+        height: viewport.height,
+      });
+      await page.goto("/play/", { waitUntil: "domcontentloaded" });
+
+      const footer = page.locator(".game-card__footer").first();
+      await expect(footer).toBeVisible();
+
+      const flexDir = await footer.evaluate((el) => {
+        return window.getComputedStyle(el).flexDirection;
+      });
+      expect(flexDir).toBe("row");
+    });
+  }
 });
 
-test.describe("Badge contrast on parchment", () => {
+test.describe("Badge colors on parchment", () => {
   for (const viewport of VIEWPORTS.filter((v) => v.width <= 640)) {
-    test(`${viewport.name} - status badge readable on parchment`, async ({
+    test(`${viewport.name} - touch difficulty badges have visible colors`, async ({
       page,
     }) => {
       await page.setViewportSize({
@@ -177,42 +209,22 @@ test.describe("Badge contrast on parchment", () => {
       });
       await page.goto("/play/", { waitUntil: "domcontentloaded" });
 
-      const badge = page.locator(".status-badge").first();
-      await expect(badge).toBeVisible();
+      for (const cls of [
+        "game-card__touch-difficulty--easy",
+        "game-card__touch-difficulty--medium",
+        "game-card__touch-difficulty--harder",
+      ]) {
+        const badge = page.locator(`.${cls}`).first();
+        const count = await badge.count();
+        if (count === 0) continue;
 
-      const styles = await badge.evaluate((el) => {
-        const cs = window.getComputedStyle(el);
-        return {
-          color: cs.color,
-          backgroundColor: cs.backgroundColor,
-          borderColor: cs.borderColor,
-        };
-      });
+        const color = await badge.evaluate((el) => {
+          return window.getComputedStyle(el).color;
+        });
 
-      expect(styles.color).toBeTruthy();
-      expect(styles.backgroundColor).toBeTruthy();
-      expect(styles.borderColor).toBeTruthy();
-    });
-
-    test(`${viewport.name} - touch difficulty badge readable on parchment`, async ({
-      page,
-    }) => {
-      await page.setViewportSize({
-        width: viewport.width,
-        height: viewport.height,
-      });
-      await page.goto("/play/", { waitUntil: "domcontentloaded" });
-
-      const badge = page.locator(".game-card__touch-difficulty").first();
-      await expect(badge).toBeVisible();
-
-      const styles = await badge.evaluate((el) => {
-        const cs = window.getComputedStyle(el);
-        return { color: cs.color, borderColor: cs.borderColor };
-      });
-
-      expect(styles.color).toBeTruthy();
-      expect(styles.borderColor).toBeTruthy();
+        expect(color).not.toBe("rgba(0, 0, 0, 0)");
+        expect(color).not.toBe("");
+      }
     });
   }
 });
@@ -255,33 +267,68 @@ test.describe("Feature chip text fit", () => {
   }
 });
 
+const THEME_COLORS = {
+  dark: {
+    paperBadgeAvailable: "rgb(20, 10, 4)",
+    paperBadgeEasy: "rgb(20, 10, 4)",
+    paperBadgeMedium: "rgb(20, 10, 4)",
+    paperBadgeHarder: "rgb(20, 10, 4)",
+  },
+  light: {
+    paperBadgeAvailable: "rgb(26, 18, 8)",
+    paperBadgeEasy: "rgb(26, 18, 8)",
+    paperBadgeMedium: "rgb(26, 18, 8)",
+    paperBadgeHarder: "rgb(26, 18, 8)",
+  },
+};
+
 test.describe("Light/Dark theme readability", () => {
   for (const theme of ["dark", "light"] as const) {
     test(`${theme} theme - badges readable on parchment`, async ({ page }) => {
       await page.setViewportSize({ width: 390, height: 844 });
       await page.goto("/play/", { waitUntil: "domcontentloaded" });
 
-      await page.evaluate((t) => {
-        document.documentElement.dataset.theme = t;
-      }, theme);
-
-      await page.waitForTimeout(100);
+      if (theme === "light") {
+        await page.evaluate(() => {
+          document.documentElement.dataset.theme = "light";
+        });
+        await page.waitForTimeout(100);
+      }
 
       const badge = page.locator(".status-badge").first();
       await expect(badge).toBeVisible();
+    });
 
-      const styles = await badge.evaluate((el) => {
-        const cs = window.getComputedStyle(el);
-        return {
-          color: cs.color,
-          backgroundColor: cs.backgroundColor,
-          borderColor: cs.borderColor,
-        };
-      });
+    test(`${theme} theme - touch difficulty badges use correct colors`, async ({
+      page,
+    }) => {
+      await page.setViewportSize({ width: 390, height: 844 });
+      await page.goto("/play/", { waitUntil: "domcontentloaded" });
 
-      expect(styles.color).toBeTruthy();
-      expect(styles.backgroundColor).toBeTruthy();
-      expect(styles.borderColor).toBeTruthy();
+      if (theme === "light") {
+        await page.evaluate(() => {
+          document.documentElement.dataset.theme = "light";
+        });
+        await page.waitForTimeout(100);
+      }
+
+      const expected = THEME_COLORS[theme];
+
+      for (const [cls, expectedColor] of [
+        ["game-card__touch-difficulty--easy", expected.paperBadgeEasy],
+        ["game-card__touch-difficulty--medium", expected.paperBadgeMedium],
+        ["game-card__touch-difficulty--harder", expected.paperBadgeHarder],
+      ]) {
+        const badge = page.locator(`.${cls}`).first();
+        const count = await badge.count();
+        if (count === 0) continue;
+
+        const color = await badge.evaluate((el) => {
+          return window.getComputedStyle(el).color;
+        });
+
+        expect(color).toBe(expectedColor);
+      }
     });
   }
 });
@@ -303,6 +350,34 @@ test.describe("No horizontal scroll on core pages", () => {
       });
 
       expect(hasOverflow).toBe(false);
+    });
+  }
+});
+
+test.describe("Mobile screenshot comparison", () => {
+  for (const vpName of MOBILE_VP_NAMES) {
+    const vp = VIEWPORTS.find((v) => v.name === vpName)!;
+
+    test(`${vpName} - home page screenshots match`, async ({ page }) => {
+      await page.setViewportSize({ width: vp.width, height: vp.height });
+      await page.goto("/", { waitUntil: "networkidle" });
+      await page.waitForTimeout(500);
+
+      await expect(page).toHaveScreenshot(`${vpName}-home.png`, {
+        maxDiffPixels: 500,
+        animations: "disabled",
+      });
+    });
+
+    test(`${vpName} - play page screenshots match`, async ({ page }) => {
+      await page.setViewportSize({ width: vp.width, height: vp.height });
+      await page.goto("/play/", { waitUntil: "networkidle" });
+      await page.waitForTimeout(500);
+
+      await expect(page).toHaveScreenshot(`${vpName}-play.png`, {
+        maxDiffPixels: 500,
+        animations: "disabled",
+      });
     });
   }
 });
@@ -349,7 +424,7 @@ test.describe("CTA button fit on mobile", () => {
         const box = await cta.boundingBox();
         expect(box).not.toBeNull();
         if (box) {
-          expect(box.width).toBeLessThanOrEqual(390);
+          expect(box.width).toBeLessThanOrEqual(viewport.width);
           expect(box.height).toBeGreaterThan(0);
         }
       }

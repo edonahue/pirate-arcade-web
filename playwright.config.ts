@@ -11,6 +11,10 @@ export default defineConfig({
   timeout: 120000,
   expect: {
     timeout: 10000,
+    toHaveScreenshot: {
+      maxDiffPixels: 500,
+      animations: "disabled",
+    },
   },
   use: {
     baseURL: "http://127.0.0.1:4327",
