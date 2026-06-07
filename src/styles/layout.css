@@ -151,48 +151,77 @@
   gap: 1.5rem;
 }
 
-.site-nav {
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-}
-
-.skip-link {
-  position: absolute;
-  top: -100%;
-  left: 0.5rem;
-  z-index: 200;
-  padding: 0.5rem 1rem;
-  background: var(--accent);
-  color: #fff;
-  font-family: var(--mono);
-  font-size: 0.875rem;
+/* Theme toggle */
+.theme-toggle {
+  background: var(--surface-soft);
+  border: 1px solid var(--chart-line);
   border-radius: var(--radius);
-  text-decoration: none;
-  transition: top 0.15s;
-}
-
-.skip-link:focus {
-  top: 0.5rem;
-}
-
-.site-nav a {
-  font-family: var(--mono);
-  font-size: 0.875rem;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  padding: 0.375rem 0.75rem;
-  border-radius: var(--radius);
+  width: 36px;
+  height: 36px;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
   color: var(--muted);
+  font-size: 1rem;
   transition:
     color 0.15s,
-    background 0.15s;
+    background 0.15s,
+    border-color 0.15s;
 }
 
-.site-nav a:hover,
-.site-nav a[aria-current="page"] {
+.theme-toggle:hover {
+  background: var(--surface);
+  color: var(--ink-strong);
+  border-color: var(--brass);
+}
+
+.theme-toggle:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+/* Support link (header) */
+.support-link {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  color: var(--muted);
+  border-radius: var(--radius);
+  background: var(--surface-soft);
+  transition:
+    color 0.15s,
+    background 0.15s,
+    border-color 0.15s;
+  border: 1px solid transparent;
+}
+
+.support-link:hover {
   color: var(--ink-strong);
   background: var(--surface);
+  border-color: var(--brass);
+}
+
+.support-link:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+/* Support link (footer) */
+.support-link--footer {
+  font-family: var(--mono);
+  font-size: 0.8125rem;
+  color: var(--brass);
+}
+
+.support-link--footer:hover {
+  color: var(--brass-strong);
+  background: var(--surface-soft);
+}
+
+.support-link--footer:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
 }
 
 /* Theme toggle */
@@ -447,16 +476,28 @@
   text-transform: uppercase;
   letter-spacing: 0.08em;
   padding: 0.375rem 0.75rem;
-  background: var(--surface-soft);
-  color: var(--ink);
-  border: 1px solid var(--line);
+  background: var(--paper-chip-bg);
+  color: var(--paper-chip-fg);
+  border: 1px solid var(--paper-chip-border);
   border-radius: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 
 .game-card__feature-chip:hover {
   background: var(--surface);
   color: var(--ink);
   border-color: var(--brass);
+}
+
+@media (max-width: 640px) {
+  .game-card__feature-chip {
+    font-size: 0.6875rem;
+    padding: 0.3rem 0.5rem;
+    letter-spacing: 0.05em;
+  }
 }
 
 .game-card__footer {
@@ -473,9 +514,9 @@
   font-size: 0.875rem;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  color: var(--brass);
-  background: var(--surface-soft);
-  border: 1px solid var(--brass);
+  color: var(--paper-cta-fg);
+  background: var(--paper-cta-bg);
+  border: 1px solid var(--paper-cta-border);
   border-radius: var(--radius);
   padding: 0.5rem 1rem;
   text-decoration: none;
@@ -483,8 +524,8 @@
 }
 
 .game-card__play-link:hover {
-  background: var(--brass);
-  color: var(--paper-ink);
+  background: var(--paper-cta-border);
+  color: var(--paper-cta-fg);
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(201, 164, 92, 0.3);
 }
@@ -492,6 +533,13 @@
 .game-card__play-link:focus-visible {
   outline: 2px solid var(--focus);
   outline-offset: 2px;
+}
+
+@media (max-width: 640px) {
+  .game-card__play-link {
+    font-size: 0.8125rem;
+    padding: 0.5rem 0.75rem;
+  }
 }
 
 .game-card__touch-difficulty {
@@ -505,6 +553,21 @@
   opacity: 0.9;
   white-space: nowrap;
   margin-left: 0.5rem;
+}
+
+.game-card__touch-difficulty--easy {
+  color: var(--paper-badge-easy-fg);
+  border-color: var(--paper-badge-easy-border);
+}
+
+.game-card__touch-difficulty--medium {
+  color: var(--paper-badge-medium-fg);
+  border-color: var(--paper-badge-medium-border);
+}
+
+.game-card__touch-difficulty--harder {
+  color: var(--paper-badge-harder-fg);
+  border-color: var(--paper-badge-harder-border);
 }
 
 /* Add subtle scanline effect for CRT feel - only if not reducing motion */

@@ -77,26 +77,28 @@ const touchDifficultyLabel = game.touchDifficulty
         }
       </div>
       <div class="game-card__footer">
-        <StatusBadge
-          variant={game.status === "desktop-available"
-            ? "available"
-            : game.status === "browser-playable"
+        <div class="game-card__footer-badges">
+          <StatusBadge
+            variant={game.status === "desktop-available"
               ? "available"
-              : game.status === "browser-planned"
-                ? "planned"
-                : "experimental"}
-          label={game.statusLabel}
-        />
-        {
-          touchDifficulty && touchDifficultyLabel && (
-            <span
-              class="game-card__touch-difficulty"
-              style={`color: ${touchDifficulty.color}`}
-            >
-              {touchDifficultyLabel}
-            </span>
-          )
-        }
+              : game.status === "browser-playable"
+                ? "available"
+                : game.status === "browser-planned"
+                  ? "planned"
+                  : "experimental"}
+            label={game.statusLabel}
+            context="paper"
+          />
+          {
+            touchDifficulty && touchDifficultyLabel && (
+              <span
+                class={`game-card__touch-difficulty game-card__touch-difficulty--${game.touchDifficulty}`}
+              >
+                {touchDifficultyLabel}
+              </span>
+            )
+          }
+        </div>
         {
           game.browserUrl && game.status === "browser-playable" && (
             <a

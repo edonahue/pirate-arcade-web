@@ -28,6 +28,7 @@ npm run check:dependency-hygiene
 npm run test:service-worker
 npm run test:archive-parity
 npm run audit:game-archives
+npm run test:visual-polish       # Mobile visual layout/contrast (88 tests)
 npm run test:browser-games:chromium  # Playwright
 npm run test:a11y
 npm run test:mobile-layout

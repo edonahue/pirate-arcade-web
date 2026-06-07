@@ -1,14 +1,17 @@
 ---
 export type BadgeVariant = "available" | "planned" | "experimental" | "post";
+export type BadgeContext = "default" | "paper";
 
 export interface Props {
   variant?: BadgeVariant;
   label: string;
+  context?: BadgeContext;
 }
 
-const { variant = "planned", label } = Astro.props;
+const { variant = "planned", label, context = "default" } = Astro.props;
+const contextClass = context === "paper" ? "status-badge--paper" : "";
 ---
 
-<span class={`status-badge status-badge--${variant}`}>
+<span class={`status-badge status-badge--${variant} ${contextClass}`}>
   {label}
 </span>

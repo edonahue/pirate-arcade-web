@@ -122,6 +122,9 @@ npm run test:mobile-runtime
 # Mobile controls regression (iOS Safari classList.contains bug)
 npm run test:mobile-regression
 
+# Mobile visual polish (header/nav, game card footer stacking, badge contrast, feature chip overflow, CTA fit)
+npm run test:visual-polish
+
 # Audit browser game archives for size, suspicious files
 npm run audit:game-archives
 
@@ -157,6 +160,7 @@ tests/
                                 #   paddle color diversity, pixel rendering, Kraken's Wake CI skip
   game-prewarm.spec.ts          # Prewarm data attributes + WARM_CACHE + single-installer + dedup
   site-theme.spec.ts            # Visual smoke + prewarm verification
+  mobile-visual-polish.spec.ts # Mobile visual layout/contrast (header, nav, game card footer, badges, chips, CTAs)
   mobile-game-layout.spec.ts    # Canvas positioning, touch control sizing
   mobile-navigation.spec.ts    # Back-to-Arcade link visibility and navigation
   mobile-drag-controls.spec.ts  # Drag-zone input verification

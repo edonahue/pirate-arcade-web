@@ -145,6 +145,14 @@
   transform: translateY(-1px);
 }
 
+/* CTA mobile improvements */
+@media (max-width: 640px) {
+  .cta {
+    padding: 0.625rem 1.25rem;
+    font-size: 0.875rem;
+  }
+}
+
 /* Status Badge */
 .status-badge {
   display: inline-flex;
@@ -181,6 +189,31 @@
   border-color: var(--brass);
   color: var(--brass);
   background: rgba(201, 164, 92, 0.08);
+}
+
+/* Paper context badge variants */
+.status-badge--paper.status-badge--available {
+  border-color: var(--paper-badge-available-border);
+  color: var(--paper-badge-available-fg);
+  background: var(--paper-badge-available-bg);
+}
+
+.status-badge--paper.status-badge--planned {
+  border-color: var(--paper-badge-planned-border);
+  color: var(--paper-badge-planned-fg);
+  background: var(--paper-badge-planned-bg);
+}
+
+.status-badge--paper.status-badge--experimental {
+  border-color: var(--paper-badge-experimental-border);
+  color: var(--paper-badge-experimental-fg);
+  background: var(--paper-badge-experimental-bg);
+}
+
+.status-badge--paper.status-badge--post {
+  border-color: var(--paper-badge-post-border);
+  color: var(--paper-badge-post-fg);
+  background: var(--paper-badge-post-bg);
 }
 
 /* Arcade Frame */
