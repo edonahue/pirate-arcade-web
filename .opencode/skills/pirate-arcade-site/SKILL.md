@@ -35,10 +35,13 @@ Always use `ASSET_VERSION` from `scripts/game-asset-versions.mjs` for archive UR
 
 ## Game Data
 
-- Browser-playable: cannonball-clash (`/play/cannonball-clash/`), treasure-cove (`/play/treasure-cove/`), krakens-wake (`/play/krakens-wake/`)
+- Browser-playable: cannonball-clash, treasure-cove, krakens-wake (from `games.json`)
 - Desktop-only: port-royale-tycoon (linked to GH releases)
 - Prewarm uses `passive: true` touchstart with no `preventDefault()`
 - Runtime globals in `public/play/shared/`: `__paCanvasLayout`, `__paBootMetrics`, `PirateArcadeInput`
+- See `docs/adr/0001-fourth-browser-game-architecture.md` for fourth game decision
+- See `docs/new-browser-game-checklist.md` for full onboarding checklist
+- See `scripts/create-browser-game-scaffold.mjs` for new game scaffold tool
 
 ## Validation
 
@@ -56,7 +59,7 @@ Or full:
 npm run verify:release:full   # adds a11y, mobile, iPad, theme, browser game tests
 ```
 
-Fast gate checks: format, typecheck, build, SEO audit, copy tone, CSS tokens, visual contrast, dependency hygiene, cloudflare headers, browser game shells, service worker, cache versioning, game versions, archive parity & audit, public domain art, game theming source, screenshot assets, performance budgets.
+Fast gate checks: format, typecheck, build, SEO audit, copy tone, CSS tokens, visual contrast, dependency hygiene, cloudflare headers (derived from `games.json`), browser game shells, service worker (ASSETS_TO_CACHE + isGameShell coverage), cache versioning, game versions, archive parity & audit, public domain art, game theming source, screenshot assets, performance budgets.
 
 ## Screenshots
 

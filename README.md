@@ -130,4 +130,4 @@ See [DEPLOYMENT.md](./DEPLOYMENT.md) for Cloudflare Pages setup instructions.
 
 MIT
 
-<!-- Last updated: Sat Jun  6 02:54:43 AM EDT 2026 -->
+<!-- Last updated: Sun Jun  7 2026 -->

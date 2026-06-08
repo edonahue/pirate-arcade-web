@@ -66,10 +66,13 @@ screenshot — do not capture it from `/play/`.
 
 ## Game data notes
 
-- Browser-playable: cannonball-clash, treasure-cove, krakens-wake
+- Browser-playable: cannonball-clash, treasure-cove, krakens-wake (from `games.json`)
 - Desktop-only: port-royale-tycoon
 - Prewarm uses passive touchstart, no `preventDefault()`
 - `__paCanvasLayout`, `__paBootMetrics`, `PirateArcadeInput` are runtime globals from shared scripts
+- Fourth game architecture documented in `docs/adr/0001-fourth-browser-game-architecture.md`
+- Onboarding steps in `docs/new-browser-game-checklist.md` (22-step checklist)
+- Scaffold tool: `scripts/create-browser-game-scaffold.mjs` (dry-run-first, requires `--apply`)
 
 ## Constraint reminders
 
@@ -77,6 +80,20 @@ screenshot — do not capture it from `/play/`.
 - Vanilla CSS via tokens — no Tailwind or CSS-in-JS
 - Never add paid cloud services or backends
 - Every game is a data point in the AI experiment
+- `dependencies` should remain empty (`{}`); all packages go in `devDependencies`
+- Adding a dev-dep requires updating both `package.json` and `ALLOWED_DEV_DEPS` in `check-dependency-hygiene.mjs`
+
+## Validation auto-discovery
+
+Several validators derive game lists from `games.json` and will catch
+missing entries if you forget to update related files:
+
+| Validator                         | What it catches                                            |
+| --------------------------------- | ---------------------------------------------------------- |
+| `check-cloudflare-headers.mjs`    | Missing CSP entries in `_headers`                          |
+| `check-service-worker-compat.mjs` | Missing ASSETS_TO_CACHE or `isGameShell` paths in `sw.js`  |
+| `check-browser-game-shells.mjs`   | Missing shell files, CSP, SW cache entries                 |
+| `seo-audit.mjs`                   | Missing browserUrl, screenshot, llms.txt, sitemap coverage |
 
 ## Copy & Tone
 

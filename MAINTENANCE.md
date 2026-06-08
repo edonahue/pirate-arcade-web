@@ -88,14 +88,35 @@ npm run verify:release:fast
 `CACHE_VERSION` in `scripts/game-asset-versions.mjs`. Both are
 `"pirate-arcade-games-v8"`. Bump both when game assets change.
 
+**ASSETS_TO_CACHE** must include:
+
+- Every browser-playable game's directory route (`/play/<id>/`)
+- Every browser-playable game's `.tar.gz` archive
+- All shared scaffolding (`/play/shared/*`)
+- `/favicon.svg`
+
+Validated automatically by `check-service-worker-compat.mjs` (includes
+ASSETS_TO_CACHE coverage, isGameShell fetch strategy paths).
+
 **Cache behavior:**
 
-- Archive `.tar.gz` files: network-first (always get latest).
-- Versioned shared scripts (`/play/shared/*.js?v=...`): cache-first.
-- Game shell JS/CSS: cache-first.
-- All other requests (including screenshots): stale-while-revalidate.
+- Archive `.tar.gz` files: **network-first** (always get latest after deploy).
+- Game shell JS/CSS (identified by `isGameShell` variable in fetch strategy):
+  **network-first** so mobile controls update immediately.
+- All versioned assets (`?v=` query): **cache-first**.
+- HTML pages (documents): **network-first**.
+- `/favicon.svg`: **cache-first**.
+- Everything else (including screenshots): **stale-while-revalidate**.
 - `ACTIVATE` lifecycle: deletes all caches not matching the current
   `CACHE_VERSION`.
+
+**When adding a new game, you must update sw.js:**
+
+1. Add to `ASSETS_TO_CACHE` (directory route + `.tar.gz`)
+2. Add `url.pathname.startsWith("/play/<id>/")` to the `isGameShell` block
+   in the fetch strategy
+
+Both are validated automatically by `check-service-worker-compat.mjs`.
 
 Screenshots use stale-while-revalidate by default. After a deploy
 updates a screenshot, users see the current version after at most one
@@ -113,20 +134,34 @@ previous SW version, hard-refresh (Ctrl+Shift+R).
 - **Game routes (`/play/*`):** CSP is detached via `!` prefix and
   re-added with `unsafe-eval` (required by Pygbag).
 
+`scripts/check-cloudflare-headers.mjs` validates CSP — it derives game
+routes from `games.json` dynamically, so adding a new game to the data
+file automatically ensures it's checked.
+
+**When adding a new game**, add 3 route blocks to `public/_headers`:
+`/play/<id>/`, `/play/<id>/index.html`, `/play/<id>/*`. Each must have
+`! Content-Security-Policy` detach and a full permissive CSP.
+
 Run `npm run test:check-headers` to validate CSP.
 
 ## Dependency hygiene
 
-`scripts/check-dependency-hygiene.mjs` checks:
+`scripts/check-dependency-hygiene.mjs` uses **explicit allowlists**:
 
-- Known dev-only packages (playwright, lighthouse, etc.) are NOT in
-  `dependencies` (only in `devDependencies`).
-- `astro` is in one of the two sections.
-- `sharp` may be in either section (used by Astro image service at build
-  time and by the screenshot capture script).
+- `ALLOWED_RUNTIME_DEPS` — currently **empty** (`{}`). This is a static
+  Astro site — no runtime code needs npm packages. Keep it empty.
+- `ALLOWED_DEV_DEPS` — 56 intentional dev-only packages (build, test,
+  lint, validation tooling).
 
-If you add a new dev-only package, add it to the `KNOWN_DEV_PACKAGES`
-array in the hygiene script to prevent accidental misclassification.
+The validator scans every `import`/`require` in `src/` and `scripts/` and
+fails if any resolved package is not in the allowlists. It skips Node.js
+built-ins, `astro:` imports, and relative/glob imports.
+
+**If you add a new dev dependency:**
+
+1. `npm install --save-dev <package>` (never `--save`)
+2. Add the package name to `ALLOWED_DEV_DEPS` in `check-dependency-hygiene.mjs`
+3. Run `npm run check:dependency-hygiene` to verify
 
 ## Dependabot
 
@@ -153,7 +188,7 @@ Browser game Python archives live at:
 `https://pygame-web.github.io/archives/<id>-<ASSET_VERSION>.tar.gz`
 
 `ASSET_VERSION` (from `scripts/game-asset-versions.mjs`) must be the
-same across all three browser games. Currently `"mobile-v5"`.
+same across all browser games. Currently `"mobile-v5"`.
 
 **Validation:**
 
@@ -174,6 +209,19 @@ same across all three browser games. Currently `"mobile-v5"`.
 - Total image size < 500 KB.
 
 Budgets file: runs from `dist/` after build.
+
+## New browser game architecture & checklist
+
+- **ADR 0001** (`docs/adr/0001-fourth-browser-game-architecture.md`):
+  Documents the decision to continue with Pygame/Pygbag for the fourth
+  browser-playable game.
+- **New game checklist** (`docs/new-browser-game-checklist.md`): 22-step
+  checklist covering everything from source setup through post-release
+  verification.
+- **Scaffold script** (`scripts/create-browser-game-scaffold.mjs`):
+  Dry-run-first tool that creates a new game shell from template. Run
+  with `--id <game-id> --title "Game Title"` to preview, add `--apply`
+  to write files.
 
 ## Visual contrast
 

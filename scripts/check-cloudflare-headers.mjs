@@ -26,6 +26,15 @@ import { readFileSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const ROOT = resolve(__dirname, "..");
+
+// Read canonical game list from games.json
+const gamesMeta = JSON.parse(
+  readFileSync(resolve(ROOT, "src/data/games.json"), "utf-8"),
+);
+const BROWSER_GAMES = gamesMeta.filter((g) => g.status === "browser-playable");
+
 const HEADERS_PATH = resolve(
   dirname(fileURLToPath(import.meta.url)),
   "..",
@@ -228,17 +237,12 @@ function main() {
 
   // ── Rule-level checks ──
 
-  const gamePatterns = [
-    "/play/cannonball-clash/",
-    "/play/cannonball-clash/index.html",
-    "/play/cannonball-clash/*",
-    "/play/treasure-cove/",
-    "/play/treasure-cove/index.html",
-    "/play/treasure-cove/*",
-    "/play/krakens-wake/",
-    "/play/krakens-wake/index.html",
-    "/play/krakens-wake/*",
-  ];
+  // Derive game patterns from games.json (single source of truth)
+  const gamePatterns = BROWSER_GAMES.flatMap((g) => [
+    `/play/${g.id}/`,
+    `/play/${g.id}/index.html`,
+    `/play/${g.id}/*`,
+  ]);
 
   for (const pat of gamePatterns) {
     const rule = rules.find((r) => r.pattern === pat);
@@ -297,54 +301,27 @@ function main() {
 
   console.log("\n── Effective CSP per URL ──\n");
 
+  // Build test cases dynamically from games.json
   const testCases = [
     { url: "/", expectUnsafeEval: false, desc: "site root" },
     { url: "/play/", expectUnsafeEval: false, desc: "arcade index" },
-    {
-      url: "/play/cannonball-clash/",
-      expectUnsafeEval: true,
-      desc: "cannonball-clash directory index",
-    },
-    {
-      url: "/play/cannonball-clash/index.html",
-      expectUnsafeEval: true,
-      desc: "cannonball-clash explicit HTML",
-    },
-    {
-      url: "/play/cannonball-clash/cannonball-clash.tar.gz",
-      expectUnsafeEval: true,
-      desc: "cannonball-clash sub-resource",
-    },
-    {
-      url: "/play/treasure-cove/",
-      expectUnsafeEval: true,
-      desc: "treasure-cove directory index",
-    },
-    {
-      url: "/play/treasure-cove/index.html",
-      expectUnsafeEval: true,
-      desc: "treasure-cove explicit HTML",
-    },
-    {
-      url: "/play/treasure-cove/treasure-cove.tar.gz",
-      expectUnsafeEval: true,
-      desc: "treasure-cove sub-resource",
-    },
-    {
-      url: "/play/krakens-wake/",
-      expectUnsafeEval: true,
-      desc: "krakens-wake directory index",
-    },
-    {
-      url: "/play/krakens-wake/index.html",
-      expectUnsafeEval: true,
-      desc: "krakens-wake explicit HTML",
-    },
-    {
-      url: "/play/krakens-wake/krakens-wake.tar.gz",
-      expectUnsafeEval: true,
-      desc: "krakens-wake sub-resource",
-    },
+    ...BROWSER_GAMES.flatMap((g) => [
+      {
+        url: `/play/${g.id}/`,
+        expectUnsafeEval: true,
+        desc: `${g.id} directory index`,
+      },
+      {
+        url: `/play/${g.id}/index.html`,
+        expectUnsafeEval: true,
+        desc: `${g.id} explicit HTML`,
+      },
+      {
+        url: `/play/${g.id}/${g.id}.tar.gz`,
+        expectUnsafeEval: true,
+        desc: `${g.id} sub-resource`,
+      },
+    ]),
     { url: "/about/", expectUnsafeEval: false, desc: "non-game route" },
   ];
 
@@ -355,12 +332,12 @@ function main() {
     assert(effective.size > 0, `${tc.desc} (${tc.url}) has headers`);
 
     // Verify effective CSP content
-    const globalCSP =
-      globalRule?.setHeaders.get("content-security-policy") || "";
-    const gameCSP =
-      rules
-        .find((r) => r.pattern === "/play/cannonball-clash/*")
-        ?.setHeaders.get("content-security-policy") || "";
+    const anyGameCSP =
+      BROWSER_GAMES.length > 0
+        ? rules
+            .find((r) => r.pattern === `/play/${BROWSER_GAMES[0].id}/*`)
+            ?.setHeaders.get("content-security-policy") || ""
+        : "";
 
     if (tc.expectUnsafeEval) {
       assert(
@@ -376,10 +353,10 @@ function main() {
         `${tc.desc} (${tc.url}) effective CSP includes cdn.pygame.org`,
       );
       // The global CSP (without unsafe-eval) must NOT be present
-      if (globalCSP && gameCSP) {
+      if (anyGameCSP) {
         // Ensure the CSP is the game CSP, not a merge
         assert(
-          csp === gameCSP,
+          csp === anyGameCSP,
           `${tc.desc} (${tc.url}) effective CSP is exactly the game CSP, not merged with global CSP`,
         );
       }
@@ -394,7 +371,8 @@ function main() {
   // ── Other headers inherit correctly ──
   console.log("\n── Non-CSP header inheritance ──\n");
 
-  const gameUrl = "/play/cannonball-clash/";
+  const firstGame = BROWSER_GAMES.length > 0 ? BROWSER_GAMES[0] : null;
+  const gameUrl = firstGame ? `/play/${firstGame.id}/` : "/";
   const gHeaders = computeEffectiveHeaders(gameUrl, rules);
 
   assert(

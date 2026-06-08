@@ -25,9 +25,11 @@ const ROOT = resolve(__dirname, "..");
 // Read game list from games.json (single source of truth)
 const gamesPath = resolve(ROOT, "src/data/games.json");
 const gamesMeta = JSON.parse(readFileSync(gamesPath, "utf-8"));
-const GAMES = gamesMeta
-  .filter((g) => g.status === "browser-playable")
-  .map((g) => ({ id: g.id, html: `public/play/${g.id}/index.html` }));
+const BROWSER_GAMES = gamesMeta.filter((g) => g.status === "browser-playable");
+const GAMES = BROWSER_GAMES.map((g) => ({
+  id: g.id,
+  html: `public/play/${g.id}/index.html`,
+}));
 
 // Desktop-only game IDs from games.json (for ASSETS_TO_CACHE check)
 const DESKTOP_ONLY_IDS = gamesMeta
@@ -136,16 +138,74 @@ if (swCode.includes("WARM_CACHE")) {
   }
 }
 
-// 7. ASSETS_TO_CACHE only includes browser-playable games (no desktop-only)
+// 7. ASSETS_TO_CACHE must include ALL browser-playable games (no desktop-only)
 const assetsSectionStart = swCode.indexOf("ASSETS_TO_CACHE");
 const assetsSectionEnd = swCode.indexOf("];", assetsSectionStart);
 if (assetsSectionStart !== -1 && assetsSectionEnd !== -1) {
   const assetsSection = swCode.slice(assetsSectionStart, assetsSectionEnd + 2);
+
   for (const id of DESKTOP_ONLY_IDS) {
     if (assetsSection.includes(id)) {
       fail(`ASSETS_TO_CACHE must not contain desktop-only game: ${id}`);
     }
   }
+
+  for (const game of BROWSER_GAMES) {
+    const route = `/play/${game.id}/`;
+    const archivePath = `/play/${game.id}/${game.id}.tar.gz`;
+    const hasRoute = assetsSection.includes(route);
+    const hasArchive = assetsSection.includes(archivePath);
+    if (hasRoute && hasArchive) {
+      console.log(`  [PASS] ASSETS_TO_CACHE includes ${game.id} fully`);
+    } else {
+      if (!hasRoute) {
+        fail(`ASSETS_TO_CACHE missing directory entry: ${route}`);
+      }
+      if (!hasArchive) {
+        fail(`ASSETS_TO_CACHE missing archive entry: ${archivePath}`);
+      }
+    }
+  }
+
+  // Verify shared scaffolding assets
+  const SHARED_ASSETS = [
+    "/play/shared/game-boot-metrics.js",
+    "/play/shared/pygame-input-bridge.js",
+    "/play/shared/mobile-controls.js",
+    "/play/shared/mobile-controls.css",
+    "/play/shared/audio-bridge.js",
+  ];
+  for (const asset of SHARED_ASSETS) {
+    if (assetsSection.includes(asset)) {
+      console.log(`  [PASS] ASSETS_TO_CACHE includes shared: ${asset}`);
+    } else {
+      fail(`ASSETS_TO_CACHE missing shared asset: ${asset}`);
+    }
+  }
+}
+
+// 9. Fetch strategy must route ALL browser game shells through network-first
+const isGameShellBlock = swCode.match(/const isGameShell\s*=[\s\S]*?;\n/);
+if (isGameShellBlock) {
+  const block = isGameShellBlock[0];
+  for (const game of BROWSER_GAMES) {
+    const pathPattern = `/play/${game.id}/`;
+    if (block.includes(pathPattern)) {
+      console.log(`  [PASS] isGameShell includes ${game.id}`);
+    } else {
+      fail(
+        `isGameShell fetch strategy missing path: startsWith("${pathPattern}")`,
+      );
+    }
+  }
+  // Verify shared path is included
+  if (block.includes("/play/shared/")) {
+    console.log(`  [PASS] isGameShell includes shared assets path`);
+  } else {
+    fail(`isGameShell fetch strategy missing shared assets path`);
+  }
+} else {
+  fail("sw.js must have isGameShell variable in fetch strategy");
 }
 
 // --- Check each game HTML ---

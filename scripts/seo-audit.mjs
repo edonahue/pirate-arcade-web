@@ -10,7 +10,6 @@ const requiredFiles = [
   "dist/index.html",
 ];
 
-// Core routes that must always exist
 const CORE_ROUTES = [
   "/",
   "/play/",
@@ -32,11 +31,9 @@ for (const file of requiredFiles) {
 
 if (process.exitCode) process.exit();
 
-// Read games.json for data-driven routes
 const gamesPath = resolve("src/data/games.json");
 const gamesMeta = JSON.parse(readFileSync(gamesPath, "utf-8"));
 
-// Build importantRoutes from games.json
 const importantRoutes = new Set([
   ...CORE_ROUTES,
   "/feed.xml",
@@ -46,12 +43,10 @@ const importantRoutes = new Set([
   "/llms-full.txt",
 ]);
 
-// Add game detail routes for all games
 for (const game of gamesMeta) {
   importantRoutes.add(`/games/${game.id}/`);
 }
 
-// Add browser play routes for browser-playable games
 for (const game of gamesMeta.filter((g) => g.status === "browser-playable")) {
   importantRoutes.add(`/play/${game.id}/`);
 }
@@ -59,12 +54,6 @@ for (const game of gamesMeta.filter((g) => g.status === "browser-playable")) {
 const importantRoutesList = [...importantRoutes].map(
   (p) => `https://pirate-arcade.com${p}`,
 );
-
-for (const file of requiredFiles) {
-  if (!existsSync(file)) fail(`missing ${file}`);
-}
-
-if (process.exitCode) process.exit();
 
 const home = readFileSync("dist/index.html", "utf8");
 const sitemap = readFileSync("dist/sitemap.xml", "utf8");
@@ -104,12 +93,10 @@ if (/localhost|127\.0\.0\.1|<loc>http:/.test(home + sitemap)) {
   fail("found invalid local or http URL in SEO output");
 }
 
-// Check for stale "two browser ports" reference
 if (/two browser ports|two browser-playable/i.test(home + sitemap)) {
   fail('found stale "two browser ports" reference');
 }
 
-// Check for stale "desktop-only" or "desktop game" for Kraken's Wake
 if (
   /krakens?-wake.*desktop-only|desktop-only.*krakens?-wake|krakens?-wake.*desktop game/i.test(
     home + sitemap,
@@ -118,9 +105,99 @@ if (
   fail('found stale "desktop-only" claim for Kraken\'s Wake');
 }
 
-// Check that Kraken's Wake is marked as browser-playable
 if (!/play\/krakens-wake/i.test(home + sitemap)) {
   fail("missing /play/krakens-wake/ reference");
+}
+
+// 1. Every browser-playable game must have a browserUrl
+for (const game of gamesMeta.filter((g) => g.status === "browser-playable")) {
+  if (!game.browserUrl) {
+    fail(`browser-playable game "${game.id}" missing browserUrl`);
+  }
+  if (!game.browserUrl.startsWith("/play/")) {
+    fail(
+      `browser-playable game "${game.id}" browserUrl must start with /play/`,
+    );
+  }
+}
+
+// 2. Every browser-playable game must have a screenshot
+for (const game of gamesMeta.filter((g) => g.status === "browser-playable")) {
+  if (!game.screenshot) {
+    fail(`browser-playable game "${game.id}" missing screenshot`);
+  }
+  if (!game.screenshot.startsWith("/images/screenshot-")) {
+    fail(
+      `browser-playable game "${game.id}" screenshot path must be /images/screenshot-<id>.png`,
+    );
+  }
+  const screenshotPath = resolve("public", game.screenshot.replace(/^\//, ""));
+  if (!existsSync(screenshotPath)) {
+    fail(`screenshot file missing for "${game.id}": ${screenshotPath}`);
+  }
+}
+
+// 3. Every desktop-available game without browserUrl must not appear under /play/<id>/
+for (const game of gamesMeta.filter(
+  (g) => g.status === "desktop-available" && !g.browserUrl,
+)) {
+  const playPath = resolve("public/play", game.id);
+  if (existsSync(playPath)) {
+    fail(
+      `desktop-only game "${game.id}" has /play/${game.id}/ directory but no browserUrl`,
+    );
+  }
+  const playRoute = `https://pirate-arcade.com/play/${game.id}/`;
+  if (sitemap.includes(`<loc>${playRoute}</loc>`)) {
+    fail(
+      `desktop-only game "${game.id}" appears in sitemap under /play/ but has no browserUrl`,
+    );
+  }
+}
+
+// 4. llms.txt must list all browser-playable games
+const llmsTxt = readFileSync("public/llms.txt", "utf8");
+for (const game of gamesMeta.filter((g) => g.status === "browser-playable")) {
+  if (!llmsTxt.includes(game.title)) {
+    fail(`llms.txt missing browser-playable game: ${game.title}`);
+  }
+  if (!llmsTxt.includes(`/play/${game.id}/`)) {
+    fail(`llms.txt missing play URL for ${game.title}: /play/${game.id}/`);
+  }
+}
+
+// 5. llms.txt must not list Port Royale as browser-playable
+if (
+  llmsTxt.includes("Port Royale Tycoon") &&
+  llmsTxt.includes("/play/port-royale-tycoon/")
+) {
+  fail("llms.txt incorrectly lists Port Royale Tycoon as browser-playable");
+}
+
+// 6. Every game detail page must have unique title/meta description
+for (const game of gamesMeta) {
+  const gameHtmlPath = resolve("dist/games", game.id, "index.html");
+  if (existsSync(gameHtmlPath)) {
+    const gameHtml = readFileSync(
+      resolve("dist/games", game.id, "index.html"),
+      "utf8",
+    );
+    const titleMatch = gameHtml.match(/<title>([^<]+)<\/title>/);
+    const descMatch = gameHtml.match(
+      /<meta\s+name="description"\s+content="([^"]+)"/,
+    );
+    if (!titleMatch) {
+      fail(`game detail page for "${game.id}" missing <title>`);
+    }
+    if (!descMatch) {
+      fail(`game detail page for "${game.id}" missing meta description`);
+    }
+    if (descMatch[1].length > 160) {
+      console.warn(
+        `seo-audit: game "${game.id}" meta description > 160 chars (${descMatch[1].length})`,
+      );
+    }
+  }
 }
 
 if (!process.exitCode) {

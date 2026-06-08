@@ -77,6 +77,17 @@
 - [x] Documentation chain: MAINTENANCE.md created, README/AGENTS/SKILL/DEPLOYMENT linked
 - [x] ROADMAP updated to current commit
 
+## Phase 5: Dependency Manifest Repair + Future-Game Readiness ✓ (Live)
+
+- [x] Package manifest cleanup: `dependencies` emptied (`{}`), all packages to `devDependencies`
+- [x] Dependency hygiene rewritten with explicit allowlists (ALLOWED_RUNTIME_DEPS, ALLOWED_DEV_DEPS)
+- [x] SEO audit enhanced: 7 new guardrails (browserUrl, screenshot, llms.txt consistency, per-game metadata)
+- [x] CSP validators derive game list from `games.json` (catches missing `_headers` entries)
+- [x] SW validators verify ALL browser games in ASSETS_TO_CACHE + isGameShell fetch strategy
+- [x] ADR 0001: Fourth browser game architecture (Pygame/Pygbag recommended)
+- [x] New browser game checklist (22-step onboarding)
+- [x] Scaffold script (`create-browser-game-scaffold.mjs`)
+
 ## Maybe / Future
 
 - [ ] Client-side high scores (localStorage only, no backend)
