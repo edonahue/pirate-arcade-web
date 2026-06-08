@@ -1,6 +1,8 @@
 import Phaser from "phaser";
 import { GAME_WIDTH, GAME_HEIGHT } from "../config";
 
+console.log("[RaceScene] Module loaded");
+
 // ── Race Tuning ──
 // Centralized tuning object so future settings UI can build from it.
 const RACE_TUNING = {
@@ -86,18 +88,25 @@ export class RaceScene extends Phaser.Scene {
   }
 
   create(): void {
-    this.resetState();
-    this.createBackground();
-    this.createPlayer();
-    this.createAIShip();
-    this.createGroups();
-    this.createFinishLine();
-    this.createTreasureIsland();
-    this.createHUD();
-    this.setupInput();
-    this.setupCollisions();
-    this.setupBootMetrics();
-    this.exposeState();
+    console.log("[RaceScene] create() START");
+    try {
+      this.resetState();
+      this.createBackground();
+      this.createPlayer();
+      this.createAIShip();
+      this.createGroups();
+      this.createFinishLine();
+      this.createTreasureIsland();
+      this.createHUD();
+      this.setupInput();
+      this.setupCollisions();
+      this.setupBootMetrics();
+      this.exposeState();
+      console.log("[RaceScene] create() completed successfully");
+    } catch (e) {
+      console.error("[RaceScene] create() failed:", e);
+      throw e;
+    }
   }
 
   update(_time: number, delta: number): void {
@@ -396,6 +405,21 @@ export class RaceScene extends Phaser.Scene {
         scrollSpeed: Math.floor(this.scrollSpeed),
         islandShown: this.islandShown,
       };
+
+      // Debug hooks for tests
+      (window as any).__paRaceDebugFinish = () => {
+        console.log("[RaceScene] Debug finish hook called, raceFinished:", this.raceFinished);
+        if (!this.raceFinished) {
+          this.playerProgress = RACE_TUNING.raceDistance;
+          this.checkFinish();
+        }
+      };
+      (window as any).__paRaceDebugPause = () => {
+        console.log("[RaceScene] Debug pause hook called, paused before:", this.paused);
+        this.togglePause();
+      };
+
+      console.log("[RaceScene] exposeState called, state:", (window as any).__paRaceToTreasureIslandState);
     }
   }
 
@@ -755,8 +779,13 @@ export class RaceScene extends Phaser.Scene {
   }
 
   private togglePause(): void {
-    if (this.raceFinished || this.gameOver) return;
+    console.log("[RaceScene] togglePause called, current paused:", this.paused, "raceFinished:", this.raceFinished, "gameOver:", this.gameOver);
+    if (this.raceFinished || this.gameOver) {
+      console.log("[RaceScene] togglePause early return");
+      return;
+    }
     this.paused = !this.paused;
+    console.log("[RaceScene] togglePause new paused:", this.paused);
     this.pauseText.setVisible(this.paused);
     const hint = this.pauseText.getData("hint") as Phaser.GameObjects.Text;
     if (hint) hint.setVisible(this.paused);

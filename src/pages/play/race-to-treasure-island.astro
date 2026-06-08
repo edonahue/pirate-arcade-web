@@ -115,12 +115,20 @@ const title = `${game.title} — Pirate Arcade`;
   const urlParams = new URLSearchParams(window.location.search);
   const seed = urlParams.get("seed") || undefined;
   const screenshotMode = urlParams.has("screenshot");
+  const testTouchMode = urlParams.has("testTouch");
+  // Force canvas renderer in headless environments or when testing to avoid WebGL context loss
+  const forceCanvas = screenshotMode || urlParams.has("forceCanvas") || navigator.webdriver === true;
 
+  console.log("[Astro] Creating game... forceCanvas:", forceCanvas);
   const game = createRaceToTreasureIsland(
     "game-container",
     seed,
-    screenshotMode,
+    forceCanvas,
   );
+  console.log("[Astro] Game created:", game);
+
+  // Expose game for test debugging
+  (window as any).__paRaceGame = game;
 
   const checkReady = setInterval(() => {
     const canvas = container?.querySelector("canvas");
@@ -221,6 +229,13 @@ const title = `${game.title} — Pirate Arcade`;
     if (hud) hud.style.display = "none";
     const tc = document.getElementById("touch-controls");
     if (tc) tc.style.display = "none";
+  }
+
+  // ── Test touch mode: force touch controls visible ──
+  if (testTouchMode) {
+    document.documentElement.classList.add("pa-force-touch-controls");
+    const tc = document.getElementById("touch-controls");
+    if (tc) tc.style.display = "flex";
   }
 </script>
 
@@ -512,5 +527,10 @@ const title = `${game.title} — Pirate Arcade`;
     .touch-controls {
       display: none;
     }
+  }
+
+  /* Force touch controls visible for desktop testing */
+  .pa-force-touch-controls .touch-controls {
+    display: flex !important;
   }
 </style>
