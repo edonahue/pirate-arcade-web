@@ -47,26 +47,38 @@ export class BootScene extends Phaser.Scene {
     this.generateTreasureIsland();
     this.generateFinishFlag();
     this.generateParticle();
+    this.generateSail();
   }
 
   private generateOceanBg(): void {
     const g = this.add.graphics();
-    const stripeH = GAME_HEIGHT / 6;
-    const colors = [0x0a1628, 0x0d1f3c, 0x0f2a4a, 0x123558, 0x102e50, 0x0e2848];
+    const stripeH = GAME_HEIGHT / 8;
+    const colors = [
+      0x0a1628, 0x0c1e38, 0x0f2a4a, 0x123558, 0x0f2a4a, 0x0c1e38, 0x0a1628,
+      0x0d1f3c,
+    ];
     for (let i = 0; i < colors.length; i++) {
       g.fillStyle(colors[i]);
       g.fillRect(0, i * stripeH, GAME_WIDTH, stripeH + 1);
     }
-    // Scatter small wave flecks
-    g.fillStyle(0xffffff, 0.03);
-    for (let i = 0; i < 60; i++) {
-      const wx = Phaser.Math.Between(0, GAME_WIDTH);
-      const wy = Phaser.Math.Between(0, GAME_HEIGHT);
+    // Rolling wave crests (horizontal lines)
+    g.lineStyle(1, 0x1a4a6a, 0.15);
+    for (let row = 0; row < 12; row++) {
+      const wy = row * (GAME_HEIGHT / 12);
+      for (let col = 0; col < GAME_WIDTH; col += 6) {
+        const offset = Math.sin(col * 0.03 + row * 0.8) * 3;
+        g.fillStyle(0xffffff, 0.02 + row * 0.003);
+        g.fillEllipse(col, wy + offset, 8, 2);
+      }
+    }
+    // Wave foam flecks
+    g.fillStyle(0xffffff, 0.04);
+    for (let i = 0; i < 80; i++) {
       g.fillEllipse(
-        wx,
-        wy,
-        Phaser.Math.Between(6, 20),
-        Phaser.Math.Between(2, 4),
+        Phaser.Math.Between(0, GAME_WIDTH),
+        Phaser.Math.Between(0, GAME_HEIGHT),
+        Phaser.Math.Between(4, 14),
+        Phaser.Math.Between(1, 3),
       );
     }
     g.generateTexture("ocean-bg", GAME_WIDTH, GAME_HEIGHT);
@@ -261,6 +273,19 @@ export class BootScene extends Phaser.Scene {
     g.fillStyle(0xffffff);
     g.fillCircle(2, 2, 2);
     g.generateTexture("particle", 4, 4);
+    g.destroy();
+  }
+
+  private generateSail(): void {
+    const g = this.add.graphics();
+    // Triangular sail pointing up-right
+    g.fillStyle(0xffd700, 0.7);
+    g.fillTriangle(0, 20, 0, 0, 18, 0);
+    g.fillStyle(0xffaa00, 0.5);
+    g.fillTriangle(0, 16, 0, 2, 14, 2);
+    g.lineStyle(1, 0xffd700, 0.8);
+    g.lineBetween(0, 0, 0, 20);
+    g.generateTexture("sail", 20, 22);
     g.destroy();
   }
 }

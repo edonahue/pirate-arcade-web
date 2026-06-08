@@ -231,19 +231,19 @@ export class RaceScene extends Phaser.Scene {
 
     // Top-center: progress vs rival
     this.progressText = this.add
-      .text(GAME_WIDTH / 2, 8, "", {
+      .text(GAME_WIDTH / 2, 6, "", {
         ...style,
-        fontSize: "11px",
-        color: "#ffd700",
+        fontSize: "10px",
         align: "center",
+        lineSpacing: 1,
       })
       .setOrigin(0.5, 0)
       .setDepth(100);
 
     this.rivalText = this.add
-      .text(GAME_WIDTH / 2, 22, "", {
+      .text(GAME_WIDTH / 2, 30, "", {
         fontFamily: "monospace",
-        fontSize: "10px",
+        fontSize: "9px",
         color: "#ff6666",
         align: "center",
       })
@@ -251,8 +251,16 @@ export class RaceScene extends Phaser.Scene {
       .setDepth(100);
 
     // Boost bar (top-right)
-    const barX = GAME_WIDTH - 70;
-    const barY = 14;
+    const barX = GAME_WIDTH - 80;
+    const barY = 18;
+    this.add
+      .text(barX, 6, "WIND", {
+        fontFamily: "monospace",
+        fontSize: "8px",
+        color: "#88aacc",
+      })
+      .setOrigin(0.5, 0)
+      .setDepth(100);
     this.add.image(barX, barY, "boost-bar-bg").setOrigin(0.5).setDepth(100);
     this.boostBarFill = this.add
       .image(barX, barY, "boost-bar-fill")
@@ -261,7 +269,7 @@ export class RaceScene extends Phaser.Scene {
 
     // Sail indicator near player
     this.sailIndicator = this.add
-      .image(GAME_WIDTH / 2 - 60, GAME_HEIGHT - 80, "particle")
+      .image(GAME_WIDTH / 2 - 60, GAME_HEIGHT - 80, "sail")
       .setDepth(15)
       .setVisible(false)
       .setScale(0.5);
@@ -419,7 +427,6 @@ export class RaceScene extends Phaser.Scene {
       : RACE_TUNING.playerSpeed;
 
     this.player.setVelocityX(dir * speed);
-    this.player.setVelocityY(-this.scrollSpeed * 0.15);
 
     const boostBonus = this.boosting ? RACE_TUNING.boostProgressBonus : 0;
     this.playerProgress +=
@@ -436,13 +443,15 @@ export class RaceScene extends Phaser.Scene {
     if (this.boosting) {
       this.sailIndicator.setVisible(true);
       this.sailIndicator.setPosition(this.player.x - 20, this.player.y - 30);
-      this.sailIndicator.setTint(0xffd700);
-      this.sailIndicator.setScale(0.6 + Math.sin(this.time.now * 0.01) * 0.15);
+      this.sailIndicator.setTint(0xffdd44);
+      this.sailIndicator.setScale(1.0 + Math.sin(this.time.now * 0.008) * 0.2);
+      this.sailIndicator.setRotation(Math.sin(this.time.now * 0.005) * 0.1);
     } else if (dir !== 0) {
       this.sailIndicator.setVisible(true);
       this.sailIndicator.setPosition(this.player.x - 20, this.player.y - 30);
       this.sailIndicator.setTint(0x88aacc);
-      this.sailIndicator.setScale(0.35);
+      this.sailIndicator.setScale(0.6);
+      this.sailIndicator.setRotation(0);
     } else {
       this.sailIndicator.setVisible(false);
     }
@@ -616,20 +625,30 @@ export class RaceScene extends Phaser.Scene {
       this.treasureIsland.setVisible(true);
       this.treasureIsland.setPosition(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 40);
       // Animate island entrance
-      this.treasureIsland.setScale(0.5);
+      this.treasureIsland.setScale(0.3);
       this.treasureIsland.setAlpha(0);
       this.tweens.add({
         targets: this.treasureIsland,
         scale: 1,
         alpha: 1,
-        duration: 1500,
+        duration: 2000,
         ease: "Back.easeOut",
+      });
+      // Glow ring
+      const glow = this.add
+        .circle(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 40, 60, 0xffd700, 0.15)
+        .setDepth(3);
+      this.tweens.add({
+        targets: glow,
+        scale: 2,
+        alpha: 0,
+        duration: 2000,
+        onComplete: () => glow.destroy(),
       });
     }
 
     if (this.islandShown) {
-      // Bob gently
-      this.treasureIsland.y += Math.sin(this.time.now * 0.002) * 0.2;
+      this.treasureIsland.y += Math.sin(this.time.now * 0.002) * 0.3;
     }
   }
 
@@ -648,6 +667,9 @@ export class RaceScene extends Phaser.Scene {
     this.player.setTint(0xff4444);
     this.stunTimer = RACE_TUNING.stunDuration;
 
+    // Camera shake
+    this.cameras.main.shake(200, 0.008);
+
     // Slow scroll temporarily
     this.scrollSpeed = Math.max(
       RACE_TUNING.baseScrollSpeed * 0.7,
@@ -658,7 +680,7 @@ export class RaceScene extends Phaser.Scene {
     this.score = Math.max(0, this.score - 30);
 
     // Particle burst
-    for (let i = 0; i < 6; i++) {
+    for (let i = 0; i < 8; i++) {
       const p = this.add.image(obs.x, obs.y, "particle");
       p.setTint(0xff6600);
       p.setDepth(20);
@@ -757,7 +779,14 @@ export class RaceScene extends Phaser.Scene {
       100,
       Math.floor((this.rivalProgress / RACE_TUNING.raceDistance) * 100),
     );
-    this.progressText.setText(`You: ${playerPct}%  •  Long John: ${rivalPct}%`);
+    const barLen = 10;
+    const playerBars = Math.floor((playerPct / 100) * barLen);
+    const rivalBars = Math.floor((rivalPct / 100) * barLen);
+    const playerBar = "█".repeat(playerBars) + "░".repeat(barLen - playerBars);
+    const rivalBar = "█".repeat(rivalBars) + "░".repeat(barLen - rivalBars);
+    this.progressText.setText(
+      `You: ${playerPct}% [${playerBar}]\nLJ:  ${rivalPct}% [${rivalBar}]`,
+    );
     this.rivalText.setText(
       playerPct > rivalPct
         ? "↑ You're ahead!"
