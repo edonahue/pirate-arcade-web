@@ -9,7 +9,7 @@
 import { readFileSync } from "fs";
 import { resolve, dirname } from "path";
 import { fileURLToPath } from "url";
-import glob from "glob";
+import { globSync } from "glob";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = resolve(__dirname, "..");
@@ -45,7 +45,6 @@ const ALLOWED_DEV_DEPS = [
   "tar",
   "sharp",
   "glob",
-  ,
   "yaml-language-server",
   "vscode-css-languageservice",
   "vscode-html-languageservice",
@@ -190,7 +189,7 @@ if (!deps.includes("sharp") && !devDeps.includes("sharp")) {
 }
 
 // 6. Check that scripts don't import undeclared packages
-const scriptFiles = glob.sync("**/*.{mjs,js,ts,astro}", {
+const scriptFiles = globSync("**/*.{mjs,js,ts,astro}", {
   cwd: root,
   ignore: [
     "node_modules/**",
