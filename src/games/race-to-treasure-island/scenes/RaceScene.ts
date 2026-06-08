@@ -341,9 +341,9 @@ export class RaceScene extends Phaser.Scene {
       }
     });
 
-    this.input.keyboard!.on("keydown-ESC", () => this.togglePause());
-    this.input.keyboard!.on("keydown-P", () => this.togglePause());
-    this.input.keyboard!.on("keydown-F", () => {
+    this.input.keyboard!.on("keydown-Escape", () => this.togglePause());
+    this.input.keyboard!.on("keydown-p", () => this.togglePause());
+    this.input.keyboard!.on("keydown-f", () => {
       // Debug: finish the race
       if (!this.raceFinished) {
         this.playerProgress = RACE_TUNING.raceDistance;

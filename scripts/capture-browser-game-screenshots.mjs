@@ -229,7 +229,8 @@ async function captureDiagnostics(page) {
 }
 
 async function captureGame(browser, game) {
-  const screenshotParam = game.engine === "phaser" ? "?screenshot" : "";
+  const isPhaser = game.engine === "phaser";
+  const screenshotParam = isPhaser ? "?seed=screenshot&screenshot=1" : "";
   const url = `${PREVIEW_URL}/play/${game.id}/${screenshotParam}`;
   const ctx = await browser.newContext({
     viewport: { width: 1280, height: 720 },
