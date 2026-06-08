@@ -15,6 +15,7 @@ Pirate Arcade is a pirate-themed arcade game collection by Erich Donahue. It inc
 - Cannonball Clash: naval Pong-style duel, playable in browser at https://pirate-arcade.com/play/cannonball-clash/
 - Treasure Cove: pirate Breakout-style brick breaker, playable in browser at https://pirate-arcade.com/play/treasure-cove/
 - Kraken's Wake: pirate Asteroids-style game, playable in browser at https://pirate-arcade.com/play/krakens-wake/
+- Race to Treasure Island: top-down pirate ship racer, playable in browser at https://pirate-arcade.com/play/race-to-treasure-island/
 - Port Royale Tycoon: pirate property-trading desktop game.
 
 ## Canonical links

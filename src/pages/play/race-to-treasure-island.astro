@@ -1,19 +1,29 @@
 ---
-import BaseLayout from "../../layouts/BaseLayout.astro";
+import GamePlayLayout from "../../layouts/GamePlayLayout.astro";
 import { games } from "../../data/games";
 
 const game = games.find((g) => g.id === "race-to-treasure-island")!;
 const title = `${game.title} — Pirate Arcade`;
 ---
 
-<BaseLayout
+<GamePlayLayout
   title={title}
-  titleTemplate="literal"
   description={game.seoDescription!}
-  current="play"
   ogImage={game.screenshot ?? "/og-image.png"}
 >
-  <div id="game-shell">
+  <!-- Rotate device overlay (portrait-only) -->
+  <div id="rotate-overlay" class="rotate-overlay">
+    <div class="rotate-overlay__inner">
+      <div class="rotate-overlay__icon">↻</div>
+      <p class="rotate-overlay__title">Turn your device sideways</p>
+      <p class="rotate-overlay__text">
+        Race to Treasure Island is best played in landscape orientation.
+      </p>
+      <a href="/play/" class="rotate-overlay__back">← Back to Arcade</a>
+    </div>
+  </div>
+
+  <div id="game-shell" class="game-shell">
     <!-- Loading overlay -->
     <div id="game-loading" class="game-loading">
       <div class="loader-spinner"></div>
@@ -21,33 +31,70 @@ const title = `${game.title} — Pirate Arcade`;
       <div id="game-loading-detail" class="loader-detail">
         Booting Phaser engine...
       </div>
-      <div class="loader-note"></div>
     </div>
 
-    <!-- Back link -->
-    <a id="back-link" href="/play/">← Back to Arcade</a>
+    <!-- Game canvas -->
+    <div id="game-container" class="game-container"></div>
 
-    <!-- Controls hint -->
-    <div id="controls-hint" class="controls-hint">
-      <span>Arrow keys: Move</span>
-      <span>Space: Boost</span>
-      <span>Enter: Restart</span>
+    <!-- Touch controls -->
+    <div id="touch-controls" class="touch-controls">
+      <button
+        id="btn-left"
+        class="touch-btn touch-btn--left"
+        aria-label="Steer left"
+      >
+        <span class="touch-btn__arrow">◀</span>
+        <span class="touch-btn__label">LEFT</span>
+      </button>
+      <button
+        id="btn-right"
+        class="touch-btn touch-btn--right"
+        aria-label="Steer right"
+      >
+        <span class="touch-btn__arrow">▶</span>
+        <span class="touch-btn__label">RIGHT</span>
+      </button>
+      <button
+        id="btn-boost"
+        class="touch-btn touch-btn--boost"
+        aria-label="Hold to boost"
+      >
+        <span class="touch-btn__icon">⛵</span>
+        <span class="touch-btn__label">BOOST</span>
+      </button>
+      <button
+        id="btn-pause"
+        class="touch-btn touch-btn--pause"
+        aria-label="Pause"
+      >
+        <span class="touch-btn__icon">⏸</span>
+      </button>
+      <button
+        id="btn-restart"
+        class="touch-btn touch-btn--restart"
+        aria-label="Restart"
+        style="display:none"
+      >
+        <span class="touch-btn__icon">↻</span>
+        <span class="touch-btn__label">RESTART</span>
+      </button>
     </div>
 
-    <!-- Game canvas mount -->
-    <div id="game-container"></div>
-
-    <!-- Infobox -->
-    <div id="infobox" class="infobox">
-      <div class="infobox__title">Race to Treasure Island</div>
-      <div class="infobox__controls">
-        <span>↑↓←→ Move</span>
-        <span>Space Boost</span>
-        <span>Enter Restart</span>
+    <!-- HUD overlay -->
+    <div id="hud-overlay" class="hud-overlay">
+      <a id="back-link" href="/play/" class="hud-back">← Back</a>
+      <div id="infobox" class="hud-infobox">
+        <div class="hud-title">Race to Treasure Island</div>
+        <div class="hud-controls">
+          <span>← → Steer</span>
+          <span>Shift/Space Boost</span>
+          <span>Enter Restart</span>
+          <span>Esc/P Pause</span>
+        </div>
       </div>
     </div>
   </div>
-</BaseLayout>
+</GamePlayLayout>
 
 <script>
   // @ts-nocheck
@@ -56,6 +103,8 @@ const title = `${game.title} — Pirate Arcade`;
   const loadingEl = document.getElementById("game-loading");
   const loadingDetailEl = document.getElementById("game-loading-detail");
   const container = document.getElementById("game-container");
+  const rotateOverlay = document.getElementById("rotate-overlay");
+  const gameShell = document.getElementById("game-shell");
 
   function updateLoading(text) {
     if (loadingDetailEl) loadingDetailEl.textContent = text;
@@ -65,8 +114,13 @@ const title = `${game.title} — Pirate Arcade`;
 
   const urlParams = new URLSearchParams(window.location.search);
   const seed = urlParams.get("seed") || undefined;
+  const screenshotMode = urlParams.has("screenshot");
 
-  createRaceToTreasureIsland("game-container", seed);
+  const game = createRaceToTreasureIsland(
+    "game-container",
+    seed,
+    screenshotMode,
+  );
 
   const checkReady = setInterval(() => {
     const canvas = container?.querySelector("canvas");
@@ -81,32 +135,185 @@ const title = `${game.title} — Pirate Arcade`;
   setTimeout(() => {
     if (loadingEl) loadingEl.classList.add("hidden");
   }, 10000);
+
+  // ── Rotate overlay logic ──
+  function checkOrientation() {
+    const isPortrait = window.innerHeight > window.innerWidth;
+    const isSmall = window.innerWidth < 768 || window.innerHeight < 500;
+    if (isPortrait && isSmall && rotateOverlay && gameShell) {
+      rotateOverlay.classList.add("rotate-overlay--visible");
+      gameShell.style.display = "none";
+    } else if (rotateOverlay && gameShell) {
+      rotateOverlay.classList.remove("rotate-overlay--visible");
+      gameShell.style.display = "";
+    }
+  }
+
+  checkOrientation();
+  window.addEventListener("resize", checkOrientation);
+  window.addEventListener("orientationchange", () => {
+    setTimeout(checkOrientation, 300);
+  });
+
+  // ── Touch controls ──
+  const leftBtn = document.getElementById("btn-left");
+  const rightBtn = document.getElementById("btn-right");
+  const boostBtn = document.getElementById("btn-boost");
+  const pauseBtn = document.getElementById("btn-pause");
+  const restartBtn = document.getElementById("btn-restart");
+
+  function setupTouchButton(btn, key) {
+    if (!btn) return;
+    function start(e) {
+      e.preventDefault();
+      btn.classList.add("touch-btn--active");
+      window.__paTouchInput = window.__paTouchInput || {};
+      window.__paTouchInput[key] = true;
+    }
+    function end(e) {
+      e.preventDefault();
+      btn.classList.remove("touch-btn--active");
+      window.__paTouchInput = window.__paTouchInput || {};
+      window.__paTouchInput[key] = false;
+    }
+    btn.addEventListener("pointerdown", start);
+    btn.addEventListener("pointerup", end);
+    btn.addEventListener("pointerleave", end);
+    btn.addEventListener("pointercancel", end);
+    btn.addEventListener("touchstart", start, { passive: false });
+    btn.addEventListener("touchend", end, { passive: false });
+    btn.addEventListener("touchcancel", end, { passive: false });
+  }
+
+  setupTouchButton(leftBtn, "left");
+  setupTouchButton(rightBtn, "right");
+  setupTouchButton(boostBtn, "boost");
+
+  if (pauseBtn) {
+    pauseBtn.addEventListener("pointerdown", (e) => {
+      e.preventDefault();
+    });
+    pauseBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      window.__paTouchInput = window.__paTouchInput || {};
+      window.__paTouchInput.pause = !window.__paTouchInput.pause;
+      pauseBtn.classList.toggle("touch-btn--active");
+    });
+  }
+
+  if (restartBtn) {
+    restartBtn.addEventListener("pointerdown", (e) => {
+      e.preventDefault();
+    });
+    restartBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      window.__paTouchInput = window.__paTouchInput || {};
+      window.__paTouchInput.restart = true;
+    });
+  }
+
+  // Expose restart button for game state hook
+  window.__paRestartBtn = restartBtn;
+
+  // ── Screenshot mode: hide overlays ──
+  if (screenshotMode) {
+    const hud = document.getElementById("hud-overlay");
+    if (hud) hud.style.display = "none";
+    const tc = document.getElementById("touch-controls");
+    if (tc) tc.style.display = "none";
+  }
 </script>
 
 <style is:global>
-  #game-shell {
-    position: relative;
-    width: 100%;
-    min-height: 100dvh;
-    display: flex;
+  /* ── Rotate overlay ── */
+  .rotate-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background: #0a1628;
     align-items: center;
     justify-content: center;
+    flex-direction: column;
+    text-align: center;
+    padding: 2rem;
+    box-sizing: border-box;
+  }
+  .rotate-overlay--visible {
+    display: flex;
+  }
+  .rotate-overlay__icon {
+    font-size: 64px;
+    color: #ffd700;
+    margin-bottom: 1rem;
+    animation: rotate-hint 2s ease-in-out infinite;
+  }
+  @keyframes rotate-hint {
+    0%,
+    100% {
+      transform: rotate(0deg);
+    }
+    50% {
+      transform: rotate(90deg);
+    }
+  }
+  .rotate-overlay__title {
+    font-family: monospace;
+    font-size: 20px;
+    color: #ffd700;
+    margin: 0 0 0.5rem;
+  }
+  .rotate-overlay__text {
+    font-family: monospace;
+    font-size: 13px;
+    color: #888;
+    max-width: 300px;
+    margin: 0 0 1.5rem;
+  }
+  .rotate-overlay__back {
+    font-family: monospace;
+    font-size: 12px;
+    color: #666;
+    text-decoration: none;
+    padding: 0.5rem 1rem;
+    border: 1px solid #444;
+    border-radius: 4px;
+  }
+  .rotate-overlay__back:hover {
+    color: #ffd700;
+    border-color: #ffd700;
+  }
+
+  /* ── Game shell ── */
+  .game-shell {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100dvh;
+    height: 100vh;
     background: #0a1628;
+    position: relative;
     overflow: hidden;
   }
 
-  #game-container {
+  /* ── Game container (16:9 landscape) ── */
+  .game-container {
+    flex: 1;
+    position: relative;
     width: 100%;
-    max-width: 480px;
-    aspect-ratio: 2 / 3;
+    max-height: calc(100dvh - 80px);
+    max-height: calc(100vh - 80px);
+    aspect-ratio: 16 / 9;
+    margin: auto;
+    overflow: hidden;
   }
-
-  #game-container canvas {
+  .game-container canvas {
     display: block;
     width: 100% !important;
-    height: auto !important;
+    height: 100% !important;
   }
 
+  /* ── Loading overlay ── */
   .game-loading {
     position: absolute;
     inset: 0;
@@ -119,16 +326,10 @@ const title = `${game.title} — Pirate Arcade`;
     gap: 1rem;
     transition: opacity 0.5s;
   }
-
   .game-loading.hidden {
     opacity: 0;
     pointer-events: none;
   }
-
-  .game-loading.game-error .loader-detail {
-    color: #ff4444;
-  }
-
   .loader-spinner {
     width: 40px;
     height: 40px;
@@ -137,97 +338,179 @@ const title = `${game.title} — Pirate Arcade`;
     border-radius: 50%;
     animation: spin 0.8s linear infinite;
   }
-
   @keyframes spin {
     to {
       transform: rotate(360deg);
     }
   }
-
   .loader-text {
     font-family: monospace;
     font-size: 14px;
     color: #ffd700;
   }
-
   .loader-detail {
     font-family: monospace;
     font-size: 11px;
     color: #888;
   }
 
-  .loader-note {
-    font-family: monospace;
-    font-size: 10px;
-    color: #555;
-    max-width: 300px;
-    text-align: center;
-  }
-
-  #back-link {
+  /* ── HUD overlay ── */
+  .hud-overlay {
     position: absolute;
-    top: 1rem;
-    left: 1rem;
+    top: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 0.5rem 0.75rem;
+    pointer-events: none;
     z-index: 50;
+  }
+  .hud-overlay > * {
+    pointer-events: auto;
+  }
+  .hud-back {
     font-family: monospace;
-    font-size: 12px;
+    font-size: 11px;
     color: #888;
     text-decoration: none;
-    padding: 0.4rem 0.8rem;
+    padding: 0.3rem 0.6rem;
     border: 1px solid #444;
     border-radius: 4px;
     background: rgba(0, 0, 0, 0.6);
-    transition:
-      color 0.2s,
-      border-color 0.2s;
   }
-
-  #back-link:hover {
+  .hud-back:hover {
     color: #ffd700;
     border-color: #ffd700;
   }
-
-  .controls-hint {
-    position: absolute;
-    bottom: 1rem;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 50;
-    display: flex;
-    gap: 1rem;
-    font-family: monospace;
-    font-size: 10px;
-    color: #666;
-    background: rgba(0, 0, 0, 0.6);
-    padding: 0.4rem 1rem;
-    border-radius: 4px;
-    border: 1px solid #333;
-  }
-
-  .infobox {
-    position: absolute;
-    top: 1rem;
-    right: 1rem;
-    z-index: 50;
+  .hud-infobox {
     font-family: monospace;
     font-size: 10px;
     color: #888;
     background: rgba(0, 0, 0, 0.6);
-    padding: 0.5rem 0.8rem;
+    padding: 0.4rem 0.7rem;
     border-radius: 4px;
     border: 1px solid #333;
     text-align: right;
   }
-
-  .infobox__title {
+  .hud-title {
     color: #ffd700;
     font-size: 11px;
-    margin-bottom: 0.3rem;
+    margin-bottom: 0.25rem;
   }
-
-  .infobox__controls {
+  .hud-controls {
     display: flex;
     flex-direction: column;
+    gap: 0.1rem;
+  }
+
+  /* ── Touch controls ── */
+  .touch-controls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    background: rgba(0, 0, 0, 0.7);
+    border-top: 1px solid #333;
+    z-index: 60;
+    flex-shrink: 0;
+    height: 70px;
+    box-sizing: border-box;
+  }
+  .touch-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
     gap: 0.15rem;
+    border: 2px solid #555;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.08);
+    color: #ccc;
+    font-family: monospace;
+    font-size: 10px;
+    padding: 0.4rem 0.6rem;
+    min-width: 60px;
+    height: 52px;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: none;
+    transition:
+      background 0.1s,
+      border-color 0.1s,
+      transform 0.1s;
+    user-select: none;
+  }
+  .touch-btn--active {
+    background: rgba(255, 215, 0, 0.2);
+    border-color: #ffd700;
+    color: #ffd700;
+    transform: scale(0.95);
+  }
+  .touch-btn__arrow {
+    font-size: 18px;
+    line-height: 1;
+  }
+  .touch-btn__icon {
+    font-size: 18px;
+    line-height: 1;
+  }
+  .touch-btn__label {
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .touch-btn--left {
+    border-color: #4488ff;
+  }
+  .touch-btn--left.touch-btn--active {
+    background: rgba(68, 136, 255, 0.25);
+    border-color: #4488ff;
+    color: #88bbff;
+  }
+  .touch-btn--right {
+    border-color: #4488ff;
+  }
+  .touch-btn--right.touch-btn--active {
+    background: rgba(68, 136, 255, 0.25);
+    border-color: #4488ff;
+    color: #88bbff;
+  }
+  .touch-btn--boost {
+    min-width: 80px;
+    border-color: #ff8800;
+  }
+  .touch-btn--boost.touch-btn--active {
+    background: rgba(255, 136, 0, 0.25);
+    border-color: #ff8800;
+    color: #ffbb44;
+  }
+  .touch-btn--pause {
+    min-width: 44px;
+    border-color: #666;
+  }
+  .touch-btn--restart {
+    min-width: 70px;
+    border-color: #44ff88;
+  }
+  .touch-btn--restart.touch-btn--active {
+    background: rgba(68, 255, 136, 0.2);
+    border-color: #44ff88;
+    color: #88ffbb;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .touch-controls {
+      display: none;
+    }
+  }
+
+  /* ── Desktop keyboard hint ── */
+  @media (pointer: fine) {
+    .touch-controls {
+      display: none;
+    }
   }
 </style>

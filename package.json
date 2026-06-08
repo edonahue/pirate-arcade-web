@@ -137,7 +137,7 @@
     "test": "tests"
   },
   "dependencies": {
-    "phaser": "^4.1.0"
+    "phaser": "^3.90.0"
   },
   "repository": {
     "type": "git",

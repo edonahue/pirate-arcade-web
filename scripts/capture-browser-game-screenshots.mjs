@@ -62,13 +62,15 @@ const PREVIEW_PORT = Number(process.env.PA_CAPTURE_PORT || 4321);
 const PREVIEW_HOST = process.env.PA_CAPTURE_HOST || "127.0.0.1";
 const PREVIEW_URL = `http://${PREVIEW_HOST}:${PREVIEW_PORT}`;
 const READY_TIMEOUT_MS = 90_000;
-const POST_START_SETTLE_MS = 3_000;
+const POST_START_SETTLE_MS = 8_000;
 const PREVIEW_START_TIMEOUT_MS = 15_000;
 const HIDE_UI_SELECTORS = [
   "#back-link",
   "#controls-hint",
   "#infobox",
   "#touch-overlay",
+  "#touch-controls",
+  ".hud-overlay",
 ];
 
 /** Known harmless console.error patterns from game shells. */
@@ -227,7 +229,8 @@ async function captureDiagnostics(page) {
 }
 
 async function captureGame(browser, game) {
-  const url = `${PREVIEW_URL}/play/${game.id}/`;
+  const screenshotParam = game.engine === "phaser" ? "?screenshot" : "";
+  const url = `${PREVIEW_URL}/play/${game.id}/${screenshotParam}`;
   const ctx = await browser.newContext({
     viewport: { width: 1280, height: 720 },
     deviceScaleFactor: 1,

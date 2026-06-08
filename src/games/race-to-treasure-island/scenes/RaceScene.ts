@@ -1,20 +1,33 @@
 import Phaser from "phaser";
 import { GAME_WIDTH, GAME_HEIGHT } from "../config";
 
-const PLAYER_SPEED = 200;
-const BOOST_MULTIPLIER = 1.8;
-const BASE_SCROLL_SPEED = 120;
-const MAX_SCROLL_SPEED = 280;
-const OBSTACLE_SPAWN_INTERVAL = 1200;
-const TREASURE_SPAWN_INTERVAL = 5000;
-const RACE_DISTANCE = 6000;
+// ── Race Constants ──
+const RACE_DISTANCE = 10000;
+const BASE_SCROLL_SPEED = 80;
+const MAX_SCROLL_SPEED = 200;
+const PLAYER_SPEED = 300;
+const BOOST_MULTIPLIER = 1.6;
 const BOOST_MAX = 100;
-const BOOST_DRAIN = 1.2;
-const BOOST_REGEN = 0.4;
-const AI_BASE_SPEED = 100;
+const BOOST_DRAIN = 0.8;
+const BOOST_REGEN = 0.35;
+const STUN_DURATION = 600;
+const OBSTACLE_SPAWN_INTERVAL = 1800;
+const TREASURE_SPAWN_INTERVAL = 6000;
+const BASE_PROGRESS_RATE = 120;
+const BOOST_PROGRESS_BONUS = 80;
+
+// AI tuning (documented for later settings UI)
+const AI_BASE_RATE = 105;
+const AI_MISTAKE_CHANCE = 0.004;
+const AI_MISTAKE_DURATION = 800;
+
+// Island appears at 75% progress
+const ISLAND_THRESHOLD = 0.75;
+
+type ObstacleType = "barrel" | "shipwreck" | "reef" | "debris";
 
 interface Obstacle extends Phaser.Physics.Arcade.Sprite {
-  obstacleType: "rock" | "whirlpool" | "barrel";
+  obsType: ObstacleType;
 }
 
 interface Treasure extends Phaser.Physics.Arcade.Sprite {
@@ -27,9 +40,13 @@ export class RaceScene extends Phaser.Scene {
   private obstacles!: Phaser.Physics.Arcade.Group;
   private treasures!: Phaser.Physics.Arcade.Group;
   private finishLine!: Phaser.Physics.Arcade.Sprite;
+  private treasureIsland!: Phaser.GameObjects.Image;
 
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
+  private keyA!: Phaser.Input.Keyboard.Key;
+  private keyD!: Phaser.Input.Keyboard.Key;
   private spaceKey!: Phaser.Input.Keyboard.Key;
+  private shiftKey!: Phaser.Input.Keyboard.Key;
 
   private boostMeter: number = BOOST_MAX;
   private scrollSpeed: number = BASE_SCROLL_SPEED;
@@ -37,22 +54,33 @@ export class RaceScene extends Phaser.Scene {
   private score: number = 0;
   private gameOver: boolean = false;
   private raceFinished: boolean = false;
+  private playerProgress: number = 0;
+  private rivalProgress: number = 0;
+  private stunTimer: number = 0;
+  private boosting: boolean = false;
 
-  // HUD elements
+  // AI state
+  private aiTargetX: number = GAME_WIDTH / 2;
+  private aiLaneTimer: number = 0;
+  private aiMistakeTimer: number = 0;
+  private aiMistakeDir: number = 0;
+
+  // HUD
   private scoreText!: Phaser.GameObjects.Text;
-  private distanceText!: Phaser.GameObjects.Text;
+  private progressText!: Phaser.GameObjects.Text;
+  private rivalText!: Phaser.GameObjects.Text;
   private boostBarFill!: Phaser.GameObjects.Image;
+  private speedText!: Phaser.GameObjects.Text;
   private gameOverText!: Phaser.GameObjects.Text;
   private resultText!: Phaser.GameObjects.Text;
+  private sailIndicator!: Phaser.GameObjects.Image;
 
-  // Background
   private oceanTiles: Phaser.GameObjects.TileSprite | null = null;
-
   private lastObstacleSpawn: number = 0;
   private lastTreasureSpawn: number = 0;
-  private aiDistance: number = 0;
-  private aiLane: number = 0;
-  private aiLaneTimer: number = 0;
+  private islandShown: boolean = false;
+  private paused: boolean = false;
+  private pauseText!: Phaser.GameObjects.Text;
 
   constructor() {
     super({ key: "RaceScene" });
@@ -60,38 +88,43 @@ export class RaceScene extends Phaser.Scene {
 
   create(): void {
     this.resetState();
-
     this.createBackground();
     this.createPlayer();
     this.createAIShip();
     this.createGroups();
     this.createFinishLine();
+    this.createTreasureIsland();
     this.createHUD();
     this.setupInput();
     this.setupCollisions();
-
-    // Signal game ready for screenshot pipeline
     this.setupBootMetrics();
+    this.exposeState();
   }
 
   update(_time: number, delta: number): void {
+    if (this.paused) return;
+
     if (this.gameOver || this.raceFinished) return;
 
     const dt = delta / 1000;
+
     this.scrollSpeed = Math.min(
       MAX_SCROLL_SPEED,
-      BASE_SCROLL_SPEED + this.distanceTraveled * 0.02,
+      BASE_SCROLL_SPEED + this.distanceTraveled * 0.012,
     );
 
-    this.handlePlayerInput(dt);
+    this.handleInput(dt);
     this.updateAIShip(dt);
     this.updateObstacles(dt);
     this.updateTreasures(dt);
     this.updateBoost(dt);
     this.updateBackground(dt);
-    this.updateFinishLine(dt);
-    this.checkRaceProgress(dt);
+    this.tickProgress(dt);
+    this.tickStun(dt);
     this.updateHUD();
+    this.updateTreasureIsland();
+    this.checkFinish();
+    this.exposeState();
   }
 
   private resetState(): void {
@@ -101,15 +134,22 @@ export class RaceScene extends Phaser.Scene {
     this.score = 0;
     this.gameOver = false;
     this.raceFinished = false;
-    this.aiDistance = 0;
-    this.aiLane = 1;
-    this.aiLaneTimer = 0;
+    this.playerProgress = 0;
+    this.rivalProgress = 0;
+    this.stunTimer = 0;
+    this.boosting = false;
+    this.islandShown = false;
+    this.paused = false;
     this.lastObstacleSpawn = 0;
     this.lastTreasureSpawn = 0;
+    this.aiTargetX = GAME_WIDTH / 2;
+    this.aiLaneTimer = 0;
+    this.aiMistakeTimer = 0;
+    this.aiMistakeDir = 0;
   }
 
   private createBackground(): void {
-    this.cameras.main.setBackgroundColor("#0a1628");
+    this.cameras.main.setBackgroundColor("#1a3a5c");
 
     this.oceanTiles = this.add.tileSprite(
       GAME_WIDTH / 2,
@@ -119,99 +159,146 @@ export class RaceScene extends Phaser.Scene {
       "ocean-bg",
     );
     if (this.oceanTiles) {
-      this.oceanTiles.setAlpha(0.6);
+      this.oceanTiles.setAlpha(0.5);
     }
   }
 
   private createPlayer(): void {
     this.player = this.physics.add.sprite(
       GAME_WIDTH / 2,
-      GAME_HEIGHT - 60,
+      GAME_HEIGHT - 80,
       "ship-player",
     );
     this.player.setCollideWorldBounds(true);
     this.player.setDepth(10);
+    this.player.setScale(0.7);
+    this.player.setSize(30, 50);
   }
 
   private createAIShip(): void {
     this.aiShip = this.physics.add.sprite(
-      GAME_WIDTH / 2 - 80,
-      GAME_HEIGHT - 140,
+      GAME_WIDTH / 2 + 100,
+      GAME_HEIGHT - 160,
       "ship-ai",
     );
     this.aiShip.setDepth(10);
     this.aiShip.setAlpha(0.9);
+    this.aiShip.setScale(0.65);
+    this.aiShip.setSize(30, 50);
+    // Label
+    const label = this.add
+      .text(this.aiShip.x, this.aiShip.y + 42, "LONG JOHN", {
+        fontFamily: "monospace",
+        fontSize: "8px",
+        color: "#ff6666",
+      })
+      .setOrigin(0.5)
+      .setDepth(11);
+    this.aiShip.setData("label", label);
   }
 
   private createGroups(): void {
-    this.obstacles = this.physics.add.group({
-      runChildUpdate: false,
-    });
-    this.treasures = this.physics.add.group({
-      runChildUpdate: false,
-    });
+    this.obstacles = this.physics.add.group({ runChildUpdate: false });
+    this.treasures = this.physics.add.group({ runChildUpdate: false });
   }
 
   private createFinishLine(): void {
-    this.finishLine = this.physics.add.sprite(
-      GAME_WIDTH / 2,
-      -RACE_DISTANCE,
-      "finish-line",
-    );
-    this.finishLine.setVisible(false);
-    this.physics.add.overlap(
-      this.player,
-      this.finishLine,
-      () => this.handleFinish(true),
-      undefined,
-      this,
-    );
-    this.physics.add.overlap(
-      this.aiShip,
-      this.finishLine,
-      () => this.handleFinish(false),
-      undefined,
-      this,
-    );
+    this.finishLine = this.physics.add
+      .sprite(GAME_WIDTH / 2, -200, "finish-line")
+      .setVisible(false);
+    this.finishLine.setDepth(5);
+    this.finishLine.body!.enable = false;
+  }
+
+  private createTreasureIsland(): void {
+    this.treasureIsland = this.add
+      .image(GAME_WIDTH / 2, -300, "treasure-island")
+      .setDepth(4)
+      .setVisible(false);
   }
 
   private createHUD(): void {
     const style: Phaser.Types.GameObjects.Text.TextStyle = {
       fontFamily: "monospace",
-      fontSize: "14px",
+      fontSize: "12px",
       color: "#ffd700",
     };
 
-    this.scoreText = this.add.text(10, 10, "Score: 0", style).setDepth(100);
-    this.distanceText = this.add
-      .text(10, 28, "Distance: 0m", style)
+    // Top-left: score + speed
+    this.scoreText = this.add.text(10, 8, "Score: 0", style).setDepth(100);
+    this.speedText = this.add
+      .text(10, 24, "", { ...style, fontSize: "10px", color: "#88aacc" })
       .setDepth(100);
 
-    // Boost bar
-    const barX = GAME_WIDTH - 60;
-    const barY = 16;
+    // Top-center: progress vs rival
+    this.progressText = this.add
+      .text(GAME_WIDTH / 2, 8, "", {
+        ...style,
+        fontSize: "11px",
+        color: "#ffd700",
+        align: "center",
+      })
+      .setOrigin(0.5, 0)
+      .setDepth(100);
+
+    this.rivalText = this.add
+      .text(GAME_WIDTH / 2, 22, "", {
+        fontFamily: "monospace",
+        fontSize: "10px",
+        color: "#ff6666",
+        align: "center",
+      })
+      .setOrigin(0.5, 0)
+      .setDepth(100);
+
+    // Boost bar (top-right)
+    const barX = GAME_WIDTH - 70;
+    const barY = 14;
     this.add.image(barX, barY, "boost-bar-bg").setOrigin(0.5).setDepth(100);
     this.boostBarFill = this.add
       .image(barX, barY, "boost-bar-fill")
       .setOrigin(0.5)
       .setDepth(101);
 
-    this.add
-      .text(barX, barY + 14, "BOOST", {
+    // Sail indicator near player
+    this.sailIndicator = this.add
+      .image(GAME_WIDTH / 2 - 60, GAME_HEIGHT - 80, "particle")
+      .setDepth(15)
+      .setVisible(false)
+      .setScale(0.5);
+
+    // Pause overlay
+    this.pauseText = this.add
+      .text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 40, "PAUSED", {
         fontFamily: "monospace",
-        fontSize: "9px",
+        fontSize: "28px",
+        color: "#ffd700",
+        stroke: "#000",
+        strokeThickness: 4,
+      })
+      .setOrigin(0.5)
+      .setDepth(200)
+      .setVisible(false);
+
+    const pauseHint = this.add
+      .text(GAME_WIDTH / 2, GAME_HEIGHT / 2 + 10, "Press ESC or P to resume", {
+        fontFamily: "monospace",
+        fontSize: "12px",
         color: "#888",
       })
       .setOrigin(0.5)
-      .setDepth(100);
+      .setDepth(200)
+      .setVisible(false);
+    this.pauseText.setData("hint", pauseHint);
 
+    // Game over texts
     this.gameOverText = this.add
-      .text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 40, "", {
+      .text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 50, "", {
         fontFamily: "monospace",
-        fontSize: "32px",
-        color: "#ff4444",
+        fontSize: "36px",
+        color: "#ffd700",
         stroke: "#000",
-        strokeThickness: 4,
+        strokeThickness: 5,
       })
       .setOrigin(0.5)
       .setDepth(200)
@@ -220,8 +307,8 @@ export class RaceScene extends Phaser.Scene {
     this.resultText = this.add
       .text(GAME_WIDTH / 2, GAME_HEIGHT / 2 + 10, "", {
         fontFamily: "monospace",
-        fontSize: "16px",
-        color: "#ffd700",
+        fontSize: "14px",
+        color: "#aaa",
         stroke: "#000",
         strokeThickness: 3,
       })
@@ -232,14 +319,28 @@ export class RaceScene extends Phaser.Scene {
 
   private setupInput(): void {
     this.cursors = this.input.keyboard!.createCursorKeys();
+    this.keyA = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.A);
+    this.keyD = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.D);
     this.spaceKey = this.input.keyboard!.addKey(
       Phaser.Input.Keyboard.KeyCodes.SPACE,
     );
+    this.shiftKey = this.input.keyboard!.addKey(
+      Phaser.Input.Keyboard.KeyCodes.SHIFT,
+    );
 
-    // Enter to restart
     this.input.keyboard!.on("keydown-ENTER", () => {
       if (this.gameOver || this.raceFinished) {
         this.scene.restart();
+      }
+    });
+
+    this.input.keyboard!.on("keydown-ESC", () => this.togglePause());
+    this.input.keyboard!.on("keydown-P", () => this.togglePause());
+    this.input.keyboard!.on("keydown-F", () => {
+      // Debug: finish the race
+      if (!this.raceFinished) {
+        this.playerProgress = RACE_DISTANCE;
+        this.checkFinish();
       }
     });
   }
@@ -248,14 +349,14 @@ export class RaceScene extends Phaser.Scene {
     this.physics.add.overlap(
       this.player,
       this.obstacles,
-      (_player, obj) => this.handleObstacleHit(obj as Obstacle),
+      (_p, obj) => this.handleObstacleHit(obj as Obstacle),
       undefined,
       this,
     );
     this.physics.add.overlap(
       this.player,
       this.treasures,
-      (_player, tres) => this.handleTreasureCollect(tres as Treasure),
+      (_p, tres) => this.handleTreasureCollect(tres as Treasure),
       undefined,
       this,
     );
@@ -270,80 +371,156 @@ export class RaceScene extends Phaser.Scene {
     }
   }
 
-  private handlePlayerInput(_dt: number): void {
-    let vx = 0;
-    let vy = 0;
+  private exposeState(): void {
+    if (typeof window !== "undefined") {
+      (window as any).__paRaceToTreasureIslandState = {
+        playerProgress: Math.floor(this.playerProgress),
+        rivalProgress: Math.floor(this.rivalProgress),
+        windMeter: Math.floor(this.boostMeter),
+        boosting: this.boosting,
+        paused: this.paused,
+        finished: this.raceFinished,
+        gameOver: this.gameOver,
+        result: this.gameOverText?.text || "",
+        score: this.score,
+        distanceTraveled: Math.floor(this.distanceTraveled),
+        stunTimer: this.stunTimer,
+        obstacleCount: this.obstacles?.getLength() || 0,
+        scrollSpeed: Math.floor(this.scrollSpeed),
+        islandShown: this.islandShown,
+      };
+    }
+  }
 
-    if (this.cursors.left.isDown) vx = -1;
-    else if (this.cursors.right.isDown) vx = 1;
+  private handleInput(dt: number): void {
+    const touch = (window as any).__paTouchInput || {};
+    let dir = 0;
+    if (this.cursors.left.isDown || this.keyA.isDown || touch.left) dir = -1;
+    else if (this.cursors.right.isDown || this.keyD.isDown || touch.right)
+      dir = 1;
 
-    if (this.cursors.up.isDown) vy = -1;
-    else if (this.cursors.down.isDown) vy = 1;
+    this.boosting =
+      (this.spaceKey.isDown || this.shiftKey.isDown || touch.boost) &&
+      this.boostMeter > 0;
 
-    const speed =
-      this.spaceKey.isDown && this.boostMeter > 0
-        ? PLAYER_SPEED * BOOST_MULTIPLIER
-        : PLAYER_SPEED;
-
-    if (vx !== 0 && vy !== 0) {
-      vx *= 0.707;
-      vy *= 0.707;
+    if (touch.pause) {
+      this.togglePause();
+      touch.pause = false;
     }
 
-    this.player.setVelocity(vx * speed, vy * speed + this.scrollSpeed * -0.3);
+    if (touch.restart) {
+      touch.restart = false;
+      if (this.gameOver || this.raceFinished) {
+        this.scene.restart();
+      }
+    }
+
+    const speed = this.boosting
+      ? PLAYER_SPEED * BOOST_MULTIPLIER
+      : PLAYER_SPEED;
+
+    this.player.setVelocityX(dir * speed);
+    this.player.setVelocityY(-this.scrollSpeed * 0.15);
+
+    const boostBonus = this.boosting ? BOOST_PROGRESS_BONUS : 0;
+    this.playerProgress +=
+      (BASE_PROGRESS_RATE +
+        (this.scrollSpeed - BASE_SCROLL_SPEED) * 0.5 +
+        boostBonus) *
+      dt;
+    this.playerProgress = Math.min(this.playerProgress, RACE_DISTANCE);
+
+    // Sail visual for boost
+    if (this.boosting) {
+      this.sailIndicator.setVisible(true);
+      this.sailIndicator.setPosition(this.player.x - 20, this.player.y - 30);
+      this.sailIndicator.setTint(0xffd700);
+      this.sailIndicator.setScale(0.6 + Math.sin(this.time.now * 0.01) * 0.15);
+    } else if (dir !== 0) {
+      this.sailIndicator.setVisible(true);
+      this.sailIndicator.setPosition(this.player.x - 20, this.player.y - 30);
+      this.sailIndicator.setTint(0x88aacc);
+      this.sailIndicator.setScale(0.35);
+    } else {
+      this.sailIndicator.setVisible(false);
+    }
   }
 
   private updateAIShip(dt: number): void {
-    this.aiLaneTimer -= dt;
+    // Lane-based movement with occasional mistakes
+    this.aiLaneTimer -= dt * 1000;
     if (this.aiLaneTimer <= 0) {
-      this.aiLaneTimer = 2000 + Math.random() * 2000;
-      this.aiLane = Math.floor(Math.random() * 3);
+      this.aiLaneTimer = 2000 + Math.random() * 3000;
+      // Aim roughly near player
+      const laneOffset = Phaser.Math.Between(-1, 1) * 80;
+      this.aiTargetX = Phaser.Math.Clamp(
+        this.player.x + laneOffset,
+        50,
+        GAME_WIDTH - 50,
+      );
     }
 
-    const laneX = [GAME_WIDTH / 2 - 80, GAME_WIDTH / 2, GAME_WIDTH / 2 + 80];
+    // AI mistakes: drift off course
+    this.aiMistakeTimer -= dt * 1000;
+    if (this.aiMistakeTimer <= 0 && Math.random() < AI_MISTAKE_CHANCE) {
+      this.aiMistakeTimer = AI_MISTAKE_DURATION;
+      this.aiMistakeDir = Math.random() < 0.5 ? -1 : 1;
+    }
 
-    const targetX = laneX[this.aiLane];
+    let targetX = this.aiTargetX;
+    if (this.aiMistakeTimer > 0) {
+      targetX += this.aiMistakeDir * 120;
+    }
+
     const dx = targetX - this.aiShip.x;
-    this.aiShip.setVelocityX(dx * 2);
+    this.aiShip.setVelocityX(dx * 2.5);
 
-    // AI speed varies, roughly keeping pace
-    const aiSpeed =
-      AI_BASE_SPEED + this.distanceTraveled * 0.015 + Math.random() * 20;
-    this.aiDistance += aiSpeed * dt;
-    this.aiShip.setVelocityY(aiSpeed * -1);
+    const aiPenalty = this.aiMistakeTimer > 0 ? 40 : 0;
+    this.rivalProgress +=
+      (AI_BASE_RATE +
+        (this.scrollSpeed - BASE_SCROLL_SPEED) * 0.45 -
+        aiPenalty) *
+      dt;
+    this.rivalProgress = Math.min(this.rivalProgress, RACE_DISTANCE);
 
-    // Keep AI visible
+    // Keep AI on screen relative to player
     const aiScreenY =
-      GAME_HEIGHT - 140 - (this.aiDistance - this.distanceTraveled);
-    if (aiScreenY < 50) {
-      this.aiDistance = this.distanceTraveled - 50;
+      this.player.y - 80 - (this.rivalProgress - this.playerProgress) * 0.05;
+    this.aiShip.y = Phaser.Math.Clamp(aiScreenY, 40, this.player.y - 30);
+
+    // Update label position
+    const label = this.aiShip.getData("label") as Phaser.GameObjects.Text;
+    if (label) {
+      label.setPosition(this.aiShip.x, this.aiShip.y + 42);
     }
   }
 
   private spawnObstacle(): void {
-    const types: Array<{
-      key: string;
-      type: Obstacle["obstacleType"];
-    }> = [
-      { key: "rock", type: "rock" },
-      { key: "rock", type: "rock" },
-      { key: "whirlpool", type: "whirlpool" },
+    const types: Array<{ key: string; type: ObstacleType }> = [
       { key: "barrel", type: "barrel" },
+      { key: "barrel", type: "barrel" },
+      { key: "shipwreck", type: "shipwreck" },
+      { key: "reef", type: "reef" },
+      { key: "debris", type: "debris" },
     ];
     const chosen = types[Math.floor(Math.random() * types.length)];
 
     const x = Phaser.Math.Between(40, GAME_WIDTH - 40);
-    const y = -40;
+    const y = Phaser.Math.Between(-20, 0);
 
     const obs = this.physics.add.sprite(x, y, chosen.key) as Obstacle;
-    obs.obstacleType = chosen.type;
+    obs.obsType = chosen.type;
     obs.setDepth(5);
+    (obs.body as Phaser.Physics.Arcade.Body).setSize(
+      obs.width * 0.7,
+      obs.height * 0.7,
+    );
     this.obstacles.add(obs);
   }
 
   private spawnTreasure(): void {
     const x = Phaser.Math.Between(40, GAME_WIDTH - 40);
-    const y = -30;
+    const y = Phaser.Math.Between(-20, 0);
     const tres = this.physics.add.sprite(x, y, "treasure") as Treasure;
     tres.collected = false;
     tres.setDepth(5);
@@ -355,22 +532,17 @@ export class RaceScene extends Phaser.Scene {
     if (this.lastObstacleSpawn <= 0) {
       this.spawnObstacle();
       this.lastObstacleSpawn =
-        OBSTACLE_SPAWN_INTERVAL - this.distanceTraveled * 0.05;
-      if (this.lastObstacleSpawn < 400) this.lastObstacleSpawn = 400;
+        OBSTACLE_SPAWN_INTERVAL - this.playerProgress * 0.02;
+      if (this.lastObstacleSpawn < 600) this.lastObstacleSpawn = 600;
     }
 
     this.obstacles.getChildren().forEach((child) => {
       const obs = child as Obstacle;
       obs.y += this.scrollSpeed * dt;
-      // Rotate rocks and barrels
-      if (obs.obstacleType === "rock" || obs.obstacleType === "barrel") {
-        obs.rotation += dt * 1.5;
+      // Tumble effect
+      if (obs.obsType !== "reef") {
+        obs.rotation += dt * 0.8;
       }
-      // Whirlpools pulse
-      if (obs.obstacleType === "whirlpool") {
-        obs.setScale(1 + Math.sin(this.time.now * 0.005) * 0.1);
-      }
-      // Remove off-screen
       if (obs.y > GAME_HEIGHT + 60) {
         obs.destroy();
       }
@@ -387,8 +559,7 @@ export class RaceScene extends Phaser.Scene {
     this.treasures.getChildren().forEach((child) => {
       const tres = child as Treasure;
       tres.y += this.scrollSpeed * dt;
-      // Bobbing animation
-      tres.x += Math.sin(this.time.now * 0.003 + tres.y * 0.01) * 0.5;
+      tres.x += Math.sin(this.time.now * 0.003 + tres.y * 0.01) * 0.4;
       if (tres.y > GAME_HEIGHT + 40) {
         tres.destroy();
       }
@@ -396,66 +567,102 @@ export class RaceScene extends Phaser.Scene {
   }
 
   private updateBoost(_dt: number): void {
-    const boosting = this.spaceKey.isDown && this.boostMeter > 0;
-    if (boosting) {
+    if (this.boosting) {
       this.boostMeter = Math.max(0, this.boostMeter - BOOST_DRAIN);
     } else {
       this.boostMeter = Math.min(BOOST_MAX, this.boostMeter + BOOST_REGEN);
     }
 
-    // Update boost bar visual
-    this.boostBarFill.setScale(this.boostMeter / BOOST_MAX, 1);
+    const pct = this.boostMeter / BOOST_MAX;
+    this.boostBarFill.setScale(pct, 1);
     const fillColor = this.boostMeter > 30 ? 0x00ccff : 0xff4444;
     this.boostBarFill.setTint(fillColor);
   }
 
   private updateBackground(dt: number): void {
     if (this.oceanTiles) {
-      this.oceanTiles.tilePositionY -= this.scrollSpeed * dt * 0.5;
+      this.oceanTiles.tilePositionY -= this.scrollSpeed * dt * 0.6;
     }
   }
 
-  private updateFinishLine(dt: number): void {
-    this.finishLine.y += this.scrollSpeed * dt;
+  private tickProgress(_dt: number): void {
+    this.distanceTraveled += this.scrollSpeed * _dt;
   }
 
-  private checkRaceProgress(dt: number): void {
-    this.distanceTraveled += this.scrollSpeed * dt;
+  private tickStun(_dt: number): void {
+    if (this.stunTimer > 0) {
+      this.stunTimer -= _dt * 1000;
+      if (this.stunTimer <= 0) {
+        this.stunTimer = 0;
+        if (this.player && this.player.active) {
+          this.player.clearTint();
+        }
+      }
+    }
+  }
+
+  private updateTreasureIsland(): void {
+    const pct = this.playerProgress / RACE_DISTANCE;
+    if (pct >= ISLAND_THRESHOLD && !this.islandShown) {
+      this.islandShown = true;
+      this.treasureIsland.setVisible(true);
+      this.treasureIsland.setPosition(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 40);
+      // Animate island entrance
+      this.treasureIsland.setScale(0.5);
+      this.treasureIsland.setAlpha(0);
+      this.tweens.add({
+        targets: this.treasureIsland,
+        scale: 1,
+        alpha: 1,
+        duration: 1500,
+        ease: "Back.easeOut",
+      });
+    }
+
+    if (this.islandShown) {
+      // Bob gently
+      this.treasureIsland.y += Math.sin(this.time.now * 0.002) * 0.2;
+    }
+  }
+
+  private checkFinish(): void {
+    if (this.raceFinished) return;
+
+    if (this.playerProgress >= RACE_DISTANCE) {
+      this.handleFinish(true);
+    } else if (this.rivalProgress >= RACE_DISTANCE) {
+      this.handleFinish(false);
+    }
   }
 
   private handleObstacleHit(obs: Obstacle): void {
-    // Flash effect
-    this.player.setTint(0xff0000);
-    this.time.delayedCall(200, () => {
-      if (this.player && this.player.active) {
-        this.player.clearTint();
-      }
-    });
+    // Flash / stun effect
+    this.player.setTint(0xff4444);
+    this.stunTimer = STUN_DURATION;
 
-    // Slow down
-    this.scrollSpeed = Math.max(BASE_SCROLL_SPEED, this.scrollSpeed - 20);
+    // Slow scroll temporarily
+    this.scrollSpeed = Math.max(BASE_SCROLL_SPEED * 0.7, this.scrollSpeed - 25);
 
     // Score penalty
-    this.score = Math.max(0, this.score - 50);
+    this.score = Math.max(0, this.score - 30);
 
-    // Destroy obstacle
-    obs.destroy();
-
-    // Spawn hit particles
-    for (let i = 0; i < 5; i++) {
+    // Particle burst
+    for (let i = 0; i < 6; i++) {
       const p = this.add.image(obs.x, obs.y, "particle");
       p.setTint(0xff6600);
       p.setDepth(20);
       this.tweens.add({
         targets: p,
-        x: p.x + Phaser.Math.Between(-30, 30),
-        y: p.y + Phaser.Math.Between(-30, 30),
+        x: p.x + Phaser.Math.Between(-25, 25),
+        y: p.y + Phaser.Math.Between(-25, 25),
         alpha: 0,
         scale: 0,
-        duration: 400,
+        duration: 350,
         onComplete: () => p.destroy(),
       });
     }
+
+    obs.destroy();
   }
 
   private handleTreasureCollect(tres: Treasure): void {
@@ -464,13 +671,10 @@ export class RaceScene extends Phaser.Scene {
 
     this.score += 100;
 
-    tres.destroy();
-
-    // Collect effect
     const text = this.add
       .text(tres.x, tres.y, "+100", {
         fontFamily: "monospace",
-        fontSize: "14px",
+        fontSize: "13px",
         color: "#ffd700",
       })
       .setOrigin(0.5)
@@ -478,11 +682,13 @@ export class RaceScene extends Phaser.Scene {
 
     this.tweens.add({
       targets: text,
-      y: text.y - 40,
+      y: text.y - 35,
       alpha: 0,
-      duration: 600,
+      duration: 500,
       onComplete: () => text.destroy(),
     });
+
+    tres.destroy();
   }
 
   private handleFinish(playerWon: boolean): void {
@@ -490,20 +696,63 @@ export class RaceScene extends Phaser.Scene {
     this.raceFinished = true;
 
     this.player.setVelocity(0, 0);
+    this.player.setVelocityY(0);
     this.aiShip.setVelocity(0, 0);
+    this.physics.pause();
 
-    this.gameOverText.setText(playerWon ? "VICTORY!" : "DEFEAT!");
-    this.gameOverText.setColor(playerWon ? "#ffd700" : "#ff4444");
+    // Show result
+    this.gameOverText.setText(
+      playerWon ? "TREASURE ISLAND SIGHTED!" : "LONG JOHN REACHED IT FIRST!",
+    );
+    this.gameOverText.setColor(playerWon ? "#ffd700" : "#ff6666");
     this.gameOverText.setVisible(true);
 
-    this.resultText.setText(`Score: ${this.score}  |  Press ENTER to retry`);
+    this.resultText.setText(
+      `Score: ${this.score}  •  Press ENTER or tap RESTART to retry`,
+    );
     this.resultText.setVisible(true);
+
+    // Show the restart button
+    const restartBtn =
+      typeof window !== "undefined" ? (window as any).__paRestartBtn : null;
+    if (restartBtn) restartBtn.style.display = "";
+
+    // Final state
+    this.exposeState();
+  }
+
+  private togglePause(): void {
+    if (this.raceFinished || this.gameOver) return;
+    this.paused = !this.paused;
+    this.pauseText.setVisible(this.paused);
+    const hint = this.pauseText.getData("hint") as Phaser.GameObjects.Text;
+    if (hint) hint.setVisible(this.paused);
+    if (this.paused) {
+      this.physics.pause();
+    } else {
+      this.physics.resume();
+    }
   }
 
   private updateHUD(): void {
     this.scoreText.setText(`Score: ${this.score}`);
-    this.distanceText.setText(
-      `Distance: ${Math.floor(this.distanceTraveled / 10)}m`,
+    this.speedText.setText(`Speed: ${Math.floor(this.scrollSpeed)} kn`);
+
+    const playerPct = Math.min(
+      100,
+      Math.floor((this.playerProgress / RACE_DISTANCE) * 100),
+    );
+    const rivalPct = Math.min(
+      100,
+      Math.floor((this.rivalProgress / RACE_DISTANCE) * 100),
+    );
+    this.progressText.setText(`You: ${playerPct}%  •  Long John: ${rivalPct}%`);
+    this.rivalText.setText(
+      playerPct > rivalPct
+        ? "↑ You're ahead!"
+        : playerPct < rivalPct
+          ? "↓ Long John leads"
+          : "─ Neck and neck",
     );
   }
 }

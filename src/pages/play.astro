@@ -15,21 +15,21 @@ const desktopGames = games.filter((g) => g.status === "desktop-available");
 
 <BaseLayout
   title="Play"
-  description="Choose your game from the Pirate Arcade collection. Desktop apps available now; three browser ports are live."
+  description="Choose your game from the Pirate Arcade collection. Desktop apps available now; four browser games are live — including the web-native Race to Treasure Island."
   current="play"
   jsonLd={[
     webPageNode(
       "/play/",
       "Play Pirate Arcade",
-      "Choose your game from the Pirate Arcade collection. Desktop apps available now; three browser ports are live.",
+      "Choose your game from the Pirate Arcade collection. Desktop apps available now; four browser games are live.",
       "CollectionPage",
     ),
   ]}
 >
   <Hero
     title="THE ARCADE"
-    subtitle="Pirate-themed arcade games. Cannonball Clash, Treasure Cove, and Kraken's Wake
-    are playable in your browser now. Desktop downloads available for all four games."
+    subtitle="Pirate-themed arcade games. Four games are playable in your browser now —
+    including the web-native Race to Treasure Island. Desktop downloads available for all five."
     eyebrow="Play the Games"
   />
 
@@ -80,7 +80,11 @@ const desktopGames = games.filter((g) => g.status === "desktop-available");
               data-game-id={game.id}
               data-browser-playable="true"
               data-game-page={game.browserUrl!}
-              data-game-archive={`/play/${game.id}/${game.id}.tar.gz?v=${ASSET_VERSION}`}
+              data-game-archive={
+                game.engine === "phaser"
+                  ? ""
+                  : `/play/${game.id}/${game.id}.tar.gz?v=${ASSET_VERSION}`
+              }
               data-captains-log={game.id}
             >
               Play {game.title}
@@ -141,6 +145,14 @@ const desktopGames = games.filter((g) => g.status === "desktop-available");
           <span class="touch-controls-summary__label">Kraken's Wake</span>
           <span class="touch-controls-summary__controls"
             >TURN • THRUST • FIRE • PAUSE</span
+          >
+        </div>
+        <div class="touch-controls-summary__card">
+          <span class="touch-controls-summary__label"
+            >Race to Treasure Island</span
+          >
+          <span class="touch-controls-summary__controls"
+            >← → Steer • BOOST • PAUSE • RESTART</span
           >
         </div>
       </div>
@@ -235,6 +247,7 @@ const desktopGames = games.filter((g) => g.status === "desktop-available");
       }
       if (state.timeout) clearTimeout(state.timeout);
       state.timeout = setTimeout(function () {
+        var urls = [pageUrl];
         if (!state.prefetchedUrls.has(pageUrl)) {
           var link = document.createElement("link");
           link.rel = "prefetch";
@@ -242,13 +255,14 @@ const desktopGames = games.filter((g) => g.status === "desktop-available");
           document.head.appendChild(link);
           state.prefetchedUrls.add(pageUrl);
         }
-        if (!state.prefetchedUrls.has(archiveUrl)) {
+        if (archiveUrl && !state.prefetchedUrls.has(archiveUrl)) {
           var link = document.createElement("link");
           link.rel = "prefetch";
           link.href = archiveUrl;
           link.as = "fetch";
           document.head.appendChild(link);
           state.prefetchedUrls.add(archiveUrl);
+          urls.push(archiveUrl);
         }
         if (
           "serviceWorker" in navigator &&
@@ -256,7 +270,7 @@ const desktopGames = games.filter((g) => g.status === "desktop-available");
         ) {
           navigator.serviceWorker.controller.postMessage({
             type: "WARM_CACHE",
-            urls: [pageUrl, archiveUrl],
+            urls: urls,
           });
         }
       }, 150);
@@ -283,7 +297,7 @@ const desktopGames = games.filter((g) => g.status === "desktop-available");
       var pageUrl = link.getAttribute("data-game-page") || "";
       var archiveUrl = link.getAttribute("data-game-archive") || "";
       var captainsLogId = link.getAttribute("data-captains-log");
-      if (!pageUrl || !archiveUrl) return;
+      if (!pageUrl) return;
 
       link.addEventListener("pointerenter", function () {
         triggerGamePrewarm(gameId, pageUrl, archiveUrl);

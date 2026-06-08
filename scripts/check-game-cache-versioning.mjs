@@ -23,7 +23,7 @@ const gamesMeta = JSON.parse(
   readFileSync(resolve(ROOT, "src/data/games.json"), "utf-8"),
 );
 const GAMES = gamesMeta
-  .filter((g) => g.status === "browser-playable")
+  .filter((g) => g.status === "browser-playable" && g.engine !== "phaser")
   .map((g) => ({
     id: g.id,
     html: `public/play/${g.id}/index.html`,

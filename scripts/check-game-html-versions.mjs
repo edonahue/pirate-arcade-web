@@ -23,7 +23,7 @@ const root = resolve(__dirname, "..");
 const gamesPath = resolve(root, "src/data/games.json");
 const gamesMeta = JSON.parse(readFileSync(gamesPath, "utf-8"));
 const GAMES = gamesMeta
-  .filter((g) => g.status === "browser-playable")
+  .filter((g) => g.status === "browser-playable" && g.engine !== "phaser")
   .map((g) => g.id);
 
 let failures = 0;

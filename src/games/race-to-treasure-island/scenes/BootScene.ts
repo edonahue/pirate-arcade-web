@@ -13,140 +13,175 @@ export class BootScene extends Phaser.Scene {
     this.add
       .text(cx, cy, "Loading...", {
         fontFamily: "monospace",
-        fontSize: "20px",
+        fontSize: "16px",
         color: "#ffd700",
       })
       .setOrigin(0.5);
+
+    // Load external sprite assets
+    this.load.image(
+      "ship-player",
+      "/images/race-to-treasure-island/player-ship.png",
+    );
+    this.load.image(
+      "ship-ai",
+      "/images/race-to-treasure-island/long-john-ship.png",
+    );
 
     this.generateTextures();
   }
 
   create(): void {
-    // Clear loading text
     this.children.removeAll(true);
     this.scene.start("RaceScene");
   }
 
   private generateTextures(): void {
     this.generateOceanBg();
-    this.generatePlayerShip();
-    this.generateAIShip();
-    this.generateRock();
-    this.generateWhirlpool();
     this.generateBarrel();
+    this.generateShipwreck();
+    this.generateReef();
+    this.generateDebris();
     this.generateTreasureChest();
     this.generateBoostBar();
-    this.generateFinishLine();
+    this.generateTreasureIsland();
+    this.generateFinishFlag();
     this.generateParticle();
   }
 
   private generateOceanBg(): void {
     const g = this.add.graphics();
-    const colors = [0x0a1628, 0x0d1f3c, 0x0f2a4a, 0x123558];
-    const stripeH = GAME_HEIGHT / colors.length;
+    const stripeH = GAME_HEIGHT / 6;
+    const colors = [0x0a1628, 0x0d1f3c, 0x0f2a4a, 0x123558, 0x102e50, 0x0e2848];
     for (let i = 0; i < colors.length; i++) {
       g.fillStyle(colors[i]);
       g.fillRect(0, i * stripeH, GAME_WIDTH, stripeH + 1);
+    }
+    // Scatter small wave flecks
+    g.fillStyle(0xffffff, 0.03);
+    for (let i = 0; i < 60; i++) {
+      const wx = Phaser.Math.Between(0, GAME_WIDTH);
+      const wy = Phaser.Math.Between(0, GAME_HEIGHT);
+      g.fillEllipse(
+        wx,
+        wy,
+        Phaser.Math.Between(6, 20),
+        Phaser.Math.Between(2, 4),
+      );
     }
     g.generateTexture("ocean-bg", GAME_WIDTH, GAME_HEIGHT);
     g.destroy();
   }
 
-  private generatePlayerShip(): void {
-    const g = this.add.graphics();
-    g.fillStyle(0x8b4513);
-    g.fillRect(8, 24, 32, 20);
-    g.fillStyle(0xa0522d);
-    g.fillRect(12, 28, 24, 12);
-    g.fillStyle(0xf5f5dc);
-    g.fillTriangle(24, 4, 8, 28, 40, 28);
-    g.fillStyle(0x4a2800);
-    g.fillRect(22, 4, 4, 36);
-    g.fillStyle(0xdc143c);
-    g.fillTriangle(26, 4, 26, 14, 38, 9);
-    g.fillStyle(0x2a1500);
-    g.fillCircle(14, 32, 2);
-    g.fillCircle(34, 32, 2);
-
-    g.generateTexture("ship-player", 48, 48);
-    g.destroy();
-  }
-
-  private generateAIShip(): void {
-    const g = this.add.graphics();
-    g.fillStyle(0x4a0000);
-    g.fillRect(8, 24, 32, 20);
-    g.fillStyle(0x600000);
-    g.fillRect(12, 28, 24, 12);
-    g.fillStyle(0x222222);
-    g.fillTriangle(24, 4, 8, 28, 40, 28);
-    g.fillStyle(0x3a1800);
-    g.fillRect(22, 4, 4, 36);
-    g.fillStyle(0xffffff);
-    g.fillRect(26, 4, 10, 8);
-    g.fillStyle(0x000000);
-    g.fillRect(28, 6, 6, 4);
-
-    g.generateTexture("ship-ai", 48, 48);
-    g.destroy();
-  }
-
-  private generateRock(): void {
-    const g = this.add.graphics();
-    g.fillStyle(0x555555);
-    g.fillEllipse(20, 18, 36, 28);
-    g.fillStyle(0x666666);
-    g.fillEllipse(14, 14, 16, 12);
-    g.fillStyle(0x444444);
-    g.fillEllipse(24, 22, 18, 14);
-
-    g.generateTexture("rock", 40, 36);
-    g.destroy();
-  }
-
-  private generateWhirlpool(): void {
-    const g = this.add.graphics();
-    g.fillStyle(0x1a3a5c);
-    g.fillEllipse(20, 20, 40, 40);
-    g.fillStyle(0x0d2b4a);
-    g.fillEllipse(20, 20, 28, 28);
-    g.fillStyle(0x0a1e3a);
-    g.fillEllipse(20, 20, 16, 16);
-    g.fillStyle(0x06152a);
-    g.fillEllipse(20, 20, 6, 6);
-
-    g.generateTexture("whirlpool", 40, 40);
-    g.destroy();
-  }
-
   private generateBarrel(): void {
     const g = this.add.graphics();
+    // Wooden barrel with bands
     g.fillStyle(0x8b6914);
-    g.fillRect(4, 0, 24, 28);
-    g.fillStyle(0x6b4f10);
-    g.fillRect(4, 0, 24, 4);
-    g.fillRect(4, 24, 24, 4);
-    g.lineStyle(2, 0x4a3508);
-    g.strokeCircle(16, 8, 2);
-    g.strokeCircle(16, 18, 2);
+    g.fillRoundedRect(2, 4, 28, 22, 3);
+    g.fillStyle(0xa07818);
+    g.fillRect(0, 0, 32, 4);
+    g.fillRect(0, 26, 32, 4);
+    g.fillStyle(0x4a3508);
+    g.fillRect(2, 10, 28, 2);
+    g.fillRect(2, 18, 28, 2);
+    // Rope detail
+    g.lineStyle(1, 0x6b4f10);
+    g.strokeCircle(8, 15, 2);
+    g.strokeCircle(24, 15, 2);
+    // Highlight
+    g.fillStyle(0xc09828, 0.3);
+    g.fillRect(6, 6, 4, 18);
+    g.generateTexture("barrel", 32, 30);
+    g.destroy();
+  }
 
-    g.generateTexture("barrel", 32, 28);
+  private generateShipwreck(): void {
+    const g = this.add.graphics();
+    // Broken hull
+    g.fillStyle(0x5c3a1e);
+    g.fillRect(4, 8, 24, 20);
+    g.fillStyle(0x7a4e28);
+    g.fillRect(8, 12, 16, 12);
+    // Broken mast
+    g.fillStyle(0x4a2800);
+    g.fillRect(14, 0, 4, 14);
+    // Tattered sail
+    g.fillStyle(0x888888, 0.6);
+    g.fillTriangle(18, 2, 18, 12, 28, 7);
+    g.fillStyle(0x666666, 0.4);
+    g.fillTriangle(18, 4, 18, 10, 26, 7);
+    // Debris pieces
+    g.fillStyle(0x5c3a1e);
+    g.fillRect(0, 22, 8, 3);
+    g.fillRect(24, 20, 6, 4);
+    g.fillRect(10, 26, 6, 2);
+    g.generateTexture("shipwreck", 32, 30);
+    g.destroy();
+  }
+
+  private generateReef(): void {
+    const g = this.add.graphics();
+    // Rocky island/reef
+    g.fillStyle(0x554433);
+    g.fillEllipse(20, 18, 34, 26);
+    g.fillStyle(0x665544);
+    g.fillEllipse(16, 14, 18, 14);
+    g.fillStyle(0x443322);
+    g.fillEllipse(24, 22, 16, 12);
+    // Sandy edge
+    g.fillStyle(0x998866, 0.5);
+    g.fillEllipse(20, 20, 30, 20);
+    // Palm silhouette
+    g.fillStyle(0x2a5a1a);
+    g.fillRect(19, 2, 3, 14);
+    g.fillStyle(0x3a7a2a);
+    g.fillEllipse(20, 2, 14, 6);
+    g.generateTexture("reef", 40, 36);
+    g.destroy();
+  }
+
+  private generateDebris(): void {
+    const g = this.add.graphics();
+    // Floating crate
+    g.fillStyle(0x7a5a2e);
+    g.fillRect(2, 4, 20, 16);
+    g.lineStyle(1, 0x5a3a0e);
+    g.strokeRect(2, 4, 20, 16);
+    g.lineStyle(1, 0x5a3a0e);
+    g.lineBetween(2, 12, 22, 12);
+    g.lineBetween(12, 4, 12, 20);
+    // Rope coils
+    g.fillStyle(0x8b6914);
+    g.fillCircle(6, 6, 2);
+    g.fillCircle(18, 18, 2);
+    g.generateTexture("debris", 24, 24);
     g.destroy();
   }
 
   private generateTreasureChest(): void {
     const g = this.add.graphics();
+    // Chest body
     g.fillStyle(0x8b6914);
-    g.fillRect(2, 10, 28, 18);
+    g.fillRoundedRect(2, 10, 28, 18, 2);
+    // Lid
     g.fillStyle(0xa07818);
-    g.fillRect(0, 2, 32, 10);
+    g.fillRoundedRect(0, 2, 32, 10, { tl: 4, tr: 4, bl: 0, br: 0 });
+    // Lock plate
     g.fillStyle(0xffd700);
     g.fillRect(13, 12, 6, 6);
     g.fillStyle(0x8b6914);
     g.fillRect(14, 14, 4, 4);
-    g.fillStyle(0xffeb3b);
-    g.fillCircle(16, 8, 3);
-
+    // Keyhole
+    g.fillStyle(0x000000);
+    g.fillCircle(16, 16, 1.5);
+    // Gold glow
+    g.fillStyle(0xffeb3b, 0.3);
+    g.fillCircle(16, 8, 5);
+    // Gems on lid
+    g.fillStyle(0xff4444);
+    g.fillCircle(8, 7, 2);
+    g.fillStyle(0x4444ff);
+    g.fillCircle(24, 7, 2);
     g.generateTexture("treasure", 32, 30);
     g.destroy();
   }
@@ -154,28 +189,70 @@ export class BootScene extends Phaser.Scene {
   private generateBoostBar(): void {
     const g = this.add.graphics();
     g.fillStyle(0x333333);
-    g.fillRect(0, 0, 100, 12);
+    g.fillRoundedRect(0, 0, 120, 14, 3);
     g.lineStyle(1, 0x666666);
-    g.strokeRect(0, 0, 100, 12);
-    g.generateTexture("boost-bar-bg", 100, 12);
+    g.strokeRoundedRect(0, 0, 120, 14, 3);
+    g.generateTexture("boost-bar-bg", 120, 14);
     g.destroy();
 
     const g2 = this.add.graphics();
     g2.fillStyle(0x00ccff);
-    g2.fillRect(0, 0, 100, 12);
-    g2.generateTexture("boost-bar-fill", 100, 12);
+    g2.fillRoundedRect(0, 0, 120, 14, 3);
+    g2.generateTexture("boost-bar-fill", 120, 14);
     g2.destroy();
   }
 
-  private generateFinishLine(): void {
+  private generateTreasureIsland(): void {
     const g = this.add.graphics();
-    for (let x = 0; x < 8; x++) {
-      for (let y = 0; y < 2; y++) {
+    const w = 200;
+    const h = 140;
+    const cx = w / 2;
+    // Ocean base
+    g.fillStyle(0x123558);
+    g.fillRect(0, 0, w, h);
+    // Sandy island
+    g.fillStyle(0xeeddbb);
+    g.fillEllipse(cx, h - 20, 160, 60);
+    g.fillStyle(0xffeebb);
+    g.fillEllipse(cx, h - 22, 140, 44);
+    // Grass
+    g.fillStyle(0x3a7a2a);
+    g.fillEllipse(cx, h - 40, 100, 36);
+    g.fillStyle(0x4a8a3a);
+    g.fillEllipse(cx - 10, h - 44, 60, 20);
+    // Palm trees
+    for (let i = 0; i < 3; i++) {
+      const tx = cx - 30 + i * 30 + Phaser.Math.Between(-5, 5);
+      g.fillStyle(0x4a2800);
+      g.fillRect(tx - 1, h - 70 - i * 5, 3, 30 + i * 5);
+      g.fillStyle(0x2a7a1a);
+      g.fillEllipse(tx, h - 72 - i * 5, 20 + i * 3, 8);
+      g.fillEllipse(tx + 4, h - 68 - i * 5, 16 + i * 2, 6);
+    }
+    // Treasure chest on island
+    g.fillStyle(0xffd700);
+    g.fillRect(cx - 6, h - 56, 12, 8);
+    g.fillStyle(0xff4444);
+    g.fillCircle(cx, h - 58, 2);
+    // Shoreline foam
+    g.fillStyle(0xffffff, 0.2);
+    g.fillEllipse(cx, h - 6, 170, 10);
+
+    g.generateTexture("treasure-island", w, h);
+    g.destroy();
+  }
+
+  private generateFinishFlag(): void {
+    const g = this.add.graphics();
+    // Checkered pattern
+    const s = 8;
+    for (let x = 0; x < 16; x++) {
+      for (let y = 0; y < 4; y++) {
         g.fillStyle((x + y) % 2 === 0 ? 0xffffff : 0x222222);
-        g.fillRect(x * 15, y * 15, 15, 15);
+        g.fillRect(x * s, y * s, s, s);
       }
     }
-    g.generateTexture("finish-line", 120, 30);
+    g.generateTexture("finish-line", 128, 32);
     g.destroy();
   }
 

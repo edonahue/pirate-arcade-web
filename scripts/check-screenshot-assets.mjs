@@ -224,4 +224,4 @@ if (errors.length) {
   for (const e of errors) console.error(`   - ${e}`);
   process.exit(1);
 }
-console.log(`\n\u2713 All 3 screenshot assets valid.`);
+console.log(`\n\u2713 All ${GAMES.length} screenshot assets valid.`);

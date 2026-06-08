@@ -1,7 +1,7 @@
 import Phaser from "phaser";
 
-export const GAME_WIDTH = 480;
-export const GAME_HEIGHT = 720;
+export const GAME_WIDTH = 960;
+export const GAME_HEIGHT = 540;
 
 export function createGameConfig(
   parent: string,
@@ -12,7 +12,7 @@ export function createGameConfig(
     width: GAME_WIDTH,
     height: GAME_HEIGHT,
     parent,
-    backgroundColor: "#0a1628",
+    backgroundColor: "#1a3a5c",
     physics: {
       default: "arcade",
       arcade: {
@@ -26,5 +26,9 @@ export function createGameConfig(
       autoCenter: Phaser.Scale.CENTER_BOTH,
     },
     scene: [],
+    input: {
+      mouse: { preventDefaultWheel: true },
+      touch: { capture: true },
+    },
   };
 }
