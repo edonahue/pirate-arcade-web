@@ -453,18 +453,21 @@ export class RaceScene extends Phaser.Scene {
       (this.spaceKey.isDown || this.shiftKey.isDown || touch.boost) &&
       this.boostMeter > 0;
 
+    const stunFactor = this.stunTimer > 0 ? 0.55 : 1;
+
     const speed = this.boosting
       ? RACE_TUNING.playerSpeed * RACE_TUNING.boostMultiplier
       : RACE_TUNING.playerSpeed;
 
-    this.player.setVelocityX(dir * speed);
+    this.player.setVelocityX(dir * speed * stunFactor);
 
     const boostBonus = this.boosting ? RACE_TUNING.boostProgressBonus : 0;
-    this.playerProgress +=
+    const progressGain =
       (RACE_TUNING.baseProgressRate +
         (this.scrollSpeed - RACE_TUNING.baseScrollSpeed) * 0.5 +
         boostBonus) *
       dt;
+    this.playerProgress += progressGain * stunFactor;
     this.playerProgress = Math.min(
       this.playerProgress,
       RACE_TUNING.raceDistance,
@@ -504,6 +507,7 @@ export class RaceScene extends Phaser.Scene {
 
     // AI mistakes: drift off course
     this.aiMistakeTimer -= dt * 1000;
+    // TODO: Replace gameplay Math.random calls with a seeded RNG before making screenshot/gameplay determinism stricter.
     if (
       this.aiMistakeTimer <= 0 &&
       Math.random() < RACE_TUNING.aiMistakeChance
@@ -548,6 +552,7 @@ export class RaceScene extends Phaser.Scene {
       { key: "reef", type: "reef" },
       { key: "debris", type: "debris" },
     ];
+    // TODO: Replace gameplay Math.random calls with a seeded RNG before making screenshot/gameplay determinism stricter.
     const chosen = types[Math.floor(Math.random() * types.length)];
     this.obstacleTypesSeen.add(chosen.type);
 
@@ -612,13 +617,16 @@ export class RaceScene extends Phaser.Scene {
     });
   }
 
-  private updateBoost(_dt: number): void {
+  private updateBoost(dt: number): void {
     if (this.boosting) {
-      this.boostMeter = Math.max(0, this.boostMeter - RACE_TUNING.boostDrain);
+      this.boostMeter = Math.max(
+        0,
+        this.boostMeter - RACE_TUNING.boostDrain * dt * 60,
+      );
     } else {
       this.boostMeter = Math.min(
         RACE_TUNING.boostMax,
-        this.boostMeter + RACE_TUNING.boostRegen,
+        this.boostMeter + RACE_TUNING.boostRegen * dt * 60,
       );
     }
 

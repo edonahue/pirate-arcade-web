@@ -137,8 +137,10 @@ const title = `${game.title} — Pirate Arcade`;
     debugMode,
   );
 
-  // Expose game for test debugging
-  (window as any).__paRaceGame = game;
+  // Expose game for test debugging (only in debug mode)
+  if (debugMode) {
+    (window as any).__paRaceGame = game;
+  }
   (window as any).__paRaceDebugMode = debugMode;
 
   const checkReady = setInterval(() => {

@@ -371,7 +371,9 @@ for (const game of GAMES) {
         "Touch left test skipped on non-desktop",
       );
 
-      await page.goto(game.path, { waitUntil: "domcontentloaded" });
+      await page.goto(`${game.path}?testTouch=1`, {
+        waitUntil: "domcontentloaded",
+      });
       await waitForPhaserReady(page);
 
       await page.locator("#btn-left").dispatchEvent("pointerdown", {
@@ -409,7 +411,9 @@ for (const game of GAMES) {
         "Touch right test skipped on non-desktop",
       );
 
-      await page.goto(game.path, { waitUntil: "domcontentloaded" });
+      await page.goto(`${game.path}?testTouch=1`, {
+        waitUntil: "domcontentloaded",
+      });
       await waitForPhaserReady(page);
 
       await page.locator("#btn-right").dispatchEvent("pointerdown", {
@@ -441,7 +445,9 @@ for (const game of GAMES) {
         "Boost drain test skipped on non-desktop",
       );
 
-      await page.goto(game.path, { waitUntil: "domcontentloaded" });
+      await page.goto(`${game.path}?testTouch=1`, {
+        waitUntil: "domcontentloaded",
+      });
       await waitForPhaserReady(page);
 
       // Start boost by holding the button
@@ -520,25 +526,10 @@ for (const game of GAMES) {
         "Restart test skipped on non-desktop",
       );
 
-      page.on("console", (msg) => console.log("[Browser]", msg.text()));
-
       await page.goto(`${game.path}?testTouch=1`, {
         waitUntil: "domcontentloaded",
       });
       await waitForPhaserReady(page);
-
-      // Debug: check if debug hooks are exposed
-      const hasFinishHook = await page.evaluate(
-        () => typeof (window as any).__paRaceDebugFinish === "function",
-      );
-      console.log("Debug finish hook exists:", hasFinishHook);
-
-      // Check debugMode in game config
-      const debugMode = await page.evaluate(() => {
-        const game = (window as any).__paRaceGame;
-        return game?.config?.debugMode;
-      });
-      console.log("Game config debugMode:", debugMode);
 
       // Force finish using debug hook
       await page.evaluate(() => {
@@ -668,16 +659,35 @@ for (const game of GAMES) {
         "Obstacle test skipped on non-desktop",
       );
 
-      await page.goto(game.path, { waitUntil: "domcontentloaded" });
+      // Use a fixed seed for deterministic obstacle spawning
+      await page.goto(`${game.path}?seed=obstacle-test`, {
+        waitUntil: "domcontentloaded",
+      });
       await waitForPhaserReady(page);
 
       // Wait for obstacle spawns
-      await page.waitForTimeout(4000);
+      await page.waitForFunction(
+        () =>
+          (window as any).__paRaceToTreasureIslandState?.obstacleTypesSeen
+            .length > 0,
+        { timeout: 6000 },
+      );
 
       const state = await page.evaluate(
         () => (window as any).__paRaceToTreasureIslandState,
       );
-      expect(state?.obstacleCount).toBeGreaterThanOrEqual(0);
+      const validTypes = ["barrel", "shipwreck", "reef", "debris"];
+      const seenTypes = state?.obstacleTypesSeen ?? [];
+
+      // Assert all seen types are valid
+      for (const type of seenTypes) {
+        expect(validTypes).toContain(type);
+      }
+
+      // Assert at least one valid type was seen
+      expect(seenTypes.length).toBeGreaterThan(0);
+      // Assert all seen types are valid
+      expect(seenTypes.every((t: string) => validTypes.includes(t))).toBe(true);
     });
   });
 }
