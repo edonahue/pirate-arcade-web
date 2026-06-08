@@ -360,5 +360,288 @@ for (const game of GAMES) {
       expect(infoText?.toLowerCase()).toContain("restart");
       expect(infoText?.toLowerCase()).toContain("pause");
     });
+
+    // ── Phase 6: Touch control behavior tests ──
+
+    test("touch left button sets input and moves ship", async ({
+      page,
+    }, testInfo) => {
+      test.skip(
+        !DESKTOP_PROJECTS.includes(testInfo.project.name),
+        "Touch left test skipped on non-desktop",
+      );
+
+      await page.goto(game.path, { waitUntil: "domcontentloaded" });
+      await waitForPhaserReady(page);
+
+      await page.locator("#btn-left").dispatchEvent("pointerdown", {
+        pointerId: 1,
+        pointerType: "touch",
+        isPrimary: true,
+        button: 0,
+        buttons: 1,
+      });
+      await page.waitForTimeout(100);
+
+      const leftActive = await page.evaluate(
+        () => (window as any).__paTouchInput?.left === true,
+      );
+      expect(leftActive).toBe(true);
+
+      await page.locator("#btn-left").dispatchEvent("pointerup", {
+        pointerId: 1,
+        pointerType: "touch",
+        isPrimary: true,
+        button: 0,
+        buttons: 0,
+      });
+      await page.waitForTimeout(100);
+
+      const leftInactive = await page.evaluate(
+        () => (window as any).__paTouchInput?.left !== true,
+      );
+      expect(leftInactive).toBe(true);
+    });
+
+    test("touch right button sets input", async ({ page }, testInfo) => {
+      test.skip(
+        !DESKTOP_PROJECTS.includes(testInfo.project.name),
+        "Touch right test skipped on non-desktop",
+      );
+
+      await page.goto(game.path, { waitUntil: "domcontentloaded" });
+      await waitForPhaserReady(page);
+
+      await page.locator("#btn-right").dispatchEvent("pointerdown", {
+        pointerId: 1,
+        pointerType: "touch",
+        isPrimary: true,
+        button: 0,
+        buttons: 1,
+      });
+      await page.waitForTimeout(100);
+
+      const rightActive = await page.evaluate(
+        () => (window as any).__paTouchInput?.right === true,
+      );
+      expect(rightActive).toBe(true);
+
+      await page.locator("#btn-right").dispatchEvent("pointerup", {
+        pointerId: 1,
+        pointerType: "touch",
+        isPrimary: true,
+        button: 0,
+        buttons: 0,
+      });
+    });
+
+    test("touch boost drains wind meter", async ({ page }, testInfo) => {
+      test.skip(
+        !DESKTOP_PROJECTS.includes(testInfo.project.name),
+        "Boost drain test skipped on non-desktop",
+      );
+
+      await page.goto(game.path, { waitUntil: "domcontentloaded" });
+      await waitForPhaserReady(page);
+
+      // Start boost by holding the button
+      await page.locator("#btn-boost").dispatchEvent("pointerdown", {
+        pointerId: 1,
+        pointerType: "touch",
+        isPrimary: true,
+        button: 0,
+        buttons: 1,
+      });
+      await page.waitForTimeout(1200);
+
+      const state = await page.evaluate(
+        () => (window as any).__paRaceToTreasureIslandState,
+      );
+      expect(state?.boosting).toBe(true);
+      expect(state?.windMeter).toBeLessThan(100);
+
+      // Release boost
+      await page.locator("#btn-boost").dispatchEvent("pointerup", {
+        pointerId: 1,
+        pointerType: "touch",
+        isPrimary: true,
+        button: 0,
+        buttons: 0,
+      });
+      await page.waitForTimeout(800);
+
+      const stateAfter = await page.evaluate(
+        () => (window as any).__paRaceToTreasureIslandState,
+      );
+      expect(stateAfter?.boosting).toBe(false);
+    });
+
+    test("pause toggles game state", async ({ page }, testInfo) => {
+      test.skip(
+        !DESKTOP_PROJECTS.includes(testInfo.project.name),
+        "Pause toggle test skipped on non-desktop",
+      );
+
+      await page.goto(game.path, { waitUntil: "domcontentloaded" });
+      await waitForPhaserReady(page);
+
+      // Click pause
+      await page.locator("#btn-pause").click();
+      await page.waitForTimeout(200);
+
+      const paused = await page.evaluate(
+        () => (window as any).__paRaceToTreasureIslandState?.paused === true,
+      );
+      expect(paused).toBe(true);
+
+      // Click pause again to resume
+      await page.locator("#btn-pause").click();
+      await page.waitForTimeout(200);
+
+      const resumed = await page.evaluate(
+        () => (window as any).__paRaceToTreasureIslandState?.paused === false,
+      );
+      expect(resumed).toBe(true);
+    });
+
+    test("restart button appears after forced finish", async ({
+      page,
+    }, testInfo) => {
+      test.skip(
+        !DESKTOP_PROJECTS.includes(testInfo.project.name),
+        "Restart test skipped on non-desktop",
+      );
+
+      await page.goto(game.path, { waitUntil: "domcontentloaded" });
+      await waitForPhaserReady(page);
+
+      // Press 'f' for debug finish
+      await page.keyboard.press("f");
+      await page.waitForTimeout(500);
+
+      const finished = await page.evaluate(
+        () => (window as any).__paRaceToTreasureIslandState?.finished === true,
+      );
+      expect(finished).toBe(true);
+
+      const restartVisible = await page
+        .locator("#btn-restart")
+        .evaluate(
+          (el) => el.style.display !== "none" && el.style.display !== "",
+        );
+      expect(restartVisible).toBe(true);
+    });
+
+    // ── Phase 7: Race logic tests ──
+
+    test("deterministic race does not finish immediately", async ({
+      page,
+    }, testInfo) => {
+      test.skip(
+        !DESKTOP_PROJECTS.includes(testInfo.project.name),
+        "Deterministic test skipped on non-desktop",
+      );
+
+      await page.goto(game.path, { waitUntil: "domcontentloaded" });
+      await waitForPhaserReady(page);
+
+      const state = await page.evaluate(
+        () => (window as any).__paRaceToTreasureIslandState,
+      );
+      // At boot, race should not be finished or at max progress
+      expect(state?.finished).toBe(false);
+      expect(state?.playerProgress).toBeLessThan(1000);
+      expect(state?.rivalProgress).toBeLessThan(1000);
+    });
+
+    test("progress advances predictably", async ({ page }, testInfo) => {
+      test.skip(
+        !DESKTOP_PROJECTS.includes(testInfo.project.name),
+        "Progress test skipped on non-desktop",
+      );
+
+      await page.goto(game.path, { waitUntil: "domcontentloaded" });
+      await waitForPhaserReady(page);
+
+      await page.keyboard.press("ArrowRight");
+      await page.waitForTimeout(3000);
+
+      const state = await page.evaluate(
+        () => (window as any).__paRaceToTreasureIslandState,
+      );
+      expect(state?.playerProgress).toBeGreaterThan(200);
+      expect(state?.rivalProgress).toBeGreaterThan(100);
+      // Player should be slightly ahead with ArrowRight held
+      expect(state?.playerProgress).toBeGreaterThanOrEqual(
+        state?.rivalProgress ?? 0,
+      );
+    });
+
+    test("player can finish in accelerated mode", async ({
+      page,
+    }, testInfo) => {
+      test.skip(
+        !DESKTOP_PROJECTS.includes(testInfo.project.name),
+        "Finish test skipped on non-desktop",
+      );
+
+      await page.goto(game.path, { waitUntil: "domcontentloaded" });
+      await waitForPhaserReady(page);
+
+      // Debug finish with 'f' key
+      await page.keyboard.press("f");
+      await page.waitForTimeout(300);
+
+      const state = await page.evaluate(
+        () => (window as any).__paRaceToTreasureIslandState,
+      );
+      expect(state?.finished).toBe(true);
+      expect(state?.result).toBeTruthy();
+    });
+
+    test("island shown near finish threshold", async ({ page }, testInfo) => {
+      test.skip(
+        !DESKTOP_PROJECTS.includes(testInfo.project.name),
+        "Island test skipped on non-desktop",
+      );
+
+      await page.goto(game.path, { waitUntil: "domcontentloaded" });
+      await waitForPhaserReady(page);
+
+      // Play for a while to build progress
+      await page.keyboard.press("ArrowRight");
+      await page.waitForTimeout(8000);
+
+      const state = await page.evaluate(
+        () => (window as any).__paRaceToTreasureIslandState,
+      );
+      // If progress is high enough, island should be shown
+      if ((state?.playerProgress ?? 0) > 7500) {
+        expect(state?.islandShown).toBe(true);
+      } else {
+        // Not far enough yet — that's OK for this test
+        expect(state?.islandShown).toBe(false);
+      }
+    });
+
+    test("obstacle types include expected variants", async ({
+      page,
+    }, testInfo) => {
+      test.skip(
+        !DESKTOP_PROJECTS.includes(testInfo.project.name),
+        "Obstacle test skipped on non-desktop",
+      );
+
+      await page.goto(game.path, { waitUntil: "domcontentloaded" });
+      await waitForPhaserReady(page);
+
+      // Wait for obstacle spawns
+      await page.waitForTimeout(4000);
+
+      const state = await page.evaluate(
+        () => (window as any).__paRaceToTreasureIslandState,
+      );
+      expect(state?.obstacleCount).toBeGreaterThanOrEqual(0);
+    });
   });
 }

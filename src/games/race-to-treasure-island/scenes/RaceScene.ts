@@ -1,28 +1,27 @@
 import Phaser from "phaser";
 import { GAME_WIDTH, GAME_HEIGHT } from "../config";
 
-// ── Race Constants ──
-const RACE_DISTANCE = 10000;
-const BASE_SCROLL_SPEED = 80;
-const MAX_SCROLL_SPEED = 200;
-const PLAYER_SPEED = 300;
-const BOOST_MULTIPLIER = 1.6;
-const BOOST_MAX = 100;
-const BOOST_DRAIN = 0.8;
-const BOOST_REGEN = 0.35;
-const STUN_DURATION = 600;
-const OBSTACLE_SPAWN_INTERVAL = 1800;
-const TREASURE_SPAWN_INTERVAL = 6000;
-const BASE_PROGRESS_RATE = 120;
-const BOOST_PROGRESS_BONUS = 80;
-
-// AI tuning (documented for later settings UI)
-const AI_BASE_RATE = 105;
-const AI_MISTAKE_CHANCE = 0.004;
-const AI_MISTAKE_DURATION = 800;
-
-// Island appears at 75% progress
-const ISLAND_THRESHOLD = 0.75;
+// ── Race Tuning ──
+// Centralized tuning object so future settings UI can build from it.
+const RACE_TUNING = {
+  raceDistance: 10000,
+  baseScrollSpeed: 80,
+  maxScrollSpeed: 200,
+  playerSpeed: 300,
+  boostMultiplier: 1.6,
+  boostMax: 100,
+  boostDrain: 0.8,
+  boostRegen: 0.35,
+  stunDuration: 600,
+  obstacleSpawnInterval: 1800,
+  treasureSpawnInterval: 6000,
+  baseProgressRate: 120,
+  boostProgressBonus: 80,
+  aiBaseRate: 105,
+  aiMistakeChance: 0.004,
+  aiMistakeDuration: 800,
+  islandThreshold: 0.75,
+};
 
 type ObstacleType = "barrel" | "shipwreck" | "reef" | "debris";
 
@@ -48,8 +47,8 @@ export class RaceScene extends Phaser.Scene {
   private spaceKey!: Phaser.Input.Keyboard.Key;
   private shiftKey!: Phaser.Input.Keyboard.Key;
 
-  private boostMeter: number = BOOST_MAX;
-  private scrollSpeed: number = BASE_SCROLL_SPEED;
+  private boostMeter: number = RACE_TUNING.boostMax;
+  private scrollSpeed: number = RACE_TUNING.baseScrollSpeed;
   private distanceTraveled: number = 0;
   private score: number = 0;
   private gameOver: boolean = false;
@@ -109,8 +108,8 @@ export class RaceScene extends Phaser.Scene {
     const dt = delta / 1000;
 
     this.scrollSpeed = Math.min(
-      MAX_SCROLL_SPEED,
-      BASE_SCROLL_SPEED + this.distanceTraveled * 0.012,
+      RACE_TUNING.maxScrollSpeed,
+      RACE_TUNING.baseScrollSpeed + this.distanceTraveled * 0.012,
     );
 
     this.handleInput(dt);
@@ -128,8 +127,8 @@ export class RaceScene extends Phaser.Scene {
   }
 
   private resetState(): void {
-    this.boostMeter = BOOST_MAX;
-    this.scrollSpeed = BASE_SCROLL_SPEED;
+    this.boostMeter = RACE_TUNING.boostMax;
+    this.scrollSpeed = RACE_TUNING.baseScrollSpeed;
     this.distanceTraveled = 0;
     this.score = 0;
     this.gameOver = false;
@@ -339,7 +338,7 @@ export class RaceScene extends Phaser.Scene {
     this.input.keyboard!.on("keydown-F", () => {
       // Debug: finish the race
       if (!this.raceFinished) {
-        this.playerProgress = RACE_DISTANCE;
+        this.playerProgress = RACE_TUNING.raceDistance;
         this.checkFinish();
       }
     });
@@ -416,19 +415,22 @@ export class RaceScene extends Phaser.Scene {
     }
 
     const speed = this.boosting
-      ? PLAYER_SPEED * BOOST_MULTIPLIER
-      : PLAYER_SPEED;
+      ? RACE_TUNING.playerSpeed * RACE_TUNING.boostMultiplier
+      : RACE_TUNING.playerSpeed;
 
     this.player.setVelocityX(dir * speed);
     this.player.setVelocityY(-this.scrollSpeed * 0.15);
 
-    const boostBonus = this.boosting ? BOOST_PROGRESS_BONUS : 0;
+    const boostBonus = this.boosting ? RACE_TUNING.boostProgressBonus : 0;
     this.playerProgress +=
-      (BASE_PROGRESS_RATE +
-        (this.scrollSpeed - BASE_SCROLL_SPEED) * 0.5 +
+      (RACE_TUNING.baseProgressRate +
+        (this.scrollSpeed - RACE_TUNING.baseScrollSpeed) * 0.5 +
         boostBonus) *
       dt;
-    this.playerProgress = Math.min(this.playerProgress, RACE_DISTANCE);
+    this.playerProgress = Math.min(
+      this.playerProgress,
+      RACE_TUNING.raceDistance,
+    );
 
     // Sail visual for boost
     if (this.boosting) {
@@ -462,8 +464,11 @@ export class RaceScene extends Phaser.Scene {
 
     // AI mistakes: drift off course
     this.aiMistakeTimer -= dt * 1000;
-    if (this.aiMistakeTimer <= 0 && Math.random() < AI_MISTAKE_CHANCE) {
-      this.aiMistakeTimer = AI_MISTAKE_DURATION;
+    if (
+      this.aiMistakeTimer <= 0 &&
+      Math.random() < RACE_TUNING.aiMistakeChance
+    ) {
+      this.aiMistakeTimer = RACE_TUNING.aiMistakeDuration;
       this.aiMistakeDir = Math.random() < 0.5 ? -1 : 1;
     }
 
@@ -477,11 +482,11 @@ export class RaceScene extends Phaser.Scene {
 
     const aiPenalty = this.aiMistakeTimer > 0 ? 40 : 0;
     this.rivalProgress +=
-      (AI_BASE_RATE +
-        (this.scrollSpeed - BASE_SCROLL_SPEED) * 0.45 -
+      (RACE_TUNING.aiBaseRate +
+        (this.scrollSpeed - RACE_TUNING.baseScrollSpeed) * 0.45 -
         aiPenalty) *
       dt;
-    this.rivalProgress = Math.min(this.rivalProgress, RACE_DISTANCE);
+    this.rivalProgress = Math.min(this.rivalProgress, RACE_TUNING.raceDistance);
 
     // Keep AI on screen relative to player
     const aiScreenY =
@@ -532,7 +537,7 @@ export class RaceScene extends Phaser.Scene {
     if (this.lastObstacleSpawn <= 0) {
       this.spawnObstacle();
       this.lastObstacleSpawn =
-        OBSTACLE_SPAWN_INTERVAL - this.playerProgress * 0.02;
+        RACE_TUNING.obstacleSpawnInterval - this.playerProgress * 0.02;
       if (this.lastObstacleSpawn < 600) this.lastObstacleSpawn = 600;
     }
 
@@ -553,7 +558,7 @@ export class RaceScene extends Phaser.Scene {
     this.lastTreasureSpawn -= dt * 1000;
     if (this.lastTreasureSpawn <= 0) {
       this.spawnTreasure();
-      this.lastTreasureSpawn = TREASURE_SPAWN_INTERVAL;
+      this.lastTreasureSpawn = RACE_TUNING.treasureSpawnInterval;
     }
 
     this.treasures.getChildren().forEach((child) => {
@@ -568,12 +573,15 @@ export class RaceScene extends Phaser.Scene {
 
   private updateBoost(_dt: number): void {
     if (this.boosting) {
-      this.boostMeter = Math.max(0, this.boostMeter - BOOST_DRAIN);
+      this.boostMeter = Math.max(0, this.boostMeter - RACE_TUNING.boostDrain);
     } else {
-      this.boostMeter = Math.min(BOOST_MAX, this.boostMeter + BOOST_REGEN);
+      this.boostMeter = Math.min(
+        RACE_TUNING.boostMax,
+        this.boostMeter + RACE_TUNING.boostRegen,
+      );
     }
 
-    const pct = this.boostMeter / BOOST_MAX;
+    const pct = this.boostMeter / RACE_TUNING.boostMax;
     this.boostBarFill.setScale(pct, 1);
     const fillColor = this.boostMeter > 30 ? 0x00ccff : 0xff4444;
     this.boostBarFill.setTint(fillColor);
@@ -602,8 +610,8 @@ export class RaceScene extends Phaser.Scene {
   }
 
   private updateTreasureIsland(): void {
-    const pct = this.playerProgress / RACE_DISTANCE;
-    if (pct >= ISLAND_THRESHOLD && !this.islandShown) {
+    const pct = this.playerProgress / RACE_TUNING.raceDistance;
+    if (pct >= RACE_TUNING.islandThreshold && !this.islandShown) {
       this.islandShown = true;
       this.treasureIsland.setVisible(true);
       this.treasureIsland.setPosition(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 40);
@@ -628,9 +636,9 @@ export class RaceScene extends Phaser.Scene {
   private checkFinish(): void {
     if (this.raceFinished) return;
 
-    if (this.playerProgress >= RACE_DISTANCE) {
+    if (this.playerProgress >= RACE_TUNING.raceDistance) {
       this.handleFinish(true);
-    } else if (this.rivalProgress >= RACE_DISTANCE) {
+    } else if (this.rivalProgress >= RACE_TUNING.raceDistance) {
       this.handleFinish(false);
     }
   }
@@ -638,10 +646,13 @@ export class RaceScene extends Phaser.Scene {
   private handleObstacleHit(obs: Obstacle): void {
     // Flash / stun effect
     this.player.setTint(0xff4444);
-    this.stunTimer = STUN_DURATION;
+    this.stunTimer = RACE_TUNING.stunDuration;
 
     // Slow scroll temporarily
-    this.scrollSpeed = Math.max(BASE_SCROLL_SPEED * 0.7, this.scrollSpeed - 25);
+    this.scrollSpeed = Math.max(
+      RACE_TUNING.baseScrollSpeed * 0.7,
+      this.scrollSpeed - 25,
+    );
 
     // Score penalty
     this.score = Math.max(0, this.score - 30);
@@ -740,11 +751,11 @@ export class RaceScene extends Phaser.Scene {
 
     const playerPct = Math.min(
       100,
-      Math.floor((this.playerProgress / RACE_DISTANCE) * 100),
+      Math.floor((this.playerProgress / RACE_TUNING.raceDistance) * 100),
     );
     const rivalPct = Math.min(
       100,
-      Math.floor((this.rivalProgress / RACE_DISTANCE) * 100),
+      Math.floor((this.rivalProgress / RACE_TUNING.raceDistance) * 100),
     );
     this.progressText.setText(`You: ${playerPct}%  •  Long John: ${rivalPct}%`);
     this.rivalText.setText(

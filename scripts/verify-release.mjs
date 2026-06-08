@@ -51,6 +51,10 @@ const FULL_GATE = [
     name: "Browser games (chromium)",
     cmd: "npm run test:browser-games:chromium",
   },
+  {
+    name: "Web-native games (chromium)",
+    cmd: "npm run test:web-native-games:chromium",
+  },
   { name: "Game theming (visual)", cmd: "npm run test:game-theming" },
   { name: "Captain's Log", cmd: "npm run test:captains-log" },
 ];

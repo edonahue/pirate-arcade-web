@@ -63,8 +63,14 @@ for (const block of manifestRaw.match(/{\s*\n[\s\S]*?},\s*\n/g) || []) {
     console.log(`  ${id}: missing or invalid sourceUrl`);
     allPassed = false;
   }
-  if (!sourcePage || !sourcePage.startsWith("https://commons.wikimedia")) {
-    console.log(`  ${id}: sourcePage should link to Wikimedia Commons`);
+  if (
+    !sourcePage ||
+    (!sourcePage.startsWith("https://commons.wikimedia") &&
+      !sourcePage.startsWith("https://www.gutenberg.org"))
+  ) {
+    console.log(
+      `  ${id}: sourcePage should link to Wikimedia Commons or Project Gutenberg`,
+    );
     allPassed = false;
   }
 
@@ -74,9 +80,9 @@ for (const block of manifestRaw.match(/{\s*\n[\s\S]*?},\s*\n/g) || []) {
     allPassed = false;
   }
 
-  // Check author
-  if (!author || author !== "Howard Pyle") {
-    console.log(`  ${id}: author should be Howard Pyle`);
+  // Check author presence
+  if (!author) {
+    console.log(`  ${id}: missing author`);
     allPassed = false;
   }
 }

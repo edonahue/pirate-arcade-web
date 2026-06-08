@@ -57,11 +57,35 @@ const description =
     }
 
     <div class="prose">
+      <div class="game-detail__chips">
+        {
+          game.engine === "phaser" && (
+            <>
+              <span class="chip chip--phaser">Web-native (Phaser 3)</span>
+              <span class="chip chip--browser">Browser playable</span>
+            </>
+          )
+        }
+        {
+          game.engine !== "phaser" && game.status === "browser-playable" && (
+            <span class="chip chip--browser">Browser playable</span>
+          )
+        }
+        {
+          game.status === "desktop-available" && (
+            <span class="chip chip--desktop">Desktop only</span>
+          )
+        }
+      </div>
+
       <h2>What it is</h2>
       <p>
-        {game.title} is Pirate Arcade's nautical take on {game.classic}. It is
-        part of a four-game Python and Pygame arcade collection built as a
-        zero-cost AI-assisted development experiment.
+        {game.title} is Pirate Arcade's nautical take on {game.classic}.
+        {
+          game.engine === "phaser"
+            ? " It is the first web-native Phaser 3 game in the collection — loads instantly in your browser with no runtime download."
+            : " It is part of the Python and Pygame arcade collection built as a zero-cost AI-assisted development experiment."
+        }
       </p>
 
       <h2>How to play</h2>
@@ -91,6 +115,54 @@ const description =
           </>
         )
       }
+
+      {
+        game.id === "race-to-treasure-island" && (
+          <>
+            <h2>Treasure Island & Long John Silver</h2>
+            <p>
+              Race to Treasure Island draws inspiration from Robert Louis
+              Stevenson's classic novel <em>Treasure Island</em> (1883). The
+              rival pirate Long John Silver — "Long John" in-game — is the
+              novel's iconic one-legged sea-cook turned mutineer. The race's
+              finish line is the treasure island itself, a persistent goal
+              through the novel's adventure.
+            </p>
+            <p>
+              Louis Rhead (1857–1926) illustrated a 1915 edition of{" "}
+              <em>Treasure Island</em> with dramatic full-page artwork. His
+              illustrations capture the novel's stormy, dangerous tone — the
+              same atmosphere we aim for in the race across open water.
+            </p>
+            <figure class="game-detail__art-figure">
+              <img
+                src="/images/art/rhead-treasure-island-cover.webp"
+                alt="Treasure Island cover illustration by Louis Rhead"
+                width="1000"
+                height="1491"
+                loading="lazy"
+                class="game-detail__art"
+              />
+              <figcaption>
+                Treasure Island cover illustration by Louis Rhead (1915).{" "}
+                <a
+                  href="https://www.gutenberg.org/ebooks/120"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Project Gutenberg
+                </a>
+                , public domain.
+              </figcaption>
+            </figure>
+            <p>
+              A later version may lean further into Treasure Island story
+              framing, with the Hispaniola and additional characters as part of
+              the race mythology.
+            </p>
+          </>
+        )
+      }
     </div>
 
     <div class="text-center mt-2">
@@ -112,3 +184,55 @@ const description =
     </div>
   </article>
 </BaseLayout>
+
+<style>
+  .game-detail__chips {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
+  }
+  .chip {
+    font-family: var(--mono);
+    font-size: 0.6875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 0.2rem 0.6rem;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--line);
+  }
+  .chip--phaser {
+    color: var(--accent);
+    border-color: var(--accent);
+  }
+  .chip--browser {
+    color: var(--muted);
+    border-color: var(--line);
+  }
+  .chip--desktop {
+    color: var(--muted);
+    border-color: var(--line);
+    opacity: 0.6;
+  }
+  .game-detail__art-figure {
+    margin: 1.5rem 0;
+    text-align: center;
+  }
+  .game-detail__art {
+    max-width: 100%;
+    height: auto;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--line);
+  }
+  .game-detail__art-figure figcaption {
+    font-family: var(--mono);
+    font-size: 0.6875rem;
+    color: var(--muted);
+    margin-top: 0.5rem;
+  }
+  .game-detail__art-figure figcaption a {
+    color: var(--accent);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+</style>

@@ -74,7 +74,7 @@
     "id": "race-to-treasure-island",
     "title": "Race to Treasure Island",
     "classic": "Top-down racer",
-    "description": "Race rival pirate ships to a treasure island. Dodge obstacles, collect treasure chests, and use boost to pull ahead.",
+    "description": "Race rival Long John to Treasure Island. Dodge barrels, shipwrecks, reefs, and debris, collect treasure chests, and use wind-meter boost to pull ahead.",
     "status": "browser-playable",
     "statusLabel": "Play in browser now",
     "browserUrl": "/play/race-to-treasure-island/",
@@ -83,18 +83,19 @@
     "engine": "phaser",
     "touchDifficulty": "medium",
     "touchDifficultyLabel": "Medium on touch",
-    "touchControls": "Drag ship  •  BOOST button  •  PAUSE",
-    "keyboardControls": "Arrow keys — move • Space — boost • Enter — restart",
-    "howToPlay": "Race your ship to Treasure Island! Dodge rocks and whirlpools, collect treasure chests for bonus points, and use boost to surge ahead of rival pirates.",
-    "tips": "Boost drains your meter fast — use it strategically. Treasure chests give +100 points. Hitting obstacles slows you down. Speed increases as you progress.",
-    "firstPlayTip": "Arrow keys to move, Space to boost. Dodge everything gold!",
+    "touchControls": "← → Steer  •  HOLD BOOST  •  PAUSE  •  RESTART",
+    "keyboardControls": "ArrowLeft / A — steer left • ArrowRight / D — steer right • Shift / Space — hold boost • Enter — restart • Escape / P — pause",
+    "howToPlay": "Race Long John to Treasure Island! Dodge barrels, shipwrecks, reefs, and floating debris while collecting treasure chests for bonus points. Use your wind-meter boost to surge ahead — but watch the meter, it drains fast. The race is slightly player-favored, but Long John is a crafty rival.",
+    "tips": "Watch your wind meter — boost strategically, not constantly. Treasure chests give +100 points. Collisions stun you and slow your speed. Speed increases as you progress. Long John makes occasional mistakes — time your push.",
+    "firstPlayTip": "← → to steer, hold Shift/Space to boost. Dodge everything!",
     "availabilityNote": "Phaser 3 web-native game. Loads instantly in browser — no runtime download needed.",
-    "seoDescription": "Play Race to Treasure Island — a top-down pirate ship racer with boost mechanics, AI rivals, and obstacle dodging.",
+    "seoDescription": "Play Race to Treasure Island, Pirate Arcade's web-native Phaser 3 game. Race Long John through obstacles, use wind-meter boost, and reach Treasure Island first in this 45-second side-scrolling ship duel.",
     "features": [
-      "Ship racing",
-      "Boost mechanic",
-      "AI rivals",
-      "Treasure collection"
+      "Web-native (Phaser 3)",
+      "Long John Silver rival",
+      "Wind-meter boost",
+      "Treasure Island finish",
+      "Seeded obstacle course"
     ]
   },
   {
