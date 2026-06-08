@@ -26,8 +26,8 @@ const BUDGETS = {
   // Built HTML pages (gzipped)
   dist: { maxHtmlKB: 100 },
 
-  // JS/CSS bundles (gzipped)
-  "dist/assets": { maxJsKB: 150, maxCssKB: 50 },
+  // JS/CSS bundles (gzipped) — Phaser adds ~350KB gzipped
+  "dist/assets": { maxJsKB: 500, maxCssKB: 50 },
 };
 
 let allPassed = true;

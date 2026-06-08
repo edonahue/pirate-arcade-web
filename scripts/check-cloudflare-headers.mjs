@@ -5,6 +5,9 @@
  * Parses public/_headers, simulates Cloudflare's matching and inheritance
  * algorithm, and asserts correct CSP for game vs non-game routes.
  *
+ * Pygbag games require CSP with `unsafe-eval` and `wasm-unsafe-eval`.
+ * Web-native (Phaser) games use the global strict CSP.
+ *
  * Cloudflare Pages _headers algorithm:
  *  1. Find all route patterns that match the URL.
  *  2. Sort by "specificity" — longest literal prefix wins. Ties broken
@@ -33,7 +36,13 @@ const ROOT = resolve(__dirname, "..");
 const gamesMeta = JSON.parse(
   readFileSync(resolve(ROOT, "src/data/games.json"), "utf-8"),
 );
-const BROWSER_GAMES = gamesMeta.filter((g) => g.status === "browser-playable");
+const PYGAMES = gamesMeta.filter(
+  (g) =>
+    g.status === "browser-playable" && (!g.engine || g.engine === "pygbag"),
+);
+const WEB_NATIVE = gamesMeta.filter(
+  (g) => g.status === "browser-playable" && g.engine === "phaser",
+);
 
 const HEADERS_PATH = resolve(
   dirname(fileURLToPath(import.meta.url)),
@@ -96,18 +105,15 @@ function parseHeadersFile(content) {
       const colonIdx = withoutBang.indexOf(":");
 
       if (isDetach) {
-        // `! Header-Name` — no colon expected
         const name = withoutBang.toLowerCase();
         if (name.length > 0) {
           currentDetachHeaders.add(name);
         }
       } else if (colonIdx !== -1) {
-        // `Header-Name: value`
         const name = withoutBang.slice(0, colonIdx).trim().toLowerCase();
         const value = withoutBang.slice(colonIdx + 1).trim();
         currentSetHeaders.set(name, value);
       } else {
-        // Malformed (no colon in a non-detach line)
         console.warn(`  [warn] malformed header line: ${trimmed}`);
       }
     } else {
@@ -139,10 +145,8 @@ function buildRule(pattern, setHeaders, detachHeaders) {
  */
 function patternMatchesUrl(pattern, urlPath) {
   if (!pattern.hasGlob) {
-    // Exact match only (Cloudflare treats non-glob paths as exact)
     return pattern.literalPrefix === urlPath;
   }
-  // Glob pattern: * matches any sequence including empty string and /
   return urlPath.startsWith(pattern.literalPrefix);
 }
 
@@ -150,22 +154,14 @@ function patternMatchesUrl(pattern, urlPath) {
 
 /**
  * Compute effective headers for a URL path following Cloudflare's algorithm.
- *
- * @param {string} urlPath
- * @param {HeaderRule[]} rules
- * @returns {Map<string, string>}
  */
 function computeEffectiveHeaders(urlPath, rules) {
-  // Step 1: find matching rules
   const matching = rules.filter((r) => patternMatchesUrl(r, urlPath));
 
   if (matching.length === 0) {
     return new Map();
   }
 
-  // Step 2: sort by specificity (most specific first).
-  // Longest literalPrefix = more specific.
-  // Same length: non-glob beats glob.
   matching.sort((a, b) => {
     const lenDiff = b.literalPrefix.length - a.literalPrefix.length;
     if (lenDiff !== 0) return lenDiff;
@@ -173,39 +169,16 @@ function computeEffectiveHeaders(urlPath, rules) {
     return 0;
   });
 
-  // Step 3: process from MOST specific to LEAST specific.
-  //
-  // Cloudflare algorithm (per their docs):
-  //  - Headers from the most specific matching rule are primary.
-  //  - For headers NOT set by the most specific rule, Cloudflare falls
-  //    back to progressively less specific rules.
-  //  - A `! Header-Name` detach in a MORE specific rule prevents that
-  //    header from being inherited from ANY less specific rule.
-  //
-  // Implementation:
-  //  1. Process rules most-to-least specific.
-  //  2. Within each rule: SET headers first (they don't override
-  //     more-specific rules because those have already been processed
-  //     and we check `effective.has()`), then DETACH headers (which
-  //     blocks inheritance from less specific rules).
-  //
-  //  A rule that BOTH detaches AND sets the same header (e.g. `! CSP`
-  //  + `CSP: game`) works correctly because the SET happens before
-  //  the detach blocks inheritance — the set uses the current rule's
-  //  value, and the detach only affects LESS specific rules.
   const effective = new Map();
   const blocked = new Set();
 
   for (const rule of matching) {
-    // Apply sets (more specific rules have already been processed,
-    // so this only sets headers not yet in effective)
     for (const [name, value] of rule.setHeaders) {
       if (!effective.has(name) && !blocked.has(name)) {
         effective.set(name, value);
       }
     }
 
-    // Apply detaches: block these headers from any less specific rule
     for (const name of rule.detachHeaders) {
       blocked.add(name);
     }
@@ -235,19 +208,18 @@ function main() {
 
   console.log(`Parsed ${rules.length} route rules from ${HEADERS_PATH}\n`);
 
-  // ── Rule-level checks ──
+  // ── Rule-level checks: Pygbag games ──
 
-  // Derive game patterns from games.json (single source of truth)
-  const gamePatterns = BROWSER_GAMES.flatMap((g) => [
+  const pygbagPatterns = PYGAMES.flatMap((g) => [
     `/play/${g.id}/`,
     `/play/${g.id}/index.html`,
     `/play/${g.id}/*`,
   ]);
 
-  for (const pat of gamePatterns) {
+  for (const pat of pygbagPatterns) {
     const rule = rules.find((r) => r.pattern === pat);
 
-    assert(rule != null, `Game route "${pat}" exists`);
+    assert(rule != null, `Pygbag route "${pat}" exists`);
 
     if (rule) {
       assert(
@@ -279,6 +251,24 @@ function main() {
     }
   }
 
+  // ── Web-native games should NOT have CSP entries ──
+
+  for (const game of WEB_NATIVE) {
+    for (const suffix of ["/", "/index.html", "/*"]) {
+      const pat = `/play/${game.id}${suffix}`;
+      const rule = rules.find((r) => r.pattern === pat);
+      if (rule) {
+        console.log(
+          `  INFO: "${pat}" has CSP entry (web-native — will use global CSP if detached properly)`,
+        );
+      } else {
+        console.log(
+          `  OK:   "${pat}" no CSP entry (web-native, uses global CSP)`,
+        );
+      }
+    }
+  }
+
   // Global route
   const globalRule = rules.find((r) => r.pattern === "/*");
   assert(globalRule != null, 'Global route "/*" exists');
@@ -305,7 +295,7 @@ function main() {
   const testCases = [
     { url: "/", expectUnsafeEval: false, desc: "site root" },
     { url: "/play/", expectUnsafeEval: false, desc: "arcade index" },
-    ...BROWSER_GAMES.flatMap((g) => [
+    ...PYGAMES.flatMap((g) => [
       {
         url: `/play/${g.id}/`,
         expectUnsafeEval: true,
@@ -322,22 +312,29 @@ function main() {
         desc: `${g.id} sub-resource`,
       },
     ]),
+    ...WEB_NATIVE.flatMap((g) => [
+      {
+        url: `/play/${g.id}/`,
+        expectUnsafeEval: false,
+        desc: `${g.id} (web-native) directory index`,
+      },
+    ]),
     { url: "/about/", expectUnsafeEval: false, desc: "non-game route" },
   ];
+
+  // Get first Pygbag game CSP for comparison
+  const anyGameCSP =
+    PYGAMES.length > 0
+      ? rules
+          .find((r) => r.pattern === `/play/${PYGAMES[0].id}/*`)
+          ?.setHeaders.get("content-security-policy") || ""
+      : "";
 
   for (const tc of testCases) {
     const effective = computeEffectiveHeaders(tc.url, rules);
     const csp = effective.get("content-security-policy") || "";
 
     assert(effective.size > 0, `${tc.desc} (${tc.url}) has headers`);
-
-    // Verify effective CSP content
-    const anyGameCSP =
-      BROWSER_GAMES.length > 0
-        ? rules
-            .find((r) => r.pattern === `/play/${BROWSER_GAMES[0].id}/*`)
-            ?.setHeaders.get("content-security-policy") || ""
-        : "";
 
     if (tc.expectUnsafeEval) {
       assert(
@@ -352,9 +349,7 @@ function main() {
         csp.includes("https://cdn.pygame.org"),
         `${tc.desc} (${tc.url}) effective CSP includes cdn.pygame.org`,
       );
-      // The global CSP (without unsafe-eval) must NOT be present
       if (anyGameCSP) {
-        // Ensure the CSP is the game CSP, not a merge
         assert(
           csp === anyGameCSP,
           `${tc.desc} (${tc.url}) effective CSP is exactly the game CSP, not merged with global CSP`,
@@ -371,8 +366,8 @@ function main() {
   // ── Other headers inherit correctly ──
   console.log("\n── Non-CSP header inheritance ──\n");
 
-  const firstGame = BROWSER_GAMES.length > 0 ? BROWSER_GAMES[0] : null;
-  const gameUrl = firstGame ? `/play/${firstGame.id}/` : "/";
+  const firstPygame = PYGAMES.length > 0 ? PYGAMES[0] : null;
+  const gameUrl = firstPygame ? `/play/${firstPygame.id}/` : "/";
   const gHeaders = computeEffectiveHeaders(gameUrl, rules);
 
   assert(

@@ -6,7 +6,9 @@ export type GameStatus =
   | "browser-planned"
   | "experimental";
 
-export type ControlMode = "pong" | "breakout" | "asteroids";
+export type GameEngine = "pygbag" | "phaser";
+
+export type ControlMode = "pong" | "breakout" | "asteroids" | "racer";
 
 export type TouchDifficulty = "easy" | "medium" | "harder";
 
@@ -21,6 +23,7 @@ export interface Game {
   browserUrl?: string;
   screenshot?: string;
   controlMode?: ControlMode;
+  engine?: GameEngine;
   touchDifficulty?: TouchDifficulty;
   features?: string[];
   touchControls?: string;

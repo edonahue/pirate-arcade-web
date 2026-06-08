@@ -71,6 +71,33 @@
     "features": ["Ship combat", "Wave survival", "Treasure pickups", "3 lives"]
   },
   {
+    "id": "race-to-treasure-island",
+    "title": "Race to Treasure Island",
+    "classic": "Top-down racer",
+    "description": "Race rival pirate ships to a treasure island. Dodge obstacles, collect treasure chests, and use boost to pull ahead.",
+    "status": "experimental",
+    "statusLabel": "Try the demo",
+    "browserUrl": "/play/race-to-treasure-island/",
+    "screenshot": "/images/screenshot-race-to-treasure-island.png",
+    "controlMode": "racer",
+    "engine": "phaser",
+    "touchDifficulty": "medium",
+    "touchDifficultyLabel": "Medium on touch",
+    "touchControls": "Drag ship  •  BOOST button  •  PAUSE",
+    "keyboardControls": "Arrow keys — move • Space — boost • Enter — restart",
+    "howToPlay": "Race your ship to Treasure Island! Dodge rocks and whirlpools, collect treasure chests for bonus points, and use boost to surge ahead of rival pirates.",
+    "tips": "Boost drains your meter fast — use it strategically. Treasure chests give +100 points. Hitting obstacles slows you down. Speed increases as you progress.",
+    "firstPlayTip": "Arrow keys to move, Space to boost. Dodge everything gold!",
+    "availabilityNote": "Experimental Phaser 3 web-native game. Playable in browser directly — no downloads needed.",
+    "seoDescription": "Play Race to Treasure Island — a top-down pirate ship racer with boost mechanics, AI rivals, and obstacle dodging.",
+    "features": [
+      "Ship racing",
+      "Boost mechanic",
+      "AI rivals",
+      "Treasure collection"
+    ]
+  },
+  {
     "id": "port-royale-tycoon",
     "title": "Port Royale Tycoon",
     "classic": "Property-trading board game",

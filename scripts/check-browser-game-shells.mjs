@@ -4,14 +4,9 @@
  * Read-only — does not modify files.
  *
  * Reads games.json for the canonical list of browser-playable games.
- * Verifies:
- *   - every browser-playable game has public/play/<id>/index.html
- *   - every browser-playable game has a matching .tar.gz archive
- *   - archive version query matches the version manifest
- *   - shared scripts and CSS are present and versioned
- *   - expected structural invariants (loading overlay, touch overlay, SW)
- *   - route-specific CSP entries in public/_headers
- *   - service worker ASSETS_TO_CACHE entries
+ * Pygbag games are checked for shell HTML, archives, and Pygbag invariants.
+ * Web-native (Phaser) games are validated differently: no shell, no archive,
+ * no Pygbag invariants.
  *
  * Usage:
  *   node scripts/check-browser-game-shells.mjs
@@ -29,6 +24,10 @@ const root = resolve(__dirname, "..");
 const gamesPath = resolve(root, "src/data/games.json");
 const games = JSON.parse(readFileSync(gamesPath, "utf-8"));
 const browserGames = games.filter((g) => g.status === "browser-playable");
+const pygbagGames = browserGames.filter(
+  (g) => !g.engine || g.engine === "pygbag",
+);
+const webNativeGames = browserGames.filter((g) => g.engine === "phaser");
 
 const REQUIRED_INVARIANTS = [
   { name: "inline script start", pattern: /INLINE_SCRIPT: starting/ },
@@ -73,6 +72,8 @@ console.log(`Checking browser-game shells...`);
 console.log(
   `Browser-playable games: ${browserGames.map((g) => g.id).join(", ")}`,
 );
+console.log(`  Pygbag: ${pygbagGames.map((g) => g.id).join(", ")}`);
+console.log(`  Web-native: ${webNativeGames.map((g) => g.id).join(", ")}`);
 console.log("");
 
 if (browserGames.length === 0) {
@@ -80,7 +81,8 @@ if (browserGames.length === 0) {
   process.exit(1);
 }
 
-for (const game of browserGames) {
+// ── Pygbag game checks ──
+for (const game of pygbagGames) {
   const gameDir = game.id;
   const indexPath = resolve(root, "public/play", gameDir, "index.html");
   const archivePath = resolve(
@@ -93,7 +95,6 @@ for (const game of browserGames) {
 
   console.log(`── ${game.title} (${gameDir}, ${controlMode}) ──`);
 
-  // 1. Shell exists
   if (existsSync(indexPath)) {
     ok("index.html exists");
   } else {
@@ -103,14 +104,12 @@ for (const game of browserGames) {
 
   const html = readFileSync(indexPath, "utf-8");
 
-  // 2. Archive exists
   if (existsSync(archivePath)) {
     ok(".tar.gz archive exists");
   } else {
     fail(`${gameDir}: missing .tar.gz archive`);
   }
 
-  // 3. CDN version pin
   const cdnVersion = `pythons.js@${game.cdnVersion || "0.9.3"}`;
   const cdnRegex = new RegExp(
     cdnVersion.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
@@ -121,7 +120,6 @@ for (const game of browserGames) {
     fail(`${gameDir}: CDN version "${cdnVersion}" not found`);
   }
 
-  // 4. Archive URL matches game
   const archiveUrlPattern = new RegExp(
     `${gameDir}\\.tar\\.gz\\?v=${ASSET_VERSION.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`,
   );
@@ -134,7 +132,6 @@ for (const game of browserGames) {
     );
   }
 
-  // 5. Preload link
   const preloadPattern = new RegExp(
     `rel="preload"[^>]*href="[^"]*${gameDir}\\.tar\\.gz\\?v=${ASSET_VERSION.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}"`,
   );
@@ -144,7 +141,6 @@ for (const game of browserGames) {
     fail(`${gameDir}: missing preload link`);
   }
 
-  // 6. Structural invariants
   for (const { name, pattern } of REQUIRED_INVARIANTS) {
     if (pattern.test(html)) {
       ok(name);
@@ -153,7 +149,6 @@ for (const game of browserGames) {
     }
   }
 
-  // 7. Shared scripts versioned
   for (const script of REQUIRED_SHARED_SCRIPTS) {
     const jsPattern = new RegExp(
       `${script.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\?v=${ASSET_VERSION.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`,
@@ -172,7 +167,6 @@ for (const game of browserGames) {
     }
   }
 
-  // 8. SW registration: no module, updateViaCache
   if (html.includes("type: 'module'") || html.includes('type: "module"')) {
     fail(`${gameDir}: SW registration uses module type`);
   }
@@ -185,7 +179,6 @@ for (const game of browserGames) {
     fail(`${gameDir}: SW registration missing updateViaCache: none`);
   }
 
-  // 9. PirateArcadeLoading API (full surface)
   if (html.includes("window.PirateArcadeLoading")) {
     const hasEnsureEls = html.includes("_ensureEls");
     const hasSetter = html.includes("set:") || html.includes("set(");
@@ -205,7 +198,6 @@ for (const game of browserGames) {
     fail(`${gameDir}: missing PirateArcadeLoading API`);
   }
 
-  // 10. data-controls mode
   const controlsPattern = new RegExp(`data-controls="${controlMode}"`);
   if (controlsPattern.test(html)) {
     ok(`data-controls="${controlMode}"`);
@@ -213,7 +205,6 @@ for (const game of browserGames) {
     fail(`${gameDir}: expected data-controls="${controlMode}"`);
   }
 
-  // 11. Manifest comment
   const manifestMatch = html.match(/<!--\s*\n\s*GAME:\s*(\S+)/);
   if (manifestMatch) {
     const manifestGame = manifestMatch[1];
@@ -229,36 +220,45 @@ for (const game of browserGames) {
   console.log("");
 }
 
-// ── Cross-game checks ──
-console.log("── cross-game ──");
-
-const contents = browserGames.map((g) => {
-  const path = resolve(root, "public/play", g.id, "index.html");
-  try {
-    return readFileSync(path, "utf-8");
-  } catch {
-    return "";
-  }
-});
-
-// Shared script versions consistent across all shells
-const versionMatches = contents.map((c) => c.match(/\?v=([\w.-]+)/));
-const versions = versionMatches.map((m) => (m ? m[1] : null));
-if (versions.every((v) => v && v === versions[0])) {
-  ok(`shared script version consistent (${versions[0]})`);
-} else {
-  fail(`shared script version mismatch: ${versions.join(" vs ")}`);
+// ── Web-native game checks ──
+for (const game of webNativeGames) {
+  console.log(
+    `── ${game.title} (${game.id}, ${game.controlMode || "unknown"}) ──`,
+  );
+  ok(`web-native game (no Pygbag shell required)`);
+  console.log("");
 }
 
-// Lang attribute consistent
-const langs = contents.map((c) => {
-  const m = c.match(/<html\s+lang="([^"]+)"/);
-  return m ? m[1] : null;
-});
-if (langs.every((l) => l && l === langs[0])) {
-  ok(`html lang consistent (${langs[0]})`);
-} else {
-  fail(`html lang mismatch`);
+// ── Cross-game checks (Pygbag only) ──
+if (pygbagGames.length > 0) {
+  console.log("── cross-game (Pygbag) ──");
+
+  const contents = pygbagGames.map((g) => {
+    const path = resolve(root, "public/play", g.id, "index.html");
+    try {
+      return readFileSync(path, "utf-8");
+    } catch {
+      return "";
+    }
+  });
+
+  const versionMatches = contents.map((c) => c.match(/\?v=([\w.-]+)/));
+  const versions = versionMatches.map((m) => (m ? m[1] : null));
+  if (versions.every((v) => v && v === versions[0])) {
+    ok(`shared script version consistent (${versions[0]})`);
+  } else {
+    fail(`shared script version mismatch: ${versions.join(" vs ")}`);
+  }
+
+  const langs = contents.map((c) => {
+    const m = c.match(/<html\s+lang="([^"]+)"/);
+    return m ? m[1] : null;
+  });
+  if (langs.every((l) => l && l === langs[0])) {
+    ok(`html lang consistent (${langs[0]})`);
+  } else {
+    fail(`html lang mismatch`);
+  }
 }
 
 // ── CSP checks ──
@@ -268,7 +268,6 @@ console.log("── CSP ──");
 const headersPath = resolve(root, "public/_headers");
 const headers = readFileSync(headersPath, "utf-8");
 
-// Global route must NOT have unsafe-eval
 const globalCSP = headers.match(/^\/\*[\s\S]*?^$/m);
 if (globalCSP) {
   const globalBlock = globalCSP[0];
@@ -282,8 +281,8 @@ if (globalCSP) {
   }
 }
 
-// Each browser game route must have CSP entries
-for (const game of browserGames) {
+// Each Pygbag game route must have CSP entries with unsafe-eval
+for (const game of pygbagGames) {
   for (const suffix of CSP_ROUTES) {
     const route = `/play/${game.id}${suffix}`;
     const cspBlock = headers.match(
@@ -304,6 +303,25 @@ for (const game of browserGames) {
   }
 }
 
+// Web-native games should use global CSP (no unsafe-eval needed)
+for (const game of webNativeGames) {
+  for (const suffix of CSP_ROUTES) {
+    const route = `/play/${game.id}${suffix}`;
+    const cspBlock = headers.match(
+      new RegExp(
+        `^${route.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}[\\s\\S]*?^$`,
+        "m",
+      ),
+    );
+    if (cspBlock) {
+      // Web-native games don't need unsafe-eval, but having a CSP entry is fine
+      ok(`CSP entry for ${route} exists (web-native, uses global CSP)`);
+    } else {
+      ok(`no CSP entry for ${route} (web-native, uses global CSP)`);
+    }
+  }
+}
+
 // ── Service worker checks ──
 console.log("");
 console.log("── Service Worker ──");
@@ -311,7 +329,7 @@ console.log("── Service Worker ──");
 const swPath = resolve(root, "public/sw.js");
 const swContent = readFileSync(swPath, "utf-8");
 
-for (const game of browserGames) {
+for (const game of pygbagGames) {
   const route = `/play/${game.id}/`;
   const archivePath = `/play/${game.id}/${game.id}.tar.gz`;
 
@@ -325,6 +343,18 @@ for (const game of browserGames) {
     ok(`SW caches ${archivePath}`);
   } else {
     fail(`SW missing cache entry for ${archivePath}`);
+  }
+}
+
+// Web-native games should NOT be in ASSETS_TO_CACHE (handled by Vite/Astro)
+for (const game of webNativeGames) {
+  const route = `/play/${game.id}/`;
+  // Should NOT be in ASSETS_TO_CACHE
+  const assetsSection = swContent.match(/ASSETS_TO_CACHE[\s\S]*?\];/);
+  if (assetsSection && assetsSection[0].includes(route)) {
+    fail(`SW should NOT cache ${route} in ASSETS_TO_CACHE (web-native game)`);
+  } else {
+    ok(`SW correctly excludes ${route} from ASSETS_TO_CACHE (web-native)`);
   }
 }
 

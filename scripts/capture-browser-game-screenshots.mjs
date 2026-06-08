@@ -1,15 +1,18 @@
 #!/usr/bin/env node
 /**
- * Capture real in-game screenshots from all browser-playable Pygbag
- * games by booting each game shell in headless Chromium via Playwright,
- * waiting for the runtime to signal `game-ready`, simulating a start
+ * Capture real in-game screenshots from all browser-playable games
+ * by booting each game shell in headless Chromium via Playwright,
+ * waiting for the runtime to signal ready, simulating a start
  * input, hiding the shell UI, and snapshotting the live canvas.
+ *
+ * Supports both Pygbag games (via __paBootMetrics) and web-native
+ * Phaser games (via canvas detection in game-container).
  *
  * Game list is read from `src/data/games.json` (filtering to
  * browser-playable). Start keys and post-start inputs are in small
  * per-game maps. Preview readiness is detected via HTTP polling rather
  * than stdout parsing. Console errors are classified with an allowlist
- * of known harmless Pygbag noise.
+ * of known harmless noise.
  *
  * Output: `public/images/screenshot-<id>.png` at exactly 1280x720 PNG.
  *
@@ -42,6 +45,7 @@ const START_KEYS = {
   "cannonball-clash": "Enter",
   "treasure-cove": "Space",
   "krakens-wake": "Enter",
+  "race-to-treasure-island": "Enter",
 };
 const GAMES = gamesMeta
   .filter((g) => g.status === "browser-playable")
@@ -49,6 +53,7 @@ const GAMES = gamesMeta
     id: g.id,
     title: g.title,
     startKey: START_KEYS[g.id] ?? "Enter",
+    engine: g.engine || "pygbag",
   }));
 
 const OUT_W = 1280;
@@ -66,7 +71,7 @@ const HIDE_UI_SELECTORS = [
   "#touch-overlay",
 ];
 
-/** Known harmless console.error patterns from Pygbag / game shells. */
+/** Known harmless console.error patterns from game shells. */
 const ALLOWED_ERROR_PATTERNS = [
   /PyMain: BrowserFS not found/i,
   /pygbag.*failed to load sound/i,
@@ -126,7 +131,6 @@ function startPreview() {
       }
     });
 
-    // Poll HTTP until we get a 200 or timeout
     waitForHttpOk(PREVIEW_URL, PREVIEW_START_TIMEOUT_MS)
       .then(() => {
         if (!settled) {
@@ -165,19 +169,35 @@ async function waitForGameReady(page) {
   await page.waitForFunction(
     () => {
       const c = document.getElementById("canvas");
-      const tr = document.getElementById("transfer");
-      const ov = document.getElementById("game-loading");
-      const ib = document.getElementById("infobox");
-      if (!c || !tr || !ov || !ib) return false;
+      if (c) {
+        // Pygbag game detection
+        const tr = document.getElementById("transfer");
+        const ov = document.getElementById("game-loading");
+        const ib = document.getElementById("infobox");
+        if (!c || !tr || !ov || !ib) return false;
+        const ready =
+          !!window.__paBootMetrics && !!window.__paBootMetrics["game-ready"];
+        const overlayHidden = ov.classList.contains("hidden");
+        const canvasSized = c.width > 100 && c.height > 100;
+        const canvasVisible = (() => {
+          const cs = window.getComputedStyle(c);
+          return cs.visibility === "visible" && cs.display !== "none";
+        })();
+        return ready && overlayHidden && canvasSized && canvasVisible;
+      }
+
+      // Web-native (Phaser) game detection
+      const gc = document.getElementById("game-container");
+      const canvas = gc ? gc.querySelector("canvas") : null;
+      const loadingEl = document.getElementById("game-loading");
+      if (!gc || !canvas) return false;
       const ready =
         !!window.__paBootMetrics && !!window.__paBootMetrics["game-ready"];
-      const overlayHidden = ov.classList.contains("hidden");
-      const canvasSized = c.width > 100 && c.height > 100;
-      const canvasVisible = (() => {
-        const cs = window.getComputedStyle(c);
-        return cs.visibility === "visible" && cs.display !== "none";
-      })();
-      return ready && overlayHidden && canvasSized && canvasVisible;
+      const overlayHidden = loadingEl
+        ? loadingEl.classList.contains("hidden")
+        : true;
+      const canvasSized = canvas.width > 100 && canvas.height > 100;
+      return ready && overlayHidden && canvasSized;
     },
     null,
     { timeout: READY_TIMEOUT_MS, polling: 500 },
@@ -197,7 +217,10 @@ async function captureDiagnostics(page) {
   const canvasState = await page
     .evaluate(() => {
       const c = document.getElementById("canvas");
-      return c ? { w: c.width, h: c.height } : null;
+      if (c) return { w: c.width, h: c.height };
+      const gc = document.getElementById("game-container");
+      const canvas = gc ? gc.querySelector("canvas") : null;
+      return canvas ? { w: canvas.width, h: canvas.height } : null;
     })
     .catch(() => null);
   return { bootMetrics, loadingDetail, canvasState };
@@ -258,14 +281,18 @@ async function captureGame(browser, game) {
     }
 
     const dataURL = await page.evaluate(() => {
+      // Try Pygbag canvas first
       const c = document.getElementById("canvas");
-      if (!c) throw new Error("canvas#canvas missing");
-      if (c.width < 100 || c.height < 100) {
-        throw new Error(
-          `canvas not yet sized (${c.width}x${c.height}); refusing to capture`,
-        );
+      if (c && c.width >= 100) {
+        return c.toDataURL("image/png");
       }
-      return c.toDataURL("image/png");
+      // Try web-native (Phaser) canvas
+      const gc = document.getElementById("game-container");
+      const canvas = gc ? gc.querySelector("canvas") : null;
+      if (canvas && canvas.width >= 100) {
+        return canvas.toDataURL("image/png");
+      }
+      throw new Error("no sized canvas found to capture");
     });
 
     const b64 = dataURL.replace(/^data:image\/png;base64,/, "");
@@ -288,7 +315,6 @@ async function captureGame(browser, game) {
       for (const e of allowlistedErrors.slice(0, 3)) console.warn(`    ${e}`);
     }
   } catch (err) {
-    // Print diagnostics on failure for debugging
     const diag = await captureDiagnostics(page).catch(() => ({}));
     console.error(`  \u2717 failed: ${err.message}`);
     if (diag.bootMetrics) {
@@ -330,7 +356,7 @@ async function main() {
     const browser = await chromium.launch({ headless: true });
     try {
       for (const game of GAMES) {
-        console.log(`\n\u2192 ${game.title} (${game.id})`);
+        console.log(`\n\u2192 ${game.title} (${game.id}, ${game.engine})`);
         await captureGame(browser, game);
       }
     } finally {

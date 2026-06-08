@@ -183,11 +183,13 @@ self.addEventListener("fetch", (event) => {
   }
 
   // Network-first for game shell JS/CSS so mobile controls update immediately
+  // Web-native (Phaser) game routes also use network-first for JS/CSS bundles.
   const isGameShell =
     url.pathname.startsWith("/play/shared/") ||
     url.pathname.startsWith("/play/cannonball-clash/") ||
     url.pathname.startsWith("/play/treasure-cove/") ||
-    url.pathname.startsWith("/play/krakens-wake/");
+    url.pathname.startsWith("/play/krakens-wake/") ||
+    url.pathname.startsWith("/play/race-to-treasure-island/");
   if (
     isGameShell &&
     (event.request.destination === "script" ||

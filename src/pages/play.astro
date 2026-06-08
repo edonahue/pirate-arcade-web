@@ -49,9 +49,9 @@ const desktopGames = games.filter((g) => g.status === "desktop-available");
       <p class="section__eyebrow">Browser</p>
       <h2 class="section__title">Play Now</h2>
       <p class="section__description">
-        {browserGames.length} games are playable in your browser via Pygbag/WebAssembly.
-        Each game loads a ~12 MB CPython runtime on first visit (cached on repeat
-        visits). Audio unlocks after the first click or tap.
+        {browserGames.length} browser-playable games available. Pygbag games load
+        a ~12 MB CPython runtime on first visit (cached on repeat visits). Web-native
+        games load instantly. Audio unlocks after the first click or tap.
       </p>
     </div>
 
@@ -64,7 +64,8 @@ const desktopGames = games.filter((g) => g.status === "desktop-available");
         {desktopGames.length} desktop-only
       </span>
       <span class="play-status__repeat">
-        First visit downloads ~12 MB. Cached after that.
+        Pygbag games: ~12 MB first visit (cached). Web-native games: instant
+        load.
       </span>
     </div>
 
@@ -94,8 +95,12 @@ const desktopGames = games.filter((g) => g.status === "desktop-available");
         <p class="before-launch__heading">Before you launch</p>
         <ul class="before-launch__list">
           <li>
-            <strong>First visit:</strong> ~12 MB CPython runtime downloads once —
-            repeat visits load from cache.
+            <strong>Pygbag games:</strong> ~12 MB CPython runtime downloads once on
+            first visit — repeat visits load from cache.
+          </li>
+          <li>
+            <strong>Web-native games:</strong> Load instantly via Phaser/Vite — no
+            runtime download needed.
           </li>
           <li>
             <strong>Audio:</strong> Starts after your first click or tap (browser
@@ -108,15 +113,11 @@ const desktopGames = games.filter((g) => g.status === "desktop-available");
           <li>
             <strong>Orientation:</strong> Landscape recommended for the best experience.
           </li>
-          <li>
-            <strong>Loading time:</strong> First load takes 10–30s depending on connection.
-            The loading screen shows progress.
-          </li>
         </ul>
         <p class="before-launch__footnote">
-          <strong>On iPad:</strong> turn the device sideways. First load takes a bit
-          longer; repeat visits are fast. Cannonball Clash is the easiest to start
-          with.
+          <strong>On iPad:</strong> turn the device sideways. Pygbag games take longer
+          on first load; repeat visits are fast. Race to Treasure Island is web-native
+          and loads instantly.
         </p>
       </div>
     </div>
@@ -200,11 +201,12 @@ const desktopGames = games.filter((g) => g.status === "desktop-available");
   <section class="section">
     <div class="section__header">
       <p class="section__eyebrow">Roadmap</p>
-      <h2 class="section__title">Remaining Ports</h2>
+      <h2 class="section__title">What's Next</h2>
       <p class="section__description">
-        Port Royale Tycoon (trading board game) is the only remaining
-        desktop-only game. A browser port has been evaluated — see the
-        feasibility review in the build log.
+        <strong>Race to Treasure Island</strong> is our first web-native (Phaser)
+        game — load it instantly, no runtime download. Port Royale Tycoon (trading
+        board game) remains the only desktop-only game. A browser port has been evaluated
+        — see the feasibility review in the build log.
       </p>
       <p class="section__description mt-1">
         <a href="/build-log/browser-port-feasibility">

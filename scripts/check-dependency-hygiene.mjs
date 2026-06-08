@@ -20,8 +20,8 @@ const pkg = JSON.parse(readFileSync(pkgPath, "utf-8"));
 const deps = Object.keys(pkg.dependencies || {});
 const devDeps = Object.keys(pkg.devDependencies || {});
 
-// Allowed runtime dependencies (should be empty for static Astro site)
-const ALLOWED_RUNTIME_DEPS = [];
+// Allowed runtime dependencies - Phaser 3 for web-native browser games
+const ALLOWED_RUNTIME_DEPS = ["phaser"];
 
 // Allowed dev dependencies - explicit allowlist for maintainability
 const ALLOWED_DEV_DEPS = [

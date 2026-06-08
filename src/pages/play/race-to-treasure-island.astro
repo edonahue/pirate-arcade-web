@@ -1,0 +1,233 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { games } from "../../data/games";
+
+const game = games.find((g) => g.id === "race-to-treasure-island")!;
+const title = `${game.title} — Pirate Arcade`;
+---
+
+<BaseLayout
+  title={title}
+  titleTemplate="literal"
+  description={game.seoDescription!}
+  current="play"
+  ogImage={game.screenshot ?? "/og-image.png"}
+>
+  <div id="game-shell">
+    <!-- Loading overlay -->
+    <div id="game-loading" class="game-loading">
+      <div class="loader-spinner"></div>
+      <div class="loader-text">Loading Race to Treasure Island...</div>
+      <div id="game-loading-detail" class="loader-detail">
+        Booting Phaser engine...
+      </div>
+      <div class="loader-note"></div>
+    </div>
+
+    <!-- Back link -->
+    <a id="back-link" href="/play/">← Back to Arcade</a>
+
+    <!-- Controls hint -->
+    <div id="controls-hint" class="controls-hint">
+      <span>Arrow keys: Move</span>
+      <span>Space: Boost</span>
+      <span>Enter: Restart</span>
+    </div>
+
+    <!-- Game canvas mount -->
+    <div id="game-container"></div>
+
+    <!-- Infobox -->
+    <div id="infobox" class="infobox">
+      <div class="infobox__title">Race to Treasure Island</div>
+      <div class="infobox__controls">
+        <span>↑↓←→ Move</span>
+        <span>Space Boost</span>
+        <span>Enter Restart</span>
+      </div>
+    </div>
+  </div>
+</BaseLayout>
+
+<script>
+  // @ts-nocheck
+  import { createRaceToTreasureIsland } from "../../games/race-to-treasure-island/main";
+
+  const loadingEl = document.getElementById("game-loading");
+  const loadingDetailEl = document.getElementById("game-loading-detail");
+  const container = document.getElementById("game-container");
+
+  function updateLoading(text) {
+    if (loadingDetailEl) loadingDetailEl.textContent = text;
+  }
+
+  updateLoading("Starting Phaser...");
+
+  const urlParams = new URLSearchParams(window.location.search);
+  const seed = urlParams.get("seed") || undefined;
+
+  createRaceToTreasureIsland("game-container", seed);
+
+  const checkReady = setInterval(() => {
+    const canvas = container?.querySelector("canvas");
+    if (canvas && canvas.width > 100) {
+      clearInterval(checkReady);
+      if (loadingEl) loadingEl.classList.add("hidden");
+      window.__paBootMetrics = window.__paBootMetrics || {};
+      window.__paBootMetrics["game-ready"] = true;
+    }
+  }, 200);
+
+  setTimeout(() => {
+    if (loadingEl) loadingEl.classList.add("hidden");
+  }, 10000);
+</script>
+
+<style is:global>
+  #game-shell {
+    position: relative;
+    width: 100%;
+    min-height: 100dvh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #0a1628;
+    overflow: hidden;
+  }
+
+  #game-container {
+    width: 100%;
+    max-width: 480px;
+    aspect-ratio: 2 / 3;
+  }
+
+  #game-container canvas {
+    display: block;
+    width: 100% !important;
+    height: auto !important;
+  }
+
+  .game-loading {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: #0a1628;
+    z-index: 100;
+    gap: 1rem;
+    transition: opacity 0.5s;
+  }
+
+  .game-loading.hidden {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .game-loading.game-error .loader-detail {
+    color: #ff4444;
+  }
+
+  .loader-spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid #333;
+    border-top-color: #ffd700;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  .loader-text {
+    font-family: monospace;
+    font-size: 14px;
+    color: #ffd700;
+  }
+
+  .loader-detail {
+    font-family: monospace;
+    font-size: 11px;
+    color: #888;
+  }
+
+  .loader-note {
+    font-family: monospace;
+    font-size: 10px;
+    color: #555;
+    max-width: 300px;
+    text-align: center;
+  }
+
+  #back-link {
+    position: absolute;
+    top: 1rem;
+    left: 1rem;
+    z-index: 50;
+    font-family: monospace;
+    font-size: 12px;
+    color: #888;
+    text-decoration: none;
+    padding: 0.4rem 0.8rem;
+    border: 1px solid #444;
+    border-radius: 4px;
+    background: rgba(0, 0, 0, 0.6);
+    transition:
+      color 0.2s,
+      border-color 0.2s;
+  }
+
+  #back-link:hover {
+    color: #ffd700;
+    border-color: #ffd700;
+  }
+
+  .controls-hint {
+    position: absolute;
+    bottom: 1rem;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 50;
+    display: flex;
+    gap: 1rem;
+    font-family: monospace;
+    font-size: 10px;
+    color: #666;
+    background: rgba(0, 0, 0, 0.6);
+    padding: 0.4rem 1rem;
+    border-radius: 4px;
+    border: 1px solid #333;
+  }
+
+  .infobox {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    z-index: 50;
+    font-family: monospace;
+    font-size: 10px;
+    color: #888;
+    background: rgba(0, 0, 0, 0.6);
+    padding: 0.5rem 0.8rem;
+    border-radius: 4px;
+    border: 1px solid #333;
+    text-align: right;
+  }
+
+  .infobox__title {
+    color: #ffd700;
+    font-size: 11px;
+    margin-bottom: 0.3rem;
+  }
+
+  .infobox__controls {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+  }
+</style>
