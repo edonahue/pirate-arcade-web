@@ -116,16 +116,30 @@ const title = `${game.title} — Pirate Arcade`;
   const seed = urlParams.get("seed") || undefined;
   const screenshotMode = urlParams.has("screenshot");
   const testTouchMode = urlParams.has("testTouch");
+  const testMode = urlParams.has("testMode");
   // Force canvas renderer in headless environments or when testing to avoid WebGL context loss
   const forceCanvas =
     screenshotMode ||
     urlParams.has("forceCanvas") ||
     navigator.webdriver === true;
 
-  const game = createRaceToTreasureIsland("game-container", seed, forceCanvas);
+  const debugMode =
+    testTouchMode ||
+    screenshotMode ||
+    testMode ||
+    forceCanvas ||
+    navigator.webdriver === true;
+
+  const game = createRaceToTreasureIsland(
+    "game-container",
+    seed,
+    forceCanvas,
+    debugMode,
+  );
 
   // Expose game for test debugging
   (window as any).__paRaceGame = game;
+  (window as any).__paRaceDebugMode = debugMode;
 
   const checkReady = setInterval(() => {
     const canvas = container?.querySelector("canvas");

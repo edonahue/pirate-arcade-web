@@ -1,8 +1,6 @@
 import Phaser from "phaser";
 import { GAME_WIDTH, GAME_HEIGHT } from "../config";
 
-console.log("[RaceScene] Module loaded");
-
 // ── Race Tuning ──
 // Centralized tuning object so future settings UI can build from it.
 const RACE_TUNING = {
@@ -406,20 +404,25 @@ export class RaceScene extends Phaser.Scene {
         islandShown: this.islandShown,
       };
 
-      // Debug hooks for tests
-      (window as any).__paRaceDebugFinish = () => {
-        if (!this.raceFinished) {
-          this.playerProgress = RACE_TUNING.raceDistance;
-          this.checkFinish();
-        }
-      };
-      (window as any).__paRaceDebugPause = () => {
-        this.togglePause();
-      };
-      (window as any).__paRaceDebugSetProgress = (value: number) => {
-        this.playerProgress = value;
-        this.exposeState();
-      };
+      // Debug hooks for tests - check URL for test mode
+      const debugMode =
+        typeof window !== "undefined" &&
+        window.location.search.includes("testTouch=1");
+      if (debugMode) {
+        (window as any).__paRaceDebugFinish = () => {
+          if (!this.raceFinished) {
+            this.playerProgress = RACE_TUNING.raceDistance;
+            this.checkFinish();
+          }
+        };
+        (window as any).__paRaceDebugPause = () => {
+          this.togglePause();
+        };
+        (window as any).__paRaceDebugSetProgress = (value: number) => {
+          this.playerProgress = value;
+          this.exposeState();
+        };
+      }
     }
   }
 

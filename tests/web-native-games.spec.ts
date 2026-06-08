@@ -520,10 +520,25 @@ for (const game of GAMES) {
         "Restart test skipped on non-desktop",
       );
 
+      page.on("console", (msg) => console.log("[Browser]", msg.text()));
+
       await page.goto(`${game.path}?testTouch=1`, {
         waitUntil: "domcontentloaded",
       });
       await waitForPhaserReady(page);
+
+      // Debug: check if debug hooks are exposed
+      const hasFinishHook = await page.evaluate(
+        () => typeof (window as any).__paRaceDebugFinish === "function",
+      );
+      console.log("Debug finish hook exists:", hasFinishHook);
+
+      // Check debugMode in game config
+      const debugMode = await page.evaluate(() => {
+        const game = (window as any).__paRaceGame;
+        return game?.config?.debugMode;
+      });
+      console.log("Game config debugMode:", debugMode);
 
       // Force finish using debug hook
       await page.evaluate(() => {
@@ -596,7 +611,9 @@ for (const game of GAMES) {
         "Finish test skipped on non-desktop",
       );
 
-      await page.goto(game.path, { waitUntil: "domcontentloaded" });
+      await page.goto(`${game.path}?testTouch=1`, {
+        waitUntil: "domcontentloaded",
+      });
       await waitForPhaserReady(page);
 
       // Force finish using debug hook
@@ -624,7 +641,9 @@ for (const game of GAMES) {
         "Island test skipped on non-desktop",
       );
 
-      await page.goto(game.path, { waitUntil: "domcontentloaded" });
+      await page.goto(`${game.path}?testTouch=1`, {
+        waitUntil: "domcontentloaded",
+      });
       await waitForPhaserReady(page);
 
       // Use debug hook to set progress near finish
