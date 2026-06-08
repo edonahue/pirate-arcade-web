@@ -32,11 +32,8 @@ export class BootScene extends Phaser.Scene {
   }
 
   create(): void {
-    console.log("[BootScene] create() START");
     this.children.removeAll(true);
-    console.log("[BootScene] Starting RaceScene");
     this.scene.start("RaceScene");
-    console.log("[BootScene] RaceScene started");
   }
 
   private generateTextures(): void {

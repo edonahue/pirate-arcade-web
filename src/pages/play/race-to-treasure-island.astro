@@ -117,15 +117,12 @@ const title = `${game.title} — Pirate Arcade`;
   const screenshotMode = urlParams.has("screenshot");
   const testTouchMode = urlParams.has("testTouch");
   // Force canvas renderer in headless environments or when testing to avoid WebGL context loss
-  const forceCanvas = screenshotMode || urlParams.has("forceCanvas") || navigator.webdriver === true;
+  const forceCanvas =
+    screenshotMode ||
+    urlParams.has("forceCanvas") ||
+    navigator.webdriver === true;
 
-  console.log("[Astro] Creating game... forceCanvas:", forceCanvas);
-  const game = createRaceToTreasureIsland(
-    "game-container",
-    seed,
-    forceCanvas,
-  );
-  console.log("[Astro] Game created:", game);
+  const game = createRaceToTreasureIsland("game-container", seed, forceCanvas);
 
   // Expose game for test debugging
   (window as any).__paRaceGame = game;

@@ -482,61 +482,34 @@ for (const game of GAMES) {
         "Pause toggle test skipped on non-desktop",
       );
 
-      await page.goto(`${game.path}?testTouch=1`, { waitUntil: "domcontentloaded" });
+      await page.goto(`${game.path}?testTouch=1`, {
+        waitUntil: "domcontentloaded",
+      });
       await waitForPhaserReady(page);
 
-      // Check if debug pause hook exists
-      const hasPauseHook = await page.evaluate(() => typeof (window as any).__paRaceDebugPause === "function");
-      console.log("Debug pause hook exists:", hasPauseHook);
+      // Click pause button (visible due to testTouch=1)
+      await page.locator("#btn-pause").click();
+      await page.waitForFunction(
+        () => (window as any).__paRaceToTreasureIslandState?.paused === true,
+        { timeout: 5000 },
+      );
 
-      // Check state before pause
-      const stateBefore = await page.evaluate(() => (window as any).__paRaceToTreasureIslandState);
-      console.log("State before pause:", stateBefore);
-
-      // Call debug hook and also check if togglePause is called
-      console.log("Calling debug pause hook...");
-      const hookResult = await page.evaluate(() => {
-        if (typeof (window as any).__paRaceDebugPause === "function") {
-          console.log("Test: calling debug pause hook");
-          (window as any).__paRaceDebugPause();
-          console.log("Test: debug pause hook returned");
-          return "ok";
-        }
-        return "no hook";
-      });
-      console.log("Hook call result:", hookResult);
-      await page.waitForTimeout(500);
-
-      const stateAfterPause = await page.evaluate(() => (window as any).__paRaceToTreasureIslandState);
-      console.log("State after pause:", stateAfterPause);
-
-      const paused = stateAfterPause?.paused === true;
-      console.log("Paused state:", paused);
+      const paused = await page.evaluate(
+        () => (window as any).__paRaceToTreasureIslandState?.paused === true,
+      );
       expect(paused).toBe(true);
 
-      // Also directly call togglePause to verify it works
-      await page.evaluate(() => {
-        const game = (window as any).__paRaceGame;
-        if (game && game.scene) {
-          const scenes = game.scene.scenes;
-          for (const scene of scenes) {
-            if (scene.scene?.key === "RaceScene") {
-              console.log("Test: directly calling togglePause on RaceScene");
-              scene.togglePause();
-              console.log("Test: togglePause returned");
-              break;
-            }
-          }
-        }
-      });
-      await page.waitForTimeout(500);
+      // Click pause again to resume
+      await page.locator("#btn-pause").click();
+      await page.waitForFunction(
+        () => (window as any).__paRaceToTreasureIslandState?.paused === false,
+        { timeout: 5000 },
+      );
 
-      const stateAfterDirectPause = await page.evaluate(() => (window as any).__paRaceToTreasureIslandState);
-      console.log("State after direct pause:", stateAfterDirectPause);
-
-      const directPaused = stateAfterDirectPause?.paused === true;
-      console.log("Direct paused state:", directPaused);
-      expect(directPaused).toBe(true);
+      const resumed = await page.evaluate(
+        () => (window as any).__paRaceToTreasureIslandState?.paused === false,
+      );
+      expect(resumed).toBe(true);
     });
 
     test("restart button appears after forced finish", async ({
@@ -547,22 +520,25 @@ for (const game of GAMES) {
         "Restart test skipped on non-desktop",
       );
 
-      page.on("console", (msg) => console.log("[Browser]", msg.text()));
-
-      await page.goto(`${game.path}?testTouch=1`, { waitUntil: "domcontentloaded" });
+      await page.goto(`${game.path}?testTouch=1`, {
+        waitUntil: "domcontentloaded",
+      });
       await waitForPhaserReady(page);
 
-      // Check if boot metrics are set
-      const bootMetrics = await page.evaluate(() => (window as any).__paBootMetrics);
-      console.log("Boot metrics:", bootMetrics);
+      // Force finish using debug hook
+      await page.evaluate(() => {
+        if (typeof (window as any).__paRaceDebugFinish === "function") {
+          (window as any).__paRaceDebugFinish();
+        }
+      });
 
-      // Check if state is ever exposed
-      const state = await page.evaluate(() => (window as any).__paRaceToTreasureIslandState);
-      console.log("State after waitForPhaserReady:", state);
+      await page.waitForFunction(
+        () => (window as any).__paRaceToTreasureIslandState?.finished === true,
+        { timeout: 5000 },
+      );
 
-      // Try to get the debug hook
-      const hasHook = await page.evaluate(() => typeof (window as any).__paRaceDebugFinish === "function");
-      console.log("Debug hook exists:", hasHook);
+      // Use toBeVisible which checks computed style, not inline style
+      await expect(page.locator("#btn-restart")).toBeVisible();
     });
 
     // ── Phase 7: Race logic tests ──
@@ -596,8 +572,10 @@ for (const game of GAMES) {
       await page.goto(game.path, { waitUntil: "domcontentloaded" });
       await waitForPhaserReady(page);
 
-      await page.keyboard.press("ArrowRight");
+      // Hold ArrowRight to move continuously
+      await page.keyboard.down("ArrowRight");
       await page.waitForTimeout(3000);
+      await page.keyboard.up("ArrowRight");
 
       const state = await page.evaluate(
         () => (window as any).__paRaceToTreasureIslandState,
@@ -621,9 +599,17 @@ for (const game of GAMES) {
       await page.goto(game.path, { waitUntil: "domcontentloaded" });
       await waitForPhaserReady(page);
 
-      // Debug finish with 'f' key
-      await page.keyboard.press("f");
-      await page.waitForTimeout(300);
+      // Force finish using debug hook
+      await page.evaluate(() => {
+        if (typeof (window as any).__paRaceDebugFinish === "function") {
+          (window as any).__paRaceDebugFinish();
+        }
+      });
+
+      await page.waitForFunction(
+        () => (window as any).__paRaceToTreasureIslandState?.finished === true,
+        { timeout: 5000 },
+      );
 
       const state = await page.evaluate(
         () => (window as any).__paRaceToTreasureIslandState,
@@ -641,20 +627,18 @@ for (const game of GAMES) {
       await page.goto(game.path, { waitUntil: "domcontentloaded" });
       await waitForPhaserReady(page);
 
-      // Play for a while to build progress
-      await page.keyboard.press("ArrowRight");
-      await page.waitForTimeout(8000);
+      // Use debug hook to set progress near finish
+      await page.evaluate(() => {
+        if (typeof (window as any).__paRaceDebugSetProgress === "function") {
+          (window as any).__paRaceDebugSetProgress(7600);
+        }
+      });
+      await page.waitForTimeout(500);
 
       const state = await page.evaluate(
         () => (window as any).__paRaceToTreasureIslandState,
       );
-      // If progress is high enough, island should be shown
-      if ((state?.playerProgress ?? 0) > 7500) {
-        expect(state?.islandShown).toBe(true);
-      } else {
-        // Not far enough yet — that's OK for this test
-        expect(state?.islandShown).toBe(false);
-      }
+      expect(state?.islandShown).toBe(true);
     });
 
     test("obstacle types include expected variants", async ({

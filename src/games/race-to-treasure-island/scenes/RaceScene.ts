@@ -82,36 +82,28 @@ export class RaceScene extends Phaser.Scene {
   private islandShown: boolean = false;
   private paused: boolean = false;
   private pauseText!: Phaser.GameObjects.Text;
+  private obstacleTypesSeen: Set<ObstacleType> = new Set();
 
   constructor() {
     super({ key: "RaceScene" });
   }
 
   create(): void {
-    console.log("[RaceScene] create() START");
-    try {
-      this.resetState();
-      this.createBackground();
-      this.createPlayer();
-      this.createAIShip();
-      this.createGroups();
-      this.createFinishLine();
-      this.createTreasureIsland();
-      this.createHUD();
-      this.setupInput();
-      this.setupCollisions();
-      this.setupBootMetrics();
-      this.exposeState();
-      console.log("[RaceScene] create() completed successfully");
-    } catch (e) {
-      console.error("[RaceScene] create() failed:", e);
-      throw e;
-    }
+    this.resetState();
+    this.createBackground();
+    this.createPlayer();
+    this.createAIShip();
+    this.createGroups();
+    this.createFinishLine();
+    this.createTreasureIsland();
+    this.createHUD();
+    this.setupInput();
+    this.setupCollisions();
+    this.setupBootMetrics();
+    this.exposeState();
   }
 
   update(_time: number, delta: number): void {
-    if (this.paused) return;
-
     if (this.gameOver || this.raceFinished) return;
 
     const dt = delta / 1000;
@@ -120,6 +112,12 @@ export class RaceScene extends Phaser.Scene {
       RACE_TUNING.maxScrollSpeed,
       RACE_TUNING.baseScrollSpeed + this.distanceTraveled * 0.012,
     );
+
+    this.handleSystemInput();
+    if (this.paused) {
+      this.exposeState();
+      return;
+    }
 
     this.handleInput(dt);
     this.updateAIShip(dt);
@@ -154,6 +152,7 @@ export class RaceScene extends Phaser.Scene {
     this.aiLaneTimer = 0;
     this.aiMistakeTimer = 0;
     this.aiMistakeDir = 0;
+    this.obstacleTypesSeen.clear();
   }
 
   private createBackground(): void {
@@ -402,24 +401,41 @@ export class RaceScene extends Phaser.Scene {
         distanceTraveled: Math.floor(this.distanceTraveled),
         stunTimer: this.stunTimer,
         obstacleCount: this.obstacles?.getLength() || 0,
+        obstacleTypesSeen: Array.from(this.obstacleTypesSeen),
         scrollSpeed: Math.floor(this.scrollSpeed),
         islandShown: this.islandShown,
       };
 
       // Debug hooks for tests
       (window as any).__paRaceDebugFinish = () => {
-        console.log("[RaceScene] Debug finish hook called, raceFinished:", this.raceFinished);
         if (!this.raceFinished) {
           this.playerProgress = RACE_TUNING.raceDistance;
           this.checkFinish();
         }
       };
       (window as any).__paRaceDebugPause = () => {
-        console.log("[RaceScene] Debug pause hook called, paused before:", this.paused);
         this.togglePause();
       };
+      (window as any).__paRaceDebugSetProgress = (value: number) => {
+        this.playerProgress = value;
+        this.exposeState();
+      };
+    }
+  }
 
-      console.log("[RaceScene] exposeState called, state:", (window as any).__paRaceToTreasureIslandState);
+  private handleSystemInput(): void {
+    const touch = (window as any).__paTouchInput || {};
+
+    if (touch.pause) {
+      this.togglePause();
+      touch.pause = false;
+    }
+
+    if (touch.restart) {
+      touch.restart = false;
+      if (this.gameOver || this.raceFinished) {
+        this.scene.restart();
+      }
     }
   }
 
@@ -433,18 +449,6 @@ export class RaceScene extends Phaser.Scene {
     this.boosting =
       (this.spaceKey.isDown || this.shiftKey.isDown || touch.boost) &&
       this.boostMeter > 0;
-
-    if (touch.pause) {
-      this.togglePause();
-      touch.pause = false;
-    }
-
-    if (touch.restart) {
-      touch.restart = false;
-      if (this.gameOver || this.raceFinished) {
-        this.scene.restart();
-      }
-    }
 
     const speed = this.boosting
       ? RACE_TUNING.playerSpeed * RACE_TUNING.boostMultiplier
@@ -542,6 +546,7 @@ export class RaceScene extends Phaser.Scene {
       { key: "debris", type: "debris" },
     ];
     const chosen = types[Math.floor(Math.random() * types.length)];
+    this.obstacleTypesSeen.add(chosen.type);
 
     const x = Phaser.Math.Between(40, GAME_WIDTH - 40);
     const y = Phaser.Math.Between(-20, 0);
@@ -779,13 +784,8 @@ export class RaceScene extends Phaser.Scene {
   }
 
   private togglePause(): void {
-    console.log("[RaceScene] togglePause called, current paused:", this.paused, "raceFinished:", this.raceFinished, "gameOver:", this.gameOver);
-    if (this.raceFinished || this.gameOver) {
-      console.log("[RaceScene] togglePause early return");
-      return;
-    }
+    if (this.raceFinished || this.gameOver) return;
     this.paused = !this.paused;
-    console.log("[RaceScene] togglePause new paused:", this.paused);
     this.pauseText.setVisible(this.paused);
     const hint = this.pauseText.getData("hint") as Phaser.GameObjects.Text;
     if (hint) hint.setVisible(this.paused);
@@ -794,6 +794,7 @@ export class RaceScene extends Phaser.Scene {
     } else {
       this.physics.resume();
     }
+    this.exposeState();
   }
 
   private updateHUD(): void {
