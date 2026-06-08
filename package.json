@@ -20,6 +20,8 @@
     "test:browser-games": "playwright test tests/browser-games.spec.ts",
     "test:browser-games:chromium": "playwright test tests/browser-games.spec.ts --project=chromium-desktop",
     "test:browser-games:all": "playwright test tests/browser-games.spec.ts",
+    "test:web-native-games": "playwright test tests/web-native-games.spec.ts --project=chromium-desktop --project=firefox-desktop --project=webkit-desktop",
+    "test:web-native-games:chromium": "playwright test tests/web-native-games.spec.ts --project=chromium-desktop",
     "test:desktop-input": "playwright test tests/game-input-desktop.spec.ts --project=chromium-desktop --project=firefox-desktop --project=webkit-desktop",
     "test:unit": "vitest run",
     "test:unit:watch": "vitest",
