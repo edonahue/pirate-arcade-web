@@ -11,6 +11,16 @@
 //   - Deterministic Race screenshot capture
 //   - Reproducible test assertions
 //   - Stable demo / preview mode
+//
+// RNG stream forking:
+//   A single seed is split into independent streams via fork(key).
+//   Each stream key produces a different deterministic sequence, so
+//   adding/removing RNG calls in one domain (e.g. cosmetics) never
+//   shifts the sequence used by another domain (e.g. course layout).
+//     courseRng    = base.fork("course")
+//     aiRng        = base.fork("ai")
+//     cosmeticRng  = base.fork("cosmetic")
+//     textureRng   = base.fork("texture")
 
 const RNG_VERSION = "mulberry32-v1";
 
@@ -37,7 +47,11 @@ export interface RaceRng {
   float(): number;
   int(min: number, max: number): number;
   choose<T>(items: T[]): T;
+  /** Create a derived RNG stream for an independent domain. */
+  fork(key: string): RaceRng;
   version: string;
+  /** The raw seed text this RNG was created from (for forking). */
+  _seedText: string;
 }
 
 export function createRaceRng(seedText: string): RaceRng {
@@ -48,6 +62,8 @@ export function createRaceRng(seedText: string): RaceRng {
     int: (min: number, max: number): number =>
       Math.floor(rng() * (max - min + 1)) + min,
     choose: <T>(items: T[]): T => items[Math.floor(rng() * items.length)],
+    fork: (key: string): RaceRng => createRaceRng(seedText + ":" + key),
     version: RNG_VERSION,
+    _seedText: seedText,
   };
 }

@@ -39,7 +39,6 @@ export class RaceScene extends Phaser.Scene {
   private aiShip!: Phaser.Physics.Arcade.Sprite;
   private obstacles!: Phaser.Physics.Arcade.Group;
   private treasures!: Phaser.Physics.Arcade.Group;
-  private finishLine!: Phaser.Physics.Arcade.Sprite;
   private treasureIsland!: Phaser.GameObjects.Image;
 
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
@@ -72,6 +71,8 @@ export class RaceScene extends Phaser.Scene {
   private progressText!: Phaser.GameObjects.Text;
   private rivalText!: Phaser.GameObjects.Text;
   private pauseText!: Phaser.GameObjects.Text;
+  private pauseOverlay!: Phaser.GameObjects.Rectangle;
+  private finishOverlay!: Phaser.GameObjects.Rectangle;
   private gameOverText!: Phaser.GameObjects.Text;
   private resultText!: Phaser.GameObjects.Text;
   private boostBarFill!: Phaser.GameObjects.Image;
@@ -85,7 +86,9 @@ export class RaceScene extends Phaser.Scene {
   private obstacleTypesSeen: Set<ObstacleType> = new Set();
 
   // Deterministic RNG (project-owned mulberry32)
-  private rng!: RaceRng;
+  private rngCourse!: RaceRng;
+  private rngAi!: RaceRng;
+  private rngCosmetic!: RaceRng;
   private seed: string = "race-default";
 
   // Obstacle spawn log (debug/determinism verification)
@@ -105,7 +108,6 @@ export class RaceScene extends Phaser.Scene {
     this.createPlayer();
     this.createAIShip();
     this.createGroups();
-    this.createFinishLine();
     this.createTreasureIsland();
     this.createHUD();
     this.setupInput();
@@ -124,7 +126,10 @@ export class RaceScene extends Phaser.Scene {
         : null;
     const configSeed = (this.game.config as any).seed?.[0] ?? null;
     this.seed = urlSeed ?? configSeed ?? "race-default";
-    this.rng = createRaceRng(this.seed);
+    const base = createRaceRng(this.seed);
+    this.rngCourse = base.fork("course");
+    this.rngAi = base.fork("ai");
+    this.rngCosmetic = base.fork("cosmetic");
   }
 
   update(_time: number, delta: number): void {
@@ -240,14 +245,6 @@ export class RaceScene extends Phaser.Scene {
     this.treasures = this.physics.add.group({ runChildUpdate: false });
   }
 
-  private createFinishLine(): void {
-    this.finishLine = this.physics.add
-      .sprite(GAME_WIDTH / 2, -200, "finish-line")
-      .setVisible(false);
-    this.finishLine.setDepth(5);
-    this.finishLine.body!.enable = false;
-  }
-
   private createTreasureIsland(): void {
     this.treasureIsland = this.add
       .image(GAME_WIDTH / 2, -300, "treasure-island")
@@ -353,6 +350,32 @@ export class RaceScene extends Phaser.Scene {
       .setVisible(false);
     this.pauseText.setData("hint", pauseHint);
 
+    // Dim overlay behind pause
+    this.pauseOverlay = this.add
+      .rectangle(
+        GAME_WIDTH / 2,
+        GAME_HEIGHT / 2,
+        GAME_WIDTH,
+        GAME_HEIGHT,
+        0x000000,
+        0.6,
+      )
+      .setDepth(199)
+      .setVisible(false);
+
+    // Dim overlay behind finish text
+    this.finishOverlay = this.add
+      .rectangle(
+        GAME_WIDTH / 2,
+        GAME_HEIGHT / 2,
+        GAME_WIDTH,
+        GAME_HEIGHT,
+        0x000000,
+        0.65,
+      )
+      .setDepth(199)
+      .setVisible(false);
+
     // Game over texts
     this.gameOverText = this.add
       .text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 50, "", {
@@ -448,7 +471,7 @@ export class RaceScene extends Phaser.Scene {
         result: this.gameOverText?.text || "",
         score: this.score,
         seed: this.seed,
-        rngVersion: this.rng.version,
+        rngVersion: this.rngCourse.version,
         playerX: Math.floor(this.player?.x ?? -1),
         distanceTraveled: Math.floor(this.distanceTraveled),
         stunTimer: this.stunTimer,
@@ -545,7 +568,7 @@ export class RaceScene extends Phaser.Scene {
       this.sailIndicator.setScale(flap);
       this.sailIndicator.setRotation(Math.sin(this.time.now * 0.008) * 0.15);
       // Brief wind streak particles
-      if (this.rng.float() < 0.3) {
+      if (this.rngCourse.float() < 0.3) {
         const streak = this.add
           .image(this.player.x - 30, this.player.y - 20, "particle")
           .setTint(0x88ccff)
@@ -575,9 +598,9 @@ export class RaceScene extends Phaser.Scene {
     // Lane-based movement with occasional mistakes
     this.aiLaneTimer -= dt * 1000;
     if (this.aiLaneTimer <= 0) {
-      this.aiLaneTimer = 2000 + this.rng.float() * 3000;
+      this.aiLaneTimer = 2000 + this.rngAi.float() * 3000;
       // Aim roughly near player
-      const laneOffset = this.rng.int(-1, 1) * 80;
+      const laneOffset = this.rngAi.int(-1, 1) * 80;
       this.aiTargetX = Phaser.Math.Clamp(
         this.player.x + laneOffset,
         50,
@@ -589,10 +612,10 @@ export class RaceScene extends Phaser.Scene {
     this.aiMistakeTimer -= dt * 1000;
     if (
       this.aiMistakeTimer <= 0 &&
-      this.rng.float() < RACE_TUNING.aiMistakeChance
+      this.rngAi.float() < RACE_TUNING.aiMistakeChance
     ) {
       this.aiMistakeTimer = RACE_TUNING.aiMistakeDuration;
-      this.aiMistakeDir = this.rng.float() < 0.5 ? -1 : 1;
+      this.aiMistakeDir = this.rngAi.float() < 0.5 ? -1 : 1;
     }
 
     let targetX = this.aiTargetX;
@@ -640,11 +663,11 @@ export class RaceScene extends Phaser.Scene {
       { key: "reef", type: "reef" },
       { key: "debris", type: "debris" },
     ];
-    const chosen = this.rng.choose(types);
+    const chosen = this.rngCourse.choose(types);
     this.obstacleTypesSeen.add(chosen.type);
 
-    const x = this.rng.int(40, GAME_WIDTH - 40);
-    const y = this.rng.int(-20, 0);
+    const x = this.rngCourse.int(40, GAME_WIDTH - 40);
+    const y = this.rngCourse.int(-20, 0);
 
     const obs = this.physics.add.sprite(x, y, chosen.key) as Obstacle;
     obs.obsType = chosen.type;
@@ -662,8 +685,8 @@ export class RaceScene extends Phaser.Scene {
   }
 
   private spawnTreasure(): void {
-    const x = this.rng.int(40, GAME_WIDTH - 40);
-    const y = this.rng.int(-20, 0);
+    const x = this.rngCourse.int(40, GAME_WIDTH - 40);
+    const y = this.rngCourse.int(-20, 0);
     const tres = this.physics.add.sprite(x, y, "treasure") as Treasure;
     tres.collected = false;
     tres.setDepth(5);
@@ -864,8 +887,8 @@ export class RaceScene extends Phaser.Scene {
       p.setDepth(20);
       this.tweens.add({
         targets: p,
-        x: p.x + this.rng.int(-25, 25),
-        y: p.y + this.rng.int(-25, 25),
+        x: p.x + this.rngCosmetic.int(-25, 25),
+        y: p.y + this.rngCosmetic.int(-25, 25),
         alpha: 0,
         scale: 0,
         duration: 350,
@@ -911,6 +934,9 @@ export class RaceScene extends Phaser.Scene {
     this.aiShip.setVelocity(0, 0);
     this.physics.pause();
 
+    // Dim overlay
+    this.finishOverlay.setVisible(true);
+
     // Show result
     this.gameOverText.setText(
       playerWon ? "TREASURE ISLAND SIGHTED!" : "LONG JOHN REACHED IT FIRST!",
@@ -936,6 +962,7 @@ export class RaceScene extends Phaser.Scene {
     if (this.raceFinished || this.gameOver) return;
     this.paused = !this.paused;
     this.pauseText.setVisible(this.paused);
+    this.pauseOverlay.setVisible(this.paused);
     const hint = this.pauseText.getData("hint") as Phaser.GameObjects.Text;
     if (hint) hint.setVisible(this.paused);
     if (this.paused) {

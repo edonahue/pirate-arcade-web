@@ -11,8 +11,6 @@ import { ASSET_VERSION } from "../../scripts/game-asset-versions.mjs";
 
 const browserGames = games.filter((g) => g.status === "browser-playable");
 const desktopGames = games.filter((g) => g.status === "desktop-available");
-const pygbagGames = browserGames.filter((g) => g.engine === "pygbag");
-const webNativeGames = browserGames.filter((g) => g.engine === "phaser");
 ---
 
 <BaseLayout
@@ -51,51 +49,79 @@ const webNativeGames = browserGames.filter((g) => g.engine === "phaser");
       <p class="section__eyebrow">Browser</p>
       <h2 class="section__title">Play Now</h2>
       <p class="section__description">
-        {browserGames.length} browser-playable games: {pygbagGames.length}
-        Pygbag/WebAssembly ports and {webNativeGames.length} web-native Phaser game.
-        Pygbag games load a ~12 MB CPython runtime on first visit (cached on repeat
-        visits). Web-native games load instantly. Audio unlocks after the first click
-        or tap.
+        {browserGames.length} browser-playable games across two engine types: Pygbag/WebAssembly
+        ports and one web-native Phaser game. All {browserGames.length} are playable
+        right now.
       </p>
     </div>
 
-    <div class="play-status">
-      <span class="play-status__item">
-        <span class="play-status__count">{browserGames.length}</span>
-        browser-ready
-      </span>
-      <span class="play-status__item play-status__item--muted">
-        {desktopGames.length} desktop-only
-      </span>
-      <span class="play-status__repeat">
-        Pygbag games: ~12 MB first visit (cached). Web-native games: instant
-        load.
-      </span>
-    </div>
-
-    <div class="play-now__ctas">
-      {
-        browserGames.map((game) => (
-          <div class="text-center mt-2">
+    <div class="engine-split">
+      <div class="engine-card">
+        <div class="engine-card__header">
+          <span class="engine-card__icon" aria-hidden="true">🐍</span>
+          <h3 class="engine-card__title">Pygbag / WebAssembly</h3>
+        </div>
+        <p class="engine-card__desc">
+          Python games compiled to WebAssembly. ~12 MB CPython runtime downloads
+          once on first visit; repeat visits load from cache. Audio unlocks
+          after first click.
+        </p>
+        <ul class="engine-card__games">
+          <li>
             <a
-              href={game.browserUrl!}
+              href="/play/cannonball-clash/"
               rel="noopener noreferrer"
-              class="cta cta--primary"
-              data-game-id={game.id}
-              data-browser-playable="true"
-              data-game-page={game.browserUrl!}
-              data-game-archive={
-                game.engine === "phaser"
-                  ? ""
-                  : `/play/${game.id}/${game.id}.tar.gz?v=${ASSET_VERSION}`
-              }
-              data-captains-log={game.id}
+              data-captains-log="cannonball-clash"
             >
-              Play {game.title}
+              Cannonball Clash
             </a>
-          </div>
-        ))
-      }
+            <span class="engine-card__tag touch-easy">Easiest on touch</span>
+          </li>
+          <li>
+            <a
+              href="/play/treasure-cove/"
+              rel="noopener noreferrer"
+              data-captains-log="treasure-cove"
+            >
+              Treasure Cove
+            </a>
+            <span class="engine-card__tag touch-medium">Medium on touch</span>
+          </li>
+          <li>
+            <a
+              href="/play/krakens-wake/"
+              rel="noopener noreferrer"
+              data-captains-log="krakens-wake"
+            >
+              Kraken's Wake
+            </a>
+            <span class="engine-card__tag touch-harder">Harder on touch</span>
+          </li>
+        </ul>
+      </div>
+      <div class="engine-card">
+        <div class="engine-card__header">
+          <span class="engine-card__icon" aria-hidden="true">⚡</span>
+          <h3 class="engine-card__title">Web Native (Phaser 3)</h3>
+        </div>
+        <p class="engine-card__desc">
+          JavaScript game built with Phaser 3. Loads instantly — no runtime
+          download. Seeded obstacle courses, deterministic AI, and real-time
+          wind boost mechanics.
+        </p>
+        <ul class="engine-card__games">
+          <li>
+            <a
+              href="/play/race-to-treasure-island/"
+              rel="noopener noreferrer"
+              data-captains-log="race-to-treasure-island"
+            >
+              Race to Treasure Island
+            </a>
+            <span class="engine-card__tag touch-medium">Medium on touch</span>
+          </li>
+        </ul>
+      </div>
     </div>
 
     <div class="before-launch mt-4">
@@ -103,379 +129,367 @@ const webNativeGames = browserGames.filter((g) => g.engine === "phaser");
         <p class="before-launch__heading">Before you launch</p>
         <ul class="before-launch__list">
           <li>
-            <strong>Pygbag games:</strong> ~12 MB CPython runtime downloads once on
-            first visit — repeat visits load from cache.
+            <strong>Pygbag games:</strong> ~12 MB first-visit download (cached on
+            repeat).
           </li>
           <li>
-            <strong>Web-native games:</strong> Load instantly via Phaser/Vite — no
-            runtime download needed.
+            <strong>Web-native games:</strong> Load instantly — no runtime needed.
           </li>
           <li>
-            <strong>Audio:</strong> Starts after your first click or tap (browser
-            autoplay policy).
+            <strong>Audio:</strong> Starts after your first click or tap.
           </li>
           <li>
             <strong>Controls:</strong> Keyboard works best. On-screen touch controls
-            available on mobile and iPad.
+            also available.
           </li>
           <li>
-            <strong>Orientation:</strong> Landscape recommended for the best experience.
+            <strong>Orientation:</strong> Landscape recommended.
           </li>
         </ul>
-        <p class="before-launch__footnote">
-          <strong>On iPad:</strong> turn the device sideways. Pygbag games take longer
-          on first load; repeat visits are fast. Race to Treasure Island is web-native
-          and loads instantly.
+      </div>
+    </div>
+
+    <ArcadeStatusPanel />
+
+    <section class="section">
+      <div class="section__header">
+        <p class="section__eyebrow">Desktop</p>
+        <h2 class="section__title">Desktop Collection</h2>
+        <p class="section__description">
+          The three Pygbag games (Cannonball Clash, Treasure Cove, Kraken's
+          Wake) are also available as desktop downloads via the desktop repo.
+          Race to Treasure Island is web-native and has no desktop build. Port
+          Royale Tycoon is the only desktop-only game (see roadmap below).
         </p>
       </div>
-    </div>
 
-    <div class="touch-controls-summary mt-4">
-      <h3 class="touch-controls-summary__title">Touch controls at a glance</h3>
-      <div class="touch-controls-summary__grid">
-        <div class="touch-controls-summary__card">
-          <span class="touch-controls-summary__label">Cannonball Clash</span>
-          <span class="touch-controls-summary__controls"
-            >Slide ship up/down • START • PAUSE</span
-          >
-        </div>
-        <div class="touch-controls-summary__card">
-          <span class="touch-controls-summary__label">Treasure Cove</span>
-          <span class="touch-controls-summary__controls"
-            >Slide longboat left/right • LAUNCH • PAUSE</span
-          >
-        </div>
-        <div class="touch-controls-summary__card">
-          <span class="touch-controls-summary__label">Kraken's Wake</span>
-          <span class="touch-controls-summary__controls"
-            >TURN • THRUST • FIRE • PAUSE</span
-          >
-        </div>
-        <div class="touch-controls-summary__card">
-          <span class="touch-controls-summary__label"
-            >Race to Treasure Island</span
-          >
-          <span class="touch-controls-summary__controls"
-            >← → Steer • BOOST • PAUSE • RESTART</span
-          >
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <ArcadeStatusPanel />
-
-  <section class="section">
-    <div class="section__header">
-      <p class="section__eyebrow">Desktop</p>
-      <h2 class="section__title">Desktop Collection</h2>
-      <p class="section__description">
-        The three Pygbag games (Cannonball Clash, Treasure Cove, Kraken's Wake)
-        are also available as desktop downloads via the desktop repo. Race to
-        Treasure Island is web-native and has no desktop build. Port Royale
-        Tycoon is the only desktop-only game (see roadmap below).
-      </p>
-    </div>
-
-    <div class="text-center mt-2">
-      <a
-        href="https://github.com/edonahue/pirate-arcade/releases"
-        target="_blank"
-        rel="noopener noreferrer"
-        class="cta cta--gold"
-      >
-        Download Latest Release
-      </a>
-    </div>
-
-    <div class="release-details mt-2">
-      <div class="release-details__grid">
-        <div class="release-details__item">
-          <span class="release-details__label">Windows</span>
-          <span class="release-details__value">Standalone .exe</span>
-        </div>
-        <div class="release-details__item">
-          <span class="release-details__label">Linux</span>
-          <span class="release-details__value">.deb package</span>
-        </div>
-        <div class="release-details__item">
-          <span class="release-details__label">macOS</span>
-          <span class="release-details__value">Build from source</span>
-        </div>
-        <div class="release-details__item">
-          <span class="release-details__label">Source</span>
-          <span class="release-details__value">MIT license</span>
-        </div>
-      </div>
-      <p class="release-details__note">
-        <a href="/build-log/launching-on-free-infrastructure">
-          Read about the infrastructure
+      <div class="text-center mt-2">
+        <a
+          href="https://github.com/edonahue/pirate-arcade/releases"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="cta cta--gold"
+        >
+          Download Latest Release
         </a>
-        {" \u2014 "}how everything ships on free tiers.
-      </p>
-    </div>
+      </div>
+
+      <div class="release-details mt-2">
+        <div class="release-details__grid">
+          <div class="release-details__item">
+            <span class="release-details__label">Windows</span>
+            <span class="release-details__value">Standalone .exe</span>
+          </div>
+          <div class="release-details__item">
+            <span class="release-details__label">Linux</span>
+            <span class="release-details__value">.deb package</span>
+          </div>
+          <div class="release-details__item">
+            <span class="release-details__label">macOS</span>
+            <span class="release-details__value">Build from source</span>
+          </div>
+          <div class="release-details__item">
+            <span class="release-details__label">Source</span>
+            <span class="release-details__value">MIT license</span>
+          </div>
+        </div>
+        <p class="release-details__note">
+          <a href="/build-log/launching-on-free-infrastructure">
+            Read about the infrastructure
+          </a>
+          {" \u2014 "}how everything ships on free tiers.
+        </p>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section__header">
+        <p class="section__eyebrow">Roadmap</p>
+        <h2 class="section__title">What's Next</h2>
+        <p class="section__description">
+          <strong>Race to Treasure Island</strong> is our first web-native (Phaser)
+          game — load it instantly, no runtime download. Port Royale Tycoon (trading
+          board game) remains the only desktop-only game. A browser port has been
+          evaluated — see the feasibility review in the build log.
+        </p>
+        <p class="section__description mt-1">
+          <a href="/build-log/browser-port-feasibility">
+            Read the feasibility analysis
+          </a>
+          {" \u2014 "}Pygbag vs Canvas rewrite trade-offs.
+        </p>
+      </div>
+    </section>
+
+    <CaptainsLog games={games} />
   </section>
 
-  <section class="section">
-    <div class="section__header">
-      <p class="section__eyebrow">Roadmap</p>
-      <h2 class="section__title">What's Next</h2>
-      <p class="section__description">
-        <strong>Race to Treasure Island</strong> is our first web-native (Phaser)
-        game — load it instantly, no runtime download. Port Royale Tycoon (trading
-        board game) remains the only desktop-only game. A browser port has been evaluated
-        — see the feasibility review in the build log.
-      </p>
-      <p class="section__description mt-1">
-        <a href="/build-log/browser-port-feasibility">
-          Read the feasibility analysis
-        </a>
-        {" \u2014 "}Pygbag vs Canvas rewrite trade-offs.
-      </p>
-    </div>
-  </section>
+  <script define:vars={{ ASSET_VERSION }} is:inline>
+    if (!window.__paGamePrewarmInstalled) {
+      window.__paGamePrewarmInstalled = true;
 
-  <CaptainsLog games={games} />
-</BaseLayout>
+      /** @type {Map<string, {timeout: number|null, prefetchedUrls: Set<string>}>} */
+      var prewarmState = new Map();
 
-<script define:vars={{ ASSET_VERSION }} is:inline>
-  if (!window.__paGamePrewarmInstalled) {
-    window.__paGamePrewarmInstalled = true;
-
-    /** @type {Map<string, {timeout: number|null, prefetchedUrls: Set<string>}>} */
-    var prewarmState = new Map();
-
-    function triggerGamePrewarm(gameId, pageUrl, archiveUrl) {
-      var state = prewarmState.get(gameId);
-      if (!state) {
-        state = { timeout: null, prefetchedUrls: new Set() };
-        prewarmState.set(gameId, state);
+      function triggerGamePrewarm(gameId, pageUrl, archiveUrl) {
+        var state = prewarmState.get(gameId);
+        if (!state) {
+          state = { timeout: null, prefetchedUrls: new Set() };
+          prewarmState.set(gameId, state);
+        }
+        if (state.timeout) clearTimeout(state.timeout);
+        state.timeout = setTimeout(function () {
+          var urls = [pageUrl];
+          if (!state.prefetchedUrls.has(pageUrl)) {
+            var link = document.createElement("link");
+            link.rel = "prefetch";
+            link.href = pageUrl;
+            document.head.appendChild(link);
+            state.prefetchedUrls.add(pageUrl);
+          }
+          if (archiveUrl && !state.prefetchedUrls.has(archiveUrl)) {
+            var link = document.createElement("link");
+            link.rel = "prefetch";
+            link.href = archiveUrl;
+            link.as = "fetch";
+            document.head.appendChild(link);
+            state.prefetchedUrls.add(archiveUrl);
+            urls.push(archiveUrl);
+          }
+          if (
+            "serviceWorker" in navigator &&
+            navigator.serviceWorker.controller
+          ) {
+            navigator.serviceWorker.controller.postMessage({
+              type: "WARM_CACHE",
+              urls: urls,
+            });
+          }
+        }, 150);
       }
-      if (state.timeout) clearTimeout(state.timeout);
-      state.timeout = setTimeout(function () {
-        var urls = [pageUrl];
-        if (!state.prefetchedUrls.has(pageUrl)) {
-          var link = document.createElement("link");
-          link.rel = "prefetch";
-          link.href = pageUrl;
-          document.head.appendChild(link);
-          state.prefetchedUrls.add(pageUrl);
+
+      function cancelGamePrewarm(gameId) {
+        var state = prewarmState.get(gameId);
+        if (state && state.timeout) {
+          clearTimeout(state.timeout);
+          state.timeout = null;
         }
-        if (archiveUrl && !state.prefetchedUrls.has(archiveUrl)) {
-          var link = document.createElement("link");
-          link.rel = "prefetch";
-          link.href = archiveUrl;
-          link.as = "fetch";
-          document.head.appendChild(link);
-          state.prefetchedUrls.add(archiveUrl);
-          urls.push(archiveUrl);
+      }
+
+      var isDesktop = window.matchMedia("(pointer: fine)").matches;
+      var links = document.querySelectorAll(
+        "a[data-game-id][data-browser-playable=true]",
+      );
+      links.forEach(function (link) {
+        // Open in new tab on desktop (fine pointer); same tab on mobile (coarse pointer)
+        if (isDesktop) {
+          link.setAttribute("target", "_blank");
         }
-        if (
-          "serviceWorker" in navigator &&
-          navigator.serviceWorker.controller
-        ) {
-          navigator.serviceWorker.controller.postMessage({
-            type: "WARM_CACHE",
-            urls: urls,
+        var gameId = link.getAttribute("data-game-id");
+        var pageUrl = link.getAttribute("data-game-page") || "";
+        var archiveUrl = link.getAttribute("data-game-archive") || "";
+        var captainsLogId = link.getAttribute("data-captains-log");
+        if (!pageUrl) return;
+
+        link.addEventListener("pointerenter", function () {
+          triggerGamePrewarm(gameId, pageUrl, archiveUrl);
+        });
+        link.addEventListener("pointerleave", function () {
+          cancelGamePrewarm(gameId);
+        });
+        link.addEventListener("focus", function () {
+          triggerGamePrewarm(gameId, pageUrl, archiveUrl);
+        });
+        link.addEventListener("blur", function () {
+          cancelGamePrewarm(gameId);
+        });
+        link.addEventListener(
+          "touchstart",
+          function () {
+            triggerGamePrewarm(gameId, pageUrl, archiveUrl);
+          },
+          { passive: true },
+        );
+
+        // Captain's Log: record launch on click (before navigation)
+        if (captainsLogId) {
+          link.addEventListener("click", function () {
+            if (window.__paCaptainsLog && window.__paCaptainsLog.addEntry) {
+              window.__paCaptainsLog.addEntry(
+                captainsLogId,
+                link.textContent?.trim() || gameId,
+                pageUrl,
+              );
+              window.__paCaptainsLog.incrementLaunchCount(captainsLogId);
+            }
           });
         }
-      }, 150);
+      });
+    }
+  </script>
+
+  <style>
+    .engine-split {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1.25rem;
+      max-width: 680px;
+      margin: 0 auto 2rem;
     }
 
-    function cancelGamePrewarm(gameId) {
-      var state = prewarmState.get(gameId);
-      if (state && state.timeout) {
-        clearTimeout(state.timeout);
-        state.timeout = null;
+    .engine-card {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      padding: 1.5rem;
+    }
+
+    .engine-card:first-child {
+      border-left: 3px solid var(--gold);
+    }
+
+    .engine-card:last-child {
+      border-left: 3px solid var(--sea);
+    }
+
+    .engine-card__header {
+      display: flex;
+      align-items: center;
+      gap: 0.625rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .engine-card__icon {
+      font-size: 1.25rem;
+      line-height: 1;
+    }
+
+    .engine-card__title {
+      font-family: var(--display);
+      font-size: 1.125rem;
+      color: var(--ink);
+    }
+
+    .engine-card__desc {
+      font-size: 0.875rem;
+      color: var(--muted);
+      line-height: 1.6;
+      margin-bottom: 1rem;
+    }
+
+    .engine-card__games {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .engine-card__games li {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.875rem;
+    }
+
+    .engine-card__games a {
+      color: var(--accent);
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+
+    .engine-card__games a:hover {
+      color: var(--ink);
+    }
+
+    .engine-card__tag {
+      font-family: var(--mono);
+      font-size: 0.625rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      padding: 0.125rem 0.375rem;
+      border: 1px solid currentColor;
+      border-radius: 3px;
+      white-space: nowrap;
+    }
+
+    .engine-card__tag.touch-easy {
+      color: var(--sea);
+    }
+
+    .engine-card__tag.touch-medium {
+      color: var(--gold);
+    }
+
+    .engine-card__tag.touch-harder {
+      color: var(--rum);
+    }
+
+    @media (min-width: 640px) {
+      .engine-split {
+        grid-template-columns: 1fr 1fr;
+        max-width: 780px;
       }
     }
 
-    var isDesktop = window.matchMedia("(pointer: fine)").matches;
-    var links = document.querySelectorAll(
-      "a[data-game-id][data-browser-playable=true]",
-    );
-    links.forEach(function (link) {
-      // Open in new tab on desktop (fine pointer); same tab on mobile (coarse pointer)
-      if (isDesktop) {
-        link.setAttribute("target", "_blank");
-      }
-      var gameId = link.getAttribute("data-game-id");
-      var pageUrl = link.getAttribute("data-game-page") || "";
-      var archiveUrl = link.getAttribute("data-game-archive") || "";
-      var captainsLogId = link.getAttribute("data-captains-log");
-      if (!pageUrl) return;
-
-      link.addEventListener("pointerenter", function () {
-        triggerGamePrewarm(gameId, pageUrl, archiveUrl);
-      });
-      link.addEventListener("pointerleave", function () {
-        cancelGamePrewarm(gameId);
-      });
-      link.addEventListener("focus", function () {
-        triggerGamePrewarm(gameId, pageUrl, archiveUrl);
-      });
-      link.addEventListener("blur", function () {
-        cancelGamePrewarm(gameId);
-      });
-      link.addEventListener(
-        "touchstart",
-        function () {
-          triggerGamePrewarm(gameId, pageUrl, archiveUrl);
-        },
-        { passive: true },
-      );
-
-      // Captain's Log: record launch on click (before navigation)
-      if (captainsLogId) {
-        link.addEventListener("click", function () {
-          if (window.__paCaptainsLog && window.__paCaptainsLog.addEntry) {
-            window.__paCaptainsLog.addEntry(
-              captainsLogId,
-              link.textContent?.trim() || gameId,
-              pageUrl,
-            );
-            window.__paCaptainsLog.incrementLaunchCount(captainsLogId);
-          }
-        });
-      }
-    });
-  }
-</script>
-
-<style>
-  .play-now__ctas {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.5rem;
-  }
-
-  .before-launch {
-    max-width: 580px;
-    margin-left: auto;
-    margin-right: auto;
-  }
-
-  .before-launch__inner {
-    padding: 1.25rem 1.5rem;
-    background: var(--surface);
-    border: 1px solid var(--line);
-    border-radius: var(--radius-lg);
-    border-left: 3px solid var(--accent);
-  }
-
-  .before-launch__heading {
-    font-family: var(--mono);
-    font-size: 0.6875rem;
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
-    color: var(--accent);
-    margin-bottom: 0.75rem;
-  }
-
-  .before-launch__list {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-  }
-
-  .before-launch__list li {
-    font-size: 0.8125rem;
-    color: var(--muted);
-    line-height: 1.5;
-    padding-left: 1rem;
-    position: relative;
-  }
-
-  .before-launch__list li::before {
-    content: "\25B8";
-    position: absolute;
-    left: 0;
-    color: var(--accent);
-  }
-
-  .before-launch__list li strong {
-    color: var(--ink);
-  }
-
-  .before-launch__footnote {
-    margin-top: 0.75rem;
-    font-size: 0.75rem;
-    color: var(--muted);
-    text-align: center;
-  }
-
-  .before-launch__footnote a {
-    color: var(--accent);
-    text-decoration: underline;
-    text-underline-offset: 2px;
-  }
-
-  .release-details__note a,
-  .section__description a {
-    text-decoration: underline;
-    text-underline-offset: 2px;
-  }
-
-  .play-status {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: center;
-    gap: 0.75rem;
-    margin-top: -0.25rem;
-    margin-bottom: 1.25rem;
-    font-family: var(--mono);
-    font-size: 0.6875rem;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: var(--muted);
-  }
-
-  .play-status__item {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.25rem;
-  }
-
-  .play-status__item--muted {
-    opacity: 0.6;
-  }
-
-  .play-status__count {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 1.25rem;
-    height: 1.25rem;
-    border-radius: 50%;
-    background: var(--accent);
-    color: var(--ink);
-    font-size: 0.625rem;
-    font-weight: 600;
-    line-height: 1;
-  }
-
-  .play-status__repeat {
-    width: 100%;
-    text-align: center;
-    color: var(--muted);
-    font-size: 0.625rem;
-    text-transform: none;
-    letter-spacing: normal;
-    opacity: 0.7;
-  }
-
-  @media (min-width: 640px) {
-    .play-now__ctas {
-      flex-direction: row;
-      justify-content: center;
-      gap: 1rem;
+    .before-launch {
+      max-width: 580px;
+      margin-left: auto;
+      margin-right: auto;
     }
-  }
-</style>
 
-<script is:inline src="/scripts/captains-log.js"></script>
+    .before-launch__inner {
+      padding: 1.25rem 1.5rem;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      border-left: 3px solid var(--accent);
+    }
+
+    .before-launch__heading {
+      font-family: var(--mono);
+      font-size: 0.6875rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--accent);
+      margin-bottom: 0.75rem;
+    }
+
+    .before-launch__list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .before-launch__list li {
+      font-size: 0.8125rem;
+      color: var(--muted);
+      line-height: 1.5;
+      padding-left: 1rem;
+      position: relative;
+    }
+
+    .before-launch__list li::before {
+      content: "\25B8";
+      position: absolute;
+      left: 0;
+      color: var(--accent);
+    }
+
+    .before-launch__list li strong {
+      color: var(--ink);
+    }
+
+    .release-details__note a,
+    .section__description a {
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+  </style>
+
+  <script is:inline src="/scripts/captains-log.js"></script>
+</BaseLayout>

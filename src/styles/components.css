@@ -31,7 +31,7 @@
   transform: translateX(-50%);
   width: 80%;
   max-width: 600px;
-  height: 4px;
+  height: 3px;
   background: linear-gradient(
     90deg,
     transparent,
@@ -41,7 +41,7 @@
     transparent
   );
   border-radius: 2px;
-  opacity: 0.6;
+  opacity: 0.5;
 }
 
 .hero::after {
@@ -54,8 +54,9 @@
   font-size: 0.625rem;
   letter-spacing: 0.3em;
   color: var(--accent);
-  opacity: 0.5;
+  opacity: 0.4;
   white-space: nowrap;
+  transition: opacity 0.3s;
 }
 
 .hero__title {
@@ -541,50 +542,6 @@
   line-height: 1.4;
 }
 
-/* Recommended first game card */
-.recommended-first {
-  text-align: center;
-}
-
-.recommended-first__card {
-  display: inline-block;
-  max-width: 400px;
-  padding: 1.5rem 2rem;
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-lg);
-  border-left: 4px solid var(--sea);
-  text-align: center;
-}
-
-.recommended-first__badge {
-  display: inline-block;
-  font-family: var(--mono);
-  font-size: 0.625rem;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--sea);
-  background: rgba(42, 166, 161, 0.1);
-  border: 1px solid var(--sea);
-  border-radius: 999px;
-  padding: 0.25rem 0.75rem;
-  margin-bottom: 0.75rem;
-}
-
-.recommended-first__title {
-  font-family: var(--display);
-  font-size: 1.5rem;
-  color: var(--gold);
-  margin-bottom: 0.5rem;
-}
-
-.recommended-first__desc {
-  font-size: 0.9375rem;
-  color: var(--muted);
-  margin-bottom: 1rem;
-  line-height: 1.5;
-}
-
 /* Game detail page controls summary */
 .controls-summary {
   font-family: var(--mono);
@@ -711,4 +668,180 @@
   background: var(--surface-soft);
   padding: 0.125rem 0.375rem;
   border-radius: 4px;
+}
+
+/* Stats strip — homepage game count summary */
+.stats-strip {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 1rem;
+  margin: 0 auto 2.5rem;
+  max-width: 700px;
+}
+
+.stats-strip__item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.75rem 1.25rem;
+  background: var(--surface-glass);
+  border: 1px solid var(--chart-line);
+  border-radius: var(--radius);
+  min-width: 100px;
+  flex: 1 1 auto;
+}
+
+.stats-strip__count {
+  font-family: var(--display);
+  font-size: 1.75rem;
+  color: var(--brass-strong);
+  line-height: 1;
+  margin-bottom: 0.25rem;
+}
+
+.stats-strip__label {
+  font-family: var(--mono);
+  font-size: 0.625rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+  text-align: center;
+}
+
+/* Featured game panel — homepage */
+.featured-game {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  max-width: 680px;
+  margin: 0 auto;
+  background: var(--surface-card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-soft), var(--glow-sea);
+}
+
+.featured-game__screenshot img {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-bottom: 1px solid var(--line);
+}
+
+.featured-game__info {
+  padding: 0 1.5rem 1.5rem;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.featured-game__stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.featured-game__stat-label {
+  font-family: var(--mono);
+  font-size: 0.625rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--accent);
+}
+
+.featured-game__stat-value {
+  font-size: 0.875rem;
+  color: var(--ink);
+}
+
+.featured-game__cta {
+  grid-column: 1 / -1;
+  text-align: center;
+  margin-top: 0.5rem;
+}
+
+@media (min-width: 640px) {
+  .featured-game {
+    flex-direction: row;
+    max-width: 780px;
+  }
+
+  .featured-game__screenshot {
+    flex: 0 0 50%;
+  }
+
+  .featured-game__screenshot img {
+    height: 100%;
+    object-fit: cover;
+    border-bottom: none;
+    border-right: 1px solid var(--line);
+  }
+
+  .featured-game__info {
+    flex: 1;
+    padding: 1.5rem;
+  }
+}
+
+/* Recommended-first cards */
+.recommended-first {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  justify-content: center;
+}
+
+.recommended-first__card {
+  flex: 1 1 260px;
+  min-width: 0;
+  max-width: 360px;
+  padding: 1.5rem 2rem;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  border-left: 4px solid var(--sea);
+  text-align: center;
+}
+
+.recommended-first__badge {
+  display: inline-block;
+  font-family: var(--mono);
+  font-size: 0.625rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--sea);
+  background: rgba(42, 166, 161, 0.1);
+  border: 1px solid var(--sea);
+  border-radius: 999px;
+  padding: 0.25rem 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.recommended-first__title {
+  font-family: var(--display);
+  font-size: 1.5rem;
+  color: var(--gold);
+  margin-bottom: 0.5rem;
+}
+
+.recommended-first__desc {
+  font-size: 0.9375rem;
+  color: var(--muted);
+  margin-bottom: 1rem;
+  line-height: 1.5;
+}
+
+/* Remove duplicate recommended-first blocks inherited from layout.css */
+.recommended-first__badge--gold {
+  border-color: var(--gold);
+  color: var(--gold);
+  background: rgba(201, 164, 92, 0.1);
+}
+
+.recommended-first__badge--rum {
+  border-color: var(--rum);
+  color: var(--rum);
+  background: rgba(140, 52, 40, 0.1);
 }

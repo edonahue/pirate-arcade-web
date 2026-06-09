@@ -38,6 +38,21 @@ import { publicDomainArt } from "../data/publicDomainArt";
         Louis Rhead (1857–1926). All are public domain in the United States as
         pre-1931 publications.
       </p>
+      <div class="provenance-note">
+        <p>
+          <strong>Louis Rhead</strong> illustrated the 1915 edition of Robert Louis
+          Stevenson's <em>Treasure Island</em> — the primary visual inspiration for
+          this project's aesthetic. Rhead's bold woodcut-style engravings of Hispaniola,
+          Long John Silver, and the treasure map anchor the site's nautical-pirate
+          look.
+        </p>
+        <p>
+          <strong>Howard Pyle</strong>'s <em>Book of Pirates</em> (1921) provides
+          additional swashbuckling scene art. Both artists' work is sourced from scans
+          at Project Gutenberg and Wikimedia Commons, converted to WebP at
+          <code>quality: 85</code>.
+        </p>
+      </div>
     </div>
 
     <div class="art-provenance-grid">
@@ -171,13 +186,44 @@ import { publicDomainArt } from "../data/publicDomainArt";
 </BaseLayout>
 
 <style>
+  .provenance-note {
+    max-width: 48rem;
+    margin-top: 1rem;
+    padding: 1.25rem 1.5rem;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    border-left: 3px solid var(--gold);
+  }
+
+  .provenance-note p {
+    font-size: 0.875rem;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+
+  .provenance-note p + p {
+    margin-top: 0.75rem;
+  }
+
+  .provenance-note strong {
+    color: var(--ink);
+  }
+
+  .provenance-note code {
+    font-size: 0.75rem;
+    background: var(--surface-soft);
+    padding: 0.125rem 0.375rem;
+    border-radius: 3px;
+  }
+
   .credits-tables {
     max-width: 48rem;
     margin-top: 1.5rem;
   }
 
   .credits-subtitle {
-    font-family: "Bangers", cursive;
+    font-family: var(--display);
     font-size: 1.125rem;
     color: var(--accent);
     margin-block: 1.5rem 0.5rem;

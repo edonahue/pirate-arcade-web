@@ -44,6 +44,31 @@ const desktopOnly = games.filter((g) => g.status === "desktop-available");
         ports and one web-native Phaser racer.
       </p>
     </div>
+
+    <!-- Stats strip -->
+    <div class="stats-strip">
+      <div class="stats-strip__item">
+        <span class="stats-strip__count">{games.length}</span>
+        <span class="stats-strip__label">Total Games</span>
+      </div>
+      <div class="stats-strip__item">
+        <span class="stats-strip__count">{browserGames.length}</span>
+        <span class="stats-strip__label">Browser-Ready</span>
+      </div>
+      <div class="stats-strip__item">
+        <span class="stats-strip__count">{pygbagGames.length}</span>
+        <span class="stats-strip__label">Pygbag Ports</span>
+      </div>
+      <div class="stats-strip__item">
+        <span class="stats-strip__count">{webNativeGames.length}</span>
+        <span class="stats-strip__label">Web-Native (Phaser)</span>
+      </div>
+      <div class="stats-strip__item">
+        <span class="stats-strip__count">{desktopOnly.length}</span>
+        <span class="stats-strip__label">Desktop-Only</span>
+      </div>
+    </div>
+
     <div class="game-grid">
       {games.map((game) => <GameCard game={game} />)}
     </div>
@@ -57,16 +82,70 @@ const desktopOnly = games.filter((g) => g.status === "desktop-available");
 
   <section class="section">
     <div class="section__header">
-      <p class="section__eyebrow">Browser Play</p>
+      <p class="section__eyebrow">Featured</p>
+      <h2 class="section__title">Race to Treasure Island</h2>
+      <p class="section__description">
+        Pirate Arcade's first web-native game. Top-down ship racing against Long
+        John — load instantly, no runtime download. Built with Phaser 3.
+      </p>
+    </div>
+
+    <div class="featured-game">
+      <div class="featured-game__screenshot">
+        <img
+          src="/images/screenshot-race-to-treasure-island.png"
+          alt="Race to Treasure Island gameplay screenshot"
+          width="1280"
+          height="720"
+          loading="lazy"
+        />
+      </div>
+      <div class="featured-game__info">
+        <div class="featured-game__stat">
+          <span class="featured-game__stat-label">Engine</span>
+          <span class="featured-game__stat-value">Web-native Phaser 3</span>
+        </div>
+        <div class="featured-game__stat">
+          <span class="featured-game__stat-label">Load</span>
+          <span class="featured-game__stat-value">Instant — no download</span>
+        </div>
+        <div class="featured-game__stat">
+          <span class="featured-game__stat-label">Course</span>
+          <span class="featured-game__stat-value"
+            >Seeded — same seed = same obstacles</span
+          >
+        </div>
+        <div class="featured-game__stat">
+          <span class="featured-game__stat-label">Rival</span>
+          <span class="featured-game__stat-value">Long John Silver</span>
+        </div>
+        <a
+          href="/play/race-to-treasure-island/"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="cta cta--primary featured-game__cta"
+        >
+          Play Race to Treasure Island
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <div class="section-divider" aria-hidden="true">
+    <span class="section-divider__line"></span>
+    <span class="section-divider__dot"></span>
+    <span class="section-divider__line"></span>
+  </div>
+
+  <section class="section">
+    <div class="section__header">
+      <p class="section__eyebrow">All Browser Games</p>
       <h2 class="section__title">Play in Browser Now</h2>
       <p class="section__description">
-        {browserGames.length} browser-playable games are live: {
-          pygbagGames.length
-        }
+        {browserGames.length} browser-playable games — {pygbagGames.length}
         Pygbag/WebAssembly ports and {webNativeGames.length} web-native Phaser racer.
         Pygbag games load a ~12 MB CPython runtime on first visit (cached on repeat);
-        web-native games load instantly. Audio starts after your first click. Works
-        best with a keyboard, with on-screen touch controls available on mobile.
+        web-native games load instantly.
       </p>
     </div>
 
@@ -78,83 +157,31 @@ const desktopOnly = games.filter((g) => g.status === "desktop-available");
           Naval cannon duel — slide your ship up/down, tap START. Easiest on
           touch.
         </p>
-        <a
-          href="/play/cannonball-clash/"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="cta cta--primary"
-        >
+        <a href="/play/cannonball-clash/" class="cta cta--primary">
           Play Cannonball Clash
         </a>
       </div>
       <div class="recommended-first__card">
-        <span class="recommended-first__badge">Instant load — web-native</span>
-        <h3 class="recommended-first__title">Race to Treasure Island</h3>
+        <span class="recommended-first__badge">Easiest on touch</span>
+        <h3 class="recommended-first__title">Treasure Cove</h3>
         <p class="recommended-first__desc">
-          Top-down ship racer with wind boost &amp; obstacles — loads instantly
-          via Phaser. No runtime download needed.
+          Pirate Breakout — smash fortress walls. Medium on touch.
         </p>
-        <a
-          href="/play/race-to-treasure-island/"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="cta cta--primary"
-        >
-          Play Race to Treasure Island
-        </a>
-      </div>
-    </div>
-
-    <div class="text-center mt-2">
-      <div class="play-home__ctas">
-        <a
-          href="/play/treasure-cove/"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="cta cta--gold"
-        >
+        <a href="/play/treasure-cove/" class="cta cta--gold">
           Play Treasure Cove
         </a>
-        <a
-          href="/play/krakens-wake/"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="cta cta--outline"
-        >
+      </div>
+      <div class="recommended-first__card">
+        <span class="recommended-first__badge">Harder on touch</span>
+        <h3 class="recommended-first__title">Kraken's Wake</h3>
+        <p class="recommended-first__desc">
+          Asteroids-style sea monster survival. Turn, thrust, fire.
+        </p>
+        <a href="/play/krakens-wake/" class="cta cta--outline">
           Play Kraken's Wake
         </a>
       </div>
     </div>
-    <p class="section__description mt-4 text-center text-sm">
-      <a href="/build-log/shipping-first-browser-port"
-        >Read about the browser porting journey</a
-      >
-      {" • "}
-      <a href="/build-log/porting-the-second-game-treasure-cove"
-        >See the technical details</a
-      >{" • "}
-      <a href="/build-log/browser-port-feasibility">Porting roadmap</a>
-    </p>
-    <style>
-      .play-home__ctas {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.75rem;
-        justify-content: center;
-        align-items: center;
-      }
-      .recommended-first {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 1rem;
-        justify-content: center;
-      }
-      .recommended-first__card {
-        flex: 1 1 260px;
-        min-width: 0;
-        max-width: 360px;
-      }
-    </style>
   </section>
 
   <div class="section-divider" aria-hidden="true">

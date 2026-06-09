@@ -10,12 +10,15 @@ export interface Props {
 const { game } = Astro.props;
 const cardHref = `/games/${game.id}/`;
 const isBrowserPlayable = game.status === "browser-playable" && game.browserUrl;
-const isPygbag = isBrowserPlayable && game.engine !== "phaser";
+const engine = game.engine || "none";
+const isPygbag = engine === "pygbag";
+const isPhaserNative = engine === "phaser";
 const linkId = `game-card-link-${game.id}`;
 const browserUrl = isBrowserPlayable ? game.browserUrl! : "";
 const archiveUrl = isPygbag
   ? `${browserUrl}${game.id}.tar.gz?v=${ASSET_VERSION}`
   : "";
+const engineLabel = isPhaserNative ? "Phaser 3" : isPygbag ? "Pygbag" : null;
 const touchDifficultyLabel = game.touchDifficulty
   ? {
       easy: "Easiest on touch",
@@ -50,6 +53,13 @@ const touchDifficultyLabel = game.touchDifficulty
           ) : (
             <span class="game-card__placeholder">
               [{game.title} screenshot]
+            </span>
+          )
+        }
+        {
+          engineLabel && (
+            <span class="game-card__engine-badge" data-engine={engine}>
+              {engineLabel}
             </span>
           )
         }
