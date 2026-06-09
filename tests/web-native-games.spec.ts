@@ -1516,5 +1516,127 @@ for (const game of GAMES) {
       expect(inlineDisplays.desktop).toBe("");
       expect(inlineDisplays.touch).toBe("");
     });
+
+    // Phase 21: Overlay hold tests
+    test("help overlay hold stops race progress", async ({ page }) => {
+      await page.goto(`${game.path}?testTouch=1&seed=overlay-hold`, {
+        waitUntil: "domcontentloaded",
+      });
+      await waitForPhaserReady(page);
+
+      // Show help overlay via help button
+      const helpBtn = page.locator("#touch-help-button");
+      await helpBtn.click();
+      await page.waitForFunction(
+        () =>
+          (window as any).__paRaceToTreasureIslandState?.overlayHeld === true,
+        { timeout: 5000 },
+      );
+
+      // Get initial progress
+      const stateBefore = await page.evaluate(
+        () => (window as any).__paRaceToTreasureIslandState,
+      );
+      const progressBefore = stateBefore?.playerProgress ?? 0;
+
+      // Wait 1 second
+      await page.waitForTimeout(1000);
+
+      // Progress should not have increased significantly
+      const stateDuring = await page.evaluate(
+        () => (window as any).__paRaceToTreasureIslandState,
+      );
+      const progressDuring = stateDuring?.playerProgress ?? 0;
+      expect(progressDuring).toBeLessThanOrEqual(progressBefore + 1);
+
+      // Dismiss overlay
+      const dismissBtn = page.locator("#touch-hint-dismiss");
+      await dismissBtn.click();
+      await page.waitForFunction(
+        () =>
+          (window as any).__paRaceToTreasureIslandState?.overlayHeld === false,
+        { timeout: 5000 },
+      );
+
+      // Wait 1 second
+      await page.waitForTimeout(1000);
+
+      // Progress should have increased
+      const stateAfter = await page.evaluate(
+        () => (window as any).__paRaceToTreasureIslandState,
+      );
+      const progressAfter = stateAfter?.playerProgress ?? 0;
+      expect(progressAfter).toBeGreaterThan(progressDuring);
+    });
+
+    test("first visit hint uses overlay hold flag", async ({ page }) => {
+      await page.goto(`${game.path}?testTouch=1`, {
+        waitUntil: "domcontentloaded",
+      });
+      await waitForPhaserReady(page);
+
+      // Force show through help button (first visit hint may not show in test mode)
+      const helpBtn = page.locator("#touch-help-button");
+      await helpBtn.click();
+
+      // Wait a bit for the overlay hold to be set
+      await page.waitForTimeout(100);
+
+      const hintEl = page.locator("#touch-hint");
+      await expect(hintEl).toBeVisible();
+
+      const state = await page.evaluate(
+        () => (window as any).__paRaceToTreasureIslandState,
+      );
+      expect(state?.overlayHeld).toBe(true);
+    });
+
+    test("manual pause remains separate from overlay hold", async ({
+      page,
+    }) => {
+      await page.goto(`${game.path}?testTouch=1`, {
+        waitUntil: "domcontentloaded",
+      });
+      await waitForPhaserReady(page);
+
+      // Click help button
+      const helpBtn = page.locator("#touch-help-button");
+      await helpBtn.click();
+
+      // Overlay held but not paused
+      await page.waitForFunction(
+        () =>
+          (window as any).__paRaceToTreasureIslandState?.overlayHeld === true,
+        { timeout: 5000 },
+      );
+      const state1 = await page.evaluate(
+        () => (window as any).__paRaceToTreasureIslandState,
+      );
+      expect(state1?.overlayHeld).toBe(true);
+      expect(state1?.paused).toBe(false);
+
+      // Dismiss overlay
+      const dismissBtn = page.locator("#touch-hint-dismiss");
+      await dismissBtn.click();
+      await page.waitForFunction(
+        () =>
+          (window as any).__paRaceToTreasureIslandState?.overlayHeld === false,
+        { timeout: 5000 },
+      );
+
+      // Click pause button
+      const pauseBtn = page.locator("#btn-pause");
+      await pauseBtn.click();
+      await page.waitForFunction(
+        () => (window as any).__paRaceToTreasureIslandState?.paused === true,
+        { timeout: 5000 },
+      );
+
+      const state2 = await page.evaluate(
+        () => (window as any).__paRaceToTreasureIslandState,
+      );
+      expect(state2?.paused).toBe(true);
+      expect(state2?.overlayHeld).toBe(false);
+    });
   });
 }

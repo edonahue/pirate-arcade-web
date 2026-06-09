@@ -293,19 +293,34 @@ const title = `${game.title} — Pirate Arcade`;
   ) {
     const shown = sessionStorage.getItem("pa-race-hint-shown");
     if (!shown) {
-      hintEl.style.display = "flex";
+      showTouchHint();
       sessionStorage.setItem("pa-race-hint-shown", "1");
       // Auto-dismiss after 6 seconds
       setTimeout(() => {
-        hintEl.style.display = "none";
+        hideTouchHint();
       }, 6000);
     }
   }
 
+  // Overlay hold helpers
+  const setOverlayHold = (hold) => {
+    window.__paRaceOverlayHold = hold;
+  };
+
+  const showTouchHint = () => {
+    hintEl.style.display = "flex";
+    setOverlayHold(true);
+  };
+
+  const hideTouchHint = () => {
+    hintEl.style.display = "none";
+    setOverlayHold(false);
+  };
+
   if (hintDismiss && hintEl) {
     hintDismiss.addEventListener("pointerup", (e) => {
       e.preventDefault();
-      hintEl.style.display = "none";
+      hideTouchHint();
     });
   }
 
@@ -314,7 +329,7 @@ const title = `${game.title} — Pirate Arcade`;
   if (helpBtn && hintEl) {
     helpBtn.addEventListener("pointerup", (e) => {
       e.preventDefault();
-      hintEl.style.display = "flex";
+      showTouchHint();
     });
   }
 
@@ -327,6 +342,7 @@ const title = `${game.title} — Pirate Arcade`;
     const mh = document.getElementById("touch-mini-hint");
     if (mh) mh.style.display = "none";
     document.documentElement.classList.add("pa-screenshot-mode");
+    setOverlayHold(false);
   }
 
   // ── Test touch mode: force touch controls visible ──

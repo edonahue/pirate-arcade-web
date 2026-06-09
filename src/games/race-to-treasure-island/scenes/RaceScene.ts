@@ -149,6 +149,12 @@ export class RaceScene extends Phaser.Scene {
       return;
     }
 
+    if (this.isOverlayHeld()) {
+      this.player?.setVelocityX(0);
+      this.exposeState();
+      return;
+    }
+
     this.handleInput(dt);
     this.updateAIShip(dt);
     this.updateObstacles(dt);
@@ -161,6 +167,12 @@ export class RaceScene extends Phaser.Scene {
     this.updateTreasureIsland();
     this.checkFinish();
     this.exposeState();
+  }
+
+  private isOverlayHeld(): boolean {
+    return (
+      typeof window !== "undefined" && !!(window as any).__paRaceOverlayHold
+    );
   }
 
   private resetState(): void {
@@ -528,6 +540,7 @@ export class RaceScene extends Phaser.Scene {
         rivalDisplayWidth: Math.round(this.aiShip?.displayWidth ?? 0),
         rivalDisplayHeight: Math.round(this.aiShip?.displayHeight ?? 0),
         playerCueVisible: this.playerCue?.visible ?? false,
+        overlayHeld: this.isOverlayHeld(),
       };
     }
   }
