@@ -1183,5 +1183,51 @@ for (const game of GAMES) {
 
       await expect(pauseBtn).toHaveAttribute("aria-pressed", "false");
     });
+
+    // ── Phase 16: Mobile robustness tests ──
+
+    test("mini-hint does not overflow on small landscape", async ({ page }) => {
+      await page.goto(`${game.path}?testTouch=1`, {
+        waitUntil: "domcontentloaded",
+      });
+      await page.setViewportSize({ width: 667, height: 375 });
+
+      const miniHint = page.locator("#touch-mini-hint");
+      await expect(miniHint).toBeVisible();
+
+      const box = await miniHint.boundingBox();
+      expect(box).not.toBeNull();
+      if (box) {
+        expect(box.x).toBeGreaterThanOrEqual(0);
+        expect(box.x + box.width).toBeLessThanOrEqual(667);
+      }
+    });
+
+    test("help button reopens controls hint", async ({ page }) => {
+      await page.goto(`${game.path}?testTouch=1`, {
+        waitUntil: "domcontentloaded",
+      });
+      await waitForPhaserReady(page);
+
+      const helpBtn = page.locator("#touch-help-button");
+      await expect(helpBtn).toBeVisible();
+
+      // Ensure hint is hidden
+      const hintEl = page.locator("#touch-hint");
+      await page.evaluate(() => {
+        const el = document.getElementById("touch-hint");
+        if (el) el.style.display = "none";
+      });
+      await expect(hintEl).toBeHidden();
+
+      // Tap help button
+      await helpBtn.click();
+      await expect(hintEl).toBeVisible();
+
+      // Tap dismiss
+      const dismissBtn = page.locator("#touch-hint-dismiss");
+      await dismissBtn.click();
+      await expect(hintEl).toBeHidden();
+    });
   });
 }

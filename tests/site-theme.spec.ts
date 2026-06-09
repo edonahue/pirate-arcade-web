@@ -207,4 +207,33 @@ test.describe("Game Detail Page", () => {
     await expect(overlay).toBeVisible();
     await expect(overlay).toHaveText(/Click to play/i);
   });
+
+  test("Screenshot overlay is visible by default on browser games", async ({
+    page,
+  }) => {
+    await page.goto("/games/race-to-treasure-island/");
+
+    const screenshotLink = page.locator(".game-detail__screenshot-link");
+    await expect(screenshotLink).toBeVisible();
+
+    const overlay = screenshotLink.locator(".game-detail__screenshot-overlay");
+    await expect(overlay).toBeVisible();
+
+    // Should be visible without hover (opacity > 0)
+    const opacity = await overlay.evaluate(
+      (el) => window.getComputedStyle(el).opacity,
+    );
+    expect(parseFloat(opacity)).toBeGreaterThan(0.5);
+
+    // Hover should increase opacity
+    await screenshotLink.hover();
+    await page.waitForTimeout(100);
+    const hoverOpacity = await overlay.evaluate(
+      (el) => window.getComputedStyle(el).opacity,
+    );
+    expect(parseFloat(hoverOpacity)).toBeGreaterThanOrEqual(0.9);
+
+    const href = await screenshotLink.getAttribute("href");
+    expect(href).toBe("/play/race-to-treasure-island/");
+  });
 });
