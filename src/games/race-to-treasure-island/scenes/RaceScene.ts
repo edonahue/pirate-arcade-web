@@ -1,5 +1,6 @@
 import Phaser from "phaser";
 import { GAME_WIDTH, GAME_HEIGHT } from "../config";
+import { createRaceRng, type RaceRng } from "../rng";
 
 // ── Race Tuning ──
 // Centralized tuning object so future settings UI can build from it.
@@ -66,12 +67,14 @@ export class RaceScene extends Phaser.Scene {
 
   // HUD
   private scoreText!: Phaser.GameObjects.Text;
+  private speedText!: Phaser.GameObjects.Text;
+  private boostLabelText!: Phaser.GameObjects.Text;
   private progressText!: Phaser.GameObjects.Text;
   private rivalText!: Phaser.GameObjects.Text;
-  private boostBarFill!: Phaser.GameObjects.Image;
-  private speedText!: Phaser.GameObjects.Text;
+  private pauseText!: Phaser.GameObjects.Text;
   private gameOverText!: Phaser.GameObjects.Text;
   private resultText!: Phaser.GameObjects.Text;
+  private boostBarFill!: Phaser.GameObjects.Image;
   private sailIndicator!: Phaser.GameObjects.Image;
 
   private oceanTiles: Phaser.GameObjects.TileSprite | null = null;
@@ -79,15 +82,17 @@ export class RaceScene extends Phaser.Scene {
   private lastTreasureSpawn: number = 0;
   private islandShown: boolean = false;
   private paused: boolean = false;
-  private pauseText!: Phaser.GameObjects.Text;
   private obstacleTypesSeen: Set<ObstacleType> = new Set();
 
-  // Deterministic RNG
-  private rng!: Phaser.Math.RandomDataGenerator;
+  // Deterministic RNG (project-owned mulberry32)
+  private rng!: RaceRng;
   private seed: string = "race-default";
 
   // Obstacle spawn log (debug/determinism verification)
   private obstacleSpawnLog: Array<{ type: ObstacleType; x: number }> = [];
+
+  // Stun text guard: avoid stacking if collisions come close together
+  private lastStunTextTime: number = 0;
 
   constructor() {
     super({ key: "RaceScene" });
@@ -110,7 +115,7 @@ export class RaceScene extends Phaser.Scene {
     this.exposeState();
   }
 
-  // ── Deterministic RNG ──
+  // ── Deterministic RNG (project-owned mulberry32) ──
 
   private initRNG(): void {
     const urlSeed =
@@ -119,19 +124,7 @@ export class RaceScene extends Phaser.Scene {
         : null;
     const configSeed = (this.game.config as any).seed?.[0] ?? null;
     this.seed = urlSeed ?? configSeed ?? "race-default";
-    this.rng = new Phaser.Math.RandomDataGenerator([this.seed]);
-  }
-
-  private randFloat(): number {
-    return this.rng.frac();
-  }
-
-  private randInt(min: number, max: number): number {
-    return this.rng.between(min, max);
-  }
-
-  private choose<T>(items: T[]): T {
-    return items[Math.floor(this.rng.frac() * items.length)];
+    this.rng = createRaceRng(this.seed);
   }
 
   update(_time: number, delta: number): void {
@@ -275,11 +268,23 @@ export class RaceScene extends Phaser.Scene {
       .text(10, 24, "", { ...style, fontSize: "10px", color: "#88aacc" })
       .setDepth(100);
 
+    // Boost indicator (appears during boost)
+    this.boostLabelText = this.add
+      .text(10, 40, "BOOST", {
+        fontFamily: "monospace",
+        fontSize: "9px",
+        color: "#ffdd44",
+        stroke: "#000",
+        strokeThickness: 1,
+      })
+      .setDepth(100)
+      .setVisible(false);
+
     // Top-center: progress vs rival
     this.progressText = this.add
       .text(GAME_WIDTH / 2, 6, "", {
         ...style,
-        fontSize: "10px",
+        fontSize: "11px",
         align: "center",
         lineSpacing: 1,
       })
@@ -291,6 +296,8 @@ export class RaceScene extends Phaser.Scene {
         fontFamily: "monospace",
         fontSize: "9px",
         color: "#ff6666",
+        stroke: "#000",
+        strokeThickness: 1,
         align: "center",
       })
       .setOrigin(0.5, 0)
@@ -441,6 +448,8 @@ export class RaceScene extends Phaser.Scene {
         result: this.gameOverText?.text || "",
         score: this.score,
         seed: this.seed,
+        rngVersion: this.rng.version,
+        playerX: Math.floor(this.player?.x ?? -1),
         distanceTraveled: Math.floor(this.distanceTraveled),
         stunTimer: this.stunTimer,
         obstacleCount: this.obstacles?.getLength() || 0,
@@ -518,6 +527,14 @@ export class RaceScene extends Phaser.Scene {
       RACE_TUNING.raceDistance,
     );
 
+    // Boost indicator label
+    if (this.boosting) {
+      this.boostLabelText.setVisible(true);
+      this.boostLabelText.setAlpha(0.6 + Math.sin(this.time.now * 0.008) * 0.4);
+    } else {
+      this.boostLabelText.setVisible(false);
+    }
+
     // Sail visual for boost
     if (this.boosting) {
       this.sailIndicator.setVisible(true);
@@ -528,7 +545,7 @@ export class RaceScene extends Phaser.Scene {
       this.sailIndicator.setScale(flap);
       this.sailIndicator.setRotation(Math.sin(this.time.now * 0.008) * 0.15);
       // Brief wind streak particles
-      if (Math.random() < 0.3) {
+      if (this.rng.float() < 0.3) {
         const streak = this.add
           .image(this.player.x - 30, this.player.y - 20, "particle")
           .setTint(0x88ccff)
@@ -558,9 +575,9 @@ export class RaceScene extends Phaser.Scene {
     // Lane-based movement with occasional mistakes
     this.aiLaneTimer -= dt * 1000;
     if (this.aiLaneTimer <= 0) {
-      this.aiLaneTimer = 2000 + this.randFloat() * 3000;
+      this.aiLaneTimer = 2000 + this.rng.float() * 3000;
       // Aim roughly near player
-      const laneOffset = this.randInt(-1, 1) * 80;
+      const laneOffset = this.rng.int(-1, 1) * 80;
       this.aiTargetX = Phaser.Math.Clamp(
         this.player.x + laneOffset,
         50,
@@ -572,10 +589,10 @@ export class RaceScene extends Phaser.Scene {
     this.aiMistakeTimer -= dt * 1000;
     if (
       this.aiMistakeTimer <= 0 &&
-      this.randFloat() < RACE_TUNING.aiMistakeChance
+      this.rng.float() < RACE_TUNING.aiMistakeChance
     ) {
       this.aiMistakeTimer = RACE_TUNING.aiMistakeDuration;
-      this.aiMistakeDir = this.randFloat() < 0.5 ? -1 : 1;
+      this.aiMistakeDir = this.rng.float() < 0.5 ? -1 : 1;
     }
 
     let targetX = this.aiTargetX;
@@ -623,11 +640,11 @@ export class RaceScene extends Phaser.Scene {
       { key: "reef", type: "reef" },
       { key: "debris", type: "debris" },
     ];
-    const chosen = this.choose(types);
+    const chosen = this.rng.choose(types);
     this.obstacleTypesSeen.add(chosen.type);
 
-    const x = this.randInt(40, GAME_WIDTH - 40);
-    const y = this.randInt(-20, 0);
+    const x = this.rng.int(40, GAME_WIDTH - 40);
+    const y = this.rng.int(-20, 0);
 
     const obs = this.physics.add.sprite(x, y, chosen.key) as Obstacle;
     obs.obsType = chosen.type;
@@ -645,8 +662,8 @@ export class RaceScene extends Phaser.Scene {
   }
 
   private spawnTreasure(): void {
-    const x = this.randInt(40, GAME_WIDTH - 40);
-    const y = this.randInt(-20, 0);
+    const x = this.rng.int(40, GAME_WIDTH - 40);
+    const y = this.rng.int(-20, 0);
     const tres = this.physics.add.sprite(x, y, "treasure") as Treasure;
     tres.collected = false;
     tres.setDepth(5);
@@ -749,13 +766,33 @@ export class RaceScene extends Phaser.Scene {
         duration: 2000,
         ease: "Back.easeOut",
       });
+      // Camera shake
+      this.cameras.main.shake(300, 0.005);
+      // "LAND HO!" text
+      const landHo = this.add
+        .text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 100, "LAND HO!", {
+          fontFamily: "monospace",
+          fontSize: "18px",
+          color: "#ffd700",
+          stroke: "#000",
+          strokeThickness: 3,
+        })
+        .setOrigin(0.5)
+        .setDepth(200);
+      this.tweens.add({
+        targets: landHo,
+        y: landHo.y - 40,
+        alpha: 0,
+        duration: 2000,
+        onComplete: () => landHo.destroy(),
+      });
       // Glow ring
       const glow = this.add
         .circle(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 40, 60, 0xffd700, 0.15)
         .setDepth(3);
       this.tweens.add({
         targets: glow,
-        scale: 2,
+        scale: 2.5,
         alpha: 0,
         duration: 2000,
         onComplete: () => glow.destroy(),
@@ -795,24 +832,27 @@ export class RaceScene extends Phaser.Scene {
       this.scrollSpeed - 25,
     );
 
-    // "STUNNED" text
-    const stunText = this.add
-      .text(this.player.x, this.player.y - 50, "STUNNED!", {
-        fontFamily: "monospace",
-        fontSize: "11px",
-        color: "#ff4444",
-        stroke: "#000",
-        strokeThickness: 2,
-      })
-      .setOrigin(0.5)
-      .setDepth(20);
-    this.tweens.add({
-      targets: stunText,
-      y: stunText.y - 30,
-      alpha: 0,
-      duration: 500,
-      onComplete: () => stunText.destroy(),
-    });
+    // "STUNNED" text (avoid stacking if collisions come close together)
+    if (this.time.now - this.lastStunTextTime > 600) {
+      this.lastStunTextTime = this.time.now;
+      const stunText = this.add
+        .text(this.player.x, this.player.y - 50, "STUNNED!", {
+          fontFamily: "monospace",
+          fontSize: "11px",
+          color: "#ff4444",
+          stroke: "#000",
+          strokeThickness: 2,
+        })
+        .setOrigin(0.5)
+        .setDepth(20);
+      this.tweens.add({
+        targets: stunText,
+        y: stunText.y - 30,
+        alpha: 0,
+        duration: 500,
+        onComplete: () => stunText.destroy(),
+      });
+    }
 
     // Score penalty
     this.score = Math.max(0, this.score - 30);
@@ -824,8 +864,8 @@ export class RaceScene extends Phaser.Scene {
       p.setDepth(20);
       this.tweens.add({
         targets: p,
-        x: p.x + this.randInt(-25, 25),
-        y: p.y + this.randInt(-25, 25),
+        x: p.x + this.rng.int(-25, 25),
+        y: p.y + this.rng.int(-25, 25),
         alpha: 0,
         scale: 0,
         duration: 350,

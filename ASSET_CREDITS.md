@@ -44,6 +44,6 @@ All remaining game textures (ocean background, barrel, shipwreck, reef, debris, 
 - **UI icons**: Current touch controls use Unicode/emoji characters (◀ ▶ ⛵ ⏸ ↻). Replace with vector icons if needed for consistency.
 - **Audio**: No audio files shipped yet. All sounds are stubs or procedural. Future audio pass must document sources and licenses.
 
-## Roadmap
+## Public route
 
-- A public `/sources/` or `/credits/` page should be created in a later pass, auto-populated from `src/data/publicDomainArt.ts` and `ASSET_CREDITS.md`.
+- A public `/credits/` page exists at `src/pages/credits.astro`, auto-populated from `src/data/publicDomainArt.ts` and `ASSET_CREDITS.md`.

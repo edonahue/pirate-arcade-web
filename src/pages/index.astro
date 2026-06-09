@@ -18,14 +18,14 @@ const desktopOnly = games.filter((g) => g.status === "desktop-available");
     webPageNode(
       "/",
       "Pirate Arcade",
-      "Four classic arcade games reimagined with a nautical twist. Built in the open as an experiment in zero-cost AI-assisted development.",
+      "Five classic arcade games reimagined with a nautical twist. Built in the open as an experiment in zero-cost AI-assisted development.",
       "CollectionPage",
     ),
   ]}
 >
   <Hero
     title="PIRATE ARCADE"
-    subtitle="Four classic arcade games reimagined with a nautical twist. Built in the open as an experiment in zero-cost AI-assisted development."
+    subtitle="Five classic arcade games reimagined with a nautical twist. Built in the open as an experiment in zero-cost AI-assisted development."
     eyebrow="Play the Games"
     backgroundImage="/images/art/pyle-marooned.webp"
   >
@@ -148,6 +148,11 @@ const desktopOnly = games.filter((g) => g.status === "desktop-available");
         flex-wrap: wrap;
         gap: 1rem;
         justify-content: center;
+      }
+      .recommended-first__card {
+        flex: 1 1 260px;
+        min-width: 0;
+        max-width: 360px;
       }
     </style>
   </section>

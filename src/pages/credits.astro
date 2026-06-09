@@ -1,0 +1,219 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { webPageNode } from "../lib/schema";
+import { publicDomainArt } from "../data/publicDomainArt";
+---
+
+<BaseLayout
+  title="Credits"
+  description="Asset credits, sources, authors, and licenses for Pirate Arcade."
+  current="credits"
+  jsonLd={[
+    webPageNode(
+      "/credits/",
+      "Asset Credits — Pirate Arcade",
+      "Asset credits, sources, authors, and licenses for Pirate Arcade.",
+      "WebPage",
+    ),
+  ]}
+>
+  <section class="section">
+    <div class="section__header">
+      <p class="section__eyebrow">Attribution</p>
+      <h1 class="section__title">Asset Credits</h1>
+      <p class="section__description">
+        Sources, authors, licenses, and transformation notes for all shipped
+        visual assets. All illustrations are public domain. Game sprites and
+        textures are original procedural work.
+      </p>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section__header">
+      <p class="section__eyebrow">Public Domain Art</p>
+      <h2 class="section__title">Howard Pyle &amp; Louis Rhead</h2>
+      <p class="section__description">
+        Pirate and Treasure Island illustrations by Howard Pyle (1853–1911) and
+        Louis Rhead (1857–1926). All are public domain in the United States as
+        pre-1931 publications.
+      </p>
+    </div>
+
+    <div class="art-provenance-grid">
+      {
+        publicDomainArt.map((art) => (
+          <article class="art-provenance-card">
+            <img
+              src={`/images/art/${art.filename}`}
+              alt={art.alt}
+              width={art.width}
+              height={art.height}
+              loading="lazy"
+              class="art-provenance__image"
+            />
+            <div class="art-provenance__meta">
+              <h3 class="art-provenance__title">{art.title}</h3>
+              <p class="art-provenance__desc">{art.alt}</p>
+              <dl class="art-provenance__details">
+                <dt>Author</dt>
+                <dd>{art.author}</dd>
+                <dt>Year</dt>
+                <dd>{art.year}</dd>
+                <dt>Collection</dt>
+                <dd>{art.collection}</dd>
+                <dt>License</dt>
+                <dd>{art.license}</dd>
+                <dt>Source</dt>
+                <dd>
+                  <a
+                    href={art.sourcePage}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {art.sourcePage.includes("wikimedia.org")
+                      ? "Wikimedia Commons"
+                      : art.sourcePage.includes("gutenberg.org")
+                        ? "Project Gutenberg"
+                        : "Source"}
+                  </a>
+                </dd>
+              </dl>
+            </div>
+          </article>
+        ))
+      }
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section__header">
+      <p class="section__eyebrow">Game Assets</p>
+      <h2 class="section__title">Sprites &amp; Textures</h2>
+    </div>
+
+    <div class="credits-tables">
+      <h3 class="credits-subtitle">Race to Treasure Island Sprites</h3>
+      <table class="credits-table">
+        <thead>
+          <tr>
+            <th>File</th>
+            <th>Source</th>
+            <th>License</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>player-ship.png</code></td>
+            <td>Generated (procedural)</td>
+            <td>Original work</td>
+            <td
+              >48&times;80 PNG. Replace or trace from CC0 sprite in a future
+              pass.</td
+            >
+          </tr>
+          <tr>
+            <td><code>long-john-ship.png</code></td>
+            <td>Generated (procedural)</td>
+            <td>Original work</td>
+            <td
+              >48&times;80 PNG. Slightly different tint for rival
+              identification.</td
+            >
+          </tr>
+        </tbody>
+      </table>
+
+      <h3 class="credits-subtitle">
+        Procedural Textures (Phaser Graphics API)
+      </h3>
+      <p class="section__description">
+        All remaining game textures (ocean, barrel, shipwreck, reef, debris,
+        treasure chest, boost bar, treasure island, finish flag, particle, sail)
+        are generated at boot time via <code>BootScene.generateTextures()</code
+        >. They are original procedural code, not external assets.
+      </p>
+
+      <h3 class="credits-subtitle">Game Screenshots</h3>
+      <table class="credits-table">
+        <thead>
+          <tr>
+            <th>File</th>
+            <th>Source</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>screenshot-*.png</code></td>
+            <td>Captured via Playwright</td>
+            <td>
+              1280&times;720 PNG at compressionLevel 9. Captured by
+              <code>capture-browser-game-screenshots.mjs</code>.
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p class="art-provenance__note mt-2">
+      All images are optimized WebP conversions of the original public-domain
+      scans used with <code>aria-hidden="true"</code> or empty alt where appropriate.
+      See the
+      <a
+        href="https://github.com/edonahue/pirate-arcade-web/blob/main/ASSET_CREDITS.md"
+        >full ASSET_CREDITS.md</a
+      >
+      for the complete inventory.
+    </p>
+  </section>
+</BaseLayout>
+
+<style>
+  .credits-tables {
+    max-width: 48rem;
+    margin-top: 1.5rem;
+  }
+
+  .credits-subtitle {
+    font-family: "Bangers", cursive;
+    font-size: 1.125rem;
+    color: var(--accent);
+    margin-block: 1.5rem 0.5rem;
+  }
+
+  .credits-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8125rem;
+    margin-bottom: 1rem;
+  }
+
+  .credits-table th,
+  .credits-table td {
+    padding: 0.5rem 0.75rem;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+
+  .credits-table th {
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-size: 0.75rem;
+  }
+
+  .credits-table code {
+    font-size: 0.75rem;
+    background: var(--surface);
+    padding: 0.125rem 0.375rem;
+    border-radius: 3px;
+  }
+
+  .mt-2 {
+    margin-top: 2rem;
+  }
+</style>

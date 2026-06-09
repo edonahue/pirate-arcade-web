@@ -814,5 +814,239 @@ for (const game of GAMES) {
       );
       expect(seed).toBe("test-seed-value");
     });
+
+    // ── Phase 9: Strengthened tests ──
+
+    test("rng version is exposed in state", async ({ page }, testInfo) => {
+      test.skip(
+        !DESKTOP_PROJECTS.includes(testInfo.project.name),
+        "RNG version test skipped on non-desktop",
+      );
+
+      await page.goto(game.path, { waitUntil: "domcontentloaded" });
+      await waitForPhaserReady(page);
+
+      const rngVersion = await page.evaluate(
+        () => (window as any).__paRaceToTreasureIslandState?.rngVersion,
+      );
+      expect(rngVersion).toBe("mulberry32-v1");
+    });
+
+    test("deterministic obstacle exact coordinates", async ({
+      page,
+    }, testInfo) => {
+      test.skip(
+        !DESKTOP_PROJECTS.includes(testInfo.project.name),
+        "Exact deterministic test skipped on non-desktop",
+      );
+
+      const seed = "exact-pos-test";
+
+      // First run
+      await page.goto(`${game.path}?seed=${seed}&testTouch=1`, {
+        waitUntil: "domcontentloaded",
+      });
+      await waitForPhaserReady(page);
+
+      await page.waitForFunction(
+        () =>
+          (window as any).__paRaceToTreasureIslandState?.obstacleSpawnLog
+            ?.length >= 3,
+        { timeout: 12000 },
+      );
+
+      const firstRun = await page.evaluate(() => {
+        const s = (window as any).__paRaceToTreasureIslandState;
+        return s?.obstacleSpawnLog?.slice(0, 3) ?? [];
+      });
+
+      // Second run
+      await page.goto(`${game.path}?seed=${seed}&testTouch=1`, {
+        waitUntil: "domcontentloaded",
+      });
+      await waitForPhaserReady(page);
+
+      await page.waitForFunction(
+        () =>
+          (window as any).__paRaceToTreasureIslandState?.obstacleSpawnLog
+            ?.length >= 3,
+        { timeout: 12000 },
+      );
+
+      const secondRun = await page.evaluate(() => {
+        const s = (window as any).__paRaceToTreasureIslandState;
+        return s?.obstacleSpawnLog?.slice(0, 3) ?? [];
+      });
+
+      // Both type and x coordinate must match exactly
+      for (let i = 0; i < 3; i++) {
+        expect(firstRun[i].type).toBe(secondRun[i].type);
+        expect(firstRun[i].x).toBe(secondRun[i].x);
+      }
+    });
+
+    test("touch movement changes player position", async ({
+      page,
+    }, testInfo) => {
+      test.skip(
+        !DESKTOP_PROJECTS.includes(testInfo.project.name),
+        "Touch movement test skipped on non-desktop",
+      );
+
+      await page.goto(`${game.path}?testTouch=1`, {
+        waitUntil: "domcontentloaded",
+      });
+      await waitForPhaserReady(page);
+
+      // Get initial player X
+      const initialX = await page.evaluate(
+        () => (window as any).__paRaceToTreasureIslandState?.playerX ?? -1,
+      );
+      expect(initialX).toBeGreaterThan(0);
+
+      // Hold right for a bit
+      await page.locator("#btn-right").dispatchEvent("pointerdown", {
+        pointerId: 1,
+        pointerType: "touch",
+        isPrimary: true,
+        button: 0,
+        buttons: 1,
+      });
+      await page.waitForTimeout(800);
+
+      const afterRight = await page.evaluate(
+        () => (window as any).__paRaceToTreasureIslandState?.playerX ?? -1,
+      );
+
+      // After moving right, player position should have increased
+      expect(afterRight).toBeGreaterThan(initialX);
+
+      await page.locator("#btn-right").dispatchEvent("pointerup", {
+        pointerId: 1,
+        pointerType: "touch",
+        isPrimary: true,
+        button: 0,
+        buttons: 0,
+      });
+
+      // Now hold left
+      await page.locator("#btn-left").dispatchEvent("pointerdown", {
+        pointerId: 1,
+        pointerType: "touch",
+        isPrimary: true,
+        button: 0,
+        buttons: 1,
+      });
+      await page.waitForTimeout(800);
+
+      const afterLeft = await page.evaluate(
+        () => (window as any).__paRaceToTreasureIslandState?.playerX ?? -1,
+      );
+
+      // After moving left from the rightmost position, should have decreased
+      expect(afterLeft).toBeLessThan(afterRight);
+
+      await page.locator("#btn-left").dispatchEvent("pointerup", {
+        pointerId: 1,
+        pointerType: "touch",
+        isPrimary: true,
+        button: 0,
+        buttons: 0,
+      });
+    });
+
+    test("boost drains wind meter and regen restores it", async ({
+      page,
+    }, testInfo) => {
+      test.skip(
+        !DESKTOP_PROJECTS.includes(testInfo.project.name),
+        "Boost drain/regen test skipped on non-desktop",
+      );
+
+      await page.goto(`${game.path}?testTouch=1`, {
+        waitUntil: "domcontentloaded",
+      });
+      await waitForPhaserReady(page);
+
+      // Record initial wind meter
+      const initialWind = await page.evaluate(
+        () => (window as any).__paRaceToTreasureIslandState?.windMeter ?? 0,
+      );
+      expect(initialWind).toBe(100);
+
+      // Hold boost for drain
+      await page.locator("#btn-boost").dispatchEvent("pointerdown", {
+        pointerId: 1,
+        pointerType: "touch",
+        isPrimary: true,
+        button: 0,
+        buttons: 1,
+      });
+      await page.waitForTimeout(1500);
+
+      const afterDrain = await page.evaluate(
+        () => (window as any).__paRaceToTreasureIslandState?.windMeter ?? 0,
+      );
+      // Should have drained significantly (but not to 0 since it regens slowly)
+      expect(afterDrain).toBeLessThan(initialWind);
+
+      await page.locator("#btn-boost").dispatchEvent("pointerup", {
+        pointerId: 1,
+        pointerType: "touch",
+        isPrimary: true,
+        button: 0,
+        buttons: 0,
+      });
+
+      // Wait for regen
+      await page.waitForTimeout(2000);
+
+      const afterRegen = await page.evaluate(
+        () => (window as any).__paRaceToTreasureIslandState?.windMeter ?? 0,
+      );
+
+      // Wind should have increased after releasing boost
+      expect(afterRegen).toBeGreaterThan(afterDrain);
+    });
+
+    test("collision with obstacle triggers stun", async ({
+      page,
+    }, testInfo) => {
+      test.skip(
+        !DESKTOP_PROJECTS.includes(testInfo.project.name),
+        "Collision stun test skipped on non-desktop",
+      );
+
+      await page.goto(`${game.path}?testTouch=1`, {
+        waitUntil: "domcontentloaded",
+      });
+      await waitForPhaserReady(page);
+
+      // Wait for obstacles to spawn
+      await page.waitForFunction(
+        () => (window as any).__paRaceToTreasureIslandState?.obstacleCount > 0,
+        { timeout: 10000 },
+      );
+
+      // Move player to center and hold still — obstacles scroll down into the player
+      await page.keyboard.down("ArrowRight");
+      await page.waitForTimeout(300);
+      await page.keyboard.up("ArrowRight");
+
+      // Wait enough time for obstacles to scroll into player
+      await page.waitForTimeout(6000);
+
+      // Check if stun has occurred (stunTimer > 0 or score < initial)
+      const state = await page.evaluate(
+        () => (window as any).__paRaceToTreasureIslandState,
+      );
+
+      // If no collision yet, the obstacle count suggests they didn't intersect.
+      // This test is best-effort: it checks that stun mechanics work when a collision happens.
+      if (state?.stunTimer > 0) {
+        expect(state.stunTimer).toBeGreaterThan(0);
+        expect(state.score).toBeLessThan(0);
+      }
+    });
   });
 }

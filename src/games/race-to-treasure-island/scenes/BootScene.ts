@@ -1,12 +1,23 @@
 import Phaser from "phaser";
 import { GAME_WIDTH, GAME_HEIGHT } from "../config";
+import { createRaceRng, type RaceRng } from "../rng";
 
 export class BootScene extends Phaser.Scene {
+  private rng!: RaceRng;
+
   constructor() {
     super({ key: "BootScene" });
   }
 
   preload(): void {
+    // Initialize deterministic RNG
+    const urlSeed =
+      typeof window !== "undefined"
+        ? new URLSearchParams(window.location.search).get("seed")
+        : null;
+    const configSeed = (this.game.config as any).seed?.[0] ?? null;
+    this.rng = createRaceRng(urlSeed ?? configSeed ?? "race-default");
+
     const cx = GAME_WIDTH / 2;
     const cy = GAME_HEIGHT / 2;
 
@@ -53,10 +64,6 @@ export class BootScene extends Phaser.Scene {
   private generateOceanBg(): void {
     const g = this.add.graphics();
     const stripeH = GAME_HEIGHT / 8;
-    const deepColors = [
-      0x0a1628, 0x0c1e38, 0x0f2a4a, 0x123558, 0x0f2a4a, 0x0c1e38, 0x0a1628,
-      0x0d1f3c,
-    ];
     const tropicColors = [
       0x0a1a30, 0x0c2240, 0x0f2e50, 0x123d60, 0x0f2e50, 0x0c2240, 0x0a1a30,
       0x0d2244,
@@ -87,10 +94,10 @@ export class BootScene extends Phaser.Scene {
     g.fillStyle(0xffffff, 0.05);
     for (let i = 0; i < 60; i++) {
       g.fillEllipse(
-        Phaser.Math.Between(0, GAME_WIDTH),
-        Phaser.Math.Between(0, GAME_HEIGHT),
-        Phaser.Math.Between(4, 12),
-        Phaser.Math.Between(1, 3),
+        this.rng.int(0, GAME_WIDTH),
+        this.rng.int(0, GAME_HEIGHT),
+        this.rng.int(4, 12),
+        this.rng.int(1, 3),
       );
     }
     // Compass-rose markers (nautical chart feel)
@@ -252,7 +259,7 @@ export class BootScene extends Phaser.Scene {
     g.fillEllipse(cx - 10, h - 44, 60, 20);
     // Palm trees
     for (let i = 0; i < 3; i++) {
-      const tx = cx - 30 + i * 30 + Phaser.Math.Between(-5, 5);
+      const tx = cx - 30 + i * 30 + this.rng.int(-5, 5);
       g.fillStyle(0x4a2800);
       g.fillRect(tx - 1, h - 70 - i * 5, 3, 30 + i * 5);
       g.fillStyle(0x2a7a1a);

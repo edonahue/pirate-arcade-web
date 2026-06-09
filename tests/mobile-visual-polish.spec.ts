@@ -429,5 +429,32 @@ test.describe("CTA button fit on mobile", () => {
         }
       }
     });
+
+    test(`${viewport.name} - recommended-first cards stack without overflow`, async ({
+      page,
+    }) => {
+      await page.setViewportSize({
+        width: viewport.width,
+        height: viewport.height,
+      });
+      await page.goto("/", { waitUntil: "domcontentloaded" });
+
+      const cards = page.locator(".recommended-first__card");
+      const count = await cards.count();
+      expect(count).toBeGreaterThanOrEqual(1);
+
+      for (let i = 0; i < count; i++) {
+        const card = cards.nth(i);
+        await expect(card).toBeVisible();
+
+        const box = await card.boundingBox();
+        expect(box).not.toBeNull();
+        if (box) {
+          expect(box.width).toBeLessThanOrEqual(viewport.width);
+          expect(box.height).toBeGreaterThan(0);
+          expect(box.x + box.width).toBeLessThanOrEqual(viewport.width + 1);
+        }
+      }
+    });
   }
 });
