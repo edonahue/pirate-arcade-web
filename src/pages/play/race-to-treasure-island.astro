@@ -280,58 +280,82 @@ const title = `${game.title} — Pirate Arcade`;
   // Expose pause button for RaceScene DOM sync
   (window as any).__paPauseBtn = pauseBtn;
 
-  // ── Touch onboarding hint ──
-  const hintEl = document.getElementById("touch-hint");
-  const hintDismiss = document.getElementById("touch-hint-dismiss");
-
-  // Show hint on first visit (unless keyboard-first device or screenshot mode)
-  if (
-    hintEl &&
-    !screenshotMode &&
-    !debugMode &&
-    window.matchMedia("(pointer: coarse)").matches
-  ) {
-    const shown = sessionStorage.getItem("pa-race-hint-shown");
-    if (!shown) {
-      showTouchHint();
-      sessionStorage.setItem("pa-race-hint-shown", "1");
-      // Auto-dismiss after 6 seconds
-      setTimeout(() => {
-        hideTouchHint();
-      }, 6000);
+  // Initialize overlay hold to false early
+  const setOverlayHold = (hold) => {
+    if (typeof window !== "undefined") {
+      (window as any).__paRaceOverlayHold = hold;
     }
-  }
+  };
+  setOverlayHold(false);
 
   // Overlay hold helpers
-  const setOverlayHold = (hold) => {
-    window.__paRaceOverlayHold = hold;
-  };
-
   const showTouchHint = () => {
-    hintEl.style.display = "flex";
-    setOverlayHold(true);
+    if (typeof window !== "undefined") {
+      const el = document.getElementById("touch-hint");
+      if (el) el.style.display = "flex";
+      (window as any).__paRaceOverlayHold = true;
+    }
   };
 
   const hideTouchHint = () => {
-    hintEl.style.display = "none";
-    setOverlayHold(false);
+    if (typeof window !== "undefined") {
+      const el = document.getElementById("touch-hint");
+      if (el) el.style.display = "none";
+      setOverlayHold(false);
+    }
   };
 
-  if (hintDismiss && hintEl) {
-    hintDismiss.addEventListener("pointerup", (e) => {
-      e.preventDefault();
-      hideTouchHint();
-    });
-  }
+  // Touch onboarding hint logic (runs after DOM ready)
+  const initTouchHint = () => {
+    if (typeof window === "undefined") return;
 
-  // Help button: reopen controls hint
-  const helpBtn = document.getElementById("touch-help-button");
-  if (helpBtn && hintEl) {
-    helpBtn.addEventListener("pointerup", (e) => {
-      e.preventDefault();
-      showTouchHint();
-    });
-  }
+    const hintEl = document.getElementById("touch-hint");
+    const hintDismiss = document.getElementById("touch-hint-dismiss");
+
+    // First-visit hint: show on coarse-pointer, non-debug, non-screenshot
+    if (
+      hintEl &&
+      !screenshotMode &&
+      !debugMode &&
+      (navigator.maxTouchPoints > 0 ||
+        window.matchMedia("(pointer: coarse)").matches ||
+        window.matchMedia("(any-pointer: coarse)").matches)
+    ) {
+      const shown = sessionStorage.getItem("pa-race-hint-shown");
+      if (!shown) {
+        const el = document.getElementById("touch-hint");
+        if (el) el.style.display = "flex";
+        (window as any).__paRaceOverlayHold = true;
+        sessionStorage.setItem("pa-race-hint-shown", "1");
+        // Auto-dismiss after 6 seconds
+        setTimeout(() => {
+          const el2 = document.getElementById("touch-hint");
+          if (el2) el2.style.display = "none";
+          (window as any).__paRaceOverlayHold = false;
+        }, 6000);
+      }
+    }
+
+    if (hintDismiss) {
+      hintDismiss.addEventListener("pointerup", (e) => {
+        e.preventDefault();
+        const el = document.getElementById("touch-hint");
+        if (el) el.style.display = "none";
+        (window as any).__paRaceOverlayHold = false;
+      });
+    }
+
+    // Help button: reopen controls hint
+    const helpBtn = document.getElementById("touch-help-button");
+    if (helpBtn) {
+      helpBtn.addEventListener("pointerup", (e) => {
+        e.preventDefault();
+        const el = document.getElementById("touch-hint");
+        if (el) el.style.display = "flex";
+        (window as any).__paRaceOverlayHold = true;
+      });
+    }
+  };
 
   // ── Screenshot mode: hide overlays ──
   if (screenshotMode) {
@@ -365,6 +389,12 @@ const title = `${game.title} — Pirate Arcade`;
   };
 
   const initHud = () => {
+    // Initialize overlay hold to false
+    setOverlayHold(false);
+
+    // Initialize touch hint logic
+    initTouchHint();
+
     // ── Test touch mode: force touch controls visible ──
     if (testTouchMode) {
       document.documentElement.classList.add("pa-force-touch-controls");
