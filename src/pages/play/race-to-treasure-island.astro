@@ -48,19 +48,12 @@ const title = `${game.title} — Pirate Arcade`;
       </button>
       <div id="infobox" class="hud-infobox" data-hud-mode="desktop">
         <div class="hud-title">Race to Treasure Island</div>
-        <div
-          class="hud-controls hud-controls--desktop"
-          data-hud-target="desktop"
-        >
+        <div class="hud-controls" data-hud-target="desktop">
           <span>← → / A D Steer</span>
           <span>Shift / Space Boost</span>
           <span>Esc / P Pause</span>
         </div>
-        <div
-          class="hud-controls hud-controls--touch"
-          data-hud-target="touch"
-          hidden
-        >
+        <div class="hud-controls" data-hud-target="touch" hidden>
           <span>Tap LEFT / RIGHT</span>
           <span>Hold BOOST</span>
           <span>? for controls</span>
@@ -345,16 +338,13 @@ const title = `${game.title} — Pirate Arcade`;
       '[data-hud-target="desktop"]',
     );
     const touchControls = infobox.querySelector('[data-hud-target="touch"]');
-    if (mode === "touch") {
-      if (desktopControls)
-        desktopControls.style.setProperty("display", "none", "important");
-      if (touchControls)
-        touchControls.style.setProperty("display", "flex", "important");
-    } else {
-      if (desktopControls)
-        desktopControls.style.setProperty("display", "flex", "important");
-      if (touchControls)
-        touchControls.style.setProperty("display", "none", "important");
+    if (desktopControls) {
+      desktopControls.hidden = mode !== "desktop";
+      desktopControls.style.removeProperty("display");
+    }
+    if (touchControls) {
+      touchControls.hidden = mode !== "touch";
+      touchControls.style.removeProperty("display");
     }
   };
 
@@ -597,12 +587,11 @@ const title = `${game.title} — Pirate Arcade`;
   }
   .hud-controls[data-hud-target="desktop"] {
     display: flex;
-    --hud-mode: desktop;
   }
   .hud-controls[data-hud-target="touch"] {
-    --hud-mode: touch;
+    display: flex;
   }
-  /* Visibility controlled by parent's data-hud-mode via JS hidden attribute */
+  /* Visibility controlled by hidden attribute */
   /* Screenshot mode: always show desktop */
   .pa-screenshot-mode .hud-controls[data-hud-target="desktop"] {
     display: flex !important;
@@ -631,8 +620,10 @@ const title = `${game.title} — Pirate Arcade`;
     .pa-force-touch-controls .hud-overlay {
       gap: 0.35rem;
     }
-    .hud-infobox[data-hud-mode="touch"] .hud-controls--touch,
-    .hud-infobox[data-hud-mode="touch"] .hud-controls--touch span {
+    .hud-infobox[data-hud-mode="touch"] .hud-controls[data-hud-target="touch"],
+    .hud-infobox[data-hud-mode="touch"]
+      .hud-controls[data-hud-target="touch"]
+      span {
       font-size: 9px;
       gap: 0.05rem;
     }

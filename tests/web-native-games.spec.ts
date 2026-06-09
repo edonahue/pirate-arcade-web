@@ -1494,5 +1494,27 @@ for (const game of GAMES) {
       });
       expect(hasOverflow).toBe(false);
     });
+
+    // Phase 20: HUD inline display regression test
+    test("no inline display styles on HUD controls", async ({ page }) => {
+      await page.goto(`${game.path}?testTouch=1`, {
+        waitUntil: "domcontentloaded",
+      });
+
+      const inlineDisplays = await page.evaluate(() => {
+        const desktop = document.querySelector<HTMLDivElement>(
+          '[data-hud-target="desktop"]',
+        );
+        const touch = document.querySelector<HTMLDivElement>(
+          '[data-hud-target="touch"]',
+        );
+        return {
+          desktop: desktop?.style.display ?? "",
+          touch: touch?.style.display ?? "",
+        };
+      });
+      expect(inlineDisplays.desktop).toBe("");
+      expect(inlineDisplays.touch).toBe("");
+    });
   });
 }
