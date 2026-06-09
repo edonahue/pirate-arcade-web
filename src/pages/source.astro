@@ -3,6 +3,7 @@ import BaseLayout from "../layouts/BaseLayout.astro";
 import CTAButton from "../components/CTAButton.astro";
 import ToolingTable from "../components/ToolingTable.astro";
 import ModelObservations from "../components/ModelObservations.astro";
+import { site } from "../data/profile";
 import { webPageNode } from "../lib/schema";
 import { publicDomainArt } from "../data/publicDomainArt";
 ---
@@ -318,5 +319,54 @@ import { publicDomainArt } from "../data/publicDomainArt";
       scans. They are used decoratively on this site (hero backgrounds, section
       accents) with <code>aria-hidden="true"</code> or empty alt where appropriate.
     </p>
+  </section>
+
+  <section class="section section--pyle">
+    <div class="section__header">
+      <p class="section__eyebrow">Maker</p>
+      <h2 class="section__title">Built by {site.author}</h2>
+      <p class="section__description">
+        {site.authorDescription} This project is my public workbench for exploring
+        zero-cost AI-assisted development.
+      </p>
+    </div>
+
+    <div class="maker-card">
+      <div class="maker-card__links">
+        <a
+          href={site.personalSiteUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          class="maker-card__link"
+        >
+          erichdonahue.com
+        </a>
+        <a
+          href={site.githubUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          class="maker-card__link"
+        >
+          github/edonahue
+        </a>
+        <a
+          href={site.buyMeACoffeeUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          class="maker-card__link maker-card__link--muted"
+        >
+          Buy me a coffee
+        </a>
+      </div>
+    </div>
+
+    <img
+      class="section__art"
+      src="/images/art/pyle-marooned.webp"
+      alt=""
+      aria-hidden="true"
+      decoding="async"
+      loading="lazy"
+    />
   </section>
 </BaseLayout>

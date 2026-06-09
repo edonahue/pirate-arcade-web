@@ -568,7 +568,7 @@ export class RaceScene extends Phaser.Scene {
       this.sailIndicator.setScale(flap);
       this.sailIndicator.setRotation(Math.sin(this.time.now * 0.008) * 0.15);
       // Brief wind streak particles
-      if (this.rngCourse.float() < 0.3) {
+      if (this.rngCosmetic.float() < 0.3) {
         const streak = this.add
           .image(this.player.x - 30, this.player.y - 20, "particle")
           .setTint(0x88ccff)

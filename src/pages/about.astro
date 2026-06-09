@@ -1,18 +1,19 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
+import CTAButton from "../components/CTAButton.astro";
 import { site } from "../data/profile";
 import { webPageNode } from "../lib/schema";
 ---
 
 <BaseLayout
   title="About"
-  description="About Pirate Arcade — a side project and workbench experiment in zero-cost AI-assisted game development."
+  description={site.description}
   current="about"
   jsonLd={[
     webPageNode(
       "/about/",
       "About Pirate Arcade",
-      "About Pirate Arcade — a side project and workbench experiment in zero-cost AI-assisted game development.",
+      site.description,
       "AboutPage",
     ),
   ]}
@@ -26,80 +27,314 @@ import { webPageNode } from "../lib/schema";
     <div class="prose">
       <p>
         Pirate Arcade is a collection of five classic arcade games reimagined
-        with a pirate nautical theme. It's also a workbench experiment: how far
-        can a zero-cost AI-assisted development workflow go when you combine
-        free coding tools, local hardware, and open source infrastructure?
-      </p>
-
-      <p>
-        The games themselves are desktop apps built with Python and Pygame —
-        fully playable, cross-platform, and released under the MIT license. This
-        website is the public face of the project, serving as both a landing
-        page and a build journal.
-      </p>
-
-      <h2>The Stack</h2>
-      <ul>
-        <li>
-          <strong>AI assistance:</strong> OpenCode terminal coding agent with free-to-use
-          models
-        </li>
-        <li>
-          <strong>Desktop games:</strong> Python, Pygame, NumPy (procedural audio)
-        </li>
-        <li>
-          <strong>Website:</strong> Astro, TypeScript, vanilla CSS, Cloudflare Pages
-        </li>
-        <li>
-          <strong>Infrastructure:</strong> GitHub (source, CI, releases), Cloudflare
-          free tier (hosting)
-        </li>
-        <li>
-          <strong>Hardware:</strong> Local X600 workstation, no cloud compute
-        </li>
-      </ul>
-
-      <h2>Why This Project?</h2>
-      <p>
-        Classic arcade games are well-understood problems, which makes them
-        ideal test cases for evaluating AI-assisted coding tools. Every game
-        here is a data point in the experiment.
-      </p>
-
-      <h2>What This Isn't</h2>
-      <p>
-        This is not a commercial game studio. Not a startup. Not a subscription
-        product. It's a side project — a workspace for exploring what's possible
-        when you remove budget constraints from the development process and
-        focus on what a single person with good tools can ship.
+        with a pirate nautical theme. It's also a public workbench — an
+        experiment in how far a zero-cost AI-assisted development workflow can
+        go when you combine free coding tools, local hardware, and open source
+        infrastructure.
       </p>
     </div>
   </section>
 
   <section class="section">
     <div class="section__header">
-      <p class="section__eyebrow">Maker</p>
-      <h2 class="section__title">Made by Erich Donahue</h2>
+      <p class="section__eyebrow">The Games</p>
+      <h2 class="section__title">Five Games, Two Platforms</h2>
+    </div>
+    <div class="about-games">
+      <div class="about-games__card">
+        <h3 class="about-games__card-title">Browser (4 games)</h3>
+        <ul class="about-games__list">
+          <li>
+            <strong>3 Pygbag/WebAssembly ports</strong> — Cannonball Clash, Treasure
+            Cove, and Kraken's Wake. Python games compiled to WebAssembly via Pygbag.
+            ~12 MB CPython runtime downloads on first visit; cached on repeat.
+          </li>
+          <li>
+            <strong>1 web-native Phaser 3 racer</strong> — Race to Treasure Island.
+            JavaScript with Phaser 3, loads instantly. Deterministic seeded courses,
+            real-time wind boost, AI rival.
+          </li>
+        </ul>
+      </div>
+      <div class="about-games__card">
+        <h3 class="about-games__card-title">Desktop (5 games)</h3>
+        <ul class="about-games__list">
+          <li>
+            All four browser games plus Port Royale Tycoon (a turn-based
+            property-trading board game, desktop-only). Built with Python and
+            Pygame. Cross-platform: Windows .exe, Linux .deb, macOS build from
+            source.
+          </li>
+        </ul>
+      </div>
+    </div>
+    <p class="text-center mt-1">
+      <CTAButton href="/play" variant="primary">Play in Browser</CTAButton>
+      <CTAButton href={site.desktopRepoUrl + "/releases"} variant="gold">
+        Download Desktop
+      </CTAButton>
+    </p>
+  </section>
+
+  <section class="section">
+    <div class="section__header">
+      <p class="section__eyebrow">The Stack</p>
+      <h2 class="section__title">Built on Free Infrastructure</h2>
       <p class="section__description">
-        Decision science, data products, and practical experiments.
+        Every tool, service, and model used to build this project was free to
+        use. No paid subscriptions, no cloud compute credits, no SaaS lock-in.
       </p>
     </div>
 
+    <div class="about-stack">
+      <div class="about-stack__item">
+        <span class="about-stack__label">AI Assistance</span>
+        <span class="about-stack__value"
+          >OpenCode terminal agent, free-to-use models, local Ollama</span
+        >
+      </div>
+      <div class="about-stack__item">
+        <span class="about-stack__label">Desktop Games</span>
+        <span class="about-stack__value"
+          >Python, Pygame, NumPy (procedural audio)</span
+        >
+      </div>
+      <div class="about-stack__item">
+        <span class="about-stack__label">Browser Games</span>
+        <span class="about-stack__value"
+          >Pygbag/WebAssembly (Python ports), Phaser 3 (web-native)</span
+        >
+      </div>
+      <div class="about-stack__item">
+        <span class="about-stack__label">Website</span>
+        <span class="about-stack__value"
+          >Astro 6, TypeScript, vanilla CSS tokens</span
+        >
+      </div>
+      <div class="about-stack__item">
+        <span class="about-stack__label">Hosting &amp; CI</span>
+        <span class="about-stack__value"
+          >Cloudflare Pages (free tier), GitHub Actions</span
+        >
+      </div>
+      <div class="about-stack__item">
+        <span class="about-stack__label">Hardware</span>
+        <span class="about-stack__value"
+          >Local X600 workstation, no cloud compute</span
+        >
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section__header">
+      <p class="section__eyebrow">Why</p>
+      <h2 class="section__title">Why Pirate Arcade?</h2>
+    </div>
     <div class="prose">
       <p>
-        I build practical decision tools and small creative systems. This
-        project is my workbench for exploring AI-assisted development workflows
-        — what works, what doesn't, and how the process changes when code
-        generation is essentially free.
+        Classic arcade games are well-understood problems, making them ideal
+        test cases for evaluating AI-assisted coding tools. Every game here is a
+        data point in the experiment — a record of what worked, what didn't, and
+        how the development process changes when code generation is essentially
+        free.
       </p>
-
       <p>
-        <a href={site.authorUrl} target="_blank" rel="noopener noreferrer">
-          erichdonahue.com
-        </a>
-        {" \u2014 "}my personal site, built with the same stack and a
-        record-store visual language.
+        This is not a commercial game studio. Not a startup. Not a subscription
+        product. It's a public side project — a workspace for exploring
+        zero-cost AI workflows and shipping real software on free
+        infrastructure.
       </p>
     </div>
   </section>
+
+  <section class="section section--pyle">
+    <div class="section__header">
+      <p class="section__eyebrow">Maker</p>
+      <h2 class="section__title">Made by {site.author}</h2>
+    </div>
+
+    <div class="maker-card">
+      <div class="maker-card__body">
+        <p class="maker-card__desc">
+          {site.authorDescription} I build practical decision tools, data products,
+          and creative systems. This project is my public workbench for exploring
+          AI-assisted development — the boundary of what a single person with good
+          tools and free infrastructure can ship.
+        </p>
+        <div class="maker-card__links">
+          <a
+            href={site.personalSiteUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            class="maker-card__link"
+          >
+            erichdonahue.com
+          </a>
+          <a
+            href={site.githubUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            class="maker-card__link"
+          >
+            github/edonahue
+          </a>
+          <a
+            href={site.buyMeACoffeeUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            class="maker-card__link maker-card__link--muted"
+          >
+            Buy me a coffee
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <img
+      class="section__art"
+      src="/images/art/pyle-treasure-division.webp"
+      alt=""
+      aria-hidden="true"
+      decoding="async"
+      loading="lazy"
+    />
+  </section>
 </BaseLayout>
+
+<style>
+  .about-games {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+    max-width: 48rem;
+    margin-top: 1rem;
+  }
+
+  .about-games__card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+  }
+
+  .about-games__card-title {
+    font-family: var(--display);
+    font-size: 1.125rem;
+    color: var(--ink);
+    margin-bottom: 0.75rem;
+  }
+
+  .about-games__list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .about-games__list li {
+    font-size: 0.9375rem;
+    color: var(--muted);
+    line-height: 1.6;
+    padding-left: 1rem;
+    position: relative;
+  }
+
+  .about-games__list li::before {
+    content: "\25B8";
+    position: absolute;
+    left: 0;
+    color: var(--accent);
+  }
+
+  .about-games__list li strong {
+    color: var(--ink);
+  }
+
+  .about-stack {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+    max-width: 48rem;
+    margin-top: 1rem;
+  }
+
+  .about-stack__item {
+    display: flex;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    font-size: 0.875rem;
+  }
+
+  .about-stack__label {
+    flex: 0 0 120px;
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--accent);
+  }
+
+  .about-stack__value {
+    color: var(--muted);
+  }
+
+  .maker-card {
+    max-width: 36rem;
+    margin-top: 1.5rem;
+    background: var(--surface-card);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem 2rem;
+    box-shadow: var(--shadow-soft), var(--glow-brass);
+  }
+
+  .maker-card__desc {
+    font-size: 0.9375rem;
+    color: var(--muted);
+    line-height: 1.7;
+    margin-bottom: 1.25rem;
+  }
+
+  .maker-card__links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  .maker-card__link {
+    font-family: var(--mono);
+    font-size: 0.8125rem;
+    color: var(--accent);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  .maker-card__link:hover {
+    color: var(--ink);
+  }
+
+  .maker-card__link--muted {
+    color: var(--muted);
+  }
+
+  @media (min-width: 640px) {
+    .about-games {
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .about-stack {
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .about-stack__item {
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+  }
+</style>

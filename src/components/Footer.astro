@@ -16,35 +16,23 @@ import { site } from "../data/profile";
         <a href={site.authorUrl} target="_blank" rel="noopener noreferrer">
           {site.author}
         </a>
-        {" \u2014 "}a side project and workbench experiment, not a commercial
-        game studio.
-      </p>
-      <p>
-        <a
-          href="https://buymeacoffee.com/erichdonahue"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="support-link--footer"
+        {" \u2014 "}
+        <a href={site.personalSiteUrl} target="_blank" rel="noopener noreferrer"
+          >erichdonahue.com</a
         >
-          Buy me a coffee
-        </a>
+        {" \u2014 "}
+        <a href={site.githubUrl} target="_blank" rel="noopener noreferrer"
+          >github/edonahue</a
+        >
       </p>
     </div>
     <div>
-      <span class="site-footer__col-label">Find it on</span>
+      <span class="site-footer__col-label">Repositories</span>
       <div class="site-footer__links">
-        <a
-          href="https://github.com/edonahue/pirate-arcade"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
+        <a href={site.desktopRepoUrl} target="_blank" rel="noopener noreferrer">
           Desktop Repo
         </a>
-        <a
-          href="https://github.com/edonahue/pirate-arcade-web"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
+        <a href={site.websiteRepoUrl} target="_blank" rel="noopener noreferrer">
           Website Repo
         </a>
       </div>

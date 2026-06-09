@@ -23,6 +23,8 @@ const PAGES = [
   { path: "/about/", name: "About" },
   { path: "/source/", name: "Source" },
   { path: "/build-log/", name: "Build Log" },
+  { path: "/credits/", name: "Credits" },
+  { path: "/games/race-to-treasure-island/", name: "Race Detail" },
 ];
 
 for (const viewport of VIEWPORTS) {
