@@ -1229,5 +1229,73 @@ for (const game of GAMES) {
       await dismissBtn.click();
       await expect(hintEl).toBeHidden();
     });
+
+    // ── Phase 17: Viewport & touch layout regression tests ──
+
+    test("game shell fits small landscape viewport", async ({ page }) => {
+      await page.goto(`${game.path}?testTouch=1`, {
+        waitUntil: "domcontentloaded",
+      });
+      await page.setViewportSize({ width: 844, height: 390 });
+
+      const shell = page.locator("#game-shell");
+      await expect(shell).toBeVisible();
+
+      const box = await shell.boundingBox();
+      expect(box).not.toBeNull();
+      if (box) {
+        // Shell height should fit viewport (allow small tolerance for border/rounding)
+        expect(box.height).toBeLessThanOrEqual(390 + 2);
+        expect(box.y).toBeGreaterThanOrEqual(-1);
+        // No horizontal overflow
+        expect(box.x).toBeGreaterThanOrEqual(-1);
+        expect(box.x + box.width).toBeLessThanOrEqual(844 + 1);
+      }
+    });
+
+    test("touch controls visible in testTouch mode", async ({ page }) => {
+      await page.goto(`${game.path}?testTouch=1`, {
+        waitUntil: "domcontentloaded",
+      });
+
+      await expect(page.locator("#touch-controls")).toBeVisible();
+      await expect(page.locator("#btn-left")).toBeVisible();
+      await expect(page.locator("#btn-right")).toBeVisible();
+      await expect(page.locator("#btn-boost")).toBeVisible();
+      await expect(page.locator("#btn-pause")).toBeVisible();
+    });
+
+    test("pa-touch-capable class added on touch-capable", async ({ page }) => {
+      // Use addInitScript to spoof maxTouchPoints before page load
+      await page.addInitScript(() => {
+        Object.defineProperty(navigator, "maxTouchPoints", {
+          value: 5,
+          configurable: true,
+        });
+      });
+      await page.goto(game.path, { waitUntil: "domcontentloaded" });
+
+      const hasClass = await page.evaluate(() =>
+        document.documentElement.classList.contains("pa-touch-capable"),
+      );
+      expect(hasClass).toBe(true);
+    });
+
+    test("mini-hint inside viewport at small landscape", async ({ page }) => {
+      await page.goto(`${game.path}?testTouch=1`, {
+        waitUntil: "domcontentloaded",
+      });
+      await page.setViewportSize({ width: 844, height: 390 });
+
+      const miniHint = page.locator("#touch-mini-hint");
+      await expect(miniHint).toBeVisible();
+
+      const box = await miniHint.boundingBox();
+      expect(box).not.toBeNull();
+      if (box) {
+        expect(box.x).toBeGreaterThanOrEqual(0);
+        expect(box.x + box.width).toBeLessThanOrEqual(844);
+      }
+    });
   });
 }

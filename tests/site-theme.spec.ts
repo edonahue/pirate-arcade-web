@@ -188,7 +188,7 @@ test.describe("Game Detail Page", () => {
 
     const overlay = screenshotLink.locator(".game-detail__screenshot-overlay");
     await expect(overlay).toBeVisible();
-    await expect(overlay).toHaveText(/Click to play/i);
+    await expect(overlay).toHaveText(/Play in Browser/i);
 
     // Verify it's inside the link
     const href = await screenshotLink.getAttribute("href");
@@ -205,7 +205,7 @@ test.describe("Game Detail Page", () => {
 
     const overlay = screenshotLink.locator(".game-detail__screenshot-overlay");
     await expect(overlay).toBeVisible();
-    await expect(overlay).toHaveText(/Click to play/i);
+    await expect(overlay).toHaveText(/Play in Browser/i);
   });
 
   test("Screenshot overlay is visible by default on browser games", async ({

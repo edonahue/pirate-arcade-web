@@ -329,6 +329,14 @@ const title = `${game.title} — Pirate Arcade`;
     const tc = document.getElementById("touch-controls");
     if (tc) tc.style.display = "flex";
   }
+
+  // ── Touch-capable detection: show controls on touch-capable devices ──
+  const isTouchCapable =
+    navigator.maxTouchPoints > 0 ||
+    window.matchMedia("(any-pointer: coarse)").matches;
+  if (isTouchCapable && !testTouchMode) {
+    document.documentElement.classList.add("pa-touch-capable");
+  }
 </script>
 
 <style is:global>
@@ -395,8 +403,9 @@ const title = `${game.title} — Pirate Arcade`;
   .game-shell {
     position: relative;
     width: 100%;
-    height: 100dvh;
     height: 100vh;
+    height: 100svh;
+    height: 100dvh;
     background: #0a1628;
     overflow: hidden;
   }
@@ -712,7 +721,8 @@ const title = `${game.title} — Pirate Arcade`;
     border: 1px solid rgba(255, 215, 0, 0.3);
     max-width: min(92vw, 520px);
     text-align: center;
-    line-height: 1.4;
+    line-height: 1.3;
+    white-space: normal;
     pointer-events: none;
     z-index: 55;
   }
@@ -725,7 +735,7 @@ const title = `${game.title} — Pirate Arcade`;
     }
   }
 
-  /* Hide on desktop */
+  /* Hide on desktop (fine pointer only, no touch) */
   @media (hover: hover) and (pointer: fine) {
     .touch-controls {
       display: none;
@@ -735,6 +745,11 @@ const title = `${game.title} — Pirate Arcade`;
     .touch-controls {
       display: none;
     }
+  }
+
+  /* Show on touch-capable devices */
+  .pa-touch-capable .touch-controls {
+    display: flex;
   }
 
   /* Force visible for testing */
