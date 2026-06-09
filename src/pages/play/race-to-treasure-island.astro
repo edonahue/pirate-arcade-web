@@ -82,6 +82,7 @@ const title = `${game.title} — Pirate Arcade`;
           id="btn-pause"
           class="touch-btn touch-btn--pause"
           aria-label="Pause"
+          aria-pressed="false"
         >
           <span class="touch-btn__icon">⏸</span>
           <span class="touch-btn__label">PAUSE</span>
@@ -96,6 +97,9 @@ const title = `${game.title} — Pirate Arcade`;
         <span class="touch-btn__icon">↻</span>
         <span class="touch-btn__label">RESTART</span>
       </button>
+      <div id="touch-mini-hint" class="touch-mini-hint" aria-hidden="true">
+        Tap LEFT / RIGHT to steer · Hold BOOST to surge
+      </div>
     </div>
 
     <!-- Touch onboarding hint (first visit) -->
@@ -241,14 +245,12 @@ const title = `${game.title} — Pirate Arcade`;
   setupHoldButton(rightBtn, "right");
   setupHoldButton(boostBtn, "boost");
 
-  // Pause: toggle on pointerup (not click — click can fail on iOS Safari)
+  // Pause: request pause on pointerup (RaceScene toggles actual state and syncs DOM)
   if (pauseBtn) {
     pauseBtn.addEventListener("pointerup", (e) => {
       e.preventDefault();
       (window as any).__paTouchInput = (window as any).__paTouchInput || {};
-      (window as any).__paTouchInput.pause = !(window as any).__paTouchInput
-        .pause;
-      pauseBtn.classList.toggle("touch-btn--active");
+      (window as any).__paTouchInput.pause = true;
     });
   }
 
@@ -263,6 +265,8 @@ const title = `${game.title} — Pirate Arcade`;
 
   // Expose restart button for game state hook
   (window as any).__paRestartBtn = restartBtn;
+  // Expose pause button for RaceScene DOM sync
+  (window as any).__paPauseBtn = pauseBtn;
 
   // ── Touch onboarding hint ──
   const hintEl = document.getElementById("touch-hint");
@@ -299,6 +303,8 @@ const title = `${game.title} — Pirate Arcade`;
     if (hud) hud.style.display = "none";
     const tc = document.getElementById("touch-controls");
     if (tc) tc.style.display = "none";
+    const mh = document.getElementById("touch-mini-hint");
+    if (mh) mh.style.display = "none";
   }
 
   // ── Test touch mode: force touch controls visible ──
@@ -635,6 +641,26 @@ const title = `${game.title} — Pirate Arcade`;
     background: rgba(68, 255, 136, 0.3);
     border-color: #44ff88;
     color: #88ffbb;
+  }
+
+  /* ── Touch mini hint (persistent, below controls) ── */
+  .touch-mini-hint {
+    position: absolute;
+    bottom: calc(100% + 0.5rem);
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: monospace;
+    font-size: 9px;
+    color: #ccc;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    padding: 0.25rem 0.75rem;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 215, 0, 0.3);
+    white-space: nowrap;
+    pointer-events: none;
+    z-index: 55;
   }
 
   /* Hide on desktop */

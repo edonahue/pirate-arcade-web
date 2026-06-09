@@ -9,7 +9,7 @@ A pirate-themed arcade collection and an experiment in zero-cost AI-assisted dev
 - **Framework:** [Astro](https://astro.build) 6, static export
 - **Language:** TypeScript (strict mode)
 - **Styling:** Vanilla CSS with CSS custom properties (design tokens)
-- **Fonts:** Bangers (display), Inter (body), IBM Plex Mono (mono)
+- **Fonts:** Cinzel (display), Inter (body), IBM Plex Mono (mono)
 - **Hosting:** Cloudflare Pages (free tier)
 - **CI:** GitHub Actions
 

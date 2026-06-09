@@ -177,4 +177,34 @@ test.describe("Game Detail Page", () => {
     const screenshotLink = page.locator(".game-detail__screenshot-link");
     await expect(screenshotLink).toHaveCount(0);
   });
+
+  test("Game detail screenshot has play overlay for browser games", async ({
+    page,
+  }) => {
+    await page.goto("/games/race-to-treasure-island/");
+
+    const screenshotLink = page.locator(".game-detail__screenshot-link");
+    await expect(screenshotLink).toBeVisible();
+
+    const overlay = screenshotLink.locator(".game-detail__screenshot-overlay");
+    await expect(overlay).toBeVisible();
+    await expect(overlay).toHaveText(/Click to play/i);
+
+    // Verify it's inside the link
+    const href = await screenshotLink.getAttribute("href");
+    expect(href).toBe("/play/race-to-treasure-island/");
+  });
+
+  test("Game detail screenshot overlay works for Pygbag games too", async ({
+    page,
+  }) => {
+    await page.goto("/games/cannonball-clash/");
+
+    const screenshotLink = page.locator(".game-detail__screenshot-link");
+    await expect(screenshotLink).toBeVisible();
+
+    const overlay = screenshotLink.locator(".game-detail__screenshot-overlay");
+    await expect(overlay).toBeVisible();
+    await expect(overlay).toHaveText(/Click to play/i);
+  });
 });

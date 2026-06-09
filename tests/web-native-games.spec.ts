@@ -1124,5 +1124,64 @@ for (const game of GAMES) {
       expect(containerInset.top).toBe("0px");
       expect(containerInset.left).toBe("0px");
     });
+
+    // ── Phase 15: New touch & pause sync tests ──
+
+    test("touch mini-hint visible when controls visible", async ({ page }) => {
+      await page.goto(`${game.path}?testTouch=1`, {
+        waitUntil: "domcontentloaded",
+      });
+
+      const miniHint = page.locator("#touch-mini-hint");
+      await expect(miniHint).toBeVisible();
+      const text = await miniHint.textContent();
+      expect(text?.toLowerCase()).toContain("steer");
+      expect(text?.toLowerCase()).toContain("boost");
+    });
+
+    test("pause button aria state syncs with game", async ({ page }) => {
+      await page.goto(`${game.path}?testTouch=1`, {
+        waitUntil: "domcontentloaded",
+      });
+      await waitForPhaserReady(page);
+
+      const pauseBtn = page.locator("#btn-pause");
+
+      // Initial state: not paused
+      await expect(pauseBtn).toHaveAttribute("aria-pressed", "false");
+      await expect(pauseBtn).not.toHaveClass("touch-btn--active");
+
+      // Tap pause
+      await pauseBtn.click();
+      await page.waitForFunction(
+        () => (window as any).__paRaceToTreasureIslandState?.paused === true,
+        { timeout: 5000 },
+      );
+
+      // Should now be paused - check via page.evaluate for reliability
+      const isPausedActive = await page.evaluate(() => {
+        const btn = document.getElementById("btn-pause");
+        return btn?.classList.contains("touch-btn--active") ?? false;
+      });
+      expect(isPausedActive).toBe(true);
+
+      await expect(pauseBtn).toHaveAttribute("aria-pressed", "true");
+
+      // Tap pause again to resume
+      await pauseBtn.click();
+      await page.waitForFunction(
+        () => (window as any).__paRaceToTreasureIslandState?.paused === false,
+        { timeout: 5000 },
+      );
+
+      // Should be unpaused
+      const isResumedActive = await page.evaluate(() => {
+        const btn = document.getElementById("btn-pause");
+        return btn?.classList.contains("touch-btn--active") ?? false;
+      });
+      expect(isResumedActive).toBe(false);
+
+      await expect(pauseBtn).toHaveAttribute("aria-pressed", "false");
+    });
   });
 }

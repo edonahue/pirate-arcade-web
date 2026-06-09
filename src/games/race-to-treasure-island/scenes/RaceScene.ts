@@ -982,6 +982,17 @@ export class RaceScene extends Phaser.Scene {
     } else {
       this.physics.resume();
     }
+    // Sync pause button DOM state
+    if (typeof window !== "undefined") {
+      const pauseBtn = (window as any).__paPauseBtn;
+      if (pauseBtn) {
+        pauseBtn.classList.toggle("touch-btn--active", this.paused);
+        pauseBtn.setAttribute("aria-pressed", this.paused ? "true" : "false");
+        pauseBtn.setAttribute("aria-label", this.paused ? "Resume" : "Pause");
+        const label = pauseBtn.querySelector(".touch-btn__label");
+        if (label) label.textContent = this.paused ? "RESUME" : "PAUSE";
+      }
+    }
     this.exposeState();
   }
 
