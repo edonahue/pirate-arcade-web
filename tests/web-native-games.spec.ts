@@ -357,8 +357,9 @@ for (const game of GAMES) {
       const infoText = await page.locator("#infobox").textContent();
       expect(infoText?.toLowerCase()).toContain("steer");
       expect(infoText?.toLowerCase()).toContain("boost");
-      expect(infoText?.toLowerCase()).toContain("restart");
       expect(infoText?.toLowerCase()).toContain("pause");
+      expect(infoText?.toLowerCase()).toContain("esc");
+      expect(infoText?.toLowerCase()).toContain("space");
     });
 
     // ── Phase 6: Touch control behavior tests ──
@@ -1086,11 +1087,14 @@ for (const game of GAMES) {
       await page.goto(game.path, { waitUntil: "domcontentloaded" });
 
       const infoText = await page.locator("#infobox").textContent();
+      // Desktop controls should be visible by default
       expect(infoText?.toLowerCase()).toContain("steer");
       expect(infoText?.toLowerCase()).toContain("boost");
       expect(infoText?.toLowerCase()).toContain("pause");
-      expect(infoText?.toLowerCase()).toContain("restart");
-      // Should now reference the simpler control layout
+      expect(infoText?.toLowerCase()).toContain("esc");
+      expect(infoText?.toLowerCase()).toContain("space");
+      expect(infoText?.toLowerCase()).toContain("shift");
+      // Should reference the control layout
       expect(infoText?.toLowerCase()).toContain("hold");
     });
 
@@ -1405,6 +1409,90 @@ for (const game of GAMES) {
         () => (window as any).__paRaceToTreasureIslandState,
       );
       expect(state1?.playerCueVisible).toBe(false);
+    });
+
+    // ── Phase 19: HUD layout & text tests ──
+
+    test("touch HUD uses touch-specific control text", async ({ page }) => {
+      await page.goto(`${game.path}?testTouch=1`, {
+        waitUntil: "domcontentloaded",
+      });
+
+      // Wait for HUD mode to be set by JavaScript
+      await page.waitForFunction(() => {
+        const infobox = document.getElementById("infobox");
+        return infobox?.dataset.hudMode === "touch";
+      });
+
+      // Check that touch controls are visible and desktop controls are hidden
+      const touchControls = page.locator('[data-hud-target="touch"]');
+      const desktopControls = page.locator('[data-hud-target="desktop"]');
+      await expect(touchControls).toBeVisible();
+      await expect(desktopControls).toBeHidden();
+
+      // Check touch control text
+      const infoText = await page.locator("#infobox").textContent();
+      expect(infoText?.toLowerCase()).toContain("left");
+      expect(infoText?.toLowerCase()).toContain("right");
+      expect(infoText?.toLowerCase()).toContain("boost");
+    });
+
+    test("desktop HUD uses keyboard-specific control text", async ({
+      page,
+    }) => {
+      await page.goto(game.path, { waitUntil: "domcontentloaded" });
+
+      // Wait for HUD mode to be set (should be desktop)
+      await page.waitForFunction(() => {
+        const infobox = document.getElementById("infobox");
+        return infobox?.dataset.hudMode === "desktop";
+      });
+
+      // Check that desktop controls are visible and touch controls are hidden
+      const desktopControls = page.locator('[data-hud-target="desktop"]');
+      const touchControls = page.locator('[data-hud-target="touch"]');
+      await expect(desktopControls).toBeVisible();
+      await expect(touchControls).toBeHidden();
+
+      // Check desktop control text
+      const infoText = await page.locator("#infobox").textContent();
+      expect(infoText?.toLowerCase()).toContain("shift");
+      expect(infoText?.toLowerCase()).toContain("space");
+      expect(infoText?.toLowerCase()).toContain("esc");
+    });
+
+    test("touch HUD is compact in small landscape", async ({ page }) => {
+      await page.setViewportSize({ width: 844, height: 390 });
+      await page.goto(`${game.path}?testTouch=1`, {
+        waitUntil: "domcontentloaded",
+      });
+
+      const infobox = page.locator("#infobox");
+      await expect(infobox).toBeVisible();
+
+      const box = await infobox.boundingBox();
+      expect(box).not.toBeNull();
+      if (box) {
+        // Infobox should be compact
+        expect(box.width).toBeLessThanOrEqual(260);
+        // Should be at top
+        expect(box.y).toBeGreaterThanOrEqual(0);
+        // Should not overflow viewport horizontally
+        expect(box.x + box.width).toBeLessThanOrEqual(844 + 1);
+      }
+
+      // Help button should be visible
+      const helpBtn = page.locator("#touch-help-button");
+      await expect(helpBtn).toBeVisible();
+
+      // No horizontal overflow on page
+      const hasOverflow = await page.evaluate(() => {
+        return (
+          document.documentElement.scrollWidth >
+          document.documentElement.clientWidth
+        );
+      });
+      expect(hasOverflow).toBe(false);
     });
   });
 }
