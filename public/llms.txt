@@ -1,6 +1,6 @@
 # Pirate Arcade
 
-Pirate Arcade is a pirate-themed arcade game collection by Erich Donahue. It includes desktop Python/Pygame games, browser ports built with Pygbag/WebAssembly, and a public build log documenting a zero-cost AI-assisted development experiment.
+Pirate Arcade is a pirate-themed arcade game collection by Erich Donahue. It includes desktop Python/Pygame games, browser ports built with Pygbag/WebAssembly, a web-native Phaser 3 game, and a public build log documenting a zero-cost AI-assisted development experiment.
 
 ## Main pages
 
@@ -12,11 +12,13 @@ Pirate Arcade is a pirate-themed arcade game collection by Erich Donahue. It inc
 
 ## Games
 
-- Cannonball Clash: naval Pong-style duel, playable in browser at https://pirate-arcade.com/play/cannonball-clash/
-- Treasure Cove: pirate Breakout-style brick breaker, playable in browser at https://pirate-arcade.com/play/treasure-cove/
-- Kraken's Wake: pirate Asteroids-style game, playable in browser at https://pirate-arcade.com/play/krakens-wake/
-- Race to Treasure Island: top-down pirate ship racer, playable in browser at https://pirate-arcade.com/play/race-to-treasure-island/
-- Port Royale Tycoon: pirate property-trading desktop game.
+Total: 5 games — 4 browser-playable (3 Pygbag/WebAssembly ports, 1 web-native Phaser 3 racer), 1 desktop-only (Port Royale Tycoon).
+
+- Cannonball Clash: naval Pong-style duel, Pygbag/WebAssembly browser port at https://pirate-arcade.com/play/cannonball-clash/
+- Treasure Cove: pirate Breakout-style brick breaker, Pygbag/WebAssembly browser port at https://pirate-arcade.com/play/treasure-cove/
+- Kraken's Wake: pirate Asteroids-style game, Pygbag/WebAssembly browser port at https://pirate-arcade.com/play/krakens-wake/
+- Race to Treasure Island: top-down pirate ship racer, web-native Phaser 3 at https://pirate-arcade.com/play/race-to-treasure-island/
+- Port Royale Tycoon: pirate property-trading desktop game (desktop-only).
 
 ## Canonical links
 

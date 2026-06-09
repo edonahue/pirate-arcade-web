@@ -689,5 +689,130 @@ for (const game of GAMES) {
       // Assert all seen types are valid
       expect(seenTypes.every((t: string) => validTypes.includes(t))).toBe(true);
     });
+
+    // ── Phase 12: New tests ──
+
+    test("debug hooks present in test environment", async ({
+      page,
+    }, testInfo) => {
+      // In Playwright, navigator.webdriver is true, so debugMode is always on.
+      // Verify hooks are available for test infrastructure.
+      test.skip(
+        !DESKTOP_PROJECTS.includes(testInfo.project.name),
+        "Debug hook test skipped on non-desktop",
+      );
+
+      await page.goto(game.path, { waitUntil: "domcontentloaded" });
+      await waitForPhaserReady(page);
+
+      const debugMode = await page.evaluate(
+        () => !!(window as any).__paRaceDebugMode,
+      );
+      expect(debugMode).toBe(true);
+
+      // __paRaceGame should be exposed (debug mode is on via webdriver)
+      const hasRaceGame = await page.evaluate(
+        () => !!(window as any).__paRaceGame,
+      );
+      expect(hasRaceGame).toBe(true);
+    });
+
+    test("debug hooks present with testTouch=1", async ({ page }, testInfo) => {
+      test.skip(
+        !DESKTOP_PROJECTS.includes(testInfo.project.name),
+        "Debug hook test skipped on non-desktop",
+      );
+
+      await page.goto(`${game.path}?testTouch=1`, {
+        waitUntil: "domcontentloaded",
+      });
+      await waitForPhaserReady(page);
+
+      const hasDebugFinish = await page.evaluate(
+        () => typeof (window as any).__paRaceDebugFinish === "function",
+      );
+      expect(hasDebugFinish).toBe(true);
+
+      const debugMode = await page.evaluate(
+        () => !!(window as any).__paRaceDebugMode,
+      );
+      expect(debugMode).toBe(true);
+    });
+
+    test("deterministic obstacle sequence with fixed seed", async ({
+      page,
+    }, testInfo) => {
+      test.skip(
+        !DESKTOP_PROJECTS.includes(testInfo.project.name),
+        "Deterministic sequence test skipped on non-desktop",
+      );
+
+      // First run
+      await page.goto(`${game.path}?seed=determinism-test&testTouch=1`, {
+        waitUntil: "domcontentloaded",
+      });
+      await waitForPhaserReady(page);
+
+      // Wait for obstacle spawns
+      await page.waitForFunction(
+        () =>
+          (window as any).__paRaceToTreasureIslandState?.obstacleSpawnLog
+            ?.length >= 3,
+        { timeout: 12000 },
+      );
+
+      const firstRun: Array<{ type: string; x: number }> = await page.evaluate(
+        () => {
+          const s = (window as any).__paRaceToTreasureIslandState;
+          return s?.obstacleSpawnLog?.slice(0, 3) ?? [];
+        },
+      );
+
+      expect(firstRun.length).toBeGreaterThanOrEqual(3);
+
+      // Second run — full reload
+      await page.goto(`${game.path}?seed=determinism-test&testTouch=1`, {
+        waitUntil: "domcontentloaded",
+      });
+      await waitForPhaserReady(page);
+
+      await page.waitForFunction(
+        () =>
+          (window as any).__paRaceToTreasureIslandState?.obstacleSpawnLog
+            ?.length >= 3,
+        { timeout: 12000 },
+      );
+
+      const secondRun: Array<{ type: string; x: number }> = await page.evaluate(
+        () => {
+          const s = (window as any).__paRaceToTreasureIslandState;
+          return s?.obstacleSpawnLog?.slice(0, 3) ?? [];
+        },
+      );
+
+      expect(secondRun.length).toBeGreaterThanOrEqual(3);
+
+      // Types should match
+      for (let i = 0; i < 3; i++) {
+        expect(firstRun[i].type).toBe(secondRun[i].type);
+      }
+    });
+
+    test("seed is exposed in state", async ({ page }, testInfo) => {
+      test.skip(
+        !DESKTOP_PROJECTS.includes(testInfo.project.name),
+        "Seed state test skipped on non-desktop",
+      );
+
+      await page.goto(`${game.path}?seed=test-seed-value`, {
+        waitUntil: "domcontentloaded",
+      });
+      await waitForPhaserReady(page);
+
+      const seed = await page.evaluate(
+        () => (window as any).__paRaceToTreasureIslandState?.seed,
+      );
+      expect(seed).toBe("test-seed-value");
+    });
   });
 }

@@ -1,6 +1,6 @@
 # Pirate Arcade
 
-Pirate Arcade is a public game and build-log project by Erich Donahue. It combines a four-game Python/Pygame desktop arcade collection with browser ports, an Astro static website, GitHub releases, and Cloudflare Pages hosting.
+Pirate Arcade is a public game and build-log project by Erich Donahue. It combines a five-game collection (4 browser-playable + 1 desktop-only) with an Astro static website, GitHub releases, and Cloudflare Pages hosting.
 
 ## Project summary
 
@@ -8,17 +8,20 @@ The project asks how much of a complete, inspectable, public software project on
 
 ## Games
 
-- Cannonball Clash: a naval Pong riff with power-ups, procedural audio, AI opponent support, and browser play at https://pirate-arcade.com/play/cannonball-clash/.
-- Treasure Cove: a treasure-hunt brick breaker with score combos, paddle power-up, procedural audio, and browser play at https://pirate-arcade.com/play/treasure-cove/.
-- Kraken's Wake: an Asteroids-style sea-monster survival game, playable in browser at https://pirate-arcade.com/play/krakens-wake/.
-- Race to Treasure Island: a top-down pirate ship racer with AI rivals and boost mechanics, playable in browser at https://pirate-arcade.com/play/race-to-treasure-island/.
-- Port Royale Tycoon: a pirate property-trading board game in the desktop release.
+Total: 5 games. 4 browser-playable (3 Pygbag/WebAssembly ports, 1 web-native Phaser 3 racer). 1 desktop-only.
+
+- Cannonball Clash: a naval Pong riff with power-ups, procedural audio, AI opponent support, and browser play at https://pirate-arcade.com/play/cannonball-clash/. Pygbag/WebAssembly port.
+- Treasure Cove: a treasure-hunt brick breaker with score combos, paddle power-up, procedural audio, and browser play at https://pirate-arcade.com/play/treasure-cove/. Pygbag/WebAssembly port.
+- Kraken's Wake: an Asteroids-style sea-monster survival game, playable in browser at https://pirate-arcade.com/play/krakens-wake/. Pygbag/WebAssembly port.
+- Race to Treasure Island: a top-down pirate ship racer with AI rivals, wind boost, and deterministic seeded obstacle course, playable in browser at https://pirate-arcade.com/play/race-to-treasure-island/. Web-native Phaser 3 — loads instantly, no runtime download.
+- Port Royale Tycoon: a pirate property-trading board game, desktop-only release.
 
 ## Technology
 
 - Desktop games: Python, Pygame, NumPy, procedural audio.
 - Browser ports: Pygbag, WebAssembly, Web Audio API bridge.
-- Website: Astro, TypeScript, vanilla CSS, Cloudflare Pages.
+- Web-native games: Phaser 3, Vite.
+- Website: Astro 6, TypeScript, vanilla CSS, Cloudflare Pages.
 - Distribution: GitHub repositories, CI, and releases.
 - Development constraint: local X600 workstation, free-to-use AI models, no paid AI subscriptions, no cloud compute.
 

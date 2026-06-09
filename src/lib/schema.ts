@@ -53,7 +53,10 @@ export function projectNode(): JsonLdNode {
     url: absoluteUrl("/"),
     author: { "@id": `${absoluteUrl("/")}#erich` },
     creator: { "@id": `${absoluteUrl("/")}#erich` },
-    codeRepository: "https://github.com/edonahue/pirate-arcade",
+    codeRepository: [
+      "https://github.com/edonahue/pirate-arcade",
+      "https://github.com/edonahue/pirate-arcade-web",
+    ],
     sameAs: profileLinks,
     applicationCategory: "GameApplication",
     operatingSystem: ["Windows", "Linux", "macOS", "Web browser"],
@@ -63,6 +66,9 @@ export function projectNode(): JsonLdNode {
       "Pygame",
       "Pygbag",
       "WebAssembly",
+      "Phaser",
+      "Web-native games",
+      "Browser games",
       "Astro",
       "Cloudflare Pages",
       "AI-assisted development",
@@ -72,6 +78,14 @@ export function projectNode(): JsonLdNode {
 }
 
 export function gameNode(game: Game): JsonLdNode {
+  let gamePlatform: string[];
+  if (game.engine === "phaser") {
+    gamePlatform = ["Web browser"];
+  } else if (game.status === "browser-playable") {
+    gamePlatform = ["Web browser", "Windows", "Linux"];
+  } else {
+    gamePlatform = ["Windows", "Linux", "macOS"];
+  }
   return {
     "@type": "VideoGame",
     "@id": `${absoluteUrl(`/games/${game.id}/`)}#game`,
@@ -79,9 +93,7 @@ export function gameNode(game: Game): JsonLdNode {
     description: game.description,
     url: absoluteUrl(`/games/${game.id}/`),
     image: game.screenshot ? absoluteUrl(game.screenshot) : undefined,
-    gamePlatform: game.browserUrl
-      ? ["Web browser", "Windows", "Linux"]
-      : ["Windows", "Linux", "macOS"],
+    gamePlatform,
     applicationCategory: "GameApplication",
     genre: "Arcade",
     isPartOf: { "@id": `${absoluteUrl("/")}#project` },

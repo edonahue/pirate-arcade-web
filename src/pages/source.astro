@@ -251,14 +251,16 @@ import { publicDomainArt } from "../data/publicDomainArt";
       <p class="section__eyebrow">Art &amp; Attribution</p>
       <h2 class="section__title">Public-Domain Illustrations</h2>
       <p class="section__description">
-        This site uses four illustrations by Howard Pyle (1853–1911) from
-        <em>Howard Pyle's Book of Pirates</em> (1921). All are public domain in the
-        United States (author died 1911; published before 1931). Source files are
-        from <a
-          href="https://commons.wikimedia.org/wiki/Category:Howard_Pyle%27s_Book_of_Pirates_(1921)"
-          target="_blank"
-          rel="noopener noreferrer">Wikimedia Commons</a
-        >.
+        This site uses public-domain pirate and Treasure Island illustrations by
+        Howard Pyle (1853–1911) and Louis Rhead (1857–1926). Howard Pyle's
+        illustrations are from <em>Howard Pyle's Book of Pirates</em> (1921). Louis
+        Rhead's illustration is from the 1915 edition of
+        <em>Treasure Island</em> by Robert Louis Stevenson (Project Gutenberg). All
+        are public domain in the United States. See
+        <a href="/ASSET_CREDITS.md" target="_blank" rel="noopener noreferrer"
+          >ASSET_CREDITS.md</a
+        >
+        for a complete asset inventory.
       </p>
     </div>
 
@@ -293,7 +295,11 @@ import { publicDomainArt } from "../data/publicDomainArt";
                     target="_blank"
                     rel="noopener noreferrer"
                   >
-                    Wikimedia Commons
+                    {art.sourcePage.includes("wikimedia.org")
+                      ? "Wikimedia Commons"
+                      : art.sourcePage.includes("gutenberg.org")
+                        ? "Project Gutenberg"
+                        : "Source"}
                   </a>
                 </dd>
               </dl>

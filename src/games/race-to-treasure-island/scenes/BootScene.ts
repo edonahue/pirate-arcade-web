@@ -53,34 +53,52 @@ export class BootScene extends Phaser.Scene {
   private generateOceanBg(): void {
     const g = this.add.graphics();
     const stripeH = GAME_HEIGHT / 8;
-    const colors = [
+    const deepColors = [
       0x0a1628, 0x0c1e38, 0x0f2a4a, 0x123558, 0x0f2a4a, 0x0c1e38, 0x0a1628,
       0x0d1f3c,
     ];
+    const tropicColors = [
+      0x0a1a30, 0x0c2240, 0x0f2e50, 0x123d60, 0x0f2e50, 0x0c2240, 0x0a1a30,
+      0x0d2244,
+    ];
+    const colors = tropicColors;
     for (let i = 0; i < colors.length; i++) {
       g.fillStyle(colors[i]);
       g.fillRect(0, i * stripeH, GAME_WIDTH, stripeH + 1);
     }
-    // Rolling wave crests (horizontal lines)
-    g.lineStyle(1, 0x1a4a6a, 0.15);
-    for (let row = 0; row < 12; row++) {
-      const wy = row * (GAME_HEIGHT / 12);
-      for (let col = 0; col < GAME_WIDTH; col += 6) {
-        const offset = Math.sin(col * 0.03 + row * 0.8) * 3;
-        g.fillStyle(0xffffff, 0.02 + row * 0.003);
-        g.fillEllipse(col, wy + offset, 8, 2);
+    // Nautical chart grid overlay
+    g.lineStyle(1, 0x2a6a8a, 0.06);
+    for (let x = 0; x < GAME_WIDTH; x += 40) {
+      g.lineBetween(x, 0, x, GAME_HEIGHT);
+    }
+    for (let y = 0; y < GAME_HEIGHT; y += 40) {
+      g.lineBetween(0, y, GAME_WIDTH, y);
+    }
+    // Rolling wave crests
+    for (let row = 0; row < 16; row++) {
+      const wy = row * (GAME_HEIGHT / 16);
+      for (let col = 0; col < GAME_WIDTH; col += 4) {
+        const offset = Math.sin(col * 0.025 + row * 0.7) * 4;
+        g.fillStyle(0xffffff, 0.018 + row * 0.002);
+        g.fillEllipse(col, wy + offset, 6, 2);
       }
     }
-    // Wave foam flecks
-    g.fillStyle(0xffffff, 0.04);
-    for (let i = 0; i < 80; i++) {
+    // Whitecap highlights
+    g.fillStyle(0xffffff, 0.05);
+    for (let i = 0; i < 60; i++) {
       g.fillEllipse(
         Phaser.Math.Between(0, GAME_WIDTH),
         Phaser.Math.Between(0, GAME_HEIGHT),
-        Phaser.Math.Between(4, 14),
+        Phaser.Math.Between(4, 12),
         Phaser.Math.Between(1, 3),
       );
     }
+    // Compass-rose markers (nautical chart feel)
+    g.lineStyle(1, 0x3a8aaa, 0.08);
+    g.strokeCircle(60, 60, 25);
+    g.strokeCircle(60, 60, 15);
+    g.lineBetween(60, 32, 60, 88);
+    g.lineBetween(32, 60, 88, 60);
     g.generateTexture("ocean-bg", GAME_WIDTH, GAME_HEIGHT);
     g.destroy();
   }

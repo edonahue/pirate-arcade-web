@@ -5,6 +5,11 @@ import CTAButton from "../components/CTAButton.astro";
 import GameCard from "../components/GameCard.astro";
 import { games } from "../data/games";
 import { webPageNode } from "../lib/schema";
+
+const browserGames = games.filter((g) => g.status === "browser-playable");
+const pygbagGames = browserGames.filter((g) => g.engine === "pygbag");
+const webNativeGames = browserGames.filter((g) => g.engine === "phaser");
+const desktopOnly = games.filter((g) => g.status === "desktop-available");
 ---
 
 <BaseLayout
@@ -32,10 +37,11 @@ import { webPageNode } from "../lib/schema";
   <section class="section">
     <div class="section__header">
       <p class="section__eyebrow">The Games</p>
-      <h2 class="section__title">Four Classic Arcade Games</h2>
+      <h2 class="section__title">Five Pirate Arcade Games</h2>
       <p class="section__description">
-        Four classic arcade games, each reimagined with pirate flavor and modern
-        visual effects.
+        Five classic arcade games, each reimagined with pirate flavor and modern
+        visual effects. {browserGames.length} browser-playable — three Pygbag/WebAssembly
+        ports and one web-native Phaser racer.
       </p>
     </div>
     <div class="game-grid">
@@ -54,11 +60,13 @@ import { webPageNode } from "../lib/schema";
       <p class="section__eyebrow">Browser Play</p>
       <h2 class="section__title">Play in Browser Now</h2>
       <p class="section__description">
-        Three games are playable immediately in your browser via
-        Pygbag/WebAssembly: Cannonball Clash, Treasure Cove, and Kraken's Wake.
-        Each loads a ~12 MB CPython runtime on first visit; audio starts after
-        your first click. Works best with a keyboard, with on-screen touch
-        controls available on mobile.
+        {browserGames.length} browser-playable games are live: {
+          pygbagGames.length
+        }
+        Pygbag/WebAssembly ports and {webNativeGames.length} web-native Phaser racer.
+        Pygbag games load a ~12 MB CPython runtime on first visit (cached on repeat);
+        web-native games load instantly. Audio starts after your first click. Works
+        best with a keyboard, with on-screen touch controls available on mobile.
       </p>
     </div>
 
@@ -77,6 +85,22 @@ import { webPageNode } from "../lib/schema";
           class="cta cta--primary"
         >
           Play Cannonball Clash
+        </a>
+      </div>
+      <div class="recommended-first__card">
+        <span class="recommended-first__badge">Instant load — web-native</span>
+        <h3 class="recommended-first__title">Race to Treasure Island</h3>
+        <p class="recommended-first__desc">
+          Top-down ship racer with wind boost &amp; obstacles — loads instantly
+          via Phaser. No runtime download needed.
+        </p>
+        <a
+          href="/play/race-to-treasure-island/"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="cta cta--primary"
+        >
+          Play Race to Treasure Island
         </a>
       </div>
     </div>
@@ -118,6 +142,12 @@ import { webPageNode } from "../lib/schema";
         gap: 0.75rem;
         justify-content: center;
         align-items: center;
+      }
+      .recommended-first {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        justify-content: center;
       }
     </style>
   </section>

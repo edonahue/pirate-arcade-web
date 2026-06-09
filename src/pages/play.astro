@@ -11,6 +11,8 @@ import { ASSET_VERSION } from "../../scripts/game-asset-versions.mjs";
 
 const browserGames = games.filter((g) => g.status === "browser-playable");
 const desktopGames = games.filter((g) => g.status === "desktop-available");
+const pygbagGames = browserGames.filter((g) => g.engine === "pygbag");
+const webNativeGames = browserGames.filter((g) => g.engine === "phaser");
 ---
 
 <BaseLayout
@@ -28,8 +30,8 @@ const desktopGames = games.filter((g) => g.status === "desktop-available");
 >
   <Hero
     title="THE ARCADE"
-    subtitle="Pirate-themed arcade games. Four games are playable in your browser now —
-    including the web-native Race to Treasure Island. Desktop downloads available for all five."
+    subtitle={`Pirate-themed arcade games. ${browserGames.length} games are playable in your browser now —
+    including the web-native Race to Treasure Island. ${desktopGames.length} game is desktop-only (Port Royale Tycoon).`}
     eyebrow="Play the Games"
   />
 
@@ -49,9 +51,11 @@ const desktopGames = games.filter((g) => g.status === "desktop-available");
       <p class="section__eyebrow">Browser</p>
       <h2 class="section__title">Play Now</h2>
       <p class="section__description">
-        {browserGames.length} browser-playable games available. Pygbag games load
-        a ~12 MB CPython runtime on first visit (cached on repeat visits). Web-native
-        games load instantly. Audio unlocks after the first click or tap.
+        {browserGames.length} browser-playable games: {pygbagGames.length}
+        Pygbag/WebAssembly ports and {webNativeGames.length} web-native Phaser game.
+        Pygbag games load a ~12 MB CPython runtime on first visit (cached on repeat
+        visits). Web-native games load instantly. Audio unlocks after the first click
+        or tap.
       </p>
     </div>
 
@@ -166,8 +170,10 @@ const desktopGames = games.filter((g) => g.status === "desktop-available");
       <p class="section__eyebrow">Desktop</p>
       <h2 class="section__title">Desktop Collection</h2>
       <p class="section__description">
-        All four games are available as desktop downloads. Port Royale Tycoon is
-        the only desktop-only game (see roadmap below).
+        The three Pygbag games (Cannonball Clash, Treasure Cove, Kraken's Wake)
+        are also available as desktop downloads via the desktop repo. Race to
+        Treasure Island is web-native and has no desktop build. Port Royale
+        Tycoon is the only desktop-only game (see roadmap below).
       </p>
     </div>
 

@@ -82,11 +82,19 @@ export class RaceScene extends Phaser.Scene {
   private pauseText!: Phaser.GameObjects.Text;
   private obstacleTypesSeen: Set<ObstacleType> = new Set();
 
+  // Deterministic RNG
+  private rng!: Phaser.Math.RandomDataGenerator;
+  private seed: string = "race-default";
+
+  // Obstacle spawn log (debug/determinism verification)
+  private obstacleSpawnLog: Array<{ type: ObstacleType; x: number }> = [];
+
   constructor() {
     super({ key: "RaceScene" });
   }
 
   create(): void {
+    this.initRNG();
     this.resetState();
     this.createBackground();
     this.createPlayer();
@@ -98,7 +106,32 @@ export class RaceScene extends Phaser.Scene {
     this.setupInput();
     this.setupCollisions();
     this.setupBootMetrics();
+    this.setupDebugHooks();
     this.exposeState();
+  }
+
+  // ── Deterministic RNG ──
+
+  private initRNG(): void {
+    const urlSeed =
+      typeof window !== "undefined"
+        ? new URLSearchParams(window.location.search).get("seed")
+        : null;
+    const configSeed = (this.game.config as any).seed?.[0] ?? null;
+    this.seed = urlSeed ?? configSeed ?? "race-default";
+    this.rng = new Phaser.Math.RandomDataGenerator([this.seed]);
+  }
+
+  private randFloat(): number {
+    return this.rng.frac();
+  }
+
+  private randInt(min: number, max: number): number {
+    return this.rng.between(min, max);
+  }
+
+  private choose<T>(items: T[]): T {
+    return items[Math.floor(this.rng.frac() * items.length)];
   }
 
   update(_time: number, delta: number): void {
@@ -151,6 +184,7 @@ export class RaceScene extends Phaser.Scene {
     this.aiMistakeTimer = 0;
     this.aiMistakeDir = 0;
     this.obstacleTypesSeen.clear();
+    this.obstacleSpawnLog = [];
   }
 
   private createBackground(): void {
@@ -180,6 +214,8 @@ export class RaceScene extends Phaser.Scene {
     this.player.setSize(30, 50);
   }
 
+  private aiWake!: Phaser.GameObjects.Graphics;
+
   private createAIShip(): void {
     this.aiShip = this.physics.add.sprite(
       GAME_WIDTH / 2 + 100,
@@ -190,12 +226,16 @@ export class RaceScene extends Phaser.Scene {
     this.aiShip.setAlpha(0.9);
     this.aiShip.setScale(0.65);
     this.aiShip.setSize(30, 50);
+    // Rival wake (white trail behind AI ship)
+    this.aiWake = this.add.graphics().setDepth(9);
     // Label
     const label = this.add
-      .text(this.aiShip.x, this.aiShip.y + 42, "LONG JOHN", {
+      .text(this.aiShip.x, this.aiShip.y + 42, "★ LONG JOHN", {
         fontFamily: "monospace",
-        fontSize: "8px",
+        fontSize: "9px",
         color: "#ff6666",
+        stroke: "#000",
+        strokeThickness: 2,
       })
       .setOrigin(0.5)
       .setDepth(11);
@@ -260,10 +300,12 @@ export class RaceScene extends Phaser.Scene {
     const barX = GAME_WIDTH - 80;
     const barY = 18;
     this.add
-      .text(barX, 6, "WIND", {
+      .text(barX, 4, "WIND", {
         fontFamily: "monospace",
-        fontSize: "8px",
-        color: "#88aacc",
+        fontSize: "9px",
+        color: "#88ccff",
+        stroke: "#000",
+        strokeThickness: 1,
       })
       .setOrigin(0.5, 0)
       .setDepth(100);
@@ -350,8 +392,10 @@ export class RaceScene extends Phaser.Scene {
     this.input.keyboard!.on("keydown-Escape", () => this.togglePause());
     this.input.keyboard!.on("keydown-p", () => this.togglePause());
     this.input.keyboard!.on("keydown-f", () => {
-      // Debug: finish the race
-      if (!this.raceFinished) {
+      // Debug: finish the race (only in debug mode)
+      const debugMode =
+        typeof window !== "undefined" && !!(window as any).__paRaceDebugMode;
+      if (debugMode && !this.raceFinished) {
         this.playerProgress = RACE_TUNING.raceDistance;
         this.checkFinish();
       }
@@ -396,34 +440,35 @@ export class RaceScene extends Phaser.Scene {
         gameOver: this.gameOver,
         result: this.gameOverText?.text || "",
         score: this.score,
+        seed: this.seed,
         distanceTraveled: Math.floor(this.distanceTraveled),
         stunTimer: this.stunTimer,
         obstacleCount: this.obstacles?.getLength() || 0,
         obstacleTypesSeen: Array.from(this.obstacleTypesSeen),
+        obstacleSpawnLog: this.obstacleSpawnLog.slice(0, 10),
         scrollSpeed: Math.floor(this.scrollSpeed),
         islandShown: this.islandShown,
       };
-
-      // Debug hooks for tests - check URL for test mode
-      const debugMode =
-        typeof window !== "undefined" &&
-        window.location.search.includes("testTouch=1");
-      if (debugMode) {
-        (window as any).__paRaceDebugFinish = () => {
-          if (!this.raceFinished) {
-            this.playerProgress = RACE_TUNING.raceDistance;
-            this.checkFinish();
-          }
-        };
-        (window as any).__paRaceDebugPause = () => {
-          this.togglePause();
-        };
-        (window as any).__paRaceDebugSetProgress = (value: number) => {
-          this.playerProgress = value;
-          this.exposeState();
-        };
-      }
     }
+  }
+
+  private setupDebugHooks(): void {
+    const debugMode =
+      typeof window !== "undefined" && !!(window as any).__paRaceDebugMode;
+    if (!debugMode) return;
+    (window as any).__paRaceDebugFinish = () => {
+      if (!this.raceFinished) {
+        this.playerProgress = RACE_TUNING.raceDistance;
+        this.checkFinish();
+      }
+    };
+    (window as any).__paRaceDebugPause = () => {
+      this.togglePause();
+    };
+    (window as any).__paRaceDebugSetProgress = (value: number) => {
+      this.playerProgress = value;
+      this.exposeState();
+    };
   }
 
   private handleSystemInput(): void {
@@ -476,10 +521,28 @@ export class RaceScene extends Phaser.Scene {
     // Sail visual for boost
     if (this.boosting) {
       this.sailIndicator.setVisible(true);
-      this.sailIndicator.setPosition(this.player.x - 20, this.player.y - 30);
+      this.sailIndicator.setPosition(this.player.x - 24, this.player.y - 34);
       this.sailIndicator.setTint(0xffdd44);
-      this.sailIndicator.setScale(1.0 + Math.sin(this.time.now * 0.008) * 0.2);
-      this.sailIndicator.setRotation(Math.sin(this.time.now * 0.005) * 0.1);
+      // Flapping animation
+      const flap = 1.2 + Math.sin(this.time.now * 0.012) * 0.3;
+      this.sailIndicator.setScale(flap);
+      this.sailIndicator.setRotation(Math.sin(this.time.now * 0.008) * 0.15);
+      // Brief wind streak particles
+      if (Math.random() < 0.3) {
+        const streak = this.add
+          .image(this.player.x - 30, this.player.y - 20, "particle")
+          .setTint(0x88ccff)
+          .setAlpha(0.3)
+          .setScale(0.3)
+          .setDepth(12);
+        this.tweens.add({
+          targets: streak,
+          x: streak.x - 20,
+          alpha: 0,
+          duration: 300,
+          onComplete: () => streak.destroy(),
+        });
+      }
     } else if (dir !== 0) {
       this.sailIndicator.setVisible(true);
       this.sailIndicator.setPosition(this.player.x - 20, this.player.y - 30);
@@ -495,9 +558,9 @@ export class RaceScene extends Phaser.Scene {
     // Lane-based movement with occasional mistakes
     this.aiLaneTimer -= dt * 1000;
     if (this.aiLaneTimer <= 0) {
-      this.aiLaneTimer = 2000 + Math.random() * 3000;
+      this.aiLaneTimer = 2000 + this.randFloat() * 3000;
       // Aim roughly near player
-      const laneOffset = Phaser.Math.Between(-1, 1) * 80;
+      const laneOffset = this.randInt(-1, 1) * 80;
       this.aiTargetX = Phaser.Math.Clamp(
         this.player.x + laneOffset,
         50,
@@ -507,13 +570,12 @@ export class RaceScene extends Phaser.Scene {
 
     // AI mistakes: drift off course
     this.aiMistakeTimer -= dt * 1000;
-    // TODO: Replace gameplay Math.random calls with a seeded RNG before making screenshot/gameplay determinism stricter.
     if (
       this.aiMistakeTimer <= 0 &&
-      Math.random() < RACE_TUNING.aiMistakeChance
+      this.randFloat() < RACE_TUNING.aiMistakeChance
     ) {
       this.aiMistakeTimer = RACE_TUNING.aiMistakeDuration;
-      this.aiMistakeDir = Math.random() < 0.5 ? -1 : 1;
+      this.aiMistakeDir = this.randFloat() < 0.5 ? -1 : 1;
     }
 
     let targetX = this.aiTargetX;
@@ -542,6 +604,15 @@ export class RaceScene extends Phaser.Scene {
     if (label) {
       label.setPosition(this.aiShip.x, this.aiShip.y + 42);
     }
+
+    // Rival wake
+    if (this.aiWake) {
+      this.aiWake.clear();
+      this.aiWake.fillStyle(0xffffff, 0.08);
+      this.aiWake.fillEllipse(this.aiShip.x, this.aiShip.y + 30, 40, 8);
+      this.aiWake.fillStyle(0xffffff, 0.04);
+      this.aiWake.fillEllipse(this.aiShip.x, this.aiShip.y + 42, 28, 6);
+    }
   }
 
   private spawnObstacle(): void {
@@ -552,12 +623,11 @@ export class RaceScene extends Phaser.Scene {
       { key: "reef", type: "reef" },
       { key: "debris", type: "debris" },
     ];
-    // TODO: Replace gameplay Math.random calls with a seeded RNG before making screenshot/gameplay determinism stricter.
-    const chosen = types[Math.floor(Math.random() * types.length)];
+    const chosen = this.choose(types);
     this.obstacleTypesSeen.add(chosen.type);
 
-    const x = Phaser.Math.Between(40, GAME_WIDTH - 40);
-    const y = Phaser.Math.Between(-20, 0);
+    const x = this.randInt(40, GAME_WIDTH - 40);
+    const y = this.randInt(-20, 0);
 
     const obs = this.physics.add.sprite(x, y, chosen.key) as Obstacle;
     obs.obsType = chosen.type;
@@ -567,11 +637,16 @@ export class RaceScene extends Phaser.Scene {
       obs.height * 0.7,
     );
     this.obstacles.add(obs);
+
+    // Log first 10 spawns for determinism verification
+    if (this.obstacleSpawnLog.length < 10) {
+      this.obstacleSpawnLog.push({ type: chosen.type, x });
+    }
   }
 
   private spawnTreasure(): void {
-    const x = Phaser.Math.Between(40, GAME_WIDTH - 40);
-    const y = Phaser.Math.Between(-20, 0);
+    const x = this.randInt(40, GAME_WIDTH - 40);
+    const y = this.randInt(-20, 0);
     const tres = this.physics.add.sprite(x, y, "treasure") as Treasure;
     tres.collected = false;
     tres.setDepth(5);
@@ -689,6 +764,10 @@ export class RaceScene extends Phaser.Scene {
 
     if (this.islandShown) {
       this.treasureIsland.y += Math.sin(this.time.now * 0.002) * 0.3;
+      // Subtle glow pulse
+      this.treasureIsland.setAlpha(
+        0.85 + Math.sin(this.time.now * 0.003) * 0.15,
+      );
     }
   }
 
@@ -716,18 +795,37 @@ export class RaceScene extends Phaser.Scene {
       this.scrollSpeed - 25,
     );
 
+    // "STUNNED" text
+    const stunText = this.add
+      .text(this.player.x, this.player.y - 50, "STUNNED!", {
+        fontFamily: "monospace",
+        fontSize: "11px",
+        color: "#ff4444",
+        stroke: "#000",
+        strokeThickness: 2,
+      })
+      .setOrigin(0.5)
+      .setDepth(20);
+    this.tweens.add({
+      targets: stunText,
+      y: stunText.y - 30,
+      alpha: 0,
+      duration: 500,
+      onComplete: () => stunText.destroy(),
+    });
+
     // Score penalty
     this.score = Math.max(0, this.score - 30);
 
-    // Particle burst
+    // Particle burst (cosmetic, uses rng for variety but doesn't affect gameplay)
     for (let i = 0; i < 8; i++) {
       const p = this.add.image(obs.x, obs.y, "particle");
       p.setTint(0xff6600);
       p.setDepth(20);
       this.tweens.add({
         targets: p,
-        x: p.x + Phaser.Math.Between(-25, 25),
-        y: p.y + Phaser.Math.Between(-25, 25),
+        x: p.x + this.randInt(-25, 25),
+        y: p.y + this.randInt(-25, 25),
         alpha: 0,
         scale: 0,
         duration: 350,
