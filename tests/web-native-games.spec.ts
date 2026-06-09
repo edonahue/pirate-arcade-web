@@ -1314,10 +1314,10 @@ for (const game of GAMES) {
       expect(state?.rivalTexture).toBe("ship-ai");
       expect(state?.playerVisible).toBe(true);
       expect(state?.rivalVisible).toBe(true);
-      expect(state?.playerDisplayWidth).toBeGreaterThan(20);
-      expect(state?.playerDisplayHeight).toBeGreaterThan(30);
-      expect(state?.rivalDisplayWidth).toBeGreaterThan(20);
-      expect(state?.rivalDisplayHeight).toBeGreaterThan(30);
+      expect(state?.playerDisplayWidth).toBeGreaterThanOrEqual(35);
+      expect(state?.playerDisplayHeight).toBeGreaterThanOrEqual(55);
+      expect(state?.rivalDisplayWidth).toBeGreaterThanOrEqual(32);
+      expect(state?.rivalDisplayHeight).toBeGreaterThanOrEqual(50);
 
       // Player Y should be in the game world (GAME_HEIGHT = 540)
       expect(state?.playerY).toBeGreaterThanOrEqual(0);
@@ -1357,6 +1357,13 @@ for (const game of GAMES) {
       expect(state?.rivalDisplayWidth).toBeGreaterThan(0);
       expect(state?.rivalDisplayHeight).toBeGreaterThan(0);
 
+      // Opening composition: ships should be high enough in the world
+      expect(state?.playerY).toBeLessThanOrEqual(450);
+      expect(state?.rivalY).toBeLessThanOrEqual(390);
+      expect(state?.playerY).toBeGreaterThan(state?.rivalY ?? 0);
+      expect(state?.playerDisplayWidth).toBeGreaterThanOrEqual(35);
+      expect(state?.rivalDisplayWidth).toBeGreaterThanOrEqual(32);
+
       // Game shell should not exceed viewport height by more than a pixel
       const shellBox = await page.locator("#game-shell").boundingBox();
       expect(shellBox).not.toBeNull();
@@ -1378,6 +1385,26 @@ for (const game of GAMES) {
       expect(state?.playerTexture).not.toBe("");
       expect(state?.rivalTexture).not.toBe("__MISSING");
       expect(state?.rivalTexture).not.toBe("");
+    });
+
+    test("player cue visible at boot then fades", async ({ page }) => {
+      await page.goto(`${game.path}?testTouch=1&seed=visual-smoke`, {
+        waitUntil: "domcontentloaded",
+      });
+      await waitForPhaserReady(page);
+
+      const state0 = await page.evaluate(
+        () => (window as any).__paRaceToTreasureIslandState,
+      );
+      expect(state0?.playerCueVisible).toBe(true);
+
+      // Wait for cue to fade (2.5s + buffer)
+      await page.waitForTimeout(3200);
+
+      const state1 = await page.evaluate(
+        () => (window as any).__paRaceToTreasureIslandState,
+      );
+      expect(state1?.playerCueVisible).toBe(false);
     });
   });
 }

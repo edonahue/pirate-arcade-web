@@ -77,6 +77,7 @@ export class RaceScene extends Phaser.Scene {
   private resultText!: Phaser.GameObjects.Text;
   private boostBarFill!: Phaser.GameObjects.Image;
   private sailIndicator!: Phaser.GameObjects.Image;
+  private playerCue?: Phaser.GameObjects.Text;
 
   private oceanTiles: Phaser.GameObjects.TileSprite | null = null;
   private lastObstacleSpawn: number = 0;
@@ -203,13 +204,36 @@ export class RaceScene extends Phaser.Scene {
   private createPlayer(): void {
     this.player = this.physics.add.sprite(
       GAME_WIDTH / 2,
-      GAME_HEIGHT - 80,
+      GAME_HEIGHT - 115,
       "ship-player",
     );
     this.player.setCollideWorldBounds(true);
     this.player.setDepth(10);
-    this.player.setScale(0.55);
+    this.player.setScale(0.65);
     this.player.setSize(36, 60);
+
+    // "YOU" cue above player at boot
+    this.playerCue = this.add
+      .text(this.player.x, this.player.y - 40, "YOU", {
+        fontFamily: "monospace",
+        fontSize: "11px",
+        color: "#ffd700",
+        stroke: "#000",
+        strokeThickness: 3,
+      })
+      .setOrigin(0.5)
+      .setDepth(12);
+    // Fade out after ~2.5s
+    this.tweens.add({
+      targets: this.playerCue,
+      alpha: 0,
+      duration: 2500,
+      ease: "Power2",
+      onComplete: () => {
+        this.playerCue?.destroy();
+        this.playerCue = undefined;
+      },
+    });
   }
 
   private aiWake!: Phaser.GameObjects.Graphics;
@@ -217,18 +241,18 @@ export class RaceScene extends Phaser.Scene {
   private createAIShip(): void {
     this.aiShip = this.physics.add.sprite(
       GAME_WIDTH / 2 + 100,
-      GAME_HEIGHT - 160,
+      GAME_HEIGHT - 190,
       "ship-ai",
     );
     this.aiShip.setDepth(10);
     this.aiShip.setAlpha(0.9);
-    this.aiShip.setScale(0.52);
+    this.aiShip.setScale(0.62);
     this.aiShip.setSize(36, 60);
     // Rival wake (white trail behind AI ship)
     this.aiWake = this.add.graphics().setDepth(9);
     // Label
     const label = this.add
-      .text(this.aiShip.x, this.aiShip.y + 42, "★ LONG JOHN", {
+      .text(this.aiShip.x, this.aiShip.y + 48, "★ LONG JOHN", {
         fontFamily: "monospace",
         fontSize: "9px",
         color: "#ff6666",
@@ -503,6 +527,7 @@ export class RaceScene extends Phaser.Scene {
         playerDisplayHeight: Math.round(this.player?.displayHeight ?? 0),
         rivalDisplayWidth: Math.round(this.aiShip?.displayWidth ?? 0),
         rivalDisplayHeight: Math.round(this.aiShip?.displayHeight ?? 0),
+        playerCueVisible: this.playerCue?.visible ?? false,
       };
     }
   }
