@@ -63,49 +63,69 @@ export class BootScene extends Phaser.Scene {
 
   private generateOceanBg(): void {
     const g = this.add.graphics();
-    const stripeH = GAME_HEIGHT / 8;
+    const stripeH = GAME_HEIGHT / 12;
     const tropicColors = [
-      0x0a1a30, 0x0c2240, 0x0f2e50, 0x123d60, 0x0f2e50, 0x0c2240, 0x0a1a30,
-      0x0d2244,
+      0x071830, 0x0a2040, 0x0c2850, 0x0e3060, 0x103868, 0x0e3060, 0x0c2850,
+      0x0a2040, 0x081c38, 0x0a2448, 0x0c2c58, 0x0e3460,
     ];
-    const colors = tropicColors;
-    for (let i = 0; i < colors.length; i++) {
-      g.fillStyle(colors[i]);
+    for (let i = 0; i < tropicColors.length; i++) {
+      g.fillStyle(tropicColors[i]);
       g.fillRect(0, i * stripeH, GAME_WIDTH, stripeH + 1);
     }
-    // Nautical chart grid overlay
-    g.lineStyle(1, 0x2a6a8a, 0.06);
+
+    // Nautical chart grid overlay (subtle)
+    g.lineStyle(1, 0x2a6a8a, 0.05);
     for (let x = 0; x < GAME_WIDTH; x += 40) {
       g.lineBetween(x, 0, x, GAME_HEIGHT);
     }
     for (let y = 0; y < GAME_HEIGHT; y += 40) {
       g.lineBetween(0, y, GAME_WIDTH, y);
     }
-    // Rolling wave crests
-    for (let row = 0; row < 16; row++) {
-      const wy = row * (GAME_HEIGHT / 16);
-      for (let col = 0; col < GAME_WIDTH; col += 4) {
-        const offset = Math.sin(col * 0.025 + row * 0.7) * 4;
-        g.fillStyle(0xffffff, 0.018 + row * 0.002);
-        g.fillEllipse(col, wy + offset, 6, 2);
+
+    // Large wave crests (rolling swells)
+    for (let row = 0; row < 24; row++) {
+      const wy = row * (GAME_HEIGHT / 24);
+      for (let col = 0; col < GAME_WIDTH; col += 3) {
+        const offset = Math.sin(col * 0.02 + row * 0.6 + row * 0.3) * 3;
+        const alpha = 0.015 + (row % 3) * 0.004;
+        g.fillStyle(0x88bbdd, alpha);
+        g.fillEllipse(col, wy + offset, 5, 2);
       }
     }
-    // Whitecap highlights
-    g.fillStyle(0xffffff, 0.05);
-    for (let i = 0; i < 60; i++) {
+
+    // Smaller wave ripples (foreground detail)
+    for (let row = 0; row < 40; row++) {
+      const wy = row * (GAME_HEIGHT / 40);
+      for (let col = 0; col < GAME_WIDTH; col += 6) {
+        const offset = Math.sin(col * 0.04 + row * 1.2) * 2;
+        g.fillStyle(0xaaccee, 0.012 + (row % 4) * 0.002);
+        g.fillEllipse(col, wy + offset, 3, 1);
+      }
+    }
+
+    // Whitecap highlights (scattered)
+    g.fillStyle(0xffffff, 0.04);
+    for (let i = 0; i < 40; i++) {
       g.fillEllipse(
         this.rng.int(0, GAME_WIDTH),
         this.rng.int(0, GAME_HEIGHT),
-        this.rng.int(4, 12),
-        this.rng.int(1, 3),
+        this.rng.int(4, 10),
+        this.rng.int(1, 2),
       );
     }
+
     // Compass-rose markers (nautical chart feel)
-    g.lineStyle(1, 0x3a8aaa, 0.08);
+    g.lineStyle(1, 0x3a8aaa, 0.07);
     g.strokeCircle(60, 60, 25);
     g.strokeCircle(60, 60, 15);
     g.lineBetween(60, 32, 60, 88);
     g.lineBetween(32, 60, 88, 60);
+
+    // Secondary compass marker
+    g.lineStyle(1, 0x3a8aaa, 0.05);
+    g.strokeCircle(GAME_WIDTH - 60, GAME_HEIGHT - 60, 20);
+    g.strokeCircle(GAME_WIDTH - 60, GAME_HEIGHT - 60, 12);
+
     g.generateTexture("ocean-bg", GAME_WIDTH, GAME_HEIGHT);
     g.destroy();
   }

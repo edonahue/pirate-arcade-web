@@ -208,8 +208,8 @@ export class RaceScene extends Phaser.Scene {
     );
     this.player.setCollideWorldBounds(true);
     this.player.setDepth(10);
-    this.player.setScale(0.7);
-    this.player.setSize(30, 50);
+    this.player.setScale(0.55);
+    this.player.setSize(36, 60);
   }
 
   private aiWake!: Phaser.GameObjects.Graphics;
@@ -222,8 +222,8 @@ export class RaceScene extends Phaser.Scene {
     );
     this.aiShip.setDepth(10);
     this.aiShip.setAlpha(0.9);
-    this.aiShip.setScale(0.65);
-    this.aiShip.setSize(30, 50);
+    this.aiShip.setScale(0.52);
+    this.aiShip.setSize(36, 60);
     // Rival wake (white trail behind AI ship)
     this.aiWake = this.add.graphics().setDepth(9);
     // Label
@@ -253,6 +253,12 @@ export class RaceScene extends Phaser.Scene {
   }
 
   private createHUD(): void {
+    // HUD background panel (semi-transparent bar across top)
+    const hudBg = this.add
+      .rectangle(GAME_WIDTH / 2, 0, GAME_WIDTH, 44, 0x000000, 0.35)
+      .setOrigin(0.5, 0)
+      .setDepth(99);
+
     const style: Phaser.Types.GameObjects.Text.TextStyle = {
       fontFamily: "monospace",
       fontSize: "12px",
@@ -260,14 +266,14 @@ export class RaceScene extends Phaser.Scene {
     };
 
     // Top-left: score + speed
-    this.scoreText = this.add.text(10, 8, "Score: 0", style).setDepth(100);
+    this.scoreText = this.add.text(10, 6, "Score: 0", style).setDepth(100);
     this.speedText = this.add
-      .text(10, 24, "", { ...style, fontSize: "10px", color: "#88aacc" })
+      .text(10, 22, "", { ...style, fontSize: "10px", color: "#88aacc" })
       .setDepth(100);
 
     // Boost indicator (appears during boost)
     this.boostLabelText = this.add
-      .text(10, 40, "BOOST", {
+      .text(10, 34, "BOOST", {
         fontFamily: "monospace",
         fontSize: "9px",
         color: "#ffdd44",
@@ -279,7 +285,7 @@ export class RaceScene extends Phaser.Scene {
 
     // Top-center: progress vs rival
     this.progressText = this.add
-      .text(GAME_WIDTH / 2, 6, "", {
+      .text(GAME_WIDTH / 2, 4, "", {
         ...style,
         fontSize: "11px",
         align: "center",
@@ -289,7 +295,7 @@ export class RaceScene extends Phaser.Scene {
       .setDepth(100);
 
     this.rivalText = this.add
-      .text(GAME_WIDTH / 2, 30, "", {
+      .text(GAME_WIDTH / 2, 28, "", {
         fontFamily: "monospace",
         fontSize: "9px",
         color: "#ff6666",
@@ -302,7 +308,7 @@ export class RaceScene extends Phaser.Scene {
 
     // Boost bar (top-right)
     const barX = GAME_WIDTH - 80;
-    const barY = 18;
+    const barY = 16;
     this.add
       .text(barX, 4, "WIND", {
         fontFamily: "monospace",
@@ -340,11 +346,17 @@ export class RaceScene extends Phaser.Scene {
       .setVisible(false);
 
     const pauseHint = this.add
-      .text(GAME_WIDTH / 2, GAME_HEIGHT / 2 + 10, "Press ESC or P to resume", {
-        fontFamily: "monospace",
-        fontSize: "12px",
-        color: "#888",
-      })
+      .text(
+        GAME_WIDTH / 2,
+        GAME_HEIGHT / 2 + 10,
+        "Press PAUSE button, ESC, or P to resume",
+        {
+          fontFamily: "monospace",
+          fontSize: "11px",
+          color: "#888",
+          align: "center",
+        },
+      )
       .setOrigin(0.5)
       .setDepth(200)
       .setVisible(false);

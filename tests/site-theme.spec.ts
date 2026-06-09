@@ -9,12 +9,15 @@ test.describe("Site Visual Theme", () => {
     // Check main sections exist
     await expect(page.locator("h1.hero__title")).toContainText("PIRATE ARCADE");
     await expect(page.locator("h2.section__title").first()).toContainText(
-      "Four Classic Arcade Games",
+      "Five",
     );
     await expect(page.locator("h2.section__title").nth(1)).toContainText(
-      "Play in Browser Now",
+      "Race to Treasure",
     );
     await expect(page.locator("h2.section__title").nth(2)).toContainText(
+      "Play in Browser Now",
+    );
+    await expect(page.locator("h2.section__title").nth(3)).toContainText(
       "Free AI, Local Hardware, Open Source",
     );
 
@@ -33,7 +36,7 @@ test.describe("Site Visual Theme", () => {
     ).toBeVisible();
 
     // Check browser-play CTAs — all three browser-playable games
-    await expect(page.locator("text=Play in Browser →")).toHaveCount(3);
+    await expect(page.locator("text=Play in Browser →")).toHaveCount(4);
   });
 
   test("Play page shows browser-playable games", async ({ page }) => {
@@ -75,7 +78,9 @@ test.describe("Site Visual Theme", () => {
     await expect(page.locator("h1.section__title")).toContainText(
       "The Project",
     );
-    await expect(page.locator("h2.section__title")).toContainText("Made by");
+    await expect(page.locator("h2.section__title").last()).toContainText(
+      "Made by",
+    );
   });
 
   test("Build log page loads", async ({ page }) => {
@@ -120,5 +125,56 @@ test.describe("Site Visual Theme", () => {
         expect(navBox.width).toBeLessThanOrEqual(viewport.width);
       }
     }
+  });
+});
+
+test.describe("Game Detail Page", () => {
+  test.use({ viewport: { width: 1280, height: 900 } });
+
+  test("Race detail page has prominent Play CTA above fold", async ({
+    page,
+  }) => {
+    await page.goto("/games/race-to-treasure-island/");
+
+    const heroCta = page.locator(".game-detail__hero-cta a");
+    await expect(heroCta).toBeVisible();
+    await expect(heroCta).toHaveText(/Play in Browser/i);
+
+    // Verify it's above the screenshot (above fold)
+    const ctaBox = await heroCta.boundingBox();
+    expect(ctaBox?.y).toBeLessThan(500);
+  });
+
+  test("Race detail screenshot is clickable", async ({ page }) => {
+    await page.goto("/games/race-to-treasure-island/");
+
+    const screenshotLink = page.locator(".game-detail__screenshot-link");
+    await expect(screenshotLink).toBeVisible();
+
+    const href = await screenshotLink.getAttribute("href");
+    expect(href).toBe("/play/race-to-treasure-island/");
+  });
+
+  test("Cannonball Clash detail page has Play CTA", async ({ page }) => {
+    await page.goto("/games/cannonball-clash/");
+
+    const heroCta = page.locator(".game-detail__hero-cta a");
+    await expect(heroCta).toBeVisible();
+    await expect(heroCta).toHaveText(/Play in Browser/i);
+
+    const screenshotLink = page.locator(".game-detail__screenshot-link");
+    await expect(screenshotLink).toBeVisible();
+  });
+
+  test("Desktop-only game has no hero Play CTA or clickable screenshot", async ({
+    page,
+  }) => {
+    await page.goto("/games/port-royale-tycoon/");
+
+    const heroCta = page.locator(".game-detail__hero-cta");
+    await expect(heroCta).toHaveCount(0);
+
+    const screenshotLink = page.locator(".game-detail__screenshot-link");
+    await expect(screenshotLink).toHaveCount(0);
   });
 });

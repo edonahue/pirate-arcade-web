@@ -67,15 +67,37 @@ const isDesktopAvailable = game.status === "desktop-available";
     </div>
 
     {
+      isBrowserPlayable && game.browserUrl && (
+        <div class="game-detail__hero-cta">
+          <CTAButton href={game.browserUrl} variant="primary">
+            ▶ Play in Browser
+          </CTAButton>
+        </div>
+      )
+    }
+
+    {
       game.screenshot && (
         <figure class="game-detail__figure">
-          <img
-            src={game.screenshot}
-            alt={`${game.title} gameplay screenshot`}
-            width="1280"
-            height="720"
-            loading="eager"
-          />
+          {isBrowserPlayable && game.browserUrl ? (
+            <a href={game.browserUrl} class="game-detail__screenshot-link">
+              <img
+                src={game.screenshot}
+                alt={`${game.title} gameplay screenshot`}
+                width="1280"
+                height="720"
+                loading="eager"
+              />
+            </a>
+          ) : (
+            <img
+              src={game.screenshot}
+              alt={`${game.title} gameplay screenshot`}
+              width="1280"
+              height="720"
+              loading="eager"
+            />
+          )}
         </figure>
       )
     }
@@ -249,6 +271,19 @@ const isDesktopAvailable = game.status === "desktop-available";
     gap: 0.5rem;
     flex-wrap: wrap;
     margin-bottom: 1.5rem;
+  }
+  .game-detail__hero-cta {
+    margin-bottom: 1.5rem;
+  }
+  .game-detail__screenshot-link {
+    display: block;
+    transition: opacity 0.2s;
+  }
+  .game-detail__screenshot-link:hover {
+    opacity: 0.85;
+  }
+  .game-detail__screenshot-link img {
+    cursor: pointer;
   }
   .chip {
     font-family: var(--mono);

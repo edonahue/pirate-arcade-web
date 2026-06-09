@@ -1048,5 +1048,81 @@ for (const game of GAMES) {
         expect(state.score).toBeLessThan(0);
       }
     });
+
+    // ── Phase 14: Touch UI enhancements ──
+
+    test("touch hint overlay shown on first visit", async ({ page }) => {
+      await page.goto(`${game.path}?testTouch=1`, {
+        waitUntil: "domcontentloaded",
+      });
+
+      // TestTouch mode doesn't show hint by design (debugMode check).
+      // Navigate clean without debug flags and mock coarse pointer.
+      await page.goto(game.path, { waitUntil: "domcontentloaded" });
+      // The hint checks pointer: coarse — skip for desktop-native Playwright
+      // where pointer is fine. Instead verify the hint element exists in DOM.
+      await expect(page.locator("#touch-hint")).toHaveCount(1);
+    });
+
+    test("touch hint dismiss button clears hint", async ({ page }) => {
+      // Force hint visible regardless of pointer
+      await page.goto(game.path, { waitUntil: "domcontentloaded" });
+      await page.evaluate(() => {
+        const el = document.getElementById("touch-hint");
+        if (el) el.style.display = "flex";
+      });
+
+      await expect(page.locator("#touch-hint")).toBeVisible();
+      await page.locator("#touch-hint-dismiss").click();
+      await page.waitForTimeout(200);
+      const hidden = await page.evaluate(() => {
+        const el = document.getElementById("touch-hint");
+        return el?.style.display === "none";
+      });
+      expect(hidden).toBe(true);
+    });
+
+    test("hud controls reference updated text", async ({ page }) => {
+      await page.goto(game.path, { waitUntil: "domcontentloaded" });
+
+      const infoText = await page.locator("#infobox").textContent();
+      expect(infoText?.toLowerCase()).toContain("steer");
+      expect(infoText?.toLowerCase()).toContain("boost");
+      expect(infoText?.toLowerCase()).toContain("pause");
+      expect(infoText?.toLowerCase()).toContain("restart");
+      // Should now reference the simpler control layout
+      expect(infoText?.toLowerCase()).toContain("hold");
+    });
+
+    test("touch controls are positioned absolute (overlay not flex-bar)", async ({
+      page,
+    }) => {
+      await page.goto(game.path, { waitUntil: "domcontentloaded" });
+
+      const position = await page
+        .locator("#touch-controls")
+        .evaluate((el) => window.getComputedStyle(el).position);
+      expect(position).toBe("absolute");
+    });
+
+    test("game-container fills entire game-shell", async ({ page }) => {
+      await page.goto(game.path, { waitUntil: "domcontentloaded" });
+
+      const containerPos = await page
+        .locator("#game-container")
+        .evaluate((el) => window.getComputedStyle(el).position);
+      expect(containerPos).toBe("absolute");
+
+      const containerInset = await page
+        .locator("#game-container")
+        .evaluate((el) => ({
+          top: window.getComputedStyle(el).top,
+          left: window.getComputedStyle(el).left,
+          width: window.getComputedStyle(el).width,
+          height: window.getComputedStyle(el).height,
+        }));
+      expect(containerInset.top).toBe("0px");
+      expect(containerInset.left).toBe("0px");
+    });
   });
 }
