@@ -1297,5 +1297,87 @@ for (const game of GAMES) {
         expect(box.x + box.width).toBeLessThanOrEqual(844);
       }
     });
+
+    // ── Phase 18: Sprite visibility & texture tests ──
+
+    test("race ship textures load and are visible", async ({ page }) => {
+      await page.goto(`${game.path}?testTouch=1&seed=visual-smoke`, {
+        waitUntil: "domcontentloaded",
+      });
+      await waitForPhaserReady(page);
+
+      const state = await page.evaluate(
+        () => (window as any).__paRaceToTreasureIslandState,
+      );
+
+      expect(state?.playerTexture).toBe("ship-player");
+      expect(state?.rivalTexture).toBe("ship-ai");
+      expect(state?.playerVisible).toBe(true);
+      expect(state?.rivalVisible).toBe(true);
+      expect(state?.playerDisplayWidth).toBeGreaterThan(20);
+      expect(state?.playerDisplayHeight).toBeGreaterThan(30);
+      expect(state?.rivalDisplayWidth).toBeGreaterThan(20);
+      expect(state?.rivalDisplayHeight).toBeGreaterThan(30);
+
+      // Player Y should be in the game world (GAME_HEIGHT = 540)
+      expect(state?.playerY).toBeGreaterThanOrEqual(0);
+      expect(state?.playerY).toBeLessThanOrEqual(540);
+      // Rival Y should also be in bounds
+      expect(state?.rivalY).toBeGreaterThanOrEqual(0);
+      expect(state?.rivalY).toBeLessThanOrEqual(540);
+    });
+
+    test("race ships inside visible canvas at small landscape viewport", async ({
+      page,
+    }) => {
+      await page.setViewportSize({ width: 844, height: 390 });
+      await page.goto(`${game.path}?testTouch=1&seed=visual-smoke`, {
+        waitUntil: "domcontentloaded",
+      });
+      await waitForPhaserReady(page);
+
+      // Canvas bounding box
+      const canvasBox = await page
+        .locator("#game-container canvas")
+        .boundingBox();
+      expect(canvasBox).not.toBeNull();
+      if (!canvasBox) return;
+
+      // Canvas should be reasonably sized
+      expect(canvasBox.height).toBeGreaterThan(250);
+      // Canvas bottom should not exceed viewport
+      expect(canvasBox.y + canvasBox.height).toBeLessThanOrEqual(390 + 1);
+
+      // State sanity
+      const state = await page.evaluate(
+        () => (window as any).__paRaceToTreasureIslandState,
+      );
+      expect(state?.playerDisplayWidth).toBeGreaterThan(0);
+      expect(state?.playerDisplayHeight).toBeGreaterThan(0);
+      expect(state?.rivalDisplayWidth).toBeGreaterThan(0);
+      expect(state?.rivalDisplayHeight).toBeGreaterThan(0);
+
+      // Game shell should not exceed viewport height by more than a pixel
+      const shellBox = await page.locator("#game-shell").boundingBox();
+      expect(shellBox).not.toBeNull();
+      if (shellBox) {
+        expect(shellBox.y + shellBox.height).toBeLessThanOrEqual(390 + 2);
+      }
+    });
+
+    test("race does not render missing-texture fallback", async ({ page }) => {
+      await page.goto(`${game.path}?testTouch=1&seed=visual-smoke`, {
+        waitUntil: "domcontentloaded",
+      });
+      await waitForPhaserReady(page);
+
+      const state = await page.evaluate(
+        () => (window as any).__paRaceToTreasureIslandState,
+      );
+      expect(state?.playerTexture).not.toBe("__MISSING");
+      expect(state?.playerTexture).not.toBe("");
+      expect(state?.rivalTexture).not.toBe("__MISSING");
+      expect(state?.rivalTexture).not.toBe("");
+    });
   });
 }

@@ -485,6 +485,9 @@ export class RaceScene extends Phaser.Scene {
         seed: this.seed,
         rngVersion: this.rngCourse.version,
         playerX: Math.floor(this.player?.x ?? -1),
+        playerY: Math.floor(this.player?.y ?? -1),
+        rivalX: Math.floor(this.aiShip?.x ?? -1),
+        rivalY: Math.floor(this.aiShip?.y ?? -1),
         distanceTraveled: Math.floor(this.distanceTraveled),
         stunTimer: this.stunTimer,
         obstacleCount: this.obstacles?.getLength() || 0,
@@ -492,6 +495,14 @@ export class RaceScene extends Phaser.Scene {
         obstacleSpawnLog: this.obstacleSpawnLog.slice(0, 10),
         scrollSpeed: Math.floor(this.scrollSpeed),
         islandShown: this.islandShown,
+        playerTexture: this.player?.texture?.key ?? "",
+        rivalTexture: this.aiShip?.texture?.key ?? "",
+        playerVisible: this.player?.visible ?? false,
+        rivalVisible: this.aiShip?.visible ?? false,
+        playerDisplayWidth: Math.round(this.player?.displayWidth ?? 0),
+        playerDisplayHeight: Math.round(this.player?.displayHeight ?? 0),
+        rivalDisplayWidth: Math.round(this.aiShip?.displayWidth ?? 0),
+        rivalDisplayHeight: Math.round(this.aiShip?.displayHeight ?? 0),
       };
     }
   }
