@@ -1,6 +1,19 @@
 # ROADMAP
 
-<!-- Current HEAD: c8d8f09 (race feedback polish + coherence pass) -->
+<!-- Current HEAD: portfolio-polish pass -->
+
+## Portfolio Positioning (This Release)
+
+This release sharpens Pirate Arcade as a **public work sample** — 70% playable arcade, 30% engineering proof.
+
+- **Homepage**: Subtle builder credit ("by Erich Donahue"), engineering proof strip (engines, tests, release gate, screenshots, infrastructure)
+- **About**: "Product-Minded Engineering" section earlier, LinkedIn link, stronger builder narrative
+- **Source**: "Engineering Discipline" cards — two repos, static+edge, two engines, deterministic hooks, screenshot pipeline, registry validation, release gate, CSP hygiene, mobile tests
+- **Game detail pages**: "What this demonstrates" block per game
+- **Nav**: About moved before Build Log for recruiter flow
+- **Tests**: 10 new portfolio-positioning tests (homepage, about, source, game detail, header, metadata)
+
+---
 
 ## Phase 0: Foundation ✓ (Live)
 

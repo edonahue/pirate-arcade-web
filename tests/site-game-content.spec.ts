@@ -158,4 +158,134 @@ test.describe("Site Game Content", () => {
     const title = await page.locator("h1").textContent();
     expect(title).toContain("Race to Treasure Island");
   });
+
+  test("homepage has builder credit and proof strip", async ({ page }) => {
+    await page.goto("/");
+
+    // Builder credit link (href may not have trailing slash)
+    await expect(
+      page.locator('.hero__credit a[href*="erichdonahue.com"]'),
+    ).toBeVisible();
+
+    // Proof strip items
+    await expect(page.locator("text=Engines")).toBeVisible();
+    await expect(page.locator("text=Tests")).toBeVisible();
+    await expect(page.locator("text=Release gate")).toBeVisible();
+    await expect(page.locator("text=Screenshots")).toBeVisible();
+    await expect(page.locator("text=Infrastructure")).toBeVisible();
+  });
+
+  test("homepage primary CTA is Play the Games", async ({ page }) => {
+    await page.goto("/");
+
+    const primaryCta = page.locator(
+      'a.cta--primary:has-text("Play the Games")',
+    );
+    await expect(primaryCta.first()).toBeVisible();
+  });
+
+  test("play page has recommended path strip", async ({ page }) => {
+    await page.goto("/play/");
+
+    await expect(page.locator("text=⚡ Fastest load")).toBeVisible();
+    await expect(page.locator("text=👆 Easiest on touch")).toBeVisible();
+    await expect(page.locator("text=🐍 Classic Pygbag set")).toBeVisible();
+    await expect(page.locator("text=🖥️ Desktop collection")).toBeVisible();
+  });
+
+  test("about page links to builder sites", async ({ page }) => {
+    await page.goto("/about/");
+
+    await expect(
+      page.locator('a[href*="erichdonahue.com"]').first(),
+    ).toBeVisible();
+    await expect(
+      page.locator('a[href*="github.com/edonahue"]').first(),
+    ).toBeVisible();
+    await expect(
+      page.locator('a[href*="linkedin.com/in/erichdonahue"]').first(),
+    ).toBeVisible();
+  });
+
+  test("about page has builder positioning section", async ({ page }) => {
+    await page.goto("/about/");
+
+    await expect(
+      page.locator("text=Product-Minded Engineering").first(),
+    ).toBeVisible();
+    await expect(page.locator("text=decision science").first()).toBeVisible();
+  });
+
+  test("source page has engineering proof cards", async ({ page }) => {
+    await page.goto("/source/");
+
+    await expect(page.locator("text=Engineering Discipline")).toBeVisible();
+    await expect(page.locator("text=Two Repositories")).toBeVisible();
+    await expect(page.locator("text=Static Site").first()).toBeVisible();
+    await expect(page.locator("text=Two Browser Engines")).toBeVisible();
+    await expect(page.locator("text=Deterministic Test Hooks")).toBeVisible();
+    await expect(page.locator("text=Screenshot Capture")).toBeVisible();
+    await expect(page.locator("text=Game Registry Validation")).toBeVisible();
+    await expect(
+      page.locator("text=Automated Release Gate").first(),
+    ).toBeVisible();
+    await expect(page.locator("text=CSP").first()).toBeVisible();
+    await expect(page.locator("text=Mobile").first()).toBeVisible();
+  });
+
+  test("game detail pages show What this demonstrates", async ({ page }) => {
+    for (const game of games) {
+      await page.goto(`/games/${game.id}/`);
+
+      if (game.demonstrates && game.demonstrates.length > 0) {
+        await expect(page.locator("text=What this demonstrates")).toBeVisible();
+      }
+    }
+  });
+
+  test("header support link is icon-only with accessible label", async ({
+    page,
+  }) => {
+    await page.goto("/");
+
+    const supportLink = page.locator(".support-link");
+    await expect(supportLink).toBeVisible();
+    await expect(supportLink).toHaveAttribute(
+      "aria-label",
+      "Buy me a coffee to support Pirate Arcade",
+    );
+
+    // Should not have visible text beyond the sr-only span
+    const linkText = await supportLink.textContent();
+    // The sr-only span text is the only visible text content
+    expect(linkText?.trim()).toBe("Buy me a coffee");
+  });
+
+  test("metadata descriptions within reasonable length", async ({ page }) => {
+    const pages = [
+      { path: "/", maxLen: 200 },
+      { path: "/about/", maxLen: 200 },
+      { path: "/source/", maxLen: 240 },
+      { path: "/play/", maxLen: 200 },
+    ];
+
+    for (const { path, maxLen } of pages) {
+      await page.goto(path);
+      const desc = await page
+        .locator('meta[name="description"]')
+        .getAttribute("content");
+      expect(desc).toBeTruthy();
+      expect(desc!.length).toBeLessThanOrEqual(maxLen);
+    }
+
+    // Game detail pages
+    for (const game of games) {
+      await page.goto(`/games/${game.id}/`);
+      const desc = await page
+        .locator('meta[name="description"]')
+        .getAttribute("content");
+      expect(desc).toBeTruthy();
+      expect(desc!.length).toBeLessThanOrEqual(180);
+    }
+  });
 });

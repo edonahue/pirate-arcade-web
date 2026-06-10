@@ -1,8 +1,27 @@
 # Pirate Arcade
 
-A pirate-themed arcade collection and an experiment in zero-cost AI-assisted development.
+A pirate-themed arcade collection and a public build experiment exploring zero-cost AI-assisted development on free infrastructure.
 
-**Domain:** [pirate-arcade.com](https://pirate-arcade.com)
+**Domain:** [pirate-arcade.com](https://pirate-arcade.com)  
+**Maker:** [Erich Donahue](https://erichdonahue.com) — decision science, data products, practical systems
+
+## What this demonstrates
+
+- **Product judgment**: Choosing Pygbag for arcade ports vs Phaser 3 for a web-native racer
+- **Design competence**: Dark-first pirate arcade aesthetic, mobile-responsive, accessible
+- **Engineering discipline**: 200+ Playwright tests, 20-step automated release gate, screenshot validation
+- **AI workflow**: OpenCode + free models (DeepSeek V4, Nemotron) on local hardware, no paid subscriptions
+- **Shipping on free tiers**: Cloudflare Pages, GitHub Actions, zero cloud compute costs
+
+## The Games
+
+| Game                        | Engine                    | Platform          | Key Tech                               |
+| --------------------------- | ------------------------- | ----------------- | -------------------------------------- |
+| Cannonball Clash            | Pygbag / WebAssembly      | Browser + Desktop | Touch input bridge, procedural audio   |
+| Treasure Cove               | Pygbag / WebAssembly      | Browser + Desktop | Breakout physics, visual feedback      |
+| Kraken's Wake               | Pygbag / WebAssembly      | Browser + Desktop | Momentum-based controls, survival loop |
+| **Race to Treasure Island** | **Phaser 3 (web-native)** | **Browser only**  | **Seeded RNG, wind boost, AI rival**   |
+| Port Royale Tycoon          | Python / Pygame           | Desktop only      | Save/load, turn-based economy          |
 
 ## Stack
 

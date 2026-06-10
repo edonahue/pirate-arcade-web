@@ -35,6 +35,7 @@ export interface Game {
   bestFor?: string;
   availabilityNote?: string;
   seoDescription?: string;
+  demonstrates?: string[];
 }
 
 export const games: Game[] = gamesData as Game[];

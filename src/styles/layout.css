@@ -361,6 +361,24 @@
   border: 1px solid rgba(201, 164, 92, 1);
 }
 
+.game-card__screenshot-caption {
+  position: absolute;
+  bottom: 0.5rem;
+  left: 0.5rem;
+  right: 0.5rem;
+  font-family: var(--mono);
+  font-size: 0.5625rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #fff;
+  text-align: center;
+  padding: 0.25rem 0.5rem;
+  background: rgba(0, 0, 0, 0.6);
+  border-radius: 3px;
+  pointer-events: none;
+  z-index: 2;
+}
+
 .game-card__image:hover {
   border-color: var(--brass);
 }

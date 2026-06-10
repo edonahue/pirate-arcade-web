@@ -34,6 +34,13 @@ const desktopOnly = games.filter((g) => g.status === "desktop-available");
     <CTAButton href="/source" variant="outline">View Source</CTAButton>
   </Hero>
 
+  <p class="hero__credit">
+    A playable arcade collection and public build experiment by
+    <a href="https://erichdonahue.com" target="_blank" rel="noopener noreferrer"
+      >Erich Donahue</a
+    >.
+  </p>
+
   <section class="section">
     <div class="section__header">
       <p class="section__eyebrow">The Games</p>
@@ -242,6 +249,30 @@ const desktopOnly = games.filter((g) => g.status === "desktop-available");
         lock-in.
       </p>
     </div>
+
+    <div class="proof-strip">
+      <div class="proof-strip__item">
+        <span class="proof-strip__label">Engines</span>
+        <span class="proof-strip__value">Pygbag + Phaser 3</span>
+      </div>
+      <div class="proof-strip__item">
+        <span class="proof-strip__label">Tests</span>
+        <span class="proof-strip__value">200+ Playwright</span>
+      </div>
+      <div class="proof-strip__item">
+        <span class="proof-strip__label">Release gate</span>
+        <span class="proof-strip__value">20-step automated</span>
+      </div>
+      <div class="proof-strip__item">
+        <span class="proof-strip__label">Screenshots</span>
+        <span class="proof-strip__value">Captured + validated</span>
+      </div>
+      <div class="proof-strip__item">
+        <span class="proof-strip__label">Infrastructure</span>
+        <span class="proof-strip__value">2 repos, free tier</span>
+      </div>
+    </div>
+
     <div class="text-center mt-2">
       <CTAButton href="/build-log" variant="gold">Read the Build Log</CTAButton>
     </div>

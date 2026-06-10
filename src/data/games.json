@@ -21,7 +21,13 @@
     "bestFor": "Quick first touch game — simplest controls, instant action.",
     "availabilityNote": "Playable in browser now via Pygbag and WebAssembly, and also included in the desktop release.",
     "seoDescription": "Play Cannonball Clash in your browser — a naval Pong duel with power-ups, AI opponent, and procedural audio.",
-    "features": ["1-2 players", "AI opponent", "Power-ups", "Procedural audio"]
+    "features": ["1-2 players", "AI opponent", "Power-ups", "Procedural audio"],
+    "demonstrates": [
+      "Pygbag/WebAssembly port pipeline",
+      "Touch input bridge for slide controls",
+      "Procedural audio synthesis",
+      "AI opponent with difficulty scaling"
+    ]
   },
   {
     "id": "treasure-cove",
@@ -50,6 +56,12 @@
       "Score combos",
       "Paddle power-up",
       "Procedural audio"
+    ],
+    "demonstrates": [
+      "Breakout physics with row-specific durability",
+      "Visual crack progression feedback",
+      "Score combo system",
+      "Pygbag port with touch-slide controls"
     ]
   },
   {
@@ -74,7 +86,13 @@
     "bestFor": "Asteroids veterans — momentum-based movement and wave survival.",
     "availabilityNote": "Playable in browser now via Pygbag and WebAssembly, and also included in the desktop release.",
     "seoDescription": "Play Kraken's Wake in your browser — an Asteroids-style sea monster survival game with treasure pickups and 3 lives.",
-    "features": ["Ship combat", "Wave survival", "Treasure pickups", "3 lives"]
+    "features": ["Ship combat", "Wave survival", "Treasure pickups", "3 lives"],
+    "demonstrates": [
+      "Momentum-based ship movement (thrust/coast)",
+      "Turn/thrust/fire control translation to touch",
+      "Wave survival with escalating difficulty",
+      "Harder touch difficulty design"
+    ]
   },
   {
     "id": "race-to-treasure-island",
@@ -103,6 +121,13 @@
       "Wind-meter boost",
       "Treasure Island finish",
       "Seeded obstacle course"
+    ],
+    "demonstrates": [
+      "Phaser 3 web-native game (no runtime download)",
+      "Deterministic seeded obstacle generation",
+      "Wind-meter boost mechanic with risk/reward",
+      "AI rival with mistake modeling",
+      "Real-time obstacle interaction (wind cost, bump, stun)"
     ]
   },
   {
@@ -121,6 +146,17 @@
     "bestFor": "Turn-based strategy fans who want a deep pirate economy game.",
     "availabilityNote": "Available in the desktop release now. The Pygbag/WebAssembly pipeline proved effective for arcade games, but a turn-based board game with point-and-click controls needs a different approach. A browser version is under evaluation (see the build log for details).",
     "seoDescription": "Download Port Royale Tycoon — a pirate property-trading board game with 2-4 players, AI opponents, and save/load.",
-    "features": ["2-4 players", "AI opponents", "Save/load", "Property trading"]
+    "features": [
+      "2-4 players",
+      "AI opponents",
+      "Save/load",
+      "Property trading"
+    ],
+    "demonstrates": [
+      "Turn-based board game with save/load persistence",
+      "AI opponents with aggressive trading strategy",
+      "Property economy with compounding trade routes",
+      "Desktop-only: Pygbag tradeoff analysis in build log"
+    ]
   }
 ]

@@ -7,13 +7,13 @@ import { webPageNode } from "../lib/schema";
 
 <BaseLayout
   title="About"
-  description={site.description}
+  description="About Pirate Arcade: five pirate-themed arcade games, two browser engines, and a public build experiment by Erich Donahue — exploring zero-cost AI-assisted development on free infrastructure."
   current="about"
   jsonLd={[
     webPageNode(
       "/about/",
       "About Pirate Arcade",
-      site.description,
+      "About Pirate Arcade: five pirate-themed arcade games, two browser engines, and a public build experiment by Erich Donahue — exploring zero-cost AI-assisted development on free infrastructure.",
       "AboutPage",
     ),
   ]}
@@ -128,6 +128,27 @@ import { webPageNode } from "../lib/schema";
 
   <section class="section">
     <div class="section__header">
+      <p class="section__eyebrow">Builder</p>
+      <h2 class="section__title">Product-Minded Engineering</h2>
+      <p class="section__description">
+        This project demonstrates decision-making across the product stack:
+        choosing the right abstraction (Phaser vs Pygbag), designing for
+        constraints (free infrastructure, mobile touch), and shipping with
+        automated gates (200+ tests, screenshot validation, release checks).
+      </p>
+    </div>
+    <div class="prose">
+      <p>
+        The work reflects a background in decision science, data products, and
+        practical systems — building tools that solve real problems, documenting
+        what works, and treating AI as a force multiplier rather than a
+        replacement for judgment.
+      </p>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section__header">
       <p class="section__eyebrow">Why</p>
       <h2 class="section__title">Why Pirate Arcade?</h2>
     </div>
@@ -178,6 +199,14 @@ import { webPageNode } from "../lib/schema";
             class="maker-card__link"
           >
             github/edonahue
+          </a>
+          <a
+            href={site.linkedInUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            class="maker-card__link"
+          >
+            LinkedIn
           </a>
           <a
             href={site.buyMeACoffeeUrl}

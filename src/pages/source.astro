@@ -10,13 +10,13 @@ import { publicDomainArt } from "../data/publicDomainArt";
 
 <BaseLayout
   title="Source"
-  description="Source code, releases, and roadmap for Pirate Arcade."
+  description="Source code, releases, and engineering proof for Pirate Arcade. Two repositories (desktop games + website), 20-step automated release gate, Pygbag and Phaser 3 browser engines, screenshot validation, and deterministic test hooks."
   current="source"
   jsonLd={[
     webPageNode(
       "/source/",
       "Source Code and Releases — Pirate Arcade",
-      "Source code, releases, and roadmap for Pirate Arcade.",
+      "Source code, releases, and engineering proof for Pirate Arcade. Two repositories (desktop games + website), 20-step automated release gate, Pygbag and Phaser 3 browser engines, screenshot validation, and deterministic test hooks.",
       "WebPage",
     ),
   ]}
@@ -125,6 +125,85 @@ import { publicDomainArt } from "../data/publicDomainArt";
       >
         View on GitHub
       </CTAButton>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section__header">
+      <p class="section__eyebrow">Proof</p>
+      <h2 class="section__title">Engineering Discipline</h2>
+      <p class="section__description">
+        The project uses a 20-step automated release gate. Every check must pass
+        before deployment. Below are the key engineering practices in place.
+      </p>
+    </div>
+
+    <div class="engineering-proof">
+      <div class="engineering-proof__card">
+        <h3 class="engineering-proof__title">Two Repositories</h3>
+        <p class="engineering-proof__desc">
+          Desktop games (Python/Pygame) and website (Astro/TypeScript) are
+          separate repos with independent CI pipelines.
+        </p>
+      </div>
+      <div class="engineering-proof__card">
+        <h3 class="engineering-proof__title">Static Site + Edge</h3>
+        <p class="engineering-proof__desc">
+          Astro 6 static output deployed to Cloudflare Pages free tier. No
+          server, no database, no runtime.
+        </p>
+      </div>
+      <div class="engineering-proof__card">
+        <h3 class="engineering-proof__title">Two Browser Engines</h3>
+        <p class="engineering-proof__desc">
+          Three Pygbag/WebAssembly ports (~12 MB runtime) plus one web-native
+          Phaser 3 game (instant load, no download).
+        </p>
+      </div>
+      <div class="engineering-proof__card">
+        <h3 class="engineering-proof__title">Deterministic Test Hooks</h3>
+        <p class="engineering-proof__desc">
+          Seeded RNG, debug globals, Captains Log, input capture, and prewarm
+          instrumentation for reproducible validation.
+        </p>
+      </div>
+      <div class="engineering-proof__card">
+        <h3 class="engineering-proof__title">
+          Screenshot Capture + Validation
+        </h3>
+        <p class="engineering-proof__desc">
+          Playwright + Sharp capture 1280×720 PNGs; validator checks IHDR,
+          dimensions, aspect ratio, brightness, and byte distinctness.
+        </p>
+      </div>
+      <div class="engineering-proof__card">
+        <h3 class="engineering-proof__title">Game Registry Validation</h3>
+        <p class="engineering-proof__desc">
+          Required fields, enum checks, SEO length limits, asset existence,
+          cross-references to CSP headers and SW cache entries.
+        </p>
+      </div>
+      <div class="engineering-proof__card">
+        <h3 class="engineering-proof__title">Automated Release Gate</h3>
+        <p class="engineering-proof__desc">
+          20 deterministic checks (format, typecheck, build, SEO, copy tone, CSS
+          tokens, contrast, CSP, SW, versions, performance budgets).
+        </p>
+      </div>
+      <div class="engineering-proof__card">
+        <h3 class="engineering-proof__title">CSP &amp; Header Hygiene</h3>
+        <p class="engineering-proof__desc">
+          Per-route CSP in <code>_headers</code>; <code>unsafe-eval</code>
+          only on <code>/play/*</code>; global CSP is strict.
+        </p>
+      </div>
+      <div class="engineering-proof__card">
+        <h3 class="engineering-proof__title">Mobile &amp; Touch Tests</h3>
+        <p class="engineering-proof__desc">
+          Playwright mobile viewports (Pixel 5, iPhone 13, iPad) with real touch
+          helpers for input, pause, and navigation testing.
+        </p>
+      </div>
     </div>
   </section>
 

@@ -128,6 +128,19 @@ const isDesktopAvailable = game.status === "desktop-available";
           )
         }
 
+        {
+          game.demonstrates && game.demonstrates.length > 0 && (
+            <>
+              <h2>What this demonstrates</h2>
+              <ul class="game-detail__demonstrates">
+                {game.demonstrates.map((item) => (
+                  <li>{item}</li>
+                ))}
+              </ul>
+            </>
+          )
+        }
+
         <h2>How to play</h2>
         <p>{game.howToPlay}</p>
 
@@ -453,6 +466,27 @@ const isDesktopAvailable = game.status === "desktop-available";
     font-size: 0.6875rem;
     text-transform: uppercase;
     letter-spacing: 0.08em;
+    color: var(--accent);
+  }
+  .game-detail__demonstrates {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  .game-detail__demonstrates li {
+    font-size: 0.875rem;
+    color: var(--muted);
+    line-height: 1.6;
+    padding-left: 1.25rem;
+    position: relative;
+  }
+  .game-detail__demonstrates li::before {
+    content: "\25B8";
+    position: absolute;
+    left: 0;
     color: var(--accent);
   }
 </style>

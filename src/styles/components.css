@@ -93,6 +93,20 @@
   flex-wrap: wrap;
 }
 
+.hero__credit {
+  text-align: center;
+  font-size: 0.8125rem;
+  color: var(--muted);
+  margin-top: 0.75rem;
+  margin-bottom: 0;
+}
+
+.hero__credit a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
 /* CTA Button */
 .cta {
   display: inline-flex;
@@ -707,6 +721,101 @@
   letter-spacing: 0.1em;
   color: var(--muted);
   text-align: center;
+}
+
+/* Proof strip — homepage experiment section engineering summary */
+.proof-strip {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.75rem;
+  margin: 1.5rem auto 2rem;
+  max-width: 640px;
+}
+
+.proof-strip__item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.625rem 1rem;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  min-width: 90px;
+  flex: 1 1 auto;
+}
+
+.proof-strip__label {
+  font-family: var(--mono);
+  font-size: 0.5625rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--accent);
+}
+
+.proof-strip__value {
+  font-family: var(--body);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--ink);
+  text-align: center;
+}
+
+/* Engineering proof cards — source page */
+.engineering-proof {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+  margin: 1.5rem auto 2rem;
+  max-width: 720px;
+}
+
+.engineering-proof__card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
+}
+
+.engineering-proof__card:hover {
+  border-color: var(--accent);
+  box-shadow: var(--glow-sea);
+}
+
+.engineering-proof__title {
+  font-family: var(--display);
+  font-size: 1rem;
+  color: var(--ink);
+  margin-bottom: 0.5rem;
+}
+
+.engineering-proof__desc {
+  font-size: 0.875rem;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.engineering-proof__desc code {
+  font-family: var(--mono);
+  background: var(--surface-soft);
+  padding: 0.125rem 0.375rem;
+  border-radius: 3px;
+}
+
+@media (min-width: 640px) {
+  .engineering-proof {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 960px) {
+  .engineering-proof {
+    grid-template-columns: repeat(3, 1fr);
+  }
 }
 
 /* Featured game panel — homepage */
