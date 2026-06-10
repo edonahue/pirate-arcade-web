@@ -16,10 +16,10 @@ function drawPolygon(buf, w, h, points, r, g, b, a) {
   for (let y = minY; y <= maxY; y++) {
     const intersects = [];
     for (let i = 0; i < points.length; i += 2) {
-      const x1 = points[i],
-        y1 = points[i + 1];
-      const x2 = points[(i + 2) % points.length],
-        y2 = points[(i + 3) % points.length];
+      const x1 = points[i];
+      const y1 = points[i + 1];
+      const x2 = points[(i + 2) % points.length];
+      const y2 = points[(i + 3) % points.length];
       if ((y1 <= y && y2 > y) || (y2 <= y && y1 > y)) {
         const t = (y - y1) / (y2 - y1);
         intersects.push(x1 + t * (x2 - x1));
@@ -46,8 +46,8 @@ function drawCircle(buf, w, h, cx, cy, radius, r, g, b, a) {
   for (let y = cy - radius; y <= cy + radius; y++) {
     for (let x = cx - radius; x <= cx + radius; x++) {
       if (x < 0 || x >= w || y < 0 || y >= h) continue;
-      const dx = x - cx,
-        dy = y - cy;
+      const dx = x - cx;
+      const dy = y - cy;
       if (dx * dx + dy * dy <= radius * radius) {
         const idx = (y * w + x) * 4;
         buf[idx] = r;
@@ -60,13 +60,13 @@ function drawCircle(buf, w, h, cx, cy, radius, r, g, b, a) {
 }
 
 function drawLine(buf, w, h, x1, y1, x2, y2, r, g, b, a) {
-  const dx = Math.abs(x2 - x1),
-    dy = Math.abs(y2 - y1);
-  const sx = x1 < x2 ? 1 : -1,
-    sy = y1 < y2 ? 1 : -1;
+  const dx = Math.abs(x2 - x1);
+  const dy = Math.abs(y2 - y1);
+  const sx = x1 < x2 ? 1 : -1;
+  const sy = y1 < y2 ? 1 : -1;
   let err = dx - dy;
-  let cx = x1,
-    cy = y1;
+  let cx = x1;
+  let cy = y1;
   while (true) {
     if (cx >= 0 && cx < w && cy >= 0 && cy < h) {
       const idx = (cy * w + cx) * 4;
@@ -88,36 +88,114 @@ function drawLine(buf, w, h, x1, y1, x2, y2, r, g, b, a) {
   }
 }
 
+function addOutline(buf, w, h) {
+  const opaque = new Uint8Array(w * h);
+  for (let i = 0; i < w * h; i++) {
+    opaque[i] = buf[i * 4 + 3] > 20 ? 1 : 0;
+  }
+
+  // Add drop shadow first (offset 2px right, 2px down)
+  const shadowBuf = new Uint8Array(w * h * 4);
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const idx = y * w + x;
+      if (opaque[idx]) {
+        for (let dy = 2; dy <= 4; dy++) {
+          for (let dx = 2; dx <= 3; dx++) {
+            const sx = x + dx;
+            const sy = y + dy;
+            if (sx < w && sy < h) {
+              const sidx = (sy * w + sx) * 4;
+              const dist = Math.sqrt(dx * dx + dy * dy);
+              const a = Math.max(0, Math.min(80, Math.floor(120 / dist)));
+              if (a > shadowBuf[sidx + 3]) {
+                shadowBuf[sidx] = 0;
+                shadowBuf[sidx + 1] = 0;
+                shadowBuf[sidx + 2] = 0;
+                shadowBuf[sidx + 3] = a;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // Merge shadow under ship
+  for (let i = 0; i < w * h; i++) {
+    const idx = i * 4;
+    if (shadowBuf[idx + 3] > 0 && buf[idx + 3] === 0) {
+      buf[idx] = shadowBuf[idx];
+      buf[idx + 1] = shadowBuf[idx + 1];
+      buf[idx + 2] = shadowBuf[idx + 2];
+      buf[idx + 3] = shadowBuf[idx + 3];
+    }
+  }
+
+  // Recompute opaque after shadow
+  for (let i = 0; i < w * h; i++) {
+    opaque[i] = buf[i * 4 + 3] > 20 ? 1 : 0;
+  }
+
+  // Add outline (1px black border around silhouette)
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const idx = y * w + x;
+      if (!opaque[idx]) continue;
+
+      let edge = false;
+      for (let dy = -1; dy <= 1; dy++) {
+        for (let dx = -1; dx <= 1; dx++) {
+          if (dx === 0 && dy === 0) continue;
+          const nx = x + dx;
+          const ny = y + dy;
+          if (nx < 0 || nx >= w || ny < 0 || ny >= h) {
+            edge = true;
+          } else if (!opaque[ny * w + nx]) {
+            edge = true;
+          }
+        }
+      }
+
+      if (edge) {
+        buf[idx * 4] = 0;
+        buf[idx * 4 + 1] = 0;
+        buf[idx * 4 + 2] = 0;
+        buf[idx * 4 + 3] = 255;
+      }
+    }
+  }
+}
+
 function createShip(isPlayer) {
   const buf = Buffer.alloc(W * H * 4, 0);
   const cx = W / 2;
 
-  // Color palettes
-  const hullMain = isPlayer ? [60, 44, 30] : [38, 28, 18];
-  const hullDark = isPlayer ? [45, 32, 20] : [28, 20, 12];
-  const hullHighlight = isPlayer ? [75, 56, 38] : [50, 38, 26];
-  const deck = isPlayer ? [90, 68, 45] : [70, 52, 36];
-  const deckDark = isPlayer ? [70, 52, 34] : [55, 40, 28];
-  const sail1 = isPlayer ? [235, 225, 205] : [190, 165, 135];
-  const sail2 = isPlayer ? [220, 210, 190] : [175, 150, 120];
-  const sail3 = isPlayer ? [200, 190, 170] : [160, 135, 110];
-  const mast = [45, 35, 25];
-  const mastLight = [60, 48, 35];
-  const accent = isPlayer ? [201, 164, 92] : [140, 52, 40];
-  const accentLight = isPlayer ? [220, 185, 110] : [165, 65, 50];
-  const flag = isPlayer ? [25, 25, 28] : [110, 30, 18];
-  const flagLight = isPlayer ? [50, 50, 55] : [140, 45, 30];
-  const gold = [220, 185, 60];
-  const windowColor = [180, 200, 160];
-  const wake1 = [130, 160, 175];
-  const wake2 = [160, 190, 200];
+  // Color palettes — more saturated for readability
+  const hullMain = isPlayer ? [70, 50, 32] : [42, 30, 18];
+  const hullDark = isPlayer ? [48, 34, 20] : [30, 22, 12];
+  const hullHighlight = isPlayer ? [95, 72, 48] : [58, 44, 30];
+  const deck = isPlayer ? [110, 82, 52] : [82, 62, 42];
+  const deckDark = isPlayer ? [85, 62, 40] : [65, 48, 32];
+  const sail1 = isPlayer ? [248, 242, 228] : [205, 178, 148];
+  const sail2 = isPlayer ? [240, 232, 215] : [190, 164, 134];
+  const sail3 = isPlayer ? [225, 218, 200] : [175, 150, 122];
+  const mast = [52, 40, 28];
+  const mastLight = [72, 56, 40];
+  const accent = isPlayer ? [220, 180, 100] : [160, 60, 45];
+  const accentLight = isPlayer ? [240, 200, 120] : [185, 75, 55];
+  const flag = isPlayer ? [28, 28, 30] : [130, 34, 20];
+  const flagLight = isPlayer ? [55, 55, 60] : [160, 52, 34];
+  const gold = [235, 200, 70];
+  const windowColor = [200, 220, 180];
+  const wake1 = [140, 175, 195];
+  const wake2 = [175, 205, 220];
 
   const yKeel = 82;
   const yDeck = 68;
   const yWaterline = 60;
 
-  // ── Hull (galleon shape: wider at top, narrows to stern, curves at bow) ──
-  // Main hull body
+  // Hull (galleon shape)
   drawPolygon(
     buf,
     W,
@@ -126,51 +204,49 @@ function createShip(isPlayer) {
     ...hullMain,
     255,
   );
-  // Hull dark bottom (below waterline visual)
   drawPolygon(
     buf,
     W,
     H,
     [cx - 20, yWaterline, cx + 18, yWaterline, cx + 18, yKeel, cx - 18, yKeel],
     ...hullDark,
-    200,
+    220,
   );
-  // Hull highlight (top edge)
   drawPolygon(
     buf,
     W,
     H,
     [cx - 22, yDeck, cx + 20, yDeck, cx + 18, yDeck + 4, cx - 20, yDeck + 4],
     ...hullHighlight,
-    200,
+    220,
   );
 
-  // Bow curve (front of ship — right side)
+  // Bow curve
   drawPolygon(
     buf,
     W,
     H,
     [cx + 18, yDeck, cx + 22, yDeck - 4, cx + 20, yKeel - 10, cx + 18, yKeel],
     ...hullMain,
-    220,
+    240,
   );
-  // Stern (left — flat back)
+  // Stern
   drawPolygon(
     buf,
     W,
     H,
     [cx - 22, yDeck, cx - 18, yKeel, cx - 22, yKeel - 6],
     ...hullMain,
-    230,
+    250,
   );
 
-  // ── Planking lines ──
+  // Planking lines
   for (let row = 0; row < 4; row++) {
     const y = yDeck + 4 + row * 4;
-    drawLine(buf, W, H, cx - 19, y, cx + 17, y, ...hullDark, 100);
+    drawLine(buf, W, H, cx - 19, y, cx + 17, y, ...hullDark, 120);
   }
 
-  // ── Bowsprit ──
+  // Bowsprit
   drawPolygon(
     buf,
     W,
@@ -189,8 +265,7 @@ function createShip(isPlayer) {
     255,
   );
 
-  // ── Deck cabin (small structure amidships) ──
-  // Cabin walls
+  // Deck cabin
   drawPolygon(
     buf,
     W,
@@ -199,7 +274,6 @@ function createShip(isPlayer) {
     ...deckDark,
     255,
   );
-  // Cabin roof
   drawPolygon(
     buf,
     W,
@@ -233,7 +307,7 @@ function createShip(isPlayer) {
       yDeck - 4,
     ],
     ...windowColor,
-    200,
+    220,
   );
   drawPolygon(
     buf,
@@ -250,10 +324,10 @@ function createShip(isPlayer) {
       yDeck - 4,
     ],
     ...windowColor,
-    200,
+    220,
   );
 
-  // ── Main mast (tall, midship) ──
+  // Main mast
   drawPolygon(
     buf,
     W,
@@ -262,8 +336,7 @@ function createShip(isPlayer) {
     ...mast,
     255,
   );
-  // Mast highlight
-  drawLine(buf, W, H, cx - 1, 30, cx - 1, yDeck - 4, ...mastLight, 150);
+  drawLine(buf, W, H, cx - 1, 30, cx - 1, yDeck - 4, ...mastLight, 180);
   // Crow's nest
   drawPolygon(
     buf,
@@ -274,32 +347,31 @@ function createShip(isPlayer) {
     255,
   );
 
-  // ── Fore mast (front, smaller) ──
+  // Fore mast
   drawPolygon(
     buf,
     W,
     H,
     [cx + 10, 36, cx + 13, 36, cx + 13, yDeck - 6, cx + 10, yDeck - 6],
     ...mast,
-    240,
+    255,
   );
-
-  // ── Mizzen mast (back, smallest) ──
+  // Mizzen mast
   drawPolygon(
     buf,
     W,
     H,
     [cx - 12, 40, cx - 9, 40, cx - 9, yDeck - 4, cx - 12, yDeck - 4],
     ...mast,
-    240,
+    255,
   );
 
-  // ── Yards (horizontal spars) ──
-  drawLine(buf, W, H, cx - 18, 34, cx + 18, 34, ...mast, 200);
-  drawLine(buf, W, H, cx - 14, 44, cx + 14, 44, ...mast, 180);
-  drawLine(buf, W, H, cx - 10, 54, cx + 10, 54, ...mast, 160);
+  // Yards
+  drawLine(buf, W, H, cx - 18, 34, cx + 18, 34, ...mast, 220);
+  drawLine(buf, W, H, cx - 14, 44, cx + 14, 44, ...mast, 200);
+  drawLine(buf, W, H, cx - 10, 54, cx + 10, 54, ...mast, 180);
 
-  // ── Main sails (bellying, overlapping) ──
+  // Main sails (brighter, more visible)
   // Largest sail (bottom)
   drawPolygon(
     buf,
@@ -320,16 +392,15 @@ function createShip(isPlayer) {
       52,
     ],
     ...sail2,
-    230,
+    240,
   );
-  // Sail highlight
   drawPolygon(
     buf,
     W,
     H,
     [cx - 10, 43, cx + 10, 43, cx + 12, 50, cx - 12, 50],
-    [sail2[0] + 25, sail2[1] + 25, sail2[2] + 25],
-    140,
+    [sail2[0] + 20, sail2[1] + 20, sail2[2] + 20],
+    160,
   );
 
   // Middle sail
@@ -352,43 +423,42 @@ function createShip(isPlayer) {
       40,
     ],
     ...sail1,
-    240,
+    250,
   );
   drawPolygon(
     buf,
     W,
     H,
     [cx - 8, 33, cx + 8, 33, cx + 10, 38, cx - 10, 38],
-    [sail1[0] + 20, sail1[1] + 20, sail1[2] + 20],
-    140,
+    [sail1[0] + 15, sail1[1] + 15, sail1[2] + 15],
+    160,
   );
 
-  // Jib sail (from foremast to bowsprit)
+  // Jib sail
   drawPolygon(
     buf,
     W,
     H,
     [cx + 12, 38, cx + 26, yDeck - 14, cx + 24, yDeck - 12, cx + 12, 44],
     ...sail3,
-    210,
+    220,
   );
-
-  // Spanker sail (from mizzen to stern)
+  // Spanker sail
   drawPolygon(
     buf,
     W,
     H,
     [cx - 14, 42, cx - 20, yDeck - 4, cx - 18, yDeck - 2, cx - 12, 46],
     ...sail3,
-    200,
+    220,
   );
 
-  // ── Rigging lines ──
-  drawLine(buf, W, H, cx, 28, cx - 20, yDeck - 6, ...mast, 80);
-  drawLine(buf, W, H, cx, 28, cx + 18, yDeck - 8, ...mast, 80);
-  drawLine(buf, W, H, cx + 12, 36, cx + 26, yDeck - 16, ...mast, 80);
+  // Rigging lines
+  drawLine(buf, W, H, cx, 28, cx - 20, yDeck - 6, ...mast, 100);
+  drawLine(buf, W, H, cx, 28, cx + 18, yDeck - 8, ...mast, 100);
+  drawLine(buf, W, H, cx + 12, 36, cx + 26, yDeck - 16, ...mast, 100);
 
-  // ── Flag at mainmast ──
+  // Flag at mainmast
   drawPolygon(
     buf,
     W,
@@ -397,32 +467,27 @@ function createShip(isPlayer) {
     ...flag,
     255,
   );
-  // Flag wavy overlap
   drawPolygon(
     buf,
     W,
     H,
     [cx + 8, 28, cx + 10, 20, cx + 8, 16, cx + 4, 18],
     ...flagLight,
-    180,
+    200,
   );
 
-  // Player flag: skull (white cross/dot pattern); LJ flag: red with cross
+  // Player: white skull on black; LJ: red with white cross
   if (isPlayer) {
-    // Skull — small white shapes on black flag
-    drawCircle(buf, W, H, cx + 3, 21, 2, 200, 200, 200, 200);
-    drawCircle(buf, W, H, cx + 3, 18, 1, 220, 220, 220, 100);
-    // Crossbones
-    drawLine(buf, W, H, cx + 1, 22, cx + 5, 26, 200, 200, 200, 150);
-    drawLine(buf, W, H, cx + 5, 22, cx + 1, 26, 200, 200, 200, 150);
+    drawCircle(buf, W, H, cx + 3, 21, 2, 200, 200, 200, 240);
+    drawCircle(buf, W, H, cx + 3, 18, 1, 220, 220, 220, 140);
+    drawLine(buf, W, H, cx + 1, 22, cx + 5, 26, 200, 200, 200, 200);
+    drawLine(buf, W, H, cx + 5, 22, cx + 1, 26, 200, 200, 200, 200);
   } else {
-    // Red flag with white cross
-    drawLine(buf, W, H, cx + 3, 18, cx + 3, 26, 255, 255, 255, 180);
-    drawLine(buf, W, H, cx + 1, 22, cx + 5, 22, 255, 255, 255, 180);
+    drawLine(buf, W, H, cx + 3, 18, cx + 3, 26, 255, 255, 255, 220);
+    drawLine(buf, W, H, cx + 1, 22, cx + 5, 22, 255, 255, 255, 220);
   }
 
-  // ── Cannon ports ──
-  // Dark square ports along hull
+  // Cannon ports
   for (let x = -16; x <= 14; x += 7) {
     const px = cx + x;
     if (px > cx - 20 && px < cx + 16) {
@@ -441,12 +506,12 @@ function createShip(isPlayer) {
           yDeck + 8,
         ],
         [15, 15, 15],
-        230,
+        250,
       );
     }
   }
 
-  // ── Accent stripe ──
+  // Accent stripe (gold for player, red for LJ)
   drawPolygon(
     buf,
     W,
@@ -462,9 +527,8 @@ function createShip(isPlayer) {
       yDeck + 6,
     ],
     ...accent,
-    200,
+    220,
   );
-  // Second accent stripe lower
   drawPolygon(
     buf,
     W,
@@ -480,27 +544,27 @@ function createShip(isPlayer) {
       yDeck + 14,
     ],
     ...accentLight,
-    120,
+    140,
   );
 
-  // ── Gold decor at stern ──
+  // Gold decor at stern
   drawPolygon(
     buf,
     W,
     H,
     [cx - 22, yDeck, cx - 18, yDeck, cx - 18, yDeck + 3, cx - 22, yDeck + 3],
     ...gold,
-    200,
+    220,
   );
 
-  // ── Bow decoration (figurehead area) ──
+  // Bow figurehead
   if (isPlayer) {
-    drawCircle(buf, W, H, cx + 21, yDeck - 6, 3, ...gold, 200);
+    drawCircle(buf, W, H, cx + 21, yDeck - 6, 3, ...gold, 220);
   } else {
-    drawCircle(buf, W, H, cx + 21, yDeck - 6, 3, ...accent, 200);
+    drawCircle(buf, W, H, cx + 21, yDeck - 6, 3, ...accent, 220);
   }
 
-  // ── Wake (foam trail at bottom) ──
+  // Wake (foam trail at bottom)
   drawPolygon(
     buf,
     W,
@@ -520,7 +584,7 @@ function createShip(isPlayer) {
       90,
     ],
     ...wake1,
-    120,
+    140,
   );
   drawPolygon(
     buf,
@@ -541,9 +605,8 @@ function createShip(isPlayer) {
       88,
     ],
     ...wake2,
-    90,
+    110,
   );
-  // Upper wake spray
   drawPolygon(
     buf,
     W,
@@ -558,9 +621,12 @@ function createShip(isPlayer) {
       cx - 18,
       yKeel + 1,
     ],
-    [200, 220, 235],
-    70,
+    [210, 230, 240],
+    90,
   );
+
+  // Add drop shadow and outline for readability
+  addOutline(buf, W, H);
 
   return sharp(buf, { raw: { width: W, height: H, channels: 4 } })
     .png()

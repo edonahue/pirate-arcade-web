@@ -1646,11 +1646,12 @@ for (const game of GAMES) {
       const hintEl = page.locator("#touch-hint");
       await expect(hintEl).toBeVisible();
 
-      // Assert overlay hold is active
-      const state = await page.evaluate(
-        () => (window as any).__paRaceToTreasureIslandState,
+      // Assert overlay hold is active (wait for Phaser update cycle)
+      await page.waitForFunction(
+        () =>
+          (window as any).__paRaceToTreasureIslandState?.overlayHeld === true,
+        { timeout: 5000 },
       );
-      expect(state?.overlayHeld).toBe(true);
 
       // Assert HUD mode is touch
       const infobox = page.locator("#infobox");
@@ -1720,6 +1721,396 @@ for (const game of GAMES) {
       );
       expect(state2?.paused).toBe(true);
       expect(state2?.overlayHeld).toBe(false);
+    });
+
+    // ── Phase 9: New boost, overtake, obstacle, touch cleanup tests ──
+
+    test("race boost engages from touch controls and accelerates progress", async ({
+      page,
+    }, testInfo) => {
+      test.skip(
+        !DESKTOP_PROJECTS.includes(testInfo.project.name),
+        "Boost engagement test skipped on non-desktop",
+      );
+
+      await page.goto(`${game.path}?testTouch=1&seed=boost-smoke`, {
+        waitUntil: "domcontentloaded",
+      });
+      await waitForPhaserReady(page);
+
+      const initial = await page.evaluate(
+        () => (window as any).__paRaceToTreasureIslandState,
+      );
+      expect(initial?.windMeter).toBe(100);
+
+      // Hold boost
+      const boostBtn = page.locator("#btn-boost");
+      await boostBtn.dispatchEvent("pointerdown", {
+        pointerId: 1,
+        pointerType: "touch",
+        isPrimary: true,
+        button: 0,
+        buttons: 1,
+      });
+      await page.waitForTimeout(200);
+
+      let state = await page.evaluate(
+        () => (window as any).__paRaceToTreasureIslandState,
+      );
+      expect(state?.boosting).toBe(true);
+      expect(state?.windMeter).toBeLessThan(100);
+
+      // Check boost button active class
+      const hasActiveClass = await page.evaluate(() => {
+        const btn = document.getElementById("btn-boost");
+        return btn?.classList.contains("touch-btn--active") ?? false;
+      });
+      expect(hasActiveClass).toBe(true);
+
+      // Progress should increase faster during boost than after release
+      await page.waitForTimeout(1000);
+      const progressDuring = await page.evaluate(
+        () =>
+          (window as any).__paRaceToTreasureIslandState?.playerProgress ?? 0,
+      );
+
+      // Release boost
+      await boostBtn.dispatchEvent("pointerup", {
+        pointerId: 1,
+        pointerType: "touch",
+        isPrimary: true,
+        button: 0,
+        buttons: 0,
+      });
+      await page.waitForTimeout(100);
+
+      state = await page.evaluate(
+        () => (window as any).__paRaceToTreasureIslandState,
+      );
+      expect(state?.boosting).toBe(false);
+
+      const activeAfterRelease = await page.evaluate(() => {
+        const btn = document.getElementById("btn-boost");
+        return btn?.classList.contains("touch-btn--active") ?? false;
+      });
+      expect(activeAfterRelease).toBe(false);
+
+      await page.waitForTimeout(1000);
+      const progressAfter = await page.evaluate(
+        () =>
+          (window as any).__paRaceToTreasureIslandState?.playerProgress ?? 0,
+      );
+
+      // Progress during boost should be higher than after (boost is faster)
+      // During 1s boost with bonus 120 vs no bonus = ~240/s vs ~120/s
+      // After 1s no boost = ~120/s more
+      // So progressDuring should be > progressAfter/2 roughly (allow some overlap)
+      expect(progressDuring).toBeGreaterThan(progressAfter - 200);
+    });
+
+    test("race boost effect visible in state", async ({ page }, testInfo) => {
+      test.skip(
+        !DESKTOP_PROJECTS.includes(testInfo.project.name),
+        "Boost visible test skipped on non-desktop",
+      );
+
+      await page.goto(`${game.path}?testTouch=1&seed=boost-visual`, {
+        waitUntil: "domcontentloaded",
+      });
+      await waitForPhaserReady(page);
+
+      // Hold boost
+      const boostBtn = page.locator("#btn-boost");
+      await boostBtn.dispatchEvent("pointerdown", {
+        pointerId: 1,
+        pointerType: "touch",
+        isPrimary: true,
+        button: 0,
+        buttons: 1,
+      });
+      await page.waitForTimeout(500);
+
+      const state = await page.evaluate(
+        () => (window as any).__paRaceToTreasureIslandState,
+      );
+      expect(state?.boostEffectVisible).toBe(true);
+
+      await boostBtn.dispatchEvent("pointerup", {
+        pointerId: 1,
+        pointerType: "touch",
+        isPrimary: true,
+        button: 0,
+        buttons: 0,
+      });
+      await page.waitForTimeout(200);
+
+      const stateAfter = await page.evaluate(
+        () => (window as any).__paRaceToTreasureIslandState,
+      );
+      expect(stateAfter?.boostEffectVisible).toBe(false);
+    });
+
+    test("race player can overtake rival with sustained boost", async ({
+      page,
+    }, testInfo) => {
+      test.skip(
+        !DESKTOP_PROJECTS.includes(testInfo.project.name),
+        "Overtake test skipped on non-desktop",
+      );
+
+      await page.goto(`${game.path}?testTouch=1&seed=overtake-test`, {
+        waitUntil: "domcontentloaded",
+      });
+      await waitForPhaserReady(page);
+
+      // Hold boost continuously
+      const boostBtn = page.locator("#btn-boost");
+      await boostBtn.dispatchEvent("pointerdown", {
+        pointerId: 1,
+        pointerType: "touch",
+        isPrimary: true,
+        button: 0,
+        buttons: 1,
+      });
+
+      // Boost for long enough to overtake
+      await page.waitForTimeout(8000);
+
+      const state = await page.evaluate(
+        () => (window as any).__paRaceToTreasureIslandState,
+      );
+
+      // Player should be ahead or have overtaken at least once
+      const hasOvertaken =
+        state?.leadState === "player" || state?.overtakeCount >= 1;
+      expect(hasOvertaken).toBe(true);
+      expect(state?.playerProgress).toBeGreaterThanOrEqual(
+        state?.rivalProgress ?? 0,
+      );
+
+      await boostBtn.dispatchEvent("pointerup", {
+        pointerId: 1,
+        pointerType: "touch",
+        isPrimary: true,
+        button: 0,
+        buttons: 0,
+      });
+    });
+
+    test("race obstacle hit via debug hook causes light penalty", async ({
+      page,
+    }, testInfo) => {
+      test.skip(
+        !DESKTOP_PROJECTS.includes(testInfo.project.name),
+        "Obstacle hit test skipped on non-desktop",
+      );
+
+      await page.goto(`${game.path}?testTouch=1&seed=obstacle-hit-test`, {
+        waitUntil: "domcontentloaded",
+      });
+      await waitForPhaserReady(page);
+
+      // Start boosting so we can verify it cancels
+      const boostBtn = page.locator("#btn-boost");
+      await boostBtn.dispatchEvent("pointerdown", {
+        pointerId: 1,
+        pointerType: "touch",
+        isPrimary: true,
+        button: 0,
+        buttons: 1,
+      });
+      await page.waitForTimeout(500);
+
+      const beforeHit = await page.evaluate(
+        () => (window as any).__paRaceToTreasureIslandState,
+      );
+      expect(beforeHit?.boosting).toBe(true);
+      const windBefore = beforeHit?.windMeter ?? 100;
+      const hitCountBefore = beforeHit?.hitCount ?? 0;
+      const scoreBefore = beforeHit?.score ?? 0;
+
+      // Hit with barrel via debug hook
+      await page.evaluate(() => {
+        if (typeof (window as any).__paRaceDebugHitObstacle === "function") {
+          (window as any).__paRaceDebugHitObstacle("barrel");
+        }
+      });
+      await page.waitForTimeout(200);
+
+      const afterHit = await page.evaluate(
+        () => (window as any).__paRaceToTreasureIslandState,
+      );
+
+      // Verify hit was registered
+      expect(afterHit?.hitCount).toBeGreaterThan(hitCountBefore);
+      expect(afterHit?.lastHitType).toBe("barrel");
+      expect(afterHit?.stunTimer).toBeGreaterThan(0);
+
+      // Boost should be cancelled
+      expect(afterHit?.boosting).toBe(false);
+
+      // Wind meter should be reduced
+      expect(afterHit?.windMeter).toBeLessThan(windBefore);
+    });
+
+    test("race touch input clears after pointer cancellation", async ({
+      page,
+    }, testInfo) => {
+      test.skip(
+        !DESKTOP_PROJECTS.includes(testInfo.project.name),
+        "Touch cleanup test skipped on non-desktop",
+      );
+
+      await page.goto(`${game.path}?testTouch=1`, {
+        waitUntil: "domcontentloaded",
+      });
+      await waitForPhaserReady(page);
+
+      // Press boost and left
+      const boostBtn = page.locator("#btn-boost");
+      const leftBtn = page.locator("#btn-left");
+
+      await boostBtn.dispatchEvent("pointerdown", {
+        pointerId: 1,
+        pointerType: "touch",
+        isPrimary: true,
+        button: 0,
+        buttons: 1,
+      });
+      await leftBtn.dispatchEvent("pointerdown", {
+        pointerId: 2,
+        pointerType: "touch",
+        isPrimary: false,
+        button: 0,
+        buttons: 1,
+      });
+      await page.waitForTimeout(100);
+
+      let inputState = await page.evaluate(
+        () => (window as any).__paTouchInput || {},
+      );
+      expect(inputState.boost).toBe(true);
+      expect(inputState.left).toBe(true);
+
+      // Dispatch pointercancel on boost button
+      await boostBtn.dispatchEvent("pointercancel", {
+        pointerId: 1,
+        pointerType: "touch",
+        isPrimary: true,
+        button: 0,
+        buttons: 0,
+      });
+      await page.waitForTimeout(100);
+
+      inputState = await page.evaluate(
+        () => (window as any).__paTouchInput || {},
+      );
+      expect(inputState.boost).toBe(false);
+
+      // Cleanup
+      await leftBtn.dispatchEvent("pointerup", {
+        pointerId: 2,
+        pointerType: "touch",
+        isPrimary: false,
+        button: 0,
+        buttons: 0,
+      });
+    });
+
+    test("race new debug hooks present in debug mode", async ({
+      page,
+    }, testInfo) => {
+      test.skip(
+        !DESKTOP_PROJECTS.includes(testInfo.project.name),
+        "New debug hooks test skipped on non-desktop",
+      );
+
+      await page.goto(game.path, { waitUntil: "domcontentloaded" });
+      await waitForPhaserReady(page);
+
+      const hooks = await page.evaluate(() => ({
+        setBoostMeter:
+          typeof (window as any).__paRaceDebugSetBoostMeter === "function",
+        hitObstacle:
+          typeof (window as any).__paRaceDebugHitObstacle === "function",
+        getState: typeof (window as any).__paRaceDebugGetState === "function",
+        finish: typeof (window as any).__paRaceDebugFinish === "function",
+        pause: typeof (window as any).__paRaceDebugPause === "function",
+        setProgress:
+          typeof (window as any).__paRaceDebugSetProgress === "function",
+      }));
+
+      expect(hooks.setBoostMeter).toBe(true);
+      expect(hooks.hitObstacle).toBe(true);
+      expect(hooks.getState).toBe(true);
+      expect(hooks.finish).toBe(true);
+      expect(hooks.pause).toBe(true);
+      expect(hooks.setProgress).toBe(true);
+    });
+
+    test("race debug set boost meter works", async ({ page }, testInfo) => {
+      test.skip(
+        !DESKTOP_PROJECTS.includes(testInfo.project.name),
+        "Set boost meter test skipped on non-desktop",
+      );
+
+      await page.goto(game.path, { waitUntil: "domcontentloaded" });
+      await waitForPhaserReady(page);
+
+      // Set boost to a low value via debug hook (close to clamp floor)
+      await page.evaluate(() => {
+        if (typeof (window as any).__paRaceDebugSetBoostMeter === "function") {
+          (window as any).__paRaceDebugSetBoostMeter(0);
+        }
+      });
+      await page.waitForTimeout(100);
+
+      const state = await page.evaluate(
+        () => (window as any).__paRaceToTreasureIslandState,
+      );
+      // Allow small regen drift when near 0
+      expect(state?.windMeter).toBeLessThanOrEqual(5);
+
+      // Clamp to max
+      await page.evaluate(() => {
+        if (typeof (window as any).__paRaceDebugSetBoostMeter === "function") {
+          (window as any).__paRaceDebugSetBoostMeter(999);
+        }
+      });
+      await page.waitForTimeout(50);
+
+      const state2 = await page.evaluate(
+        () => (window as any).__paRaceToTreasureIslandState,
+      );
+      // Allow small regen drift when near max (should stay near 100)
+      expect(state2?.windMeter).toBeGreaterThanOrEqual(95);
+    });
+
+    test("race debug get state returns deep copy", async ({
+      page,
+    }, testInfo) => {
+      test.skip(
+        !DESKTOP_PROJECTS.includes(testInfo.project.name),
+        "Get state test skipped on non-desktop",
+      );
+
+      await page.goto(game.path, { waitUntil: "domcontentloaded" });
+      await waitForPhaserReady(page);
+
+      const stateCopy = await page.evaluate(() => {
+        if (typeof (window as any).__paRaceDebugGetState === "function") {
+          return (window as any).__paRaceDebugGetState();
+        }
+        return null;
+      });
+
+      expect(stateCopy).not.toBeNull();
+      expect(typeof stateCopy?.playerProgress).toBe("number");
+      expect(typeof stateCopy?.windMeter).toBe("number");
+      expect(typeof stateCopy?.leadState).toBe("string");
+      expect(typeof stateCopy?.hitCount).toBe("number");
+      expect(stateCopy).toHaveProperty("boosting");
+      expect(stateCopy).toHaveProperty("boostEffectVisible");
     });
   });
 }

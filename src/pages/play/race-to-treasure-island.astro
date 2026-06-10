@@ -233,10 +233,26 @@ const title = `${game.title} — Pirate Arcade`;
   const pauseBtn = document.getElementById("btn-pause");
   const restartBtn = document.getElementById("btn-restart");
 
+  // Global clear for touch input — clears all directional/boost state
+  const clearAllTouchInput = () => {
+    const input = (window as any).__paTouchInput;
+    if (input) {
+      input.left = false;
+      input.right = false;
+      input.boost = false;
+    }
+    [leftBtn, rightBtn, boostBtn].forEach((b) => {
+      if (b) b.classList.remove("touch-btn--active");
+    });
+  };
+
   function setupHoldButton(btn, key) {
     if (!btn) return;
     function start(e) {
       e.preventDefault();
+      try {
+        btn.setPointerCapture(e.pointerId);
+      } catch (_) {}
       btn.classList.add("touch-btn--active");
       (window as any).__paTouchInput = (window as any).__paTouchInput || {};
       (window as any).__paTouchInput[key] = true;
@@ -251,16 +267,23 @@ const title = `${game.title} — Pirate Arcade`;
     btn.addEventListener("pointerup", end);
     btn.addEventListener("pointerleave", end);
     btn.addEventListener("pointercancel", end);
+    btn.addEventListener("lostpointercapture", end);
   }
 
   setupHoldButton(leftBtn, "left");
   setupHoldButton(rightBtn, "right");
   setupHoldButton(boostBtn, "boost");
 
+  // Clear touch input on visibility change (e.g. tab switch, phone lock)
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) clearAllTouchInput();
+  });
+
   // Pause: request pause on pointerup (RaceScene toggles actual state and syncs DOM)
   if (pauseBtn) {
     pauseBtn.addEventListener("pointerup", (e) => {
       e.preventDefault();
+      clearAllTouchInput();
       (window as any).__paTouchInput = (window as any).__paTouchInput || {};
       (window as any).__paTouchInput.pause = true;
     });
@@ -294,6 +317,7 @@ const title = `${game.title} — Pirate Arcade`;
       const el = document.getElementById("touch-hint");
       if (el) el.style.display = "flex";
       (window as any).__paRaceOverlayHold = true;
+      clearAllTouchInput();
     }
   };
 
@@ -302,6 +326,7 @@ const title = `${game.title} — Pirate Arcade`;
       const el = document.getElementById("touch-hint");
       if (el) el.style.display = "none";
       setOverlayHold(false);
+      clearAllTouchInput();
     }
   };
 

@@ -9,19 +9,23 @@ const RACE_TUNING = {
   baseScrollSpeed: 80,
   maxScrollSpeed: 200,
   playerSpeed: 300,
-  boostMultiplier: 1.6,
+  boostMultiplier: 2.0,
   boostMax: 100,
-  boostDrain: 0.8,
+  boostDrain: 0.7,
   boostRegen: 0.35,
-  stunDuration: 600,
+  stunDuration: 800,
   obstacleSpawnInterval: 1800,
   treasureSpawnInterval: 6000,
   baseProgressRate: 120,
-  boostProgressBonus: 80,
+  boostProgressBonus: 120,
   aiBaseRate: 105,
   aiMistakeChance: 0.004,
   aiMistakeDuration: 800,
   islandThreshold: 0.75,
+  boostVisualSpeedBonus: 60,
+  hitWindPenalty: 20,
+  hitSideBump: 60,
+  overtakeLeadThreshold: 200,
 };
 
 type ObstacleType = "barrel" | "shipwreck" | "reef" | "debris";
@@ -57,6 +61,14 @@ export class RaceScene extends Phaser.Scene {
   private rivalProgress: number = 0;
   private stunTimer: number = 0;
   private boosting: boolean = false;
+  private boostEffectVisible: boolean = false;
+  private hitCount: number = 0;
+  private lastHitType: ObstacleType | null = null;
+  private lastHitAt: number = 0;
+  private leadState: "player" | "rival" | "tied" = "tied";
+  private leadDelta: number = 0;
+  private overtakeCount: number = 0;
+  private lastLeadChangeAt: number = 0;
 
   // AI state
   private aiTargetX: number = GAME_WIDTH / 2;
@@ -80,6 +92,8 @@ export class RaceScene extends Phaser.Scene {
   private playerCue?: Phaser.GameObjects.Text;
 
   private oceanTiles: Phaser.GameObjects.TileSprite | null = null;
+  private oceanFarTiles: Phaser.GameObjects.TileSprite | null = null;
+  private speedLines: Phaser.GameObjects.Graphics | null = null;
   private lastObstacleSpawn: number = 0;
   private lastTreasureSpawn: number = 0;
   private islandShown: boolean = false;
@@ -161,6 +175,7 @@ export class RaceScene extends Phaser.Scene {
     this.updateTreasures(dt);
     this.updateBoost(dt);
     this.updateBackground(dt);
+    this.updateLeadState();
     this.tickProgress(dt);
     this.tickStun(dt);
     this.updateHUD();
@@ -186,6 +201,14 @@ export class RaceScene extends Phaser.Scene {
     this.rivalProgress = 0;
     this.stunTimer = 0;
     this.boosting = false;
+    this.boostEffectVisible = false;
+    this.hitCount = 0;
+    this.lastHitType = null;
+    this.lastHitAt = 0;
+    this.leadState = "tied";
+    this.leadDelta = 0;
+    this.overtakeCount = 0;
+    this.lastLeadChangeAt = 0;
     this.islandShown = false;
     this.paused = false;
     this.lastObstacleSpawn = 0;
@@ -199,8 +222,26 @@ export class RaceScene extends Phaser.Scene {
   }
 
   private createBackground(): void {
-    this.cameras.main.setBackgroundColor("#1a3a5c");
+    this.cameras.main.setBackgroundColor("#0e1e38");
 
+    // Horizon glow — lighter band near the top
+    this.add
+      .rectangle(GAME_WIDTH / 2, 0, GAME_WIDTH, 140, 0x1a3a6a, 0.25)
+      .setDepth(0);
+
+    // Far ocean layer (slow parallax, creates depth)
+    this.oceanFarTiles = this.add.tileSprite(
+      GAME_WIDTH / 2,
+      GAME_HEIGHT / 2 + 40,
+      GAME_WIDTH,
+      GAME_HEIGHT,
+      "ocean-bg",
+    );
+    if (this.oceanFarTiles) {
+      this.oceanFarTiles.setAlpha(0.25);
+    }
+
+    // Near ocean layer (main scroll)
     this.oceanTiles = this.add.tileSprite(
       GAME_WIDTH / 2,
       GAME_HEIGHT / 2,
@@ -211,6 +252,9 @@ export class RaceScene extends Phaser.Scene {
     if (this.oceanTiles) {
       this.oceanTiles.setAlpha(0.5);
     }
+
+    // Speed lines graphics layer (drawn during boost)
+    this.speedLines = this.add.graphics().setDepth(1).setAlpha(0);
   }
 
   private createPlayer(): void {
@@ -290,7 +334,7 @@ export class RaceScene extends Phaser.Scene {
 
   private createHUD(): void {
     // HUD background panel (semi-transparent bar across top)
-    const hudBg = this.add
+    this.add
       .rectangle(GAME_WIDTH / 2, 0, GAME_WIDTH, 44, 0x000000, 0.35)
       .setOrigin(0.5, 0)
       .setDepth(99);
@@ -513,6 +557,7 @@ export class RaceScene extends Phaser.Scene {
         rivalProgress: Math.floor(this.rivalProgress),
         windMeter: Math.floor(this.boostMeter),
         boosting: this.boosting,
+        boostEffectVisible: this.boostEffectVisible,
         paused: this.paused,
         finished: this.raceFinished,
         gameOver: this.gameOver,
@@ -541,6 +586,13 @@ export class RaceScene extends Phaser.Scene {
         rivalDisplayHeight: Math.round(this.aiShip?.displayHeight ?? 0),
         playerCueVisible: this.playerCue?.visible ?? false,
         overlayHeld: this.isOverlayHeld(),
+        leadState: this.leadState,
+        leadDelta: Math.floor(this.leadDelta),
+        overtakeCount: this.overtakeCount,
+        lastLeadChangeAt: this.lastLeadChangeAt,
+        hitCount: this.hitCount,
+        lastHitType: this.lastHitType,
+        lastHitAt: this.lastHitAt,
       };
     }
   }
@@ -561,6 +613,24 @@ export class RaceScene extends Phaser.Scene {
     (window as any).__paRaceDebugSetProgress = (value: number) => {
       this.playerProgress = value;
       this.exposeState();
+    };
+    (window as any).__paRaceDebugSetBoostMeter = (value: number) => {
+      this.boostMeter = Phaser.Math.Clamp(value, 0, RACE_TUNING.boostMax);
+      this.exposeState();
+    };
+    (window as any).__paRaceDebugHitObstacle = (type?: string) => {
+      const obsType: ObstacleType = (type as ObstacleType) ?? "barrel";
+      this.obstacleTypesSeen.add(obsType);
+      const fakeObs = {
+        obsType,
+        x: this.player?.x ?? GAME_WIDTH / 2,
+        y: this.player?.y ?? GAME_HEIGHT / 2,
+        destroy: () => {},
+      } as Obstacle;
+      this.handleObstacleHit(fakeObs);
+    };
+    (window as any).__paRaceDebugGetState = () => {
+      return { ...(window as any).__paRaceToTreasureIslandState };
     };
   }
 
@@ -590,6 +660,7 @@ export class RaceScene extends Phaser.Scene {
     this.boosting =
       (this.spaceKey.isDown || this.shiftKey.isDown || touch.boost) &&
       this.boostMeter > 0;
+    this.boostEffectVisible = this.boosting;
 
     const stunFactor = this.stunTimer > 0 ? 0.55 : 1;
 
@@ -611,37 +682,57 @@ export class RaceScene extends Phaser.Scene {
       RACE_TUNING.raceDistance,
     );
 
-    // Boost indicator label
+    // Boost indicator label (pulsing, brighter during boost)
     if (this.boosting) {
       this.boostLabelText.setVisible(true);
-      this.boostLabelText.setAlpha(0.6 + Math.sin(this.time.now * 0.008) * 0.4);
+      this.boostLabelText.setAlpha(0.7 + Math.sin(this.time.now * 0.01) * 0.3);
+      this.boostLabelText.setColor("#ffdd44");
     } else {
       this.boostLabelText.setVisible(false);
     }
 
-    // Sail visual for boost
+    // Sail visual for boost — more dramatic during boost
     if (this.boosting) {
       this.sailIndicator.setVisible(true);
       this.sailIndicator.setPosition(this.player.x - 24, this.player.y - 34);
       this.sailIndicator.setTint(0xffdd44);
-      // Flapping animation
-      const flap = 1.2 + Math.sin(this.time.now * 0.012) * 0.3;
+      const flap = 1.4 + Math.sin(this.time.now * 0.014) * 0.4;
       this.sailIndicator.setScale(flap);
-      this.sailIndicator.setRotation(Math.sin(this.time.now * 0.008) * 0.15);
-      // Brief wind streak particles
-      if (this.rngCosmetic.float() < 0.3) {
+      this.sailIndicator.setRotation(Math.sin(this.time.now * 0.01) * 0.2);
+      // Wind streak particles (higher frequency during boost)
+      if (this.rngCosmetic.float() < 0.5) {
         const streak = this.add
           .image(this.player.x - 30, this.player.y - 20, "particle")
           .setTint(0x88ccff)
-          .setAlpha(0.3)
-          .setScale(0.3)
+          .setAlpha(0.4)
+          .setScale(0.4)
           .setDepth(12);
         this.tweens.add({
           targets: streak,
-          x: streak.x - 20,
+          x: streak.x - 30,
+          alpha: 0,
+          duration: 250,
+          onComplete: () => streak.destroy(),
+        });
+      }
+      // Extra wake particles during boost
+      if (this.rngCosmetic.float() < 0.4) {
+        const wake = this.add
+          .image(
+            this.player.x + this.rngCosmetic.int(-12, 12),
+            this.player.y + 30,
+            "particle",
+          )
+          .setTint(0xaaccee)
+          .setAlpha(0.3)
+          .setScale(0.5)
+          .setDepth(12);
+        this.tweens.add({
+          targets: wake,
+          y: wake.y + 20,
           alpha: 0,
           duration: 300,
-          onComplete: () => streak.destroy(),
+          onComplete: () => wake.destroy(),
         });
       }
     } else if (dir !== 0) {
@@ -695,10 +786,16 @@ export class RaceScene extends Phaser.Scene {
       dt;
     this.rivalProgress = Math.min(this.rivalProgress, RACE_TUNING.raceDistance);
 
-    // Keep AI on screen relative to player
+    // Keep AI on screen relative to player — more responsive to progress change
     const aiScreenY =
-      this.player.y - 80 - (this.rivalProgress - this.playerProgress) * 0.05;
+      this.player.y - 80 - (this.rivalProgress - this.playerProgress) * 0.08;
     this.aiShip.y = Phaser.Math.Clamp(aiScreenY, 40, this.player.y - 30);
+    // When player is ahead, rival falls further behind visually
+    if (this.playerProgress > this.rivalProgress + 200) {
+      this.aiShip.setAlpha(0.6);
+    } else {
+      this.aiShip.setAlpha(0.9);
+    }
 
     // Update label position
     const label = this.aiShip.getData("label") as Phaser.GameObjects.Text;
@@ -813,8 +910,36 @@ export class RaceScene extends Phaser.Scene {
   }
 
   private updateBackground(dt: number): void {
+    const boostVisual = this.boosting ? RACE_TUNING.boostVisualSpeedBonus : 0;
+    const effectiveScroll = this.scrollSpeed + boostVisual;
+
+    if (this.oceanFarTiles) {
+      this.oceanFarTiles.tilePositionY -= effectiveScroll * dt * 0.2;
+    }
     if (this.oceanTiles) {
-      this.oceanTiles.tilePositionY -= this.scrollSpeed * dt * 0.6;
+      this.oceanTiles.tilePositionY -= effectiveScroll * dt * 0.6;
+    }
+
+    // Speed lines during boost
+    if (this.speedLines) {
+      if (this.boosting) {
+        this.speedLines.setAlpha(0.15 + Math.sin(this.time.now * 0.01) * 0.1);
+        this.speedLines.clear();
+        this.speedLines.lineStyle(1, 0x88ccff, 0.3);
+        const speed = effectiveScroll * 1.5;
+        for (let i = 0; i < 6; i++) {
+          const sx = this.rngCosmetic.int(0, GAME_WIDTH);
+          const sy = this.rngCosmetic.int(0, GAME_HEIGHT);
+          const len = this.rngCosmetic.int(20, 60);
+          this.speedLines.lineBetween(sx, sy, sx, sy + len);
+          // Shift lines down each frame for motion
+          this.speedLines.y = (this.time.now * speed * 0.002) % 120;
+        }
+      } else {
+        this.speedLines.clear();
+        this.speedLines.setAlpha(0);
+        this.speedLines.y = 0;
+      }
     }
   }
 
@@ -892,6 +1017,55 @@ export class RaceScene extends Phaser.Scene {
     }
   }
 
+  private updateLeadState(): void {
+    const delta = this.playerProgress - this.rivalProgress;
+    this.leadDelta = delta;
+
+    const newState: "player" | "rival" | "tied" =
+      delta > RACE_TUNING.overtakeLeadThreshold
+        ? "player"
+        : delta < -RACE_TUNING.overtakeLeadThreshold
+          ? "rival"
+          : "tied";
+
+    if (newState !== this.leadState) {
+      this.lastLeadChangeAt = this.time.now;
+      if (newState === "player") {
+        this.overtakeCount++;
+      }
+      // Show overtake cue text
+      this.showOvertakeCue(
+        newState === "player"
+          ? "YOU'RE AHEAD!"
+          : newState === "rival"
+            ? "LONG JOHN LEADS!"
+            : "",
+      );
+    }
+    this.leadState = newState;
+  }
+
+  private showOvertakeCue(text: string): void {
+    if (!text) return;
+    const cue = this.add
+      .text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 80, text, {
+        fontFamily: "monospace",
+        fontSize: text === "YOU'RE AHEAD!" ? "20px" : "16px",
+        color: text === "YOU'RE AHEAD!" ? "#44ff88" : "#ff6666",
+        stroke: "#000",
+        strokeThickness: 4,
+      })
+      .setOrigin(0.5)
+      .setDepth(200);
+    this.tweens.add({
+      targets: cue,
+      y: cue.y - 30,
+      alpha: 0,
+      duration: 1500,
+      onComplete: () => cue.destroy(),
+    });
+  }
+
   private checkFinish(): void {
     if (this.raceFinished) return;
 
@@ -903,12 +1077,28 @@ export class RaceScene extends Phaser.Scene {
   }
 
   private handleObstacleHit(obs: Obstacle): void {
-    // Flash / stun effect
+    this.hitCount++;
+    this.lastHitType = obs.obsType;
+    this.lastHitAt = this.time.now;
+
+    // Cancel boost on hit
+    this.boosting = false;
+    this.boostEffectVisible = false;
+    // Also clear touch boost flag so it doesn't re-engage next frame
+    if (typeof window !== "undefined") {
+      const touch = (window as any).__paTouchInput;
+      if (touch) touch.boost = false;
+    }
+
+    // Reduce wind meter
+    this.boostMeter = Math.max(0, this.boostMeter - RACE_TUNING.hitWindPenalty);
+
+    // Stun effect
     this.player.setTint(0xff4444);
     this.stunTimer = RACE_TUNING.stunDuration;
 
-    // Camera shake
-    this.cameras.main.shake(200, 0.008);
+    // Camera shake (stronger than before)
+    this.cameras.main.shake(250, 0.015);
 
     // Slow scroll temporarily
     this.scrollSpeed = Math.max(
@@ -916,14 +1106,57 @@ export class RaceScene extends Phaser.Scene {
       this.scrollSpeed - 25,
     );
 
-    // "STUNNED" text (avoid stacking if collisions come close together)
+    // Sideways bump
+    const bumpDir = obs.x < this.player.x ? 1 : -1;
+    this.player.setVelocityX(bumpDir * RACE_TUNING.hitSideBump);
+
+    // Red screen flash (edge overlay)
+    const flash = this.add
+      .rectangle(
+        GAME_WIDTH / 2,
+        GAME_HEIGHT / 2,
+        GAME_WIDTH,
+        GAME_HEIGHT,
+        0xff0000,
+        0.2,
+      )
+      .setDepth(250);
+    this.tweens.add({
+      targets: flash,
+      alpha: 0,
+      duration: 400,
+      onComplete: () => flash.destroy(),
+    });
+
+    // "HIT!" text
     if (this.time.now - this.lastStunTextTime > 600) {
       this.lastStunTextTime = this.time.now;
+      const hitText = this.add
+        .text(this.player.x, this.player.y - 55, "HIT!", {
+          fontFamily: "monospace",
+          fontSize: "14px",
+          color: "#ff4444",
+          stroke: "#000",
+          strokeThickness: 3,
+        })
+        .setOrigin(0.5)
+        .setDepth(20);
+      this.tweens.add({
+        targets: hitText,
+        y: hitText.y - 30,
+        alpha: 0,
+        duration: 600,
+        onComplete: () => hitText.destroy(),
+      });
+    }
+
+    // "STUNNED!" text (secondary)
+    if (this.time.now - this.lastStunTextTime > 200) {
       const stunText = this.add
-        .text(this.player.x, this.player.y - 50, "STUNNED!", {
+        .text(this.player.x, this.player.y - 40, "STUNNED!", {
           fontFamily: "monospace",
           fontSize: "11px",
-          color: "#ff4444",
+          color: "#ff8844",
           stroke: "#000",
           strokeThickness: 2,
         })
@@ -931,7 +1164,7 @@ export class RaceScene extends Phaser.Scene {
         .setDepth(20);
       this.tweens.add({
         targets: stunText,
-        y: stunText.y - 30,
+        y: stunText.y - 25,
         alpha: 0,
         duration: 500,
         onComplete: () => stunText.destroy(),
@@ -941,18 +1174,18 @@ export class RaceScene extends Phaser.Scene {
     // Score penalty
     this.score = Math.max(0, this.score - 30);
 
-    // Particle burst (cosmetic, uses rng for variety but doesn't affect gameplay)
-    for (let i = 0; i < 8; i++) {
+    // Particle burst (orange debris)
+    for (let i = 0; i < 12; i++) {
       const p = this.add.image(obs.x, obs.y, "particle");
       p.setTint(0xff6600);
       p.setDepth(20);
       this.tweens.add({
         targets: p,
-        x: p.x + this.rngCosmetic.int(-25, 25),
-        y: p.y + this.rngCosmetic.int(-25, 25),
+        x: p.x + this.rngCosmetic.int(-30, 30),
+        y: p.y + this.rngCosmetic.int(-30, 30),
         alpha: 0,
         scale: 0,
-        duration: 350,
+        duration: 400,
         onComplete: () => p.destroy(),
       });
     }
@@ -1046,8 +1279,14 @@ export class RaceScene extends Phaser.Scene {
   }
 
   private updateHUD(): void {
+    const boostVisual = this.boosting ? RACE_TUNING.boostVisualSpeedBonus : 0;
+    const displaySpeed = Math.floor(this.scrollSpeed + boostVisual);
     this.scoreText.setText(`Score: ${this.score}`);
-    this.speedText.setText(`Speed: ${Math.floor(this.scrollSpeed)} kn`);
+    this.speedText.setText(
+      this.boosting
+        ? `Speed: ${displaySpeed} kn ⚡`
+        : `Speed: ${displaySpeed} kn`,
+    );
 
     const playerPct = Math.min(
       100,
@@ -1065,12 +1304,21 @@ export class RaceScene extends Phaser.Scene {
     this.progressText.setText(
       `You: ${playerPct}% [${playerBar}]\nLJ:  ${rivalPct}% [${rivalBar}]`,
     );
-    this.rivalText.setText(
-      playerPct > rivalPct
-        ? "↑ You're ahead!"
-        : playerPct < rivalPct
+
+    // Lead state text with overtake count
+    const leadStr =
+      this.leadState === "player"
+        ? `↑ You're ahead! (${this.overtakeCount})`
+        : this.leadState === "rival"
           ? "↓ Long John leads"
-          : "─ Neck and neck",
+          : "─ Neck and neck";
+    this.rivalText.setText(leadStr);
+    this.rivalText.setColor(
+      this.leadState === "player"
+        ? "#44ff88"
+        : this.leadState === "rival"
+          ? "#ff6666"
+          : "#aaaaaa",
     );
   }
 }
