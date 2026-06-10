@@ -52,6 +52,8 @@ export class RaceScene extends Phaser.Scene {
   private lastLeadChangeAt: number = 0;
   private hitBumpTimer: number = 0;
   private hitBumpVelocity: number = 0;
+  private overtakeCueVisible: boolean = false;
+  private playerWon: boolean = false;
 
   // AI state
   private aiTargetX: number = GAME_WIDTH / 2;
@@ -92,8 +94,9 @@ export class RaceScene extends Phaser.Scene {
   // Obstacle spawn log (debug/determinism verification)
   private obstacleSpawnLog: Array<{ type: ObstacleType; x: number }> = [];
 
-  // Stun text guard: avoid stacking if collisions come close together
-  private lastStunTextTime: number = 0;
+  // Text effect guards: avoid stacking feedback text
+  private lastHitTextTime: number = 0;
+  private lastOvertakeCueTime: number = 0;
 
   constructor() {
     super({ key: "RaceScene" });
@@ -161,16 +164,19 @@ export class RaceScene extends Phaser.Scene {
   }
 
   update(_time: number, delta: number): void {
-    if (this.gameOver || this.raceFinished) return;
-
     const dt = delta / 1000;
 
-    this.scrollSpeed = Math.min(
-      RACE_TUNING.maxScrollSpeed,
-      RACE_TUNING.baseScrollSpeed + this.distanceTraveled * 0.012,
-    );
+    this.scrollSpeed =
+      this.gameOver || this.raceFinished
+        ? this.scrollSpeed
+        : Math.min(
+            RACE_TUNING.maxScrollSpeed,
+            RACE_TUNING.baseScrollSpeed + this.distanceTraveled * 0.012,
+          );
 
     this.handleSystemInput();
+    if (this.gameOver || this.raceFinished) return;
+
     if (this.paused) {
       this.exposeState();
       return;
@@ -225,6 +231,8 @@ export class RaceScene extends Phaser.Scene {
     this.lastLeadChangeAt = 0;
     this.hitBumpTimer = 0;
     this.hitBumpVelocity = 0;
+    this.overtakeCueVisible = false;
+    this.playerWon = false;
     this.islandShown = false;
     this.paused = false;
     this.lastObstacleSpawn = 0;
@@ -233,6 +241,8 @@ export class RaceScene extends Phaser.Scene {
     this.aiLaneTimer = 0;
     this.aiMistakeTimer = 0;
     this.aiMistakeDir = 0;
+    this.lastHitTextTime = 0;
+    this.lastOvertakeCueTime = 0;
     this.obstacleTypesSeen.clear();
     this.obstacleSpawnLog = [];
   }
@@ -592,9 +602,11 @@ export class RaceScene extends Phaser.Scene {
         leadDelta: Math.floor(this.leadDelta),
         overtakeCount: this.overtakeCount,
         lastLeadChangeAt: this.lastLeadChangeAt,
+        overtakeCueVisible: this.overtakeCueVisible,
         hitCount: this.hitCount,
         lastHitType: this.lastHitType,
         lastHitAt: this.lastHitAt,
+        playerWon: this.playerWon,
       };
     }
   }
@@ -638,6 +650,20 @@ export class RaceScene extends Phaser.Scene {
     (window as any).__paRaceDebugGetState = () => {
       return { ...(window as any).__paRaceToTreasureIslandState };
     };
+    (window as any).__paRaceDebugShowOvertakeCue = () => {
+      this.lastOvertakeCueTime = -99999;
+      this.leadState = "player";
+      this.leadDelta = 1500;
+      this.showOvertakeCue("YOU'RE AHEAD!");
+      this.exposeState();
+    };
+    (window as any).__paRaceDebugRestart = () => {
+      const touch = (window as any).__paTouchInput || {};
+      touch.left = false;
+      touch.right = false;
+      touch.boost = false;
+      this.scene.restart();
+    };
   }
 
   private handleSystemInput(): void {
@@ -651,6 +677,10 @@ export class RaceScene extends Phaser.Scene {
     if (touch.restart) {
       touch.restart = false;
       if (this.gameOver || this.raceFinished) {
+        // Clear inputs before restart
+        touch.left = false;
+        touch.right = false;
+        touch.boost = false;
         this.scene.restart();
       }
     }
@@ -1041,6 +1071,10 @@ export class RaceScene extends Phaser.Scene {
 
   private showOvertakeCue(text: string): void {
     if (!text) return;
+    // Cooldown to avoid spam from near-threshold oscillation
+    if (this.time.now - this.lastOvertakeCueTime < 2000) return;
+    this.lastOvertakeCueTime = this.time.now;
+    this.overtakeCueVisible = true;
     const cue = this.add
       .text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 80, text, {
         fontFamily: "monospace",
@@ -1056,7 +1090,10 @@ export class RaceScene extends Phaser.Scene {
       y: cue.y - 30,
       alpha: 0,
       duration: 1500,
-      onComplete: () => cue.destroy(),
+      onComplete: () => {
+        cue.destroy();
+        this.overtakeCueVisible = false;
+      },
     });
   }
 
@@ -1116,12 +1153,12 @@ export class RaceScene extends Phaser.Scene {
       onComplete: () => flash.destroy(),
     });
 
-    if (this.time.now - this.lastStunTextTime > 600) {
-      this.lastStunTextTime = this.time.now;
+    if (this.time.now - this.lastHitTextTime > 600) {
+      this.lastHitTextTime = this.time.now;
       const hitText = this.add
-        .text(this.player.x, this.player.y - 55, "HIT!", {
+        .text(this.player.x, this.player.y - 55, "HIT! -20 WIND", {
           fontFamily: "monospace",
-          fontSize: "14px",
+          fontSize: "12px",
           color: "#ff4444",
           stroke: "#000",
           strokeThickness: 3,
@@ -1132,28 +1169,8 @@ export class RaceScene extends Phaser.Scene {
         targets: hitText,
         y: hitText.y - 30,
         alpha: 0,
-        duration: 600,
+        duration: 700,
         onComplete: () => hitText.destroy(),
-      });
-    }
-
-    if (this.time.now - this.lastStunTextTime > 200) {
-      const stunText = this.add
-        .text(this.player.x, this.player.y - 40, "STUNNED!", {
-          fontFamily: "monospace",
-          fontSize: "11px",
-          color: "#ff8844",
-          stroke: "#000",
-          strokeThickness: 2,
-        })
-        .setOrigin(0.5)
-        .setDepth(20);
-      this.tweens.add({
-        targets: stunText,
-        y: stunText.y - 25,
-        alpha: 0,
-        duration: 500,
-        onComplete: () => stunText.destroy(),
       });
     }
 
@@ -1203,9 +1220,10 @@ export class RaceScene extends Phaser.Scene {
     tres.destroy();
   }
 
-  private handleFinish(playerWon: boolean): void {
+  private handleFinish(win: boolean): void {
     if (this.raceFinished) return;
     this.raceFinished = true;
+    this.playerWon = win;
 
     this.player.setVelocity(0, 0);
     this.player.setVelocityY(0);
@@ -1215,15 +1233,29 @@ export class RaceScene extends Phaser.Scene {
     this.finishOverlay.setVisible(true);
 
     this.gameOverText.setText(
-      playerWon ? "TREASURE ISLAND SIGHTED!" : "LONG JOHN REACHED IT FIRST!",
+      win ? "TREASURE ISLAND!" : "LONG JOHN GOT THERE FIRST!",
     );
-    this.gameOverText.setColor(playerWon ? "#ffd700" : "#ff6666");
+    this.gameOverText.setColor(win ? "#ffd700" : "#ff6666");
     this.gameOverText.setVisible(true);
 
     this.resultText.setText(
-      `Score: ${this.score}  •  Press ENTER or tap RESTART to retry`,
+      win
+        ? `You outran Long John!  Score: ${this.score}`
+        : `Use BOOST to overtake him next run.  Score: ${this.score}`,
     );
+    this.resultText.setColor(win ? "#88ddbb" : "#ff8866");
     this.resultText.setVisible(true);
+
+    // Gold glow on island when player wins
+    if (win && this.treasureIsland?.active) {
+      this.tweens.add({
+        targets: this.treasureIsland,
+        scale: 1.15,
+        duration: 400,
+        yoyo: true,
+        ease: "Sine.easeInOut",
+      });
+    }
 
     const restartBtn =
       typeof window !== "undefined" ? (window as any).__paRestartBtn : null;

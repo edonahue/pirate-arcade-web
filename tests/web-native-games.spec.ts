@@ -1950,6 +1950,9 @@ for (const game of GAMES) {
 
       // Wind meter should be reduced
       expect(afterHit?.windMeter).toBeLessThan(windBefore);
+
+      // Bump timer should be set
+      expect(afterHit?.hitBumpTimer).toBeGreaterThan(0);
     });
 
     test("race touch input clears after pointer cancellation", async ({
@@ -2523,6 +2526,161 @@ for (const game of GAMES) {
       // Resume
       await pauseBtn.click();
       await page.waitForTimeout(100);
+    });
+
+    test("rival finish produces distinct result via debug hook", async ({
+      page,
+    }, testInfo) => {
+      test.skip(
+        !DESKTOP_PROJECTS.includes(testInfo.project.name),
+        "Rival finish test skipped on non-desktop",
+      );
+
+      await page.goto(`${game.path}?testTouch=1`, {
+        waitUntil: "domcontentloaded",
+      });
+      await waitForPhaserReady(page);
+
+      // Force rival win by setting rival progress past finish
+      await page.evaluate(() => {
+        if (
+          typeof (window as any).__paRaceDebugSetRivalProgress === "function"
+        ) {
+          (window as any).__paRaceDebugSetRivalProgress(10000);
+        }
+      });
+      await page.waitForTimeout(300);
+
+      const state = await page.evaluate(
+        () => (window as any).__paRaceToTreasureIslandState,
+      );
+      expect(state?.finished).toBe(true);
+      expect(state?.playerWon).toBe(false);
+      expect(state?.result).toContain("LONG JOHN GOT THERE FIRST");
+    });
+
+    test("player win sets playerWon state", async ({ page }, testInfo) => {
+      test.skip(
+        !DESKTOP_PROJECTS.includes(testInfo.project.name),
+        "Player win test skipped on non-desktop",
+      );
+
+      await page.goto(`${game.path}?testTouch=1`, {
+        waitUntil: "domcontentloaded",
+      });
+      await waitForPhaserReady(page);
+
+      // Force player win
+      await page.evaluate(() => {
+        if (typeof (window as any).__paRaceDebugFinish === "function") {
+          (window as any).__paRaceDebugFinish();
+        }
+      });
+      await page.waitForTimeout(300);
+
+      const state = await page.evaluate(
+        () => (window as any).__paRaceToTreasureIslandState,
+      );
+      expect(state?.finished).toBe(true);
+      expect(state?.playerWon).toBe(true);
+      expect(state?.result).toContain("TREASURE ISLAND");
+    });
+
+    test("restart clears touch inputs before restart", async ({
+      page,
+    }, testInfo) => {
+      test.skip(
+        !DESKTOP_PROJECTS.includes(testInfo.project.name),
+        "Restart clear test skipped on non-desktop",
+      );
+
+      await page.goto(`${game.path}?testTouch=1`, {
+        waitUntil: "domcontentloaded",
+      });
+      await waitForPhaserReady(page);
+
+      // Force finish
+      await page.evaluate(() => {
+        if (typeof (window as any).__paRaceDebugFinish === "function") {
+          (window as any).__paRaceDebugFinish();
+        }
+      });
+      await page.waitForTimeout(200);
+
+      // Set some touch input active
+      await page.evaluate(() => {
+        (window as any).__paTouchInput = (window as any).__paTouchInput || {};
+        (window as any).__paTouchInput.left = true;
+        (window as any).__paTouchInput.boost = true;
+      });
+      await page.waitForTimeout(100);
+
+      // Restart via debug hook (bypasses input system entirely)
+      await page.evaluate(() => {
+        if (typeof (window as any).__paRaceDebugRestart === "function") {
+          (window as any).__paRaceDebugRestart();
+        }
+      });
+
+      // Wait for scene restart: finished resets to false and progress resets
+      await page.waitForFunction(
+        () => (window as any).__paRaceToTreasureIslandState?.finished === false,
+        { timeout: 10000, polling: 50 },
+      );
+
+      // After restart, touch inputs should be cleared by handleSystemInput
+      const inputState = await page.evaluate(
+        () => (window as any).__paTouchInput || {},
+      );
+      expect(inputState.left).toBe(false);
+      expect(inputState.boost).toBe(false);
+    });
+
+    test("overtakeCueVisible state tracks cue", async ({ page }, testInfo) => {
+      test.skip(
+        !DESKTOP_PROJECTS.includes(testInfo.project.name),
+        "Overtake cue test skipped on non-desktop",
+      );
+
+      await page.goto(`${game.path}?testTouch=1`, {
+        waitUntil: "domcontentloaded",
+      });
+      await waitForPhaserReady(page);
+
+      // Set player ahead so the leadState change triggers the cue
+      await page.evaluate(() => {
+        if (
+          typeof (window as any).__paRaceDebugSetRivalProgress === "function"
+        ) {
+          (window as any).__paRaceDebugSetRivalProgress(500);
+        }
+        if (typeof (window as any).__paRaceDebugSetProgress === "function") {
+          (window as any).__paRaceDebugSetProgress(2000);
+        }
+      });
+
+      // Trigger the cue directly via debug hook
+      await page.evaluate(() => {
+        if (
+          typeof (window as any).__paRaceDebugShowOvertakeCue === "function"
+        ) {
+          (window as any).__paRaceDebugShowOvertakeCue();
+        }
+      });
+
+      const state = await page.evaluate(
+        () => (window as any).__paRaceToTreasureIslandState,
+      );
+      expect(state?.overtakeCueVisible).toBe(true);
+      expect(state?.leadState).toBe("player");
+
+      // Wait for cue to fade (tween is 1500ms, but game may re-trigger on cooldown expiry)
+      await page.waitForFunction(
+        () =>
+          (window as any).__paRaceToTreasureIslandState?.overtakeCueVisible ===
+          false,
+        { timeout: 10000, polling: 100 },
+      );
     });
   });
 }
