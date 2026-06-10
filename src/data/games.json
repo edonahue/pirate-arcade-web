@@ -18,6 +18,7 @@
     "howToPlay": "Defend your fortress and sink your opponent's ship with well-aimed cannon shots. First to 11 hits wins. Use the slide zone or nudge buttons to move your ship up and down. Tap START to begin each round.",
     "tips": "The AI ramps up in difficulty. Power-ups (gold glow) make your paddle bigger temporarily. Audio unlocks after your first tap.",
     "firstPlayTip": "Slide ship up/down, tap START. Easiest on touch.",
+    "bestFor": "Quick first touch game — simplest controls, instant action.",
     "availabilityNote": "Playable in browser now via Pygbag and WebAssembly, and also included in the desktop release.",
     "seoDescription": "Play Cannonball Clash in your browser — a naval Pong duel with power-ups, AI opponent, and procedural audio.",
     "features": ["1-2 players", "AI opponent", "Power-ups", "Procedural audio"]
@@ -41,6 +42,7 @@
     "howToPlay": "Smash through the fortress walls to reach the treasure hoard. Slide the longboat left and right to bounce the ball. Tap LAUNCH to serve. Each brick row has different durability — watch for cracks!",
     "tips": "Bricks show row-specific stone colors. The last-hit brick pulses gold. The ball speeds up over time. Lives: 3.",
     "firstPlayTip": "Slide longboat left/right, tap LAUNCH. Medium on touch.",
+    "bestFor": "Classic brick-breaker fans who want a pirate twist on Breakout.",
     "availabilityNote": "Playable in browser now via Pygbag and WebAssembly, and also included in the desktop release.",
     "seoDescription": "Play Treasure Cove in your browser — a pirate Breakout brick breaker with 8 rows, score combos, and paddle power-up.",
     "features": [
@@ -69,6 +71,7 @@
     "howToPlay": "Navigate treacherous waters and blast sea monsters. Turn your ship, thrust forward, and fire cannons to survive waves. Collect treasure pickups for bonus points. Watch for the Kraken — it hits hard!",
     "tips": "THRUST applies forward momentum; let go to coast. FIRE has a cooldown. Treasure pickups give bonus points. 3 lives per game.",
     "firstPlayTip": "Turn ship, thrust forward, fire cannons. Harder on touch.",
+    "bestFor": "Asteroids veterans — momentum-based movement and wave survival.",
     "availabilityNote": "Playable in browser now via Pygbag and WebAssembly, and also included in the desktop release.",
     "seoDescription": "Play Kraken's Wake in your browser — an Asteroids-style sea monster survival game with treasure pickups and 3 lives.",
     "features": ["Ship combat", "Wave survival", "Treasure pickups", "3 lives"]
@@ -91,6 +94,7 @@
     "howToPlay": "Race Long John to Treasure Island in this OutRun-style pirate chase! Hold BOOST to surge ahead — your wind meter drains while boosting but recharges when you coast. Dodge barrels, shipwrecks, reefs, and debris: obstacles drain wind, bump you sideways, and briefly stun your ship. Collect treasure chests for +100 bonus points. The course speeds up as you go. Use boost strategically to overtake Long John and reach the island first.",
     "tips": "Boost strategically — steady draining beats running out at the last turn. Obstacles cost 20 wind and bump you off course. Treasure chests give +100 points. Speed increases as you progress. Long John makes occasional mistakes — time your push.",
     "firstPlayTip": "← ▶ to steer, HOLD ⛵ to boost. Dodge everything, collect treasure, and beat Long John!",
+    "bestFor": "Instant-load racing — boost management, obstacle dodging, AI rival.",
     "availabilityNote": "Phaser 3 web-native game. Loads instantly in browser — no runtime download needed.",
     "seoDescription": "Play Race to Treasure Island, Pirate Arcade's web-native Phaser 3 OutRun-style racer. Dodge obstacles, manage wind boost, and beat Long John to shore.",
     "features": [
@@ -114,6 +118,7 @@
     "howToPlay": "Buy ports, build trade empires, and rule the seas. Outsmart rival captains and become the wealthiest pirate on the map. 2-4 players with AI opponents.",
     "tips": "Save often. AI opponents play aggressively. Trade routes compound over time.",
     "firstPlayTip": "Start with a 2-player game to learn the mechanics.",
+    "bestFor": "Turn-based strategy fans who want a deep pirate economy game.",
     "availabilityNote": "Available in the desktop release now. The Pygbag/WebAssembly pipeline proved effective for arcade games, but a turn-based board game with point-and-click controls needs a different approach. A browser version is under evaluation (see the build log for details).",
     "seoDescription": "Download Port Royale Tycoon — a pirate property-trading board game with 2-4 players, AI opponents, and save/load.",
     "features": ["2-4 players", "AI opponents", "Save/load", "Property trading"]

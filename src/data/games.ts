@@ -32,6 +32,7 @@ export interface Game {
   tips?: string;
   firstPlayTip?: string;
   touchDifficultyLabel?: string;
+  bestFor?: string;
   availabilityNote?: string;
   seoDescription?: string;
 }

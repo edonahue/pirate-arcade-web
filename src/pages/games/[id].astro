@@ -119,6 +119,15 @@ const isDesktopAvailable = game.status === "desktop-available";
           }
         </p>
 
+        {
+          game.bestFor && (
+            <p class="game-detail__best-for">
+              <span class="game-detail__best-for-label">Best for:</span>{" "}
+              {game.bestFor}
+            </p>
+          )
+        }
+
         <h2>How to play</h2>
         <p>{game.howToPlay}</p>
 
@@ -428,5 +437,22 @@ const isDesktopAvailable = game.status === "desktop-available";
     color: var(--accent);
     text-decoration: underline;
     text-underline-offset: 2px;
+  }
+  .game-detail__best-for {
+    font-size: 0.9375rem;
+    color: var(--ink);
+    padding: 0.75rem 1rem;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    border-left: 3px solid var(--accent);
+    margin-bottom: 1.5rem;
+  }
+  .game-detail__best-for-label {
+    font-family: var(--mono);
+    font-size: 0.6875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--accent);
   }
 </style>

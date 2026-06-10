@@ -1,14 +1,17 @@
 import { test, expect } from "@playwright/test";
 
 const BROWSER_PLAYABLE = [
-  { id: "cannonball-clash", name: "Cannonball Clash" },
-  { id: "treasure-cove", name: "Treasure Cove" },
+  { id: "cannonball-clash", name: "Cannonball Clash", engine: "pygbag" },
+  { id: "treasure-cove", name: "Treasure Cove", engine: "pygbag" },
+  { id: "krakens-wake", name: "Kraken's Wake", engine: "pygbag" },
+  {
+    id: "race-to-treasure-island",
+    name: "Race to Treasure Island",
+    engine: "phaser",
+  },
 ];
 
-const DESKTOP_ONLY = [
-  { id: "krakens-wake", name: "Kraken's Wake" },
-  { id: "port-royale-tycoon", name: "Port Royale Tycoon" },
-];
+const DESKTOP_ONLY = [{ id: "port-royale-tycoon", name: "Port Royale Tycoon" }];
 
 test.describe("Game Prewarm", () => {
   test.use({ viewport: { width: 1440, height: 900 } });
@@ -46,9 +49,13 @@ test.describe("Game Prewarm", () => {
         await expect(cta).toHaveAttribute("data-game-archive");
 
         const archiveUrl = await cta.getAttribute("data-game-archive");
-        expect(archiveUrl).toMatch(
-          new RegExp(`${game.id}\\.tar\\.gz\\?v=mobile-v4$`),
-        );
+        if (game.engine === "pygbag") {
+          expect(archiveUrl).toMatch(
+            new RegExp(`${game.id}\\.tar\\.gz\\?v=mobile-v5$`),
+          );
+        } else {
+          expect(archiveUrl).toBe("");
+        }
       }
     }
   });
@@ -197,15 +204,16 @@ test.describe("Game Prewarm", () => {
   }) => {
     await page.goto("/play/");
 
-    const browserPlayable = await page.evaluate(() => {
+    const browserPlayableIds = await page.evaluate(() => {
       const links = document.querySelectorAll<HTMLAnchorElement>(
         "a[data-game-id][data-browser-playable=true]",
       );
       return Array.from(links).map((l) => l.getAttribute("data-game-id"));
     });
 
-    for (const id of browserPlayable) {
-      expect(id === "cannonball-clash" || id === "treasure-cove").toBe(true);
+    const expectedIds = BROWSER_PLAYABLE.map((g) => g.id);
+    for (const id of browserPlayableIds) {
+      expect(expectedIds.includes(id!)).toBe(true);
     }
   });
 

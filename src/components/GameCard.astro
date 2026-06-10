@@ -9,7 +9,8 @@ export interface Props {
 
 const { game } = Astro.props;
 const cardHref = `/games/${game.id}/`;
-const isBrowserPlayable = game.status === "browser-playable" && game.browserUrl;
+const isBrowserPlayable =
+  game.status === "browser-playable" && !!game.browserUrl;
 const engine = game.engine || "none";
 const isPygbag = engine === "pygbag";
 const isPhaserNative = engine === "phaser";

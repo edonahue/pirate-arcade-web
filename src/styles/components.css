@@ -834,6 +834,110 @@
 }
 
 /* Remove duplicate recommended-first blocks inherited from layout.css */
+.start-here {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: center;
+  max-width: 640px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.start-here__item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  font-size: 0.8125rem;
+  white-space: nowrap;
+}
+
+.start-here__badge {
+  font-family: var(--mono);
+  font-size: 0.625rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 0.125rem 0.375rem;
+  border-radius: 3px;
+  border: 1px solid currentColor;
+}
+
+.start-here__badge--instant {
+  color: var(--sea);
+}
+
+.start-here__badge--touch {
+  color: var(--gold);
+}
+
+.start-here__badge--desktop {
+  color: var(--muted);
+}
+
+.start-here__link {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.start-here__link:hover {
+  color: var(--ink);
+  text-decoration: underline;
+}
+
+.recommended-path {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  justify-content: center;
+  max-width: 720px;
+  margin: 1.5rem auto;
+}
+
+.recommended-path__item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 1rem 1.25rem;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  text-align: center;
+  flex: 1 1 140px;
+  max-width: 180px;
+}
+
+.recommended-path__label {
+  font-family: var(--mono);
+  font-size: 0.625rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.recommended-path__link {
+  font-size: 0.8125rem;
+  color: var(--accent);
+  text-decoration: none;
+  line-height: 1.3;
+}
+
+.recommended-path__link:hover {
+  color: var(--ink);
+  text-decoration: underline;
+}
+
+.recommended-first__badge--instant {
+  border-color: var(--sea);
+  color: var(--sea);
+  background: rgba(42, 166, 161, 0.1);
+}
+
 .recommended-first__badge--gold {
   border-color: var(--gold);
   color: var(--gold);

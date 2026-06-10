@@ -115,4 +115,47 @@ test.describe("Site Game Content", () => {
       }
     }
   });
+
+  test("game detail pages have Load sidebar card", async ({ page }) => {
+    for (const game of games) {
+      await page.goto(`/games/${game.id}/`);
+
+      const loadCard = page.locator("text=Load").first();
+      await expect(loadCard).toBeVisible();
+    }
+  });
+
+  test("status panel shows all games", async ({ page }) => {
+    await page.goto("/play/");
+
+    for (const game of games) {
+      await expect(page.locator(`text=${game.title}`).first()).toBeVisible();
+    }
+  });
+
+  test("build-log has the Race post", async ({ page }) => {
+    await page.goto("/build-log/");
+
+    await expect(
+      page.locator(
+        "text=Race to Treasure Island: Building a Web-Native Phaser Game",
+      ),
+    ).toBeVisible();
+  });
+
+  test("game detail pages show Best for line", async ({ page }) => {
+    for (const game of games) {
+      if (!game.bestFor) continue;
+      await page.goto(`/games/${game.id}/`);
+      await expect(page.locator("text=Best for:").first()).toBeVisible();
+    }
+  });
+
+  test("build-log post renders and has metadata", async ({ page }) => {
+    await page.goto("/build-log/race-to-treasure-island-phaser-polish/");
+
+    await expect(page.locator("h1")).toBeVisible();
+    const title = await page.locator("h1").textContent();
+    expect(title).toContain("Race to Treasure Island");
+  });
 });

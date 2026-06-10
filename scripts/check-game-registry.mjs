@@ -220,12 +220,43 @@ for (const game of games) {
   }
 }
 
-/** Check seoDescription lengths */
+/** Check features is a non-empty array for every game */
+for (const game of games) {
+  if (
+    !game.features ||
+    !Array.isArray(game.features) ||
+    game.features.length === 0
+  ) {
+    fail(`[${game.id}] missing or empty 'features' array`);
+  }
+}
+
+/** Check seoDescription lengths (fail on > 160) */
 for (const game of games) {
   if (game.seoDescription && game.seoDescription.length > 160) {
-    console.warn(
-      `  WARN: [${game.id}] seoDescription is ${game.seoDescription.length} chars (max 160)`,
+    fail(
+      `[${game.id}] seoDescription is ${game.seoDescription.length} chars (max 160)`,
     );
+  }
+}
+
+/** Browser-playable games without Phaser engine should have desktopUrl */
+for (const game of games) {
+  if (game.status === "browser-playable" && game.engine !== "phaser") {
+    if (!game.desktopUrl) {
+      fail(`[${game.id}] browser-playable Pygbag game missing desktopUrl`);
+    }
+  }
+}
+
+/** desktop-available games should have a valid desktopUrl */
+for (const game of games) {
+  if (game.status === "desktop-available" && game.desktopUrl) {
+    if (!game.desktopUrl.startsWith("https://")) {
+      fail(
+        `[${game.id}] desktopUrl should start with https://, got '${game.desktopUrl}'`,
+      );
+    }
   }
 }
 

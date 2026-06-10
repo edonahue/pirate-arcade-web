@@ -72,6 +72,33 @@ const desktopOnly = games.filter((g) => g.status === "desktop-available");
     <div class="game-grid">
       {games.map((game) => <GameCard game={game} />)}
     </div>
+
+    <div class="start-here mt-2">
+      <div class="start-here__item">
+        <span class="start-here__badge start-here__badge--instant"
+          >⚡ Instant load</span
+        >
+        <a href="/play/race-to-treasure-island/" class="start-here__link"
+          >Race to Treasure Island</a
+        >
+      </div>
+      <div class="start-here__item">
+        <span class="start-here__badge start-here__badge--touch"
+          >👆 Easiest on touch</span
+        >
+        <a href="/play/cannonball-clash/" class="start-here__link"
+          >Cannonball Clash</a
+        >
+      </div>
+      <div class="start-here__item">
+        <span class="start-here__badge start-here__badge--desktop"
+          >🖥️ Desktop only</span
+        >
+        <a href="/games/port-royale-tycoon/" class="start-here__link"
+          >Port Royale Tycoon</a
+        >
+      </div>
+    </div>
   </section>
 
   <div class="section-divider" aria-hidden="true">
@@ -150,6 +177,19 @@ const desktopOnly = games.filter((g) => g.status === "desktop-available");
     </div>
 
     <div class="recommended-first mt-4">
+      <div class="recommended-first__card">
+        <span class="recommended-first__badge recommended-first__badge--instant"
+          >⚡ Instant load</span
+        >
+        <h3 class="recommended-first__title">Race to Treasure Island</h3>
+        <p class="recommended-first__desc">
+          OutRun-style pirate chase — boost past Long John, dodge obstacles, and
+          reach the island first. Phaser 3, loads instantly.
+        </p>
+        <a href="/play/race-to-treasure-island/" class="cta cta--primary">
+          Play Race →
+        </a>
+      </div>
       <div class="recommended-first__card">
         <span class="recommended-first__badge">Recommended first</span>
         <h3 class="recommended-first__title">Cannonball Clash</h3>
