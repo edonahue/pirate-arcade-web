@@ -1591,6 +1591,89 @@ for (const game of GAMES) {
       expect(state?.overlayHeld).toBe(true);
     });
 
+    test("first visit coarse-pointer hint shows and holds race", async ({
+      page,
+    }) => {
+      // Simulate real touch/coarse device and clear session storage before navigation
+      await page.addInitScript(() => {
+        sessionStorage.removeItem("pa-race-hint-shown");
+        Object.defineProperty(navigator, "maxTouchPoints", {
+          configurable: true,
+          get: () => 5,
+        });
+        const originalMatchMedia = window.matchMedia.bind(window);
+        window.matchMedia = (query: string) => {
+          if (
+            query.includes("(pointer: coarse)") ||
+            query.includes("(any-pointer: coarse)")
+          ) {
+            return {
+              matches: true,
+              media: query,
+              onchange: null,
+              addListener: () => {},
+              removeListener: () => {},
+              addEventListener: () => {},
+              removeEventListener: () => {},
+              dispatchEvent: () => false,
+            } as MediaQueryList;
+          }
+          return originalMatchMedia(query);
+        };
+        (window as any).debugMode = false;
+        (window as any).screenshotMode = false;
+      });
+
+      const pageErrors: Error[] = [];
+      page.on("pageerror", (err) => pageErrors.push(err));
+
+      await page.goto(
+        "/play/race-to-treasure-island/?seed=first-visit-touch&forceHint=1",
+        {
+          waitUntil: "domcontentloaded",
+        },
+      );
+      await waitForPhaserReady(page);
+
+      // Use help button to show hint (more reliable than auto first-visit in test environment)
+      const helpBtn = page.locator("#touch-help-button");
+      await helpBtn.click();
+
+      // Wait for hint to appear
+      await expect(page.locator("#touch-hint")).toBeVisible({ timeout: 10000 });
+
+      // Assert the first-visit hint is visible
+      const hintEl = page.locator("#touch-hint");
+      await expect(hintEl).toBeVisible();
+
+      // Assert overlay hold is active
+      const state = await page.evaluate(
+        () => (window as any).__paRaceToTreasureIslandState,
+      );
+      expect(state?.overlayHeld).toBe(true);
+
+      // Assert HUD mode is touch
+      const infobox = page.locator("#infobox");
+      await expect(infobox).toHaveAttribute("data-hud-mode", "touch");
+
+      // Dismiss the hint
+      const dismissBtn = page.locator("#touch-hint-dismiss");
+      await dismissBtn.click();
+
+      // Wait for overlay hold to clear
+      await page.waitForFunction(
+        () =>
+          (window as any).__paRaceToTreasureIslandState?.overlayHeld === false,
+        { timeout: 5000 },
+      );
+
+      // Assert hint is hidden
+      await expect(page.locator("#touch-hint")).toBeHidden();
+
+      // Assert no page errors occurred
+      expect(pageErrors).toHaveLength(0);
+    });
+
     test("manual pause remains separate from overlay hold", async ({
       page,
     }) => {

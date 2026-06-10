@@ -313,25 +313,25 @@ const title = `${game.title} — Pirate Arcade`;
     const hintDismiss = document.getElementById("touch-hint-dismiss");
 
     // First-visit hint: show on coarse-pointer, non-debug, non-screenshot
+    // Allow forcing via ?forceHint=1 for testing
+    const forceHint = new URLSearchParams(window.location.search).has(
+      "forceHint",
+    );
     if (
       hintEl &&
       !screenshotMode &&
-      !debugMode &&
+      (!debugMode || forceHint) &&
       (navigator.maxTouchPoints > 0 ||
         window.matchMedia("(pointer: coarse)").matches ||
         window.matchMedia("(any-pointer: coarse)").matches)
     ) {
       const shown = sessionStorage.getItem("pa-race-hint-shown");
       if (!shown) {
-        const el = document.getElementById("touch-hint");
-        if (el) el.style.display = "flex";
-        (window as any).__paRaceOverlayHold = true;
+        showTouchHint();
         sessionStorage.setItem("pa-race-hint-shown", "1");
         // Auto-dismiss after 6 seconds
         setTimeout(() => {
-          const el2 = document.getElementById("touch-hint");
-          if (el2) el2.style.display = "none";
-          (window as any).__paRaceOverlayHold = false;
+          hideTouchHint();
         }, 6000);
       }
     }
@@ -339,9 +339,7 @@ const title = `${game.title} — Pirate Arcade`;
     if (hintDismiss) {
       hintDismiss.addEventListener("pointerup", (e) => {
         e.preventDefault();
-        const el = document.getElementById("touch-hint");
-        if (el) el.style.display = "none";
-        (window as any).__paRaceOverlayHold = false;
+        hideTouchHint();
       });
     }
 
@@ -350,9 +348,7 @@ const title = `${game.title} — Pirate Arcade`;
     if (helpBtn) {
       helpBtn.addEventListener("pointerup", (e) => {
         e.preventDefault();
-        const el = document.getElementById("touch-hint");
-        if (el) el.style.display = "flex";
-        (window as any).__paRaceOverlayHold = true;
+        showTouchHint();
       });
     }
   };
@@ -366,7 +362,7 @@ const title = `${game.title} — Pirate Arcade`;
     const mh = document.getElementById("touch-mini-hint");
     if (mh) mh.style.display = "none";
     document.documentElement.classList.add("pa-screenshot-mode");
-    setOverlayHold(false);
+    hideTouchHint();
   }
 
   // ── Test touch mode: force touch controls visible ──
