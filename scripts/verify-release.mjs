@@ -29,6 +29,7 @@ const FAST_GATE = [
   { name: "Audit game archives", cmd: "npm run audit:game-archives" },
   { name: "Public domain art", cmd: "npm run test:public-domain-art" },
   { name: "Game theming source", cmd: "npm run test:game-theming-source" },
+  { name: "Game registry", cmd: "npm run test:game-registry" },
   { name: "Screenshot assets", cmd: "npm run test:screenshot-assets" },
   {
     name: "Performance budgets",
@@ -39,6 +40,7 @@ const FAST_GATE = [
 const FULL_GATE = [
   ...FAST_GATE,
   { name: "Site theme", cmd: "npm run test:site-theme" },
+  { name: "Site game content", cmd: "npm run test:site-game-content" },
   { name: "Accessibility", cmd: "npm run test:a11y" },
   { name: "Mobile layout", cmd: "npm run test:mobile-layout" },
   { name: "Mobile pause", cmd: "npm run test:mobile-pause" },

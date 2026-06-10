@@ -202,4 +202,24 @@ export const modelRuns: ModelRun[] = [
       "Factual claims needed verification against actual project state",
     ],
   },
+  {
+    model: "DeepSeek V4 Flash Free",
+    task: "Race to Treasure Island (Phaser racer) — game scene, physics, AI rival",
+    observed: [
+      "Generated a functional Phaser 3 scene with boost/wind/overtake mechanics",
+      "Rival AI path and deterministic seed logic needed manual refinement",
+      "Obstacle collision and bump mechanic required multiple iteration cycles",
+      "Debug hooks added for deterministic testability — useful pattern",
+    ],
+  },
+  {
+    model: "DeepSeek V4 Flash Free",
+    task: "Race to Treasure Island — HUD, overlays, finish, touch controls",
+    observed: [
+      "HUD layout and boost meter generation were solid on first attempt",
+      "Touch input handling needed the most iteration (button sizing, coordinate mapping)",
+      "Finish/win/loss state management required manual wiring",
+      "Overtake cue and restart logic were added iteratively over several sessions",
+    ],
+  },
 ];

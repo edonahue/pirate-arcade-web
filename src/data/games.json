@@ -92,7 +92,7 @@
     "tips": "Boost strategically — steady draining beats running out at the last turn. Obstacles cost 20 wind and bump you off course. Treasure chests give +100 points. Speed increases as you progress. Long John makes occasional mistakes — time your push.",
     "firstPlayTip": "← ▶ to steer, HOLD ⛵ to boost. Dodge everything, collect treasure, and beat Long John!",
     "availabilityNote": "Phaser 3 web-native game. Loads instantly in browser — no runtime download needed.",
-    "seoDescription": "Play Race to Treasure Island, Pirate Arcade's web-native Phaser 3 OutRun-style top-down ship racer. Dodge reefs and wreckage, manage wind boost, and beat Long John to shore.",
+    "seoDescription": "Play Race to Treasure Island, Pirate Arcade's web-native Phaser 3 OutRun-style racer. Dodge obstacles, manage wind boost, and beat Long John to shore.",
     "features": [
       "Web-native (Phaser 3)",
       "Long John rival",
@@ -110,8 +110,6 @@
     "statusLabel": "Desktop app available",
     "desktopUrl": "https://github.com/edonahue/pirate-arcade/releases",
     "screenshot": "/images/screenshot-port-royale-tycoon.png",
-    "touchDifficultyLabel": "N/A (desktop only)",
-    "touchControls": "N/A (desktop only — mouse/keyboard)",
     "keyboardControls": "Mouse-driven UI • Keyboard shortcuts for actions",
     "howToPlay": "Buy ports, build trade empires, and rule the seas. Outsmart rival captains and become the wealthiest pirate on the map. 2-4 players with AI opponents.",
     "tips": "Save often. AI opponents play aggressively. Trade routes compound over time.",

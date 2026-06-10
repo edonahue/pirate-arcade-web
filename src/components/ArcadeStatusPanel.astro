@@ -14,6 +14,7 @@ import { games } from "../data/games";
         <tr>
           <th>Game</th>
           <th>Play</th>
+          <th>Load</th>
           <th>Keyboard</th>
           <th>Touch</th>
           <th>Audio</th>
@@ -44,6 +45,13 @@ import { games } from "../data/games";
                 )}
               </td>
               <td>
+                {(() => {
+                  if (game.engine === "phaser") return "Instant";
+                  if (game.engine === "pygbag") return "~12 MB";
+                  return "Install";
+                })()}
+              </td>
+              <td>
                 <span aria-label="Supported">✓</span>
               </td>
               <td>
@@ -59,7 +67,7 @@ import { games } from "../data/games";
                 <span aria-label="Needs user gesture">
                   {game.status === "browser-playable"
                     ? "Tap to start"
-                    : "Built-in"}
+                    : "Desktop-native"}
                 </span>
               </td>
             </tr>
@@ -70,10 +78,10 @@ import { games } from "../data/games";
   </div>
 
   <p class="status-panel__footnote">
-    Pygbag games load an ~12 MB CPython runtime on first visit (cached on repeat
-    visits). Web-native (Phaser) games load instantly. Audio unlocks after the
-    first click or tap (browser autoplay policy). On-screen touch controls
-    available on mobile. Mobile tested via simulated viewports — real device
+    Load: Pygbag games download an ~12 MB CPython runtime on first visit (cached
+    on repeat). Web-native Phaser games load instantly. Desktop games require
+    native install. Audio in browser games unlocks after first click or tap
+    (autoplay policy). Mobile tested via simulated viewports — real device
     behavior may vary.
   </p>
 </section>

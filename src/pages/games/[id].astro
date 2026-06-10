@@ -185,6 +185,18 @@ const isDesktopAvailable = game.status === "desktop-available";
             }
           </span>
         </div>
+        <div class="game-detail__sidebar-card">
+          <span class="game-detail__sidebar-heading">Load</span>
+          <span class="game-detail__sidebar-value">
+            {
+              isPhaser
+                ? "Instant (web-native)"
+                : isBrowserPlayable
+                  ? "~12 MB runtime (cached)"
+                  : "Desktop install"
+            }
+          </span>
+        </div>
         {
           game.touchDifficulty && (
             <div class="game-detail__sidebar-card">

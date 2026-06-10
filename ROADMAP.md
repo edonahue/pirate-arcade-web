@@ -1,6 +1,6 @@
 # ROADMAP
 
-<!-- Current HEAD: 0dbe6e2 (maintenance hardening complete) -->
+<!-- Current HEAD: c8d8f09 (race feedback polish + coherence pass) -->
 
 ## Phase 0: Foundation ✓ (Live)
 
@@ -87,6 +87,21 @@
 - [x] ADR 0001: Fourth browser game architecture (Pygame/Pygbag recommended)
 - [x] New browser game checklist (22-step onboarding)
 - [x] Scaffold script (`create-browser-game-scaffold.mjs`)
+
+## Phase 6: Race to Treasure Island Polish ✓ (Live)
+
+- [x] First web-native Phaser 3 game (loads instantly, no runtime download)
+- [x] OutRun-style boost/wind mechanic with drain-and-recharge meter
+- [x] Long John Silver AI rival with deterministic seeded paths
+- [x] Obstacle course: barrels, shipwrecks, reefs, debris (cost wind + bump)
+- [x] Treasure chest pickups (+100 bonus points)
+- [x] Overtake cue and cooldown system
+- [x] Hit feedback cue with wind penalty display
+- [x] Finish/win/loss states with distinct overlays and island pulse glow
+- [x] Touch controls with restart/pause
+- [x] Debug hooks for deterministic testability
+- [x] 75 Playwright tests (Chromium)
+- [x] Game data, copy, and mechanics aligned with OutRun-style pitch
 
 ## Maybe / Future
 

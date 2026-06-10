@@ -4,18 +4,19 @@ Current state of all visual assets across the Pirate Arcade project.
 
 ## Website Assets (`pirate-arcade-web/public/`)
 
-| Asset                             | Path                                              | Status          | Source                                                 | Next Action                                                    |
-| --------------------------------- | ------------------------------------------------- | --------------- | ------------------------------------------------------ | -------------------------------------------------------------- |
-| **Favicon**                       | `public/favicon.svg`                              | Placeholder SVG | Hand-coded (derived from `localgame/icon.svg` pattern) | Refine with real pirate arcade branding when logo is finalized |
-| **OG Image**                      | `public/og-image.png`                             | Real PNG        | Composite of 4 game screenshots + title                | Add to desktop repo if desired                                 |
-| **Cannonball Clash screenshot**   | `public/images/screenshot-cannonball-clash.png`   | Real PNG        | Captured via `scripts/capture-screenshots.py`          | Review quality, recapture if lighting/state feels off          |
-| **Treasure Cove screenshot**      | `public/images/screenshot-treasure-cove.png`      | Real PNG        | Captured via `scripts/capture-screenshots.py`          | Review quality, recapture if lighting/state feels off          |
-| **Kraken's Wake screenshot**      | `public/images/screenshot-krakens-wake.png`       | Real PNG        | Captured via `scripts/capture-screenshots.py`          | Review quality, recapture if lighting/state feels off          |
-| **Port Royale Tycoon screenshot** | `public/images/screenshot-port-royale-tycoon.png` | Real PNG        | Captured via `scripts/capture-screenshots.py`          | Review quality, recapture if lighting/state feels off          |
-| **Security headers**              | `public/_headers`                                 | Real            | Hand-coded                                             | Review CSP when adding new external resources                  |
-| **Redirects**                     | `public/_redirects`                               | Real            | Hand-coded                                             | Add redirects when old URLs change                             |
-| **Robots.txt**                    | `public/robots.txt`                               | Real            | Hand-coded                                             | Review when site structure changes                             |
-| **Web app manifest**              | `public/site.webmanifest`                         | Real            | Hand-coded                                             | Update icon paths when real icons exist                        |
+| Asset                             | Path                                                   | Status          | Source                                                      | Next Action                                                    |
+| --------------------------------- | ------------------------------------------------------ | --------------- | ----------------------------------------------------------- | -------------------------------------------------------------- |
+| **Favicon**                       | `public/favicon.svg`                                   | Placeholder SVG | Hand-coded (derived from `localgame/icon.svg` pattern)      | Refine with real pirate arcade branding when logo is finalized |
+| **OG Image**                      | `public/og-image.png`                                  | Real PNG        | Composite of game screenshots + title                       | Add to desktop repo if desired                                 |
+| **Cannonball Clash screenshot**   | `public/images/screenshot-cannonball-clash.png`        | Real PNG        | Captured via `scripts/capture-browser-game-screenshots.mjs` | Review quality, recapture if game visuals change               |
+| **Treasure Cove screenshot**      | `public/images/screenshot-treasure-cove.png`           | Real PNG        | Captured via `scripts/capture-browser-game-screenshots.mjs` | Review quality, recapture if game visuals change               |
+| **Kraken's Wake screenshot**      | `public/images/screenshot-krakens-wake.png`            | Real PNG        | Captured via `scripts/capture-browser-game-screenshots.mjs` | Review quality, recapture if game visuals change               |
+| **Port Royale Tycoon screenshot** | `public/images/screenshot-port-royale-tycoon.png`      | Real PNG        | Captured via desktop capture pipeline                       | Review quality, recapture if game visuals change               |
+| **Race screenshot**               | `public/images/screenshot-race-to-treasure-island.png` | Real PNG        | Captured via `scripts/capture-browser-game-screenshots.mjs` | Review quality, recapture if game visuals change               |
+| **Security headers**              | `public/_headers`                                      | Real            | Hand-coded                                                  | Review CSP when adding new external resources                  |
+| **Redirects**                     | `public/_redirects`                                    | Real            | Hand-coded                                                  | Add redirects when old URLs change                             |
+| **Robots.txt**                    | `public/robots.txt`                                    | Real            | Hand-coded                                                  | Review when site structure changes                             |
+| **Web app manifest**              | `public/site.webmanifest`                              | Real            | Hand-coded                                                  | Update icon paths when real icons exist                        |
 
 ## Desktop Game Assets (`../localgame/`)
 
@@ -48,11 +49,17 @@ Current state of all visual assets across the Pirate Arcade project.
 
 ## Screenshot Capture Method
 
-The desktop game renders everything procedurally. Screenshots are captured via:
+Browser game screenshots are captured via Playwright + Sharp:
 
 ```bash
 cd pirate-arcade-web
-python scripts/capture-screenshots.py
+npm run capture:screenshots
 ```
 
-This script uses `SDL_VIDEODRIVER=dummy` (no display needed) and instantiates each game class directly to render a representative mid-game frame. Output is 1280×720 PNG.
+This builds the site, boots the Astro preview server, opens each game shell in
+headless Chromium, waits for `__paBootMetrics["game-ready"]`, hides shell UI
+overlays, presses the start key, renders ~3-8s of gameplay, then samples
+`canvas.toDataURL("image/png")` and resizes to 1280×720 via Sharp.
+
+Desktop game screenshots (Port Royale Tycoon) are captured separately via the
+desktop repo's own capture pipeline.

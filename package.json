@@ -52,6 +52,7 @@
     "test:css-tokens": "node scripts/check-css-tokens.mjs",
     "test:game-prewarm": "playwright test tests/game-prewarm.spec.ts --project=chromium-desktop",
     "test:site-theme": "playwright test tests/site-theme.spec.ts",
+    "test:site-game-content": "playwright test tests/site-game-content.spec.ts",
     "test:captains-log": "playwright test tests/captains-log.spec.ts --config=playwright-test.config.ts",
     "test:mobile-pause": "playwright test tests/mobile-pause.spec.ts --config=playwright-test.config.ts",
     "test:browser-game-shells": "node scripts/check-browser-game-shells.mjs",
@@ -67,6 +68,7 @@
     "test:visual-polish": "playwright test tests/mobile-visual-polish.spec.ts",
     "test:visual-contrast": "node scripts/check-visual-contrast.mjs",
     "test:lhci": "lhci autorun",
+    "test:game-registry": "node scripts/check-game-registry.mjs",
     "test:screenshot-assets": "node scripts/check-screenshot-assets.mjs",
     "capture:screenshots": "astro build && node scripts/capture-browser-game-screenshots.mjs"
   },
@@ -145,7 +147,7 @@
   },
   "keywords": [],
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/edonahue/pirate-arcade-web/issues"
   },
