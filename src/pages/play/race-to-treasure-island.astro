@@ -279,6 +279,9 @@ const title = `${game.title} — Pirate Arcade`;
     if (document.hidden) clearAllTouchInput();
   });
 
+  // Clear touch input on window blur (e.g. Alt+Tab, Cmd+Tab)
+  window.addEventListener("blur", clearAllTouchInput);
+
   // Pause: request pause on pointerup (RaceScene toggles actual state and syncs DOM)
   if (pauseBtn) {
     pauseBtn.addEventListener("pointerup", (e) => {
