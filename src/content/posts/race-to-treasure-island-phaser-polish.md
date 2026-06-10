@@ -7,8 +7,8 @@ draft: false
 
 After three Pygbag/WebAssembly ports (Cannonball Clash, Treasure Cove, Kraken's
 Wake), the fourth browser game took a different path: a web-native Phaser 3 game
-built in TypeScript. Race to Treasure Island is now the project's most-played
-game — and the most iterated.
+built in TypeScript. Race to Treasure Island is the project's most iterated
+browser game — and the first web-native one.
 
 ## Why Phaser Instead of Pygbag
 

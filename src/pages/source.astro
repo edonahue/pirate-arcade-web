@@ -4,8 +4,13 @@ import CTAButton from "../components/CTAButton.astro";
 import ToolingTable from "../components/ToolingTable.astro";
 import ModelObservations from "../components/ModelObservations.astro";
 import { site } from "../data/profile";
+import { games } from "../data/games";
 import { webPageNode } from "../lib/schema";
 import { publicDomainArt } from "../data/publicDomainArt";
+
+const browserGames = games.filter((g) => g.status === "browser-playable");
+const pygbagGames = browserGames.filter((g) => g.engine === "pygbag");
+const webNativeGames = browserGames.filter((g) => g.engine === "phaser");
 ---
 
 <BaseLayout
@@ -156,8 +161,9 @@ import { publicDomainArt } from "../data/publicDomainArt";
       <div class="engineering-proof__card">
         <h3 class="engineering-proof__title">Two Browser Engines</h3>
         <p class="engineering-proof__desc">
-          Three Pygbag/WebAssembly ports (~12 MB runtime) plus one web-native
-          Phaser 3 game (instant load, no download).
+          {pygbagGames.length} Pygbag/WebAssembly ports (~12 MB runtime) plus
+          {webNativeGames.length} web-native Phaser 3 game
+          {webNativeGames.length === 1 ? "" : "s"} (instant load, no download).
         </p>
       </div>
       <div class="engineering-proof__card">
@@ -179,8 +185,8 @@ import { publicDomainArt } from "../data/publicDomainArt";
       <div class="engineering-proof__card">
         <h3 class="engineering-proof__title">Game Registry Validation</h3>
         <p class="engineering-proof__desc">
-          Required fields, enum checks, SEO length limits, asset existence,
-          cross-references to CSP headers and SW cache entries.
+          Required fields, enum checks, SEO length limits, screenshot file
+          existence, engine/platform rules, browser/desktop URL consistency.
         </p>
       </div>
       <div class="engineering-proof__card">

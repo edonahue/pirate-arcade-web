@@ -41,14 +41,25 @@ const desktopOnly = games.filter((g) => g.status === "desktop-available");
     >.
   </p>
 
+  <div class="proof-teaser">
+    <span class="proof-teaser__item">Two engines</span>
+    <span class="proof-teaser__item">{browserGames.length} browser games</span>
+    <span class="proof-teaser__item">200+ tests</span>
+    <span class="proof-teaser__item">Release gate</span>
+    <span class="proof-teaser__item">Free-tier deploy</span>
+  </div>
+
   <section class="section">
     <div class="section__header">
       <p class="section__eyebrow">The Games</p>
       <h2 class="section__title">Five Pirate Arcade Games</h2>
       <p class="section__description">
         Five classic arcade games, each reimagined with pirate flavor and modern
-        visual effects. {browserGames.length} browser-playable — three Pygbag/WebAssembly
-        ports and one web-native Phaser racer.
+        visual effects. {browserGames.length} browser-playable — {
+          pygbagGames.length
+        }
+        Pygbag/WebAssembly ports and {webNativeGames.length} web-native Phaser
+        {webNativeGames.length === 1 ? "racer" : "racers"}.
       </p>
     </div>
 
@@ -177,9 +188,10 @@ const desktopOnly = games.filter((g) => g.status === "desktop-available");
       <h2 class="section__title">Play in Browser Now</h2>
       <p class="section__description">
         {browserGames.length} browser-playable games — {pygbagGames.length}
-        Pygbag/WebAssembly ports and {webNativeGames.length} web-native Phaser racer.
-        Pygbag games load a ~12 MB CPython runtime on first visit (cached on repeat);
-        web-native games load instantly.
+        Pygbag/WebAssembly ports and {webNativeGames.length} web-native Phaser
+        {webNativeGames.length === 1 ? "racer" : "racers"}. Pygbag games load a
+        ~12 MB CPython runtime on first visit (cached on repeat); web-native
+        games load instantly.
       </p>
     </div>
 

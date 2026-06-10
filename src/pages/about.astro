@@ -2,7 +2,12 @@
 import BaseLayout from "../layouts/BaseLayout.astro";
 import CTAButton from "../components/CTAButton.astro";
 import { site } from "../data/profile";
+import { games } from "../data/games";
 import { webPageNode } from "../lib/schema";
+
+const browserGames = games.filter((g) => g.status === "browser-playable");
+const pygbagGames = browserGames.filter((g) => g.engine === "pygbag");
+const webNativeGames = browserGames.filter((g) => g.engine === "phaser");
 ---
 
 <BaseLayout
@@ -42,28 +47,33 @@ import { webPageNode } from "../lib/schema";
     </div>
     <div class="about-games">
       <div class="about-games__card">
-        <h3 class="about-games__card-title">Browser (4 games)</h3>
+        <h3 class="about-games__card-title">
+          Browser ({browserGames.length} games)
+        </h3>
         <ul class="about-games__list">
           <li>
-            <strong>3 Pygbag/WebAssembly ports</strong> — Cannonball Clash, Treasure
-            Cove, and Kraken's Wake. Python games compiled to WebAssembly via Pygbag.
-            ~12 MB CPython runtime downloads on first visit; cached on repeat.
+            <strong>{pygbagGames.length} Pygbag/WebAssembly ports</strong> — {
+              pygbagGames.map((g) => g.title).join(", ")
+            }. Python games compiled to WebAssembly via Pygbag. ~12 MB CPython
+            runtime downloads on first visit; cached on repeat.
           </li>
           <li>
-            <strong>1 web-native Phaser 3 racer</strong> — Race to Treasure Island.
-            JavaScript with Phaser 3, loads instantly. Deterministic seeded courses,
-            real-time wind boost, AI rival.
+            <strong
+              >{webNativeGames.length} web-native Phaser 3
+              {webNativeGames.length === 1 ? "racer" : "racers"}</strong
+            > — {webNativeGames.map((g) => g.title).join(", ")}. JavaScript with
+            Phaser 3, loads instantly. Deterministic seeded courses, real-time
+            wind boost, AI rival.
           </li>
         </ul>
       </div>
       <div class="about-games__card">
-        <h3 class="about-games__card-title">Desktop (5 games)</h3>
+        <h3 class="about-games__card-title">Desktop ({games.length} games)</h3>
         <ul class="about-games__list">
           <li>
-            All four browser games plus Port Royale Tycoon (a turn-based
-            property-trading board game, desktop-only). Built with Python and
-            Pygame. Cross-platform: Windows .exe, Linux .deb, macOS build from
-            source.
+            All {browserGames.length} browser games plus Port Royale Tycoon (a turn-based
+            property-trading board game, desktop-only). Built with Python and Pygame.
+            Cross-platform: Windows .exe, Linux .deb, macOS build from source.
           </li>
         </ul>
       </div>

@@ -10,6 +10,8 @@ import { webPageNode } from "../lib/schema";
 import { ASSET_VERSION } from "../../scripts/game-asset-versions.mjs";
 
 const browserGames = games.filter((g) => g.status === "browser-playable");
+const pygbagGames = browserGames.filter((g) => g.engine === "pygbag");
+const webNativeGames = browserGames.filter((g) => g.engine === "phaser");
 const desktopGames = games.filter((g) => g.status === "desktop-available");
 ---
 
@@ -21,7 +23,7 @@ const desktopGames = games.filter((g) => g.status === "desktop-available");
     webPageNode(
       "/play/",
       "Play Pirate Arcade",
-      "Choose your game from the Pirate Arcade collection. Desktop apps available now; four browser games are live.",
+      `Choose your game from the Pirate Arcade collection. Desktop apps available now; ${browserGames.length} browser games are live.`,
       "CollectionPage",
     ),
   ]}
@@ -76,9 +78,13 @@ const desktopGames = games.filter((g) => g.status === "desktop-available");
       <p class="section__eyebrow">Browser</p>
       <h2 class="section__title">Play Now</h2>
       <p class="section__description">
-        {browserGames.length} browser-playable games across two engine types: Pygbag/WebAssembly
-        ports and one web-native Phaser game. All {browserGames.length} are playable
-        right now.
+        {browserGames.length} browser-playable games across two engine types: {
+          pygbagGames.length
+        }
+        Pygbag/WebAssembly ports and {webNativeGames.length} web-native Phaser
+        {webNativeGames.length === 1 ? "game" : "games"}. All {
+          browserGames.length
+        } are playable right now.
       </p>
     </div>
 
@@ -183,10 +189,11 @@ const desktopGames = games.filter((g) => g.status === "desktop-available");
         <p class="section__eyebrow">Desktop</p>
         <h2 class="section__title">Desktop Collection</h2>
         <p class="section__description">
-          The three Pygbag games (Cannonball Clash, Treasure Cove, Kraken's
-          Wake) are also available as desktop downloads via the desktop repo.
-          Race to Treasure Island is web-native and has no desktop build. Port
-          Royale Tycoon is the only desktop-only game (see roadmap below).
+          The {pygbagGames.length} Pygbag games ({
+            pygbagGames.map((g) => g.title).join(", ")
+          }) are also available as desktop downloads via the desktop repo. Race
+          to Treasure Island is web-native and has no desktop build. Port Royale
+          Tycoon is the only desktop-only game (see roadmap below).
         </p>
       </div>
 

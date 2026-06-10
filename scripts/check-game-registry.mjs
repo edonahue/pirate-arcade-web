@@ -231,6 +231,32 @@ for (const game of games) {
   }
 }
 
+/** Check demonstrates is a non-empty array for every game */
+for (const game of games) {
+  if (
+    !game.demonstrates ||
+    !Array.isArray(game.demonstrates) ||
+    game.demonstrates.length === 0
+  ) {
+    fail(`[${game.id}] missing or empty 'demonstrates' array`);
+  }
+  for (const item of game.demonstrates) {
+    if (typeof item !== "string" || item.trim().length === 0) {
+      fail(`[${game.id}] demonstrates item must be a non-empty string`);
+    }
+    if (item.length > 90) {
+      fail(`[${game.id}] demonstrates item too long (max 90 chars): ${item}`);
+    }
+  }
+}
+
+/** Browser-playable games should have bestFor */
+for (const game of games) {
+  if (game.status === "browser-playable" && !game.bestFor) {
+    fail(`[${game.id}] browser-playable game missing 'bestFor'`);
+  }
+}
+
 /** Check seoDescription lengths (fail on > 160) */
 for (const game of games) {
   if (game.seoDescription && game.seoDescription.length > 160) {

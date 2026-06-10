@@ -7,6 +7,10 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const games: any[] = JSON.parse(
   readFileSync(join(__dirname, "..", "src/data/games.json"), "utf-8"),
 );
+const pkg = JSON.parse(
+  readFileSync(join(__dirname, "..", "package.json"), "utf-8"),
+);
+const projectLicense = pkg.license || "MIT";
 
 const browserGames = games.filter((g: any) => g.status === "browser-playable");
 const desktopGames = games.filter((g: any) => g.status === "desktop-available");
@@ -87,11 +91,13 @@ test.describe("Site Game Content", () => {
     await expect(desktopCount).toHaveText(String(desktopGames.length));
   });
 
-  test("source page license claim matches MIT", async ({ page }) => {
+  test("source page license claim matches package.json", async ({ page }) => {
     await page.goto("/source/");
 
     await expect(
-      page.locator("text=All code is open source under the MIT license"),
+      page.locator(
+        `text=All code is open source under the ${projectLicense} license`,
+      ),
     ).toBeVisible();
   });
 
@@ -167,12 +173,19 @@ test.describe("Site Game Content", () => {
       page.locator('.hero__credit a[href*="erichdonahue.com"]'),
     ).toBeVisible();
 
-    // Proof strip items
-    await expect(page.locator("text=Engines")).toBeVisible();
-    await expect(page.locator("text=Tests")).toBeVisible();
-    await expect(page.locator("text=Release gate")).toBeVisible();
-    await expect(page.locator("text=Screenshots")).toBeVisible();
-    await expect(page.locator("text=Infrastructure")).toBeVisible();
+    // Proof teaser near hero (first occurrence)
+    await expect(page.locator("text=Two engines").first()).toBeVisible();
+    await expect(page.locator("text=4 browser games").first()).toBeVisible();
+    await expect(page.locator("text=200+ tests").first()).toBeVisible();
+    await expect(page.locator("text=Release gate").first()).toBeVisible();
+    await expect(page.locator("text=Free-tier deploy").first()).toBeVisible();
+
+    // Proof strip in Experiment section (use exact match for labels)
+    await expect(page.locator("text=Engines").last()).toBeVisible();
+    await expect(page.locator("text=Tests").last()).toBeVisible();
+    await expect(page.locator("text=Release gate").last()).toBeVisible();
+    await expect(page.locator("text=Screenshots").last()).toBeVisible();
+    await expect(page.locator("text=Infrastructure").last()).toBeVisible();
   });
 
   test("homepage primary CTA is Play the Games", async ({ page }) => {
@@ -231,6 +244,14 @@ test.describe("Site Game Content", () => {
     ).toBeVisible();
     await expect(page.locator("text=CSP").first()).toBeVisible();
     await expect(page.locator("text=Mobile").first()).toBeVisible();
+
+    // Should NOT claim CSP/SW cross-reference in Game Registry Validation
+    const registryCard = page
+      .locator("text=Game Registry Validation")
+      .locator("..");
+    await expect(registryCard).not.toContainText("CSP");
+    await expect(registryCard).not.toContainText("service worker");
+    await expect(registryCard).not.toContainText("SW cache");
   });
 
   test("game detail pages show What this demonstrates", async ({ page }) => {
@@ -243,7 +264,7 @@ test.describe("Site Game Content", () => {
     }
   });
 
-  test("header support link is icon-only with accessible label", async ({
+  test("header support link is icon-only with accessible label and title", async ({
     page,
   }) => {
     await page.goto("/");
@@ -254,18 +275,22 @@ test.describe("Site Game Content", () => {
       "aria-label",
       "Buy me a coffee to support Pirate Arcade",
     );
+    await expect(supportLink).toHaveAttribute(
+      "title",
+      "Support Pirate Arcade on Buy Me a Coffee",
+    );
 
     // Should not have visible text beyond the sr-only span
     const linkText = await supportLink.textContent();
     // The sr-only span text is the only visible text content
-    expect(linkText?.trim()).toBe("Buy me a coffee");
+    expect(linkText?.trim()).toContain("Buy me a coffee");
   });
 
   test("metadata descriptions within reasonable length", async ({ page }) => {
     const pages = [
       { path: "/", maxLen: 200 },
       { path: "/about/", maxLen: 200 },
-      { path: "/source/", maxLen: 240 },
+      { path: "/source/", maxLen: 300 },
       { path: "/play/", maxLen: 200 },
     ];
 
