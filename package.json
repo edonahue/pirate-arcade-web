@@ -71,6 +71,7 @@
     "test:site-links": "node scripts/check-site-links.mjs",
     "test:game-registry": "node scripts/check-game-registry.mjs",
     "test:screenshot-assets": "node scripts/check-screenshot-assets.mjs",
+    "test:race-ship-assets": "node scripts/check-race-ship-assets.mjs",
     "capture:screenshots": "astro build && node scripts/capture-browser-game-screenshots.mjs"
   },
   "engines": {

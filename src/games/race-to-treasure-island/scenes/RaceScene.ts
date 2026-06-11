@@ -21,6 +21,8 @@ interface Treasure extends Phaser.Physics.Arcade.Sprite {
 
 export class RaceScene extends Phaser.Scene {
   private player!: Phaser.Physics.Arcade.Sprite;
+  private playerGlow!: Phaser.GameObjects.Arc;
+  private playerWake!: Phaser.GameObjects.Graphics;
   private aiShip!: Phaser.Physics.Arcade.Sprite;
   private obstacles!: Phaser.Physics.Arcade.Group;
   private treasures!: Phaser.Physics.Arcade.Group;
@@ -201,6 +203,14 @@ export class RaceScene extends Phaser.Scene {
     this.updateHUD();
     this.updateTreasureIsland();
     this.checkFinish();
+    if (this.playerGlow && this.player?.active) {
+      this.playerGlow.setPosition(this.player.x, this.player.y + 10);
+      this.playerWake.clear();
+      this.playerWake.fillStyle(0xffffff, 0.06);
+      this.playerWake.fillEllipse(this.player.x, this.player.y + 34, 40, 8);
+      this.playerWake.fillStyle(0xffffff, 0.03);
+      this.playerWake.fillEllipse(this.player.x, this.player.y + 44, 28, 6);
+    }
     this.exposeState();
   }
 
@@ -289,6 +299,12 @@ export class RaceScene extends Phaser.Scene {
     this.player.setDepth(10);
     this.player.setScale(0.65);
     this.player.setSize(36, 60);
+
+    this.playerGlow = this.add
+      .circle(this.player.x, this.player.y + 10, 30, 0xffd700, 0.1)
+      .setDepth(9);
+
+    this.playerWake = this.add.graphics().setDepth(9);
 
     this.playerCue = this.add
       .text(this.player.x, this.player.y - 40, "YOU", {

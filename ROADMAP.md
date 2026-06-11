@@ -1,16 +1,17 @@
 # ROADMAP
 
-<!-- Current HEAD: live-site metadata and link hardening -->
+<!-- Current HEAD: Race ship visual fix -->
 
-## Live-Site Metadata & Link Harden (This Release)
+## Race Ship Visual Fix (This Release)
 
-This release polishes Pirate Arcade for public sharing — tighter metadata, social previews, schema validation, link integrity checking, and doc handoff.
+Fixes the biggest experiential mismatch: Race to Treasure Island ships rendering as black squares/blobs instead of readable pirate vessels.
 
-- **Metadata**: Shortened page descriptions to ≤200 chars (SEO safe), fixed stale "200+ tests" claim → "Playwright suite"
-- **Schema**: JSON-LD tests added — verifies WebSite/Person/SoftwareApplication on homepage, VideoGame per game detail, sameAs URLs
-- **Links**: `scripts/check-site-links.mjs` checks internal links resolve in dist/ after build, flags missing `rel="noopener noreferrer"` on `target="_blank"`
-- **Tests**: 3 new tests (JSON-LD homepage, JSON-LD game detail, OG metadata coverage), wired into fast gate
-- **Docs**: README/ROADMAP updated with new scripts and current state
+- **Root cause**: Dark brown hulls + black outline (`addOutline`) at 0.65 scale on dark ocean produced ~42×62px black blobs
+- **Ship rendering**: Replaced external PNG loading with 80×100 Phaser procedural textures in BootScene — white sails, gold/red hull stripes, no black outlines
+- **Visual composition**: Added golden glow under player ship, white hull edge highlights, wake ellipses on both ships, brighter rival sails
+- **Validation**: New `scripts/check-race-ship-assets.mjs` validates PNGs aren't black squares; 2 new canvas-pixel tests sample actual rendered pixels to catch regressions
+- **Screenshots**: Race screenshot recaptured with improved ship visuals
+- **Pipeline**: Ships are now fully procedural (consistent with all other Race textures), no external PNG loading
 
 ---
 

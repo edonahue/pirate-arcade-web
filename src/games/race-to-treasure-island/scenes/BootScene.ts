@@ -29,16 +29,6 @@ export class BootScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
 
-    // Load external sprite assets
-    this.load.image(
-      "ship-player",
-      "/images/race-to-treasure-island/player-ship.png",
-    );
-    this.load.image(
-      "ship-ai",
-      "/images/race-to-treasure-island/long-john-ship.png",
-    );
-
     this.generateTextures();
   }
 
@@ -59,6 +49,8 @@ export class BootScene extends Phaser.Scene {
     this.generateFinishFlag();
     this.generateParticle();
     this.generateSail();
+    this.generatePlayerShip();
+    this.generateAIShip();
   }
 
   private generateOceanBg(): void {
@@ -331,6 +323,208 @@ export class BootScene extends Phaser.Scene {
     g.lineStyle(1, 0xffd700, 0.8);
     g.lineBetween(0, 0, 0, 20);
     g.generateTexture("sail", 20, 22);
+    g.destroy();
+  }
+
+  private generatePlayerShip(): void {
+    const g = this.add.graphics();
+    const w = 80;
+    const h = 100;
+
+    // Wake glow
+    g.fillStyle(0xffd700, 0.05);
+    g.fillEllipse(w / 2, h - 4, 60, 14);
+    g.fillStyle(0xffffff, 0.07);
+    g.fillEllipse(w / 2, h + 2, 44, 8);
+
+    // Hull
+    g.fillStyle(0x5c3a1e);
+    g.beginPath();
+    g.moveTo(6, h - 28);
+    g.lineTo(w - 4, h - 28);
+    g.lineTo(w - 2, h - 4);
+    g.lineTo(4, h - 4);
+    g.closePath();
+    g.fillPath();
+
+    // Gold stripe
+    g.fillStyle(0xffd700);
+    g.fillRect(8, h - 20, w - 14, 3);
+
+    // Hull top edge
+    g.fillStyle(0x7a4e28);
+    g.fillRect(8, h - 28, w - 14, 2);
+
+    // Deck
+    g.fillStyle(0x8b6b3a);
+    g.fillRect(8, h - 32, w - 14, 5);
+
+    // Cabin
+    g.fillStyle(0x6b4a2a);
+    g.fillRect(w / 2 - 6, h - 40, 12, 10);
+    g.fillStyle(0x8b6b3a);
+    g.fillRect(w / 2 - 8, h - 42, 16, 4);
+    g.fillStyle(0xffeecc);
+    g.fillRect(w / 2 - 4, h - 36, 3, 3);
+    g.fillRect(w / 2 + 1, h - 36, 3, 3);
+
+    // White hull edge highlight
+    g.lineStyle(1, 0xffffff, 0.15);
+    g.beginPath();
+    g.moveTo(6, h - 28);
+    g.lineTo(w - 4, h - 28);
+    g.lineTo(w - 2, h - 4);
+    g.lineTo(4, h - 4);
+    g.closePath();
+    g.strokePath();
+
+    // Mast
+    g.fillStyle(0x4a2800);
+    g.fillRect(w / 2 - 2, 8, 4, h - 40);
+
+    // Crow's nest
+    g.fillStyle(0x5c3a1e);
+    g.fillRect(w / 2 - 5, 10, 10, 3);
+    g.fillRect(w / 2 - 4, 8, 8, 3);
+
+    // Sails
+    g.fillStyle(0xfffaf0);
+    g.beginPath();
+    g.moveTo(w / 2 + 2, 14);
+    g.lineTo(w / 2 + 24, 36);
+    g.lineTo(w / 2 + 2, 52);
+    g.closePath();
+    g.fillPath();
+
+    g.beginPath();
+    g.moveTo(w / 2 - 2, 14);
+    g.lineTo(w / 2 - 24, 36);
+    g.lineTo(w / 2 - 2, 52);
+    g.closePath();
+    g.fillPath();
+
+    g.fillStyle(0xffffff, 0.25);
+    g.beginPath();
+    g.moveTo(w / 2 + 2, 16);
+    g.lineTo(w / 2 + 12, 30);
+    g.lineTo(w / 2 + 2, 44);
+    g.closePath();
+    g.fillPath();
+
+    g.fillStyle(0xfffaf0, 0.5);
+    g.fillRect(w / 2 - 1, 10, 2, 42);
+
+    // Bowsprit
+    g.lineStyle(2, 0x4a2800);
+    g.lineBetween(w / 2 + 4, h - 32, w - 4, h - 40);
+
+    // Flag
+    g.fillStyle(0xffd700);
+    g.fillTriangle(w / 2 + 2, 8, w / 2 + 20, 4, w / 2 + 18, 16);
+    g.fillStyle(0xffffff);
+    g.fillCircle(w / 2 + 12, 8, 2.5);
+    g.fillStyle(0x000000);
+    g.fillRect(w / 2 + 10, 7, 4, 1);
+
+    g.generateTexture("ship-player", w, h);
+    g.destroy();
+  }
+
+  private generateAIShip(): void {
+    const g = this.add.graphics();
+    const w = 80;
+    const h = 100;
+
+    // Wake glow
+    g.fillStyle(0xff4444, 0.04);
+    g.fillEllipse(w / 2, h - 4, 56, 12);
+    g.fillStyle(0xffffff, 0.06);
+    g.fillEllipse(w / 2, h + 2, 40, 8);
+
+    // Hull
+    g.fillStyle(0x3a2810);
+    g.beginPath();
+    g.moveTo(6, h - 28);
+    g.lineTo(w - 4, h - 28);
+    g.lineTo(w - 2, h - 4);
+    g.lineTo(4, h - 4);
+    g.closePath();
+    g.fillPath();
+
+    // Red stripe
+    g.fillStyle(0xff4444);
+    g.fillRect(8, h - 20, w - 14, 3);
+
+    // Hull top edge
+    g.fillStyle(0x5a3a1a);
+    g.fillRect(8, h - 28, w - 14, 2);
+
+    // Deck
+    g.fillStyle(0x6b4a2a);
+    g.fillRect(8, h - 32, w - 14, 5);
+
+    // Cabin
+    g.fillStyle(0x4a2a10);
+    g.fillRect(w / 2 - 6, h - 40, 12, 10);
+    g.fillStyle(0x6b4a2a);
+    g.fillRect(w / 2 - 8, h - 42, 16, 4);
+    g.fillStyle(0xcc9966);
+    g.fillRect(w / 2 - 4, h - 36, 3, 3);
+    g.fillRect(w / 2 + 1, h - 36, 3, 3);
+
+    // White hull edge highlight
+    g.lineStyle(1, 0xffffff, 0.12);
+    g.beginPath();
+    g.moveTo(6, h - 28);
+    g.lineTo(w - 4, h - 28);
+    g.lineTo(w - 2, h - 4);
+    g.lineTo(4, h - 4);
+    g.closePath();
+    g.strokePath();
+
+    // Mast
+    g.fillStyle(0x3a2010);
+    g.fillRect(w / 2 - 2, 8, 4, h - 40);
+
+    // Sails
+    g.fillStyle(0xfff2e8);
+    g.beginPath();
+    g.moveTo(w / 2 + 2, 14);
+    g.lineTo(w / 2 + 24, 36);
+    g.lineTo(w / 2 + 2, 52);
+    g.closePath();
+    g.fillPath();
+
+    g.beginPath();
+    g.moveTo(w / 2 - 2, 14);
+    g.lineTo(w / 2 - 24, 36);
+    g.lineTo(w / 2 - 2, 52);
+    g.closePath();
+    g.fillPath();
+
+    g.fillStyle(0xfff2e8, 0.5);
+    g.fillRect(w / 2 - 1, 10, 2, 42);
+
+    g.fillStyle(0xff4444, 0.25);
+    g.beginPath();
+    g.moveTo(w / 2 + 2, 14);
+    g.lineTo(w / 2 + 22, 34);
+    g.lineTo(w / 2 + 2, 50);
+    g.closePath();
+    g.fillPath();
+
+    // Bowsprit
+    g.lineStyle(2, 0x3a2010);
+    g.lineBetween(w / 2 + 4, h - 32, w - 4, h - 40);
+
+    // Flag
+    g.fillStyle(0xff4444);
+    g.fillTriangle(w / 2 + 2, 8, w / 2 + 20, 4, w / 2 + 18, 16);
+    g.lineStyle(1.5, 0xffffff);
+    g.lineBetween(w / 2 + 8, 6, w / 2 + 8, 12);
+    g.lineBetween(w / 2 + 6, 8, w / 2 + 10, 8);
+
+    g.generateTexture("ship-ai", w, h);
     g.destroy();
   }
 }

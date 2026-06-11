@@ -1391,6 +1391,190 @@ for (const game of GAMES) {
       expect(state?.rivalTexture).not.toBe("");
     });
 
+    // ── Phase 18b: Canvas-level visual validation ──
+    // These tests sample actual rendered pixels to catch black-square
+    // regressions that texture-key checks would miss.
+
+    test("race player ship renders as readable non-square sprite", async ({
+      page,
+    }) => {
+      await page.goto(`${game.path}?testTouch=1&seed=ship-visual-debug`, {
+        waitUntil: "domcontentloaded",
+      });
+      await waitForPhaserReady(page);
+
+      const result = await page.evaluate(async () => {
+        const canvas = document.querySelector(
+          "#game-container canvas",
+        ) as HTMLCanvasElement | null;
+        if (!canvas) return null;
+        const state = (window as any).__paRaceToTreasureIslandState;
+        if (!state) return null;
+
+        const dataUrl = canvas.toDataURL("image/png");
+        const blob = await (await fetch(dataUrl)).blob();
+        const bitmap = await createImageBitmap(blob);
+
+        const offscreen = new OffscreenCanvas(bitmap.width, bitmap.height);
+        const ctx = offscreen.getContext("2d");
+        if (!ctx) return null;
+        ctx.drawImage(bitmap, 0, 0);
+
+        const pw = Math.round(state.playerDisplayWidth);
+        const ph = Math.round(state.playerDisplayHeight);
+        const px = Math.max(0, Math.round(state.playerX - pw / 2));
+        const py = Math.max(0, Math.round(state.playerY - ph / 2));
+        if (
+          pw <= 0 ||
+          ph <= 0 ||
+          px + pw > bitmap.width ||
+          py + ph > bitmap.height
+        )
+          return null;
+
+        const img = ctx.getImageData(px, py, pw, ph);
+        const d = img.data;
+        let nearBlack = 0;
+        let light = 0;
+        let rSum = 0,
+          gSum = 0,
+          bSum = 0;
+        let nonBg = 0;
+
+        for (let i = 0; i < d.length; i += 4) {
+          if (d[i + 3] > 30) {
+            nonBg++;
+            rSum += d[i];
+            gSum += d[i + 1];
+            bSum += d[i + 2];
+            if (d[i] < 25 && d[i + 1] < 25 && d[i + 2] < 25) nearBlack++;
+            if ((d[i] + d[i + 1] + d[i + 2]) / 3 > 160) light++;
+          }
+        }
+
+        const total = pw * ph;
+        return {
+          pw,
+          ph,
+          total,
+          nonBg,
+          nearBlack,
+          light,
+          avgR: Math.round(rSum / total),
+          avgG: Math.round(gSum / total),
+          avgB: Math.round(bSum / total),
+          nonBgPct: Math.round((nonBg / total) * 100),
+          nearBlackPct: nonBg > 0 ? Math.round((nearBlack / nonBg) * 100) : 0,
+          lightPct: total > 0 ? Math.round((light / total) * 100) : 0,
+        };
+      });
+
+      expect(result).not.toBeNull();
+      if (!result) return;
+      expect(result.pw).toBeGreaterThan(0);
+      expect(result.ph).toBeGreaterThan(0);
+
+      // Must have non-background pixels (ship is rendering on canvas)
+      expect(result.nonBgPct).toBeGreaterThan(10);
+
+      // Not a black square: near-black pixels must not dominate
+      expect(result.nearBlackPct).toBeLessThan(50);
+
+      // Must have some light (sail-like) pixels
+      expect(result.light).toBeGreaterThan(15);
+
+      // Average brightness above very-dark threshold (clear contrast with ocean)
+      expect(result.avgR + result.avgG + result.avgB).toBeGreaterThan(60);
+    });
+
+    test("race rival ship renders as readable non-square sprite", async ({
+      page,
+    }) => {
+      await page.goto(`${game.path}?testTouch=1&seed=ship-visual-debug`, {
+        waitUntil: "domcontentloaded",
+      });
+      await waitForPhaserReady(page);
+
+      const result = await page.evaluate(async () => {
+        const canvas = document.querySelector(
+          "#game-container canvas",
+        ) as HTMLCanvasElement | null;
+        if (!canvas) return null;
+        const state = (window as any).__paRaceToTreasureIslandState;
+        if (!state) return null;
+
+        const dataUrl = canvas.toDataURL("image/png");
+        const blob = await (await fetch(dataUrl)).blob();
+        const bitmap = await createImageBitmap(blob);
+
+        const offscreen = new OffscreenCanvas(bitmap.width, bitmap.height);
+        const ctx = offscreen.getContext("2d");
+        if (!ctx) return null;
+        ctx.drawImage(bitmap, 0, 0);
+
+        const rw = Math.round(state.rivalDisplayWidth);
+        const rh = Math.round(state.rivalDisplayHeight);
+        const rx = Math.max(0, Math.round(state.rivalX - rw / 2));
+        const ry = Math.max(0, Math.round(state.rivalY - rh / 2));
+        if (
+          rw <= 0 ||
+          rh <= 0 ||
+          rx + rw > bitmap.width ||
+          ry + rh > bitmap.height
+        )
+          return null;
+
+        const img = ctx.getImageData(rx, ry, rw, rh);
+        const d = img.data;
+        let nearBlack = 0;
+        let light = 0;
+        let accent = 0;
+        let rSum = 0,
+          gSum = 0,
+          bSum = 0;
+        let nonBg = 0;
+
+        for (let i = 0; i < d.length; i += 4) {
+          if (d[i + 3] > 30) {
+            nonBg++;
+            rSum += d[i];
+            gSum += d[i + 1];
+            bSum += d[i + 2];
+            if (d[i] < 25 && d[i + 1] < 25 && d[i + 2] < 25) nearBlack++;
+            if ((d[i] + d[i + 1] + d[i + 2]) / 3 > 160) light++;
+            if (d[i] > 150 && d[i + 1] < 80 && d[i + 2] < 80) accent++;
+          }
+        }
+
+        const total = rw * rh;
+        return {
+          rw,
+          rh,
+          total,
+          nonBg,
+          nearBlack,
+          light,
+          accent,
+          avgR: Math.round(rSum / total),
+          avgG: Math.round(gSum / total),
+          avgB: Math.round(bSum / total),
+          nonBgPct: Math.round((nonBg / total) * 100),
+          nearBlackPct: nonBg > 0 ? Math.round((nearBlack / nonBg) * 100) : 0,
+        };
+      });
+
+      expect(result).not.toBeNull();
+      if (!result) return;
+      expect(result.rw).toBeGreaterThan(0);
+      expect(result.rh).toBeGreaterThan(0);
+      expect(result.nonBgPct).toBeGreaterThan(10);
+      expect(result.nearBlackPct).toBeLessThan(50);
+      expect(result.light).toBeGreaterThan(10);
+
+      // Rival should have some red accent pixels (stripe or flag)
+      expect(result.accent).toBeGreaterThan(5);
+    });
+
     test("player cue visible at boot then fades", async ({ page }) => {
       await page.goto(`${game.path}?testTouch=1&seed=visual-smoke`, {
         waitUntil: "domcontentloaded",

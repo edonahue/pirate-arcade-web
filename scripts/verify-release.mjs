@@ -31,6 +31,7 @@ const FAST_GATE = [
   { name: "Public domain art", cmd: "npm run test:public-domain-art" },
   { name: "Game theming source", cmd: "npm run test:game-theming-source" },
   { name: "Game registry", cmd: "npm run test:game-registry" },
+  { name: "Race ship assets", cmd: "npm run test:race-ship-assets" },
   { name: "Screenshot assets", cmd: "npm run test:screenshot-assets" },
   {
     name: "Performance budgets",
