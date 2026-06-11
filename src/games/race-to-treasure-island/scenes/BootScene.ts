@@ -140,6 +140,9 @@ export class BootScene extends Phaser.Scene {
     // Highlight
     g.fillStyle(0xc09828, 0.3);
     g.fillRect(6, 6, 4, 18);
+    // White outline for readability against dark ocean
+    g.lineStyle(1, 0xffffff, 0.35);
+    g.strokeRoundedRect(2, 4, 28, 22, 3);
     g.generateTexture("barrel", 32, 30);
     g.destroy();
   }
@@ -164,6 +167,9 @@ export class BootScene extends Phaser.Scene {
     g.fillRect(0, 22, 8, 3);
     g.fillRect(24, 20, 6, 4);
     g.fillRect(10, 26, 6, 2);
+    // White outline
+    g.lineStyle(1, 0xffffff, 0.25);
+    g.strokeRect(4, 8, 24, 20);
     g.generateTexture("shipwreck", 32, 30);
     g.destroy();
   }
@@ -185,6 +191,11 @@ export class BootScene extends Phaser.Scene {
     g.fillRect(19, 2, 3, 14);
     g.fillStyle(0x3a7a2a);
     g.fillEllipse(20, 2, 14, 6);
+    // White sandy outline
+    g.lineStyle(1, 0xffffff, 0.2);
+    g.beginPath();
+    g.arc(20, 18, 17, 0, Math.PI * 2);
+    g.strokePath();
     g.generateTexture("reef", 40, 36);
     g.destroy();
   }
@@ -203,6 +214,9 @@ export class BootScene extends Phaser.Scene {
     g.fillStyle(0x8b6914);
     g.fillCircle(6, 6, 2);
     g.fillCircle(18, 18, 2);
+    // White outline
+    g.lineStyle(1, 0xffffff, 0.3);
+    g.strokeRect(2, 4, 20, 16);
     g.generateTexture("debris", 24, 24);
     g.destroy();
   }

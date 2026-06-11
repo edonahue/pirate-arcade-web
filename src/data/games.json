@@ -120,14 +120,17 @@
       "Long John rival",
       "Wind-meter boost",
       "Treasure Island finish",
-      "Seeded obstacle course"
+      "Seeded obstacle course",
+      "Best score tracking"
     ],
     "demonstrates": [
       "Phaser 3 web-native game (no runtime download)",
       "Deterministic seeded obstacle generation",
       "Wind-meter boost mechanic with risk/reward",
       "AI rival with mistake modeling",
-      "Real-time obstacle interaction (wind cost, bump, stun)"
+      "Real-time obstacle interaction (wind cost, bump, stun)",
+      "Opening countdown with control hints",
+      "Procedural ship and obstacle textures"
     ]
   },
   {

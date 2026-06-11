@@ -49,6 +49,15 @@ async function waitForPhaserReady(page: Page): Promise<void> {
     },
     { timeout: 45000, polling: 200 },
   );
+
+  // Wait for any game countdown to complete
+  await page.waitForFunction(
+    () => {
+      const state = (window as any).__paRaceToTreasureIslandState;
+      return !state || state.countdownPhase === "done";
+    },
+    { timeout: 10000, polling: 200 },
+  );
 }
 
 for (const game of GAMES) {

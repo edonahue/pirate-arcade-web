@@ -56,6 +56,9 @@ export class RaceScene extends Phaser.Scene {
   private hitBumpVelocity: number = 0;
   private overtakeCueVisible: boolean = false;
   private playerWon: boolean = false;
+  private countdownPhase: "ready" | "set" | "sail" | "done" = "done";
+  private bestScore: number = 0;
+  private isNewBest: boolean = false;
 
   // AI state
   private aiTargetX: number = GAME_WIDTH / 2;
@@ -118,6 +121,7 @@ export class RaceScene extends Phaser.Scene {
     this.setupBootMetrics();
     this.setupDebugHooks();
     this.exposeState();
+    this.startCountdown();
   }
 
   // ── Deterministic RNG ──
@@ -178,6 +182,11 @@ export class RaceScene extends Phaser.Scene {
 
     this.handleSystemInput();
     if (this.gameOver || this.raceFinished) return;
+
+    if (this.countdownPhase !== "done") {
+      this.exposeState();
+      return;
+    }
 
     if (this.paused) {
       this.exposeState();
@@ -243,6 +252,9 @@ export class RaceScene extends Phaser.Scene {
     this.hitBumpVelocity = 0;
     this.overtakeCueVisible = false;
     this.playerWon = false;
+    this.countdownPhase = "done";
+    this.bestScore = this.loadBestScore();
+    this.isNewBest = false;
     this.islandShown = false;
     this.paused = false;
     this.lastObstacleSpawn = 0;
@@ -623,8 +635,107 @@ export class RaceScene extends Phaser.Scene {
         lastHitType: this.lastHitType,
         lastHitAt: this.lastHitAt,
         playerWon: this.playerWon,
+        countdownPhase: this.countdownPhase,
+        bestScore: this.bestScore,
+        isNewBest: this.isNewBest,
       };
     }
+  }
+
+  private loadBestScore(): number {
+    try {
+      const raw = localStorage.getItem("pa-race-best");
+      if (raw) return JSON.parse(raw).score ?? 0;
+    } catch {}
+    return 0;
+  }
+
+  private saveBestScore(score: number): boolean {
+    if (score <= this.bestScore) return false;
+    try {
+      localStorage.setItem("pa-race-best", JSON.stringify({ score }));
+      this.bestScore = score;
+    } catch {}
+    return true;
+  }
+
+  private startCountdown(): void {
+    const skip =
+      typeof window !== "undefined" &&
+      ((window as any).__paRaceSkipCountdown ||
+        new URLSearchParams(window.location.search).has("skipCountdown"));
+    if (skip) {
+      this.countdownPhase = "done";
+      return;
+    }
+    this.countdownPhase = "ready";
+    this.physics.pause();
+
+    const cx = GAME_WIDTH / 2;
+    const cy = GAME_HEIGHT / 2;
+
+    const mainText = this.add
+      .text(cx, cy - 40, "READY", {
+        fontFamily: "monospace",
+        fontSize: "48px",
+        color: "#ffd700",
+        stroke: "#000",
+        strokeThickness: 6,
+      })
+      .setOrigin(0.5)
+      .setDepth(300);
+
+    this.add
+      .text(cx, cy + 20, "← → or A/D to steer  ·  SPACE to boost", {
+        fontFamily: "monospace",
+        fontSize: "11px",
+        color: "#88aacc",
+        stroke: "#000",
+        strokeThickness: 2,
+      })
+      .setOrigin(0.5)
+      .setDepth(300);
+
+    const pulsePhase = (cb: () => void) => {
+      this.tweens.add({
+        targets: mainText,
+        scale: 1.15,
+        duration: 150,
+        yoyo: true,
+        onComplete: cb,
+      });
+    };
+
+    const transition = (nextText: string, nextColor: string) => {
+      mainText.setText(nextText);
+      mainText.setColor(nextColor);
+      mainText.setScale(1);
+    };
+
+    pulsePhase(() => {
+      this.countdownPhase = "set";
+      transition("SET", "#ffd700");
+      this.time.delayedCall(200, () => {
+        pulsePhase(() => {
+          this.countdownPhase = "sail";
+          transition("SAIL!", "#44ff88");
+          this.time.delayedCall(200, () => {
+            this.tweens.add({
+              targets: mainText,
+              scale: 1.6,
+              alpha: 0,
+              duration: 300,
+              ease: "Power2",
+              onComplete: () => {
+                mainText.destroy();
+                this.countdownPhase = "done";
+                this.physics.resume();
+              },
+            });
+          });
+        });
+      });
+    });
   }
 
   private setupDebugHooks(): void {
@@ -746,6 +857,14 @@ export class RaceScene extends Phaser.Scene {
       this.boostLabelText.setColor("#ffdd44");
     } else {
       this.boostLabelText.setVisible(false);
+    }
+
+    if (this.stunActive) {
+      // Red tint from handleObstacleHit stays
+    } else if (this.boosting) {
+      this.player.setTint(0xffdd44);
+    } else {
+      this.player.clearTint();
     }
 
     if (this.boosting) {
@@ -948,8 +1067,19 @@ export class RaceScene extends Phaser.Scene {
 
     const pct = this.boostMeter / RACE_TUNING.boostMax;
     this.boostBarFill.setScale(pct, 1);
-    const fillColor = this.boostMeter > 30 ? 0x00ccff : 0xff4444;
-    this.boostBarFill.setTint(fillColor);
+    if (this.boosting) {
+      const pulse = 0.6 + Math.sin(this.time.now * 0.01) * 0.4;
+      this.boostBarFill.setTint(
+        Phaser.Display.Color.GetColor(
+          Math.floor(255),
+          Math.floor(180 * pulse),
+          0,
+        ),
+      );
+    } else {
+      const fillColor = this.boostMeter > 30 ? 0x00ccff : 0xff4444;
+      this.boostBarFill.setTint(fillColor);
+    }
   }
 
   private updateBackground(dt: number): void {
@@ -964,7 +1094,7 @@ export class RaceScene extends Phaser.Scene {
 
     if (this.speedLines) {
       if (this.boosting) {
-        this.speedLines.setAlpha(0.15 + Math.sin(this.time.now * 0.01) * 0.1);
+        this.speedLines.setAlpha(0.25 + Math.sin(this.time.now * 0.01) * 0.12);
         this.speedLines.clear();
         this.speedLines.lineStyle(1, 0x88ccff, 0.3);
         const speed = effectiveScroll * 1.5;
@@ -1233,6 +1363,22 @@ export class RaceScene extends Phaser.Scene {
       onComplete: () => text.destroy(),
     });
 
+    for (let i = 0; i < 8; i++) {
+      const p = this.add.image(tres.x, tres.y, "particle");
+      p.setTint(0xffd700);
+      p.setScale(0.6);
+      p.setDepth(20);
+      this.tweens.add({
+        targets: p,
+        x: p.x + Phaser.Math.Between(-20, 20),
+        y: p.y + Phaser.Math.Between(-20, 20),
+        alpha: 0,
+        scale: 0,
+        duration: 400,
+        onComplete: () => p.destroy(),
+      });
+    }
+
     tres.destroy();
   }
 
@@ -1246,6 +1392,8 @@ export class RaceScene extends Phaser.Scene {
     this.aiShip.setVelocity(0, 0);
     this.physics.pause();
 
+    this.isNewBest = this.saveBestScore(this.score);
+
     this.finishOverlay.setVisible(true);
 
     this.gameOverText.setText(
@@ -1254,23 +1402,58 @@ export class RaceScene extends Phaser.Scene {
     this.gameOverText.setColor(win ? "#ffd700" : "#ff6666");
     this.gameOverText.setVisible(true);
 
-    this.resultText.setText(
-      win
-        ? `You outran Long John!  Score: ${this.score}`
-        : `Use BOOST to overtake him next run.  Score: ${this.score}`,
-    );
-    this.resultText.setColor(win ? "#88ddbb" : "#ff8866");
+    const bestLine = this.bestScore > 0 ? `Best: ${this.bestScore}` : "";
+    const newBestLine = this.isNewBest ? "★ NEW BEST! ★" : "";
+    const overtakeLine = `Overtakes: ${this.overtakeCount}`;
+    let resultLines: string;
+    if (win) {
+      resultLines = [
+        `Score: ${this.score}`,
+        overtakeLine,
+        newBestLine,
+        bestLine,
+      ]
+        .filter(Boolean)
+        .join("\n");
+      this.resultText.setColor(this.isNewBest ? "#ffd700" : "#88ddbb");
+    } else {
+      resultLines = [
+        `Score: ${this.score}`,
+        overtakeLine,
+        "Use BOOST to overtake him next run!",
+      ].join("\n");
+      this.resultText.setColor("#ff8866");
+    }
+    this.resultText.setLineSpacing(4);
+    this.resultText.setText(resultLines);
     this.resultText.setVisible(true);
 
-    // Gold glow on island when player wins
-    if (win && this.treasureIsland?.active) {
-      this.tweens.add({
-        targets: this.treasureIsland,
-        scale: 1.15,
-        duration: 400,
-        yoyo: true,
-        ease: "Sine.easeInOut",
-      });
+    // Celebration effects on win
+    if (win) {
+      if (this.treasureIsland?.active) {
+        this.tweens.add({
+          targets: this.treasureIsland,
+          scale: 1.15,
+          duration: 400,
+          yoyo: true,
+          ease: "Sine.easeInOut",
+        });
+      }
+      for (let i = 0; i < 20; i++) {
+        const p = this.add.image(GAME_WIDTH / 2, GAME_HEIGHT / 2, "particle");
+        p.setTint(Math.random() < 0.5 ? 0xffd700 : 0xff8800);
+        p.setScale(0.5 + Math.random() * 0.5);
+        p.setDepth(250);
+        this.tweens.add({
+          targets: p,
+          x: p.x + Phaser.Math.Between(-180, 180),
+          y: p.y + Phaser.Math.Between(-120, 120),
+          alpha: 0,
+          scale: 0,
+          duration: 800 + Math.random() * 400,
+          onComplete: () => p.destroy(),
+        });
+      }
     }
 
     const restartBtn =
