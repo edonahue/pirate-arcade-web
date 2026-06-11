@@ -6,8 +6,6 @@ export const profileLinks = [
   "https://github.com/edonahue/pirate-arcade",
   "https://github.com/edonahue/pirate-arcade-web",
   "https://www.linkedin.com/in/erichdonahue/",
-  "https://x.com/erichdonahue",
-  "https://buymeacoffee.com/erichdonahue",
 ] as const;
 
 export function absoluteUrl(pathOrUrl: string, base = site.url): string {

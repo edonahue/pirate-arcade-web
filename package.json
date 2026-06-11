@@ -68,6 +68,7 @@
     "test:visual-polish": "playwright test tests/mobile-visual-polish.spec.ts",
     "test:visual-contrast": "node scripts/check-visual-contrast.mjs",
     "test:lhci": "lhci autorun",
+    "test:site-links": "node scripts/check-site-links.mjs",
     "test:game-registry": "node scripts/check-game-registry.mjs",
     "test:screenshot-assets": "node scripts/check-screenshot-assets.mjs",
     "capture:screenshots": "astro build && node scripts/capture-browser-game-screenshots.mjs"

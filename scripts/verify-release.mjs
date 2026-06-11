@@ -27,6 +27,7 @@ const FAST_GATE = [
   { name: "Game versions", cmd: "npm run test:game-versions" },
   { name: "Archive parity", cmd: "npm run test:archive-parity" },
   { name: "Audit game archives", cmd: "npm run audit:game-archives" },
+  { name: "Site links", cmd: "npm run test:site-links" },
   { name: "Public domain art", cmd: "npm run test:public-domain-art" },
   { name: "Game theming source", cmd: "npm run test:game-theming-source" },
   { name: "Game registry", cmd: "npm run test:game-registry" },

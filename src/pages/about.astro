@@ -12,13 +12,13 @@ const webNativeGames = browserGames.filter((g) => g.engine === "phaser");
 
 <BaseLayout
   title="About"
-  description="About Pirate Arcade: five pirate-themed arcade games, two browser engines, and a public build experiment by Erich Donahue — exploring zero-cost AI-assisted development on free infrastructure."
+  description="About Pirate Arcade: a pirate-themed arcade collection and public build experiment by Erich Donahue. 4 browser games across two engines on free infrastructure."
   current="about"
   jsonLd={[
     webPageNode(
       "/about/",
       "About Pirate Arcade",
-      "About Pirate Arcade: five pirate-themed arcade games, two browser engines, and a public build experiment by Erich Donahue — exploring zero-cost AI-assisted development on free infrastructure.",
+      "About Pirate Arcade: a pirate-themed arcade collection and public build experiment by Erich Donahue. 4 browser games across two engines on free infrastructure.",
       "AboutPage",
     ),
   ]}
@@ -144,7 +144,8 @@ const webNativeGames = browserGames.filter((g) => g.engine === "phaser");
         This project demonstrates decision-making across the product stack:
         choosing the right abstraction (Phaser vs Pygbag), designing for
         constraints (free infrastructure, mobile touch), and shipping with
-        automated gates (200+ tests, screenshot validation, release checks).
+        automated gates (Playwright suite, screenshot validation, release
+        checks).
       </p>
     </div>
     <div class="prose">

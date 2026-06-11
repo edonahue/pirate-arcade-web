@@ -439,4 +439,98 @@ test.describe("Site Game Content", () => {
       expect(box?.width).toBeLessThanOrEqual(390);
     }
   });
+
+  test("JSON-LD schema is valid on homepage", async ({ page }) => {
+    await page.goto("/");
+    const jsonText = await page
+      .locator('script[type="application/ld+json"]')
+      .textContent();
+    expect(jsonText).toBeTruthy();
+
+    const parsed = JSON.parse(jsonText!);
+    expect(parsed["@context"]).toBe("https://schema.org");
+
+    const graph = parsed["@graph"];
+    expect(Array.isArray(graph)).toBe(true);
+
+    const types = graph.map((n: any) => n["@type"]).flat();
+    expect(types).toContain("WebSite");
+    expect(types).toContain("Person");
+    expect(types).toContain("SoftwareApplication");
+    expect(types).toContain("VideoGame");
+
+    const person = graph.find((n: any) => {
+      const t = n["@type"];
+      return Array.isArray(t) ? t.includes("Person") : t === "Person";
+    });
+    expect(person).toBeTruthy();
+    expect(person.sameAs).toBeDefined();
+    const sameAsUrls: string[] = person.sameAs;
+    const allSameAs = sameAsUrls.join(" ");
+    expect(allSameAs).toContain("erichdonahue.com");
+    expect(allSameAs).toContain("github.com/edonahue");
+    expect(allSameAs).toContain("linkedin.com/in/erichdonahue");
+
+    const project = graph.find((n: any) => {
+      const t = n["@type"];
+      const types = Array.isArray(t) ? t : [t];
+      return (
+        types.includes("SoftwareApplication") && types.includes("VideoGame")
+      );
+    });
+    expect(project).toBeTruthy();
+    expect(project.offers).toBeDefined();
+    expect(project.offers.price).toBe("0");
+  });
+
+  test("game detail pages have VideoGame JSON-LD", async ({ page }) => {
+    for (const game of games) {
+      await page.goto(`/games/${game.id}/`);
+      const jsonText = await page
+        .locator('script[type="application/ld+json"]')
+        .textContent();
+      expect(jsonText).toBeTruthy();
+
+      const parsed = JSON.parse(jsonText!);
+      const graph = parsed["@graph"];
+      expect(Array.isArray(graph)).toBe(true);
+
+      const videoGame = graph.find(
+        (n: any) => n["@type"] === "VideoGame" && n.name === game.title,
+      );
+      expect(
+        videoGame,
+        `Game detail page for "${game.title}" should include VideoGame schema`,
+      ).toBeTruthy();
+
+      if (game.screenshot) {
+        expect(videoGame.image).toBeTruthy();
+        expect(videoGame.image).toContain(game.screenshot.replace("/", ""));
+      }
+    }
+  });
+
+  test("every page has OG title, description, and image", async ({ page }) => {
+    const paths = ["/", "/play/", "/about/", "/source/"];
+    for (const game of games) {
+      paths.push(`/games/${game.id}/`);
+    }
+
+    for (const path of paths) {
+      await page.goto(path);
+      const ogTitle = await page
+        .locator('meta[property="og:title"]')
+        .getAttribute("content");
+      const ogDesc = await page
+        .locator('meta[property="og:description"]')
+        .getAttribute("content");
+      const ogImage = await page
+        .locator('meta[property="og:image"]')
+        .getAttribute("content");
+      expect(ogTitle, `${path} missing og:title`).toBeTruthy();
+      expect(ogDesc, `${path} missing og:description`).toBeTruthy();
+      expect(ogImage, `${path} missing og:image`).toBeTruthy();
+      expect(ogDesc!.length).toBeGreaterThan(10);
+    }
+  });
 });

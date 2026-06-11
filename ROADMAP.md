@@ -1,17 +1,16 @@
 # ROADMAP
 
-<!-- Current HEAD: portfolio-polish pass -->
+<!-- Current HEAD: live-site metadata and link hardening -->
 
-## Portfolio Positioning (This Release)
+## Live-Site Metadata & Link Harden (This Release)
 
-This release sharpens Pirate Arcade as a **public work sample** — 70% playable arcade, 30% engineering proof.
+This release polishes Pirate Arcade for public sharing — tighter metadata, social previews, schema validation, link integrity checking, and doc handoff.
 
-- **Homepage**: Subtle builder credit ("by Erich Donahue"), engineering proof strip (engines, tests, release gate, screenshots, infrastructure)
-- **About**: "Product-Minded Engineering" section earlier, LinkedIn link, stronger builder narrative
-- **Source**: "Engineering Discipline" cards — two repos, static+edge, two engines, deterministic hooks, screenshot pipeline, registry validation, release gate, CSP hygiene, mobile tests
-- **Game detail pages**: "What this demonstrates" block per game
-- **Nav**: About moved before Build Log for recruiter flow
-- **Tests**: 10 new portfolio-positioning tests (homepage, about, source, game detail, header, metadata)
+- **Metadata**: Shortened page descriptions to ≤200 chars (SEO safe), fixed stale "200+ tests" claim → "Playwright suite"
+- **Schema**: JSON-LD tests added — verifies WebSite/Person/SoftwareApplication on homepage, VideoGame per game detail, sameAs URLs
+- **Links**: `scripts/check-site-links.mjs` checks internal links resolve in dist/ after build, flags missing `rel="noopener noreferrer"` on `target="_blank"`
+- **Tests**: 3 new tests (JSON-LD homepage, JSON-LD game detail, OG metadata coverage), wired into fast gate
+- **Docs**: README/ROADMAP updated with new scripts and current state
 
 ---
 
