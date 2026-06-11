@@ -107,4 +107,32 @@ import { modelRuns } from "../data/experiment";
     left: 0;
     color: var(--accent);
   }
+
+  @media (max-width: 640px) {
+    .model-obs-table {
+      font-size: 0.75rem;
+    }
+
+    .model-obs-table th,
+    .model-obs-table td {
+      padding: 0.5rem 0.5rem;
+    }
+
+    .model-obs-table th {
+      font-size: 0.5625rem;
+    }
+
+    .model-obs-table__model {
+      font-size: 0.8125rem;
+    }
+
+    .model-obs-table__task {
+      font-size: 0.75rem;
+    }
+
+    .model-obs-table__list li {
+      font-size: 0.75rem;
+      padding-left: 0.75rem;
+    }
+  }
 </style>

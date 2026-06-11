@@ -378,6 +378,25 @@ const desktopGames = games.filter((g) => g.status === "desktop-available");
       padding: 1.5rem;
     }
 
+    @media (max-width: 640px) {
+      .engine-card {
+        padding: 1rem;
+      }
+
+      .engine-card__desc {
+        font-size: 0.8125rem;
+      }
+
+      .engine-card__games li {
+        font-size: 0.8125rem;
+      }
+
+      .engine-card__tag {
+        font-size: 0.5625rem;
+        padding: 0.1rem 0.3rem;
+      }
+    }
+
     .engine-card:first-child {
       border-left: 3px solid var(--gold);
     }
@@ -479,6 +498,21 @@ const desktopGames = games.filter((g) => g.status === "desktop-available");
       border: 1px solid var(--line);
       border-radius: var(--radius-lg);
       border-left: 3px solid var(--accent);
+    }
+
+    @media (max-width: 640px) {
+      .before-launch__inner {
+        padding: 1rem 1rem;
+      }
+
+      .before-launch__heading {
+        font-size: 0.625rem;
+      }
+
+      .before-launch__list li {
+        font-size: 0.75rem;
+        padding-left: 0.75rem;
+      }
     }
 
     .before-launch__heading {

@@ -489,4 +489,56 @@ const isDesktopAvailable = game.status === "desktop-available";
     left: 0;
     color: var(--accent);
   }
+
+  @media (max-width: 640px) {
+    .game-detail__figure {
+      margin-bottom: 1.5rem;
+    }
+
+    .game-detail__figure img {
+      border-radius: var(--radius);
+    }
+
+    .game-detail__layout {
+      gap: 1.5rem;
+    }
+
+    .game-detail__sidebar {
+      gap: 0.5rem;
+    }
+
+    .game-detail__sidebar-card {
+      padding: 0.75rem;
+    }
+
+    .game-detail__sidebar-heading {
+      font-size: 0.5625rem;
+    }
+
+    .game-detail__sidebar-value {
+      font-size: 0.8125rem;
+    }
+
+    .game-detail__best-for {
+      font-size: 0.875rem;
+      padding: 0.625rem 0.875rem;
+    }
+
+    .game-detail__best-for-label {
+      font-size: 0.625rem;
+    }
+
+    .game-detail__demonstrates li {
+      font-size: 0.8125rem;
+      padding-left: 1rem;
+    }
+
+    .game-detail__art-figure {
+      margin: 1rem 0;
+    }
+
+    .game-detail__art-figure figcaption {
+      font-size: 0.625rem;
+    }
+  }
 </style>

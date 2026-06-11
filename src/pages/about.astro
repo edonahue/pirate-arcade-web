@@ -376,4 +376,75 @@ const webNativeGames = browserGames.filter((g) => g.engine === "phaser");
       gap: 0.25rem;
     }
   }
+
+  @media (max-width: 640px) {
+    .about-games__card {
+      padding: 1rem;
+    }
+
+    .about-games__card-title {
+      font-size: 1rem;
+    }
+
+    .about-games__list li {
+      font-size: 0.875rem;
+      padding-left: 0.75rem;
+    }
+
+    .about-stack__item {
+      flex-direction: column;
+      gap: 0.25rem;
+      padding: 0.625rem 0.75rem;
+    }
+
+    .about-stack__label {
+      flex: none;
+      font-size: 0.625rem;
+      margin-bottom: 0.125rem;
+    }
+
+    .about-stack__value {
+      font-size: 0.8125rem;
+    }
+
+    .maker-card {
+      padding: 1.25rem 1.25rem;
+    }
+
+    .maker-card__desc {
+      font-size: 0.875rem;
+      margin-bottom: 1rem;
+    }
+
+    .maker-card__links {
+      gap: 0.5rem;
+    }
+
+    .maker-card__link {
+      font-size: 0.75rem;
+    }
+  }
+
+  @media (max-width: 380px) {
+    .about-games__card {
+      padding: 0.75rem;
+    }
+
+    .about-games__list li {
+      font-size: 0.8125rem;
+      padding-left: 0.5rem;
+    }
+
+    .about-stack__item {
+      padding: 0.5rem 0.625rem;
+    }
+
+    .maker-card {
+      padding: 1rem;
+    }
+
+    .maker-card__link {
+      font-size: 0.6875rem;
+    }
+  }
 </style>

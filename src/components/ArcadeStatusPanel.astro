@@ -172,4 +172,37 @@ import { games } from "../data/games";
     text-align: center;
     line-height: 1.5;
   }
+
+  @media (max-width: 640px) {
+    .status-panel__table {
+      font-size: 0.75rem;
+    }
+
+    .status-panel__table th,
+    .status-panel__table td {
+      padding: 0.5rem 0.5rem;
+    }
+
+    .status-panel__table th {
+      font-size: 0.5625rem;
+    }
+
+    .status-panel__game-name {
+      gap: 0.125rem;
+    }
+
+    .status-panel__classic {
+      font-size: 0.625rem;
+    }
+
+    .status-panel__play-link,
+    .status-panel__download-link {
+      font-size: 0.625rem;
+    }
+
+    .status-panel__footnote {
+      font-size: 0.6875rem;
+      padding: 0 0.5rem;
+    }
+  }
 </style>

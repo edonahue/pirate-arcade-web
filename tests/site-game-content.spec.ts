@@ -335,4 +335,108 @@ test.describe("Site Game Content", () => {
     await expect(liveLink).toHaveAttribute("href", /family=Inter/);
     await expect(liveLink).toHaveAttribute("href", /family=IBM\+Plex\+Mono/);
   });
+
+  test("proof teaser does not overflow on mobile", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/");
+
+    const proofTeaser = page.locator(".proof-teaser");
+    await expect(proofTeaser).toBeVisible();
+
+    const box = await proofTeaser.boundingBox();
+    expect(box?.width).toBeLessThanOrEqual(390);
+  });
+
+  test("game cards do not overflow on mobile", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/");
+
+    const gameGrid = page.locator(".game-grid");
+    await expect(gameGrid).toBeVisible();
+
+    const box = await gameGrid.boundingBox();
+    expect(box?.width).toBeLessThanOrEqual(390);
+  });
+
+  test("source engineering-proof cards stack on mobile", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/source/");
+
+    const proofCards = page.locator(".engineering-proof__card");
+    const count = await proofCards.count();
+    expect(count).toBeGreaterThan(0);
+
+    for (let i = 0; i < count; i++) {
+      const box = await proofCards.nth(i).boundingBox();
+      expect(box?.width).toBeLessThanOrEqual(390);
+    }
+  });
+
+  test("game detail sidebar stacks below main content on mobile", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/games/cannonball-clash/");
+
+    const layout = page.locator(".game-detail__layout");
+    const box = await layout.boundingBox();
+    expect(box?.width).toBeLessThanOrEqual(390);
+
+    // Sidebar should be visible and not overflow
+    const sidebar = page.locator(".game-detail__sidebar");
+    await expect(sidebar).toBeVisible();
+  });
+
+  test("status panel scrolls horizontally rather than overflowing", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/play/");
+
+    const wrapper = page.locator(".status-panel__table-wrapper");
+    await expect(wrapper).toBeVisible();
+
+    // Check that overflow-x is auto (scrollable)
+    const overflowX = await wrapper.evaluate(
+      (el) => getComputedStyle(el).overflowX,
+    );
+    expect(overflowX).toBe("auto");
+  });
+
+  test("header support/theme/nav controls remain visible and non-overlapping", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/");
+
+    const supportLink = page.locator(".support-link");
+    const themeToggle = page.locator(".theme-toggle");
+    const nav = page.locator(".site-nav");
+
+    await expect(supportLink).toBeVisible();
+    await expect(themeToggle).toBeVisible();
+    await expect(nav).toBeVisible();
+
+    // Check no horizontal overflow
+    const bodyWidth = await page.evaluate(() => document.body.scrollWidth);
+    expect(bodyWidth).toBeLessThanOrEqual(390);
+  });
+
+  test("screenshot captions remain visible and not clipped", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/");
+
+    const captions = page.locator(".game-card__screenshot-caption");
+    const count = await captions.count();
+    expect(count).toBeGreaterThan(0);
+
+    for (let i = 0; i < count; i++) {
+      const caption = captions.nth(i);
+      await expect(caption).toBeVisible();
+      const box = await caption.boundingBox();
+      expect(box?.width).toBeLessThanOrEqual(390);
+    }
+  });
 });
