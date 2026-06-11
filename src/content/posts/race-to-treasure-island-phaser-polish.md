@@ -19,7 +19,7 @@ WebAssembly. They work, but:
   first visit.
 - **Pygame coordinate model** — all input had to be bridged through a shared
   JS/Python channel.
-- **Python runtime overhead** — even simple Pong has ~50 MB of browser memory
+- **Python runtime overhead** — even simple Pong has a larger browser memory
   footprint.
 
 For a side-scrolling racer with real-time input, these constraints mattered.
@@ -28,7 +28,7 @@ Phaser 3 gives:
 - **Instant load** — no runtime download.
 - **Direct DOM/input access** — no bridge layer.
 - **TypeScript** — catch regressions at compile time.
-- **75 Playwright tests** — deterministic via debug hooks.
+- **Dozens of Playwright tests** — deterministic via debug hooks.
 
 ## The OutRun Direction
 

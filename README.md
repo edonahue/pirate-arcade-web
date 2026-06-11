@@ -9,7 +9,7 @@ A pirate-themed arcade collection and a public build experiment exploring zero-c
 
 - **Product judgment**: Choosing Pygbag for arcade ports vs Phaser 3 for a web-native racer
 - **Design competence**: Dark-first pirate arcade aesthetic, mobile-responsive, accessible
-- **Engineering discipline**: 200+ Playwright tests, 20-step automated release gate, screenshot validation
+- **Engineering discipline**: Playwright test suite, multi-step automated release gate, screenshot validation
 - **AI workflow**: OpenCode + free models (DeepSeek V4, Nemotron) on local hardware, no paid subscriptions
 - **Shipping on free tiers**: Cloudflare Pages, GitHub Actions, zero cloud compute costs
 

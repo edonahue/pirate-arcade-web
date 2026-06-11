@@ -113,7 +113,7 @@ This release sharpens Pirate Arcade as a **public work sample** — 70% playable
 - [x] Finish/win/loss states with distinct overlays and island pulse glow
 - [x] Touch controls with restart/pause
 - [x] Debug hooks for deterministic testability
-- [x] 75 Playwright tests (Chromium)
+- [x] Playwright test suite (Chromium)
 - [x] Game data, copy, and mechanics aligned with OutRun-style pitch
 
 ## Maybe / Future

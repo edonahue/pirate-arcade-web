@@ -176,8 +176,12 @@ test.describe("Site Game Content", () => {
     // Proof teaser near hero (first occurrence)
     await expect(page.locator("text=Two engines").first()).toBeVisible();
     await expect(page.locator("text=4 browser games").first()).toBeVisible();
-    await expect(page.locator("text=200+ tests").first()).toBeVisible();
-    await expect(page.locator("text=Release gate").first()).toBeVisible();
+    await expect(
+      page.locator("text=Tested release gate").first(),
+    ).toBeVisible();
+    await expect(
+      page.locator("text=Screenshot validation").first(),
+    ).toBeVisible();
     await expect(page.locator("text=Free-tier deploy").first()).toBeVisible();
 
     // Proof strip in Experiment section (use exact match for labels)
@@ -186,6 +190,12 @@ test.describe("Site Game Content", () => {
     await expect(page.locator("text=Release gate").last()).toBeVisible();
     await expect(page.locator("text=Screenshots").last()).toBeVisible();
     await expect(page.locator("text=Infrastructure").last()).toBeVisible();
+
+    // Proof strip values should be maintainable (no exact counts)
+    await expect(page.locator("text=Playwright suite").last()).toBeVisible();
+    await expect(
+      page.locator("text=Multi-step automated").last(),
+    ).toBeVisible();
   });
 
   test("homepage primary CTA is Play the Games", async ({ page }) => {
@@ -312,5 +322,17 @@ test.describe("Site Game Content", () => {
       expect(desc).toBeTruthy();
       expect(desc!.length).toBeLessThanOrEqual(180);
     }
+  });
+
+  test("font links load Cinzel, Inter, and IBM Plex Mono", async ({ page }) => {
+    await page.goto("/");
+
+    // Check live font link (preload with onload) - first stylesheet link to Google Fonts
+    const liveLink = page
+      .locator('link[rel="stylesheet"][href*="fonts.googleapis.com"]')
+      .first();
+    await expect(liveLink).toHaveAttribute("href", /family=Cinzel/);
+    await expect(liveLink).toHaveAttribute("href", /family=Inter/);
+    await expect(liveLink).toHaveAttribute("href", /family=IBM\+Plex\+Mono/);
   });
 });
