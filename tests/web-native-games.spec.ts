@@ -2233,6 +2233,7 @@ for (const game of GAMES) {
         pause: typeof (window as any).__paRaceDebugPause === "function",
         setProgress:
           typeof (window as any).__paRaceDebugSetProgress === "function",
+        setScore: typeof (window as any).__paRaceDebugSetScore === "function",
       }));
 
       expect(hooks.setBoostMeter).toBe(true);
@@ -2241,6 +2242,7 @@ for (const game of GAMES) {
       expect(hooks.finish).toBe(true);
       expect(hooks.pause).toBe(true);
       expect(hooks.setProgress).toBe(true);
+      expect(hooks.setScore).toBe(true);
     });
 
     test("race debug set boost meter works", async ({ page }, testInfo) => {
@@ -2874,6 +2876,115 @@ for (const game of GAMES) {
           false,
         { timeout: 10000, polling: 100 },
       );
+    });
+
+    // ── Consolidation Phase 8: New focused tests ──
+
+    test("playerTint is exposed in race state", async ({ page }, testInfo) => {
+      test.skip(
+        !DESKTOP_PROJECTS.includes(testInfo.project.name),
+        "playerTint test skipped on non-desktop",
+      );
+
+      await page.goto(`${game.path}?seed=test-ptint`, {
+        waitUntil: "domcontentloaded",
+      });
+      await waitForPhaserReady(page);
+
+      const state = await page.evaluate(
+        () => (window as any).__paRaceToTreasureIslandState,
+      );
+      expect(state).toHaveProperty("playerTint");
+      expect(typeof state?.playerTint).toBe("number");
+    });
+
+    test("best score saves on win only", async ({ page }, testInfo) => {
+      test.skip(
+        !DESKTOP_PROJECTS.includes(testInfo.project.name),
+        "Best score test skipped on non-desktop",
+      );
+
+      // Clear any saved best score
+      await page.goto(`${game.path}?seed=best-test`, {
+        waitUntil: "domcontentloaded",
+      });
+      await page.evaluate(() => localStorage.removeItem("pa-race-best"));
+      await waitForPhaserReady(page);
+
+      // Set a meaningful score then force a player win
+      await page.evaluate(() => {
+        if (typeof (window as any).__paRaceDebugSetScore === "function") {
+          (window as any).__paRaceDebugSetScore(500);
+        }
+        if (typeof (window as any).__paRaceDebugFinish === "function") {
+          (window as any).__paRaceDebugFinish();
+        }
+      });
+      await page.waitForTimeout(300);
+
+      const winState = await page.evaluate(
+        () => (window as any).__paRaceToTreasureIslandState,
+      );
+      expect(winState?.finished).toBe(true);
+      expect(winState?.playerWon).toBe(true);
+      expect(winState?.bestScore).toBe(500);
+      expect(winState?.isNewBest).toBe(true);
+
+      // Force a rival win — bestScore should remain 500
+      await page.evaluate(() => {
+        if (typeof (window as any).__paRaceDebugRestart === "function") {
+          (window as any).__paRaceDebugRestart();
+        }
+      });
+      // Wait for scene restart and full countdown completion
+      await page.waitForFunction(
+        () => (window as any).__paRaceToTreasureIslandState?.finished === false,
+        { timeout: 10000, polling: 50 },
+      );
+      await page.waitForTimeout(2500); // let countdown finish
+
+      await page.evaluate(() => {
+        if (typeof (window as any).__paRaceDebugSetScore === "function") {
+          (window as any).__paRaceDebugSetScore(999);
+        }
+        if (
+          typeof (window as any).__paRaceDebugSetRivalProgress === "function"
+        ) {
+          (window as any).__paRaceDebugSetRivalProgress(10000);
+        }
+      });
+      await page.waitForFunction(
+        () => (window as any).__paRaceToTreasureIslandState?.finished === true,
+        { timeout: 5000, polling: 50 },
+      );
+
+      const lossState = await page.evaluate(
+        () => (window as any).__paRaceToTreasureIslandState,
+      );
+      expect(lossState?.finished).toBe(true);
+      expect(lossState?.playerWon).toBe(false);
+      // Best score should still be 500 — not overwritten by the 999 on loss
+      expect(lossState?.bestScore).toBe(500);
+      expect(lossState?.isNewBest).toBe(false);
+    });
+
+    test("countdown phase completes after waitForPhaserReady", async ({
+      page,
+    }, testInfo) => {
+      test.skip(
+        !DESKTOP_PROJECTS.includes(testInfo.project.name),
+        "Countdown test skipped on non-desktop",
+      );
+
+      await page.goto(`${game.path}?seed=countdown-test`, {
+        waitUntil: "domcontentloaded",
+      });
+      await waitForPhaserReady(page);
+
+      const state = await page.evaluate(
+        () => (window as any).__paRaceToTreasureIslandState,
+      );
+      expect(state?.countdownPhase).toBe("done");
     });
   });
 }

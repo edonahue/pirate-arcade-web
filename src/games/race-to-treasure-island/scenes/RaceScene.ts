@@ -80,6 +80,8 @@ export class RaceScene extends Phaser.Scene {
   private boostBarFill!: Phaser.GameObjects.Image;
   private sailIndicator!: Phaser.GameObjects.Image;
   private playerCue?: Phaser.GameObjects.Text;
+  private countdownHintText?: Phaser.GameObjects.Text;
+  private mainCountdownText?: Phaser.GameObjects.Text;
 
   private oceanTiles: Phaser.GameObjects.TileSprite | null = null;
   private oceanFarTiles: Phaser.GameObjects.TileSprite | null = null;
@@ -638,6 +640,7 @@ export class RaceScene extends Phaser.Scene {
         countdownPhase: this.countdownPhase,
         bestScore: this.bestScore,
         isNewBest: this.isNewBest,
+        playerTint: this.player?.tintTopLeft ?? 0xffffff,
       };
     }
   }
@@ -674,7 +677,12 @@ export class RaceScene extends Phaser.Scene {
     const cx = GAME_WIDTH / 2;
     const cy = GAME_HEIGHT / 2;
 
-    const mainText = this.add
+    const isTouch = typeof window !== "undefined" && "ontouchstart" in window;
+    const hintText = isTouch
+      ? "Side buttons to steer  ·  Hold BOOST"
+      : "← → or A/D to steer  ·  SPACE to boost";
+
+    this.mainCountdownText = this.add
       .text(cx, cy - 40, "READY", {
         fontFamily: "monospace",
         fontSize: "48px",
@@ -685,8 +693,8 @@ export class RaceScene extends Phaser.Scene {
       .setOrigin(0.5)
       .setDepth(300);
 
-    this.add
-      .text(cx, cy + 20, "← → or A/D to steer  ·  SPACE to boost", {
+    this.countdownHintText = this.add
+      .text(cx, cy + 20, hintText, {
         fontFamily: "monospace",
         fontSize: "11px",
         color: "#88aacc",
@@ -698,7 +706,7 @@ export class RaceScene extends Phaser.Scene {
 
     const pulsePhase = (cb: () => void) => {
       this.tweens.add({
-        targets: mainText,
+        targets: this.mainCountdownText,
         scale: 1.15,
         duration: 150,
         yoyo: true,
@@ -707,9 +715,9 @@ export class RaceScene extends Phaser.Scene {
     };
 
     const transition = (nextText: string, nextColor: string) => {
-      mainText.setText(nextText);
-      mainText.setColor(nextColor);
-      mainText.setScale(1);
+      this.mainCountdownText!.setText(nextText);
+      this.mainCountdownText!.setColor(nextColor);
+      this.mainCountdownText!.setScale(1);
     };
 
     pulsePhase(() => {
@@ -721,13 +729,14 @@ export class RaceScene extends Phaser.Scene {
           transition("SAIL!", "#44ff88");
           this.time.delayedCall(200, () => {
             this.tweens.add({
-              targets: mainText,
+              targets: this.mainCountdownText,
               scale: 1.6,
               alpha: 0,
               duration: 300,
               ease: "Power2",
               onComplete: () => {
-                mainText.destroy();
+                this.mainCountdownText?.destroy();
+                this.countdownHintText?.destroy();
                 this.countdownPhase = "done";
                 this.physics.resume();
               },
@@ -757,6 +766,10 @@ export class RaceScene extends Phaser.Scene {
     };
     (window as any).__paRaceDebugSetRivalProgress = (value: number) => {
       this.rivalProgress = value;
+      this.exposeState();
+    };
+    (window as any).__paRaceDebugSetScore = (value: number) => {
+      this.score = Math.max(0, value);
       this.exposeState();
     };
     (window as any).__paRaceDebugSetBoostMeter = (value: number) => {
@@ -1370,8 +1383,8 @@ export class RaceScene extends Phaser.Scene {
       p.setDepth(20);
       this.tweens.add({
         targets: p,
-        x: p.x + Phaser.Math.Between(-20, 20),
-        y: p.y + Phaser.Math.Between(-20, 20),
+        x: p.x + this.rngCosmetic.int(-20, 20),
+        y: p.y + this.rngCosmetic.int(-20, 20),
         alpha: 0,
         scale: 0,
         duration: 400,
@@ -1392,7 +1405,8 @@ export class RaceScene extends Phaser.Scene {
     this.aiShip.setVelocity(0, 0);
     this.physics.pause();
 
-    this.isNewBest = this.saveBestScore(this.score);
+    // Explicit tint: no leftover red from stun
+    this.player.clearTint();
 
     this.finishOverlay.setVisible(true);
 
@@ -1402,11 +1416,12 @@ export class RaceScene extends Phaser.Scene {
     this.gameOverText.setColor(win ? "#ffd700" : "#ff6666");
     this.gameOverText.setVisible(true);
 
-    const bestLine = this.bestScore > 0 ? `Best: ${this.bestScore}` : "";
-    const newBestLine = this.isNewBest ? "★ NEW BEST! ★" : "";
     const overtakeLine = `Overtakes: ${this.overtakeCount}`;
     let resultLines: string;
     if (win) {
+      this.isNewBest = this.saveBestScore(this.score);
+      const bestLine = this.bestScore > 0 ? `Best: ${this.bestScore}` : "";
+      const newBestLine = this.isNewBest ? "★ NEW BEST! ★" : "";
       resultLines = [
         `Score: ${this.score}`,
         overtakeLine,
@@ -1417,6 +1432,7 @@ export class RaceScene extends Phaser.Scene {
         .join("\n");
       this.resultText.setColor(this.isNewBest ? "#ffd700" : "#88ddbb");
     } else {
+      this.isNewBest = false;
       resultLines = [
         `Score: ${this.score}`,
         overtakeLine,
@@ -1441,16 +1457,16 @@ export class RaceScene extends Phaser.Scene {
       }
       for (let i = 0; i < 20; i++) {
         const p = this.add.image(GAME_WIDTH / 2, GAME_HEIGHT / 2, "particle");
-        p.setTint(Math.random() < 0.5 ? 0xffd700 : 0xff8800);
-        p.setScale(0.5 + Math.random() * 0.5);
+        p.setTint(this.rngCosmetic.float() < 0.5 ? 0xffd700 : 0xff8800);
+        p.setScale(0.5 + this.rngCosmetic.float() * 0.5);
         p.setDepth(250);
         this.tweens.add({
           targets: p,
-          x: p.x + Phaser.Math.Between(-180, 180),
-          y: p.y + Phaser.Math.Between(-120, 120),
+          x: p.x + this.rngCosmetic.int(-180, 180),
+          y: p.y + this.rngCosmetic.int(-120, 120),
           alpha: 0,
           scale: 0,
-          duration: 800 + Math.random() * 400,
+          duration: 800 + this.rngCosmetic.float() * 400,
           onComplete: () => p.destroy(),
         });
       }
