@@ -21,6 +21,5 @@ export const RACE_TUNING = {
   hitSideBump: 60,
   overtakeLeadThreshold: 200,
   hitBumpDuration: 300,
-  hitSlowDuration: 600,
   stunSteerFactor: 0.55,
 };

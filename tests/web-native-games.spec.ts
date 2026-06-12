@@ -60,6 +60,52 @@ async function waitForPhaserReady(page: Page): Promise<void> {
   );
 }
 
+/** Convenience read of the Race state object. */
+async function readRaceState(page: Page) {
+  return page.evaluate(() => (window as any).__paRaceToTreasureIslandState);
+}
+
+/** Navigate to the Race game and wait for Phaser + countdown to complete. */
+async function goToRace(page: Page, search?: string) {
+  const path = GAMES[0].path;
+  await page.goto(search ? `${path}?${search}` : path, {
+    waitUntil: "domcontentloaded",
+  });
+  await waitForPhaserReady(page);
+}
+
+/** Force the player to win via the debug hook. */
+async function forcePlayerWin(page: Page) {
+  await page.evaluate(() => {
+    if (typeof (window as any).__paRaceDebugFinish === "function") {
+      (window as any).__paRaceDebugFinish();
+    }
+  });
+}
+
+/** Force the rival to win by setting their progress past the finish. */
+async function forceRivalWin(page: Page) {
+  await page.evaluate(() => {
+    if (typeof (window as any).__paRaceDebugSetRivalProgress === "function") {
+      (window as any).__paRaceDebugSetRivalProgress(10000);
+    }
+  });
+}
+
+/** Set the player's score via debug hook. */
+async function setRaceScore(page: Page, score: number) {
+  await page.evaluate((s) => {
+    if (typeof (window as any).__paRaceDebugSetScore === "function") {
+      (window as any).__paRaceDebugSetScore(s);
+    }
+  }, score);
+}
+
+/** Clear the localStorage pa-race-best key. */
+async function clearRaceBestScore(page: Page) {
+  await page.evaluate(() => localStorage.removeItem("pa-race-best"));
+}
+
 for (const game of GAMES) {
   test.describe(`${game.name} (Web Native)`, () => {
     test("page loads and has expected DOM wiring", async ({ page }) => {
@@ -2981,10 +3027,133 @@ for (const game of GAMES) {
       });
       await waitForPhaserReady(page);
 
-      const state = await page.evaluate(
-        () => (window as any).__paRaceToTreasureIslandState,
-      );
+      const state = await readRaceState(page);
       expect(state?.countdownPhase).toBe("done");
+    });
+
+    test("skipCountdown bypasses countdown immediately", async ({
+      page,
+    }, testInfo) => {
+      test.skip(
+        !DESKTOP_PROJECTS.includes(testInfo.project.name),
+        "Skip countdown test skipped on non-desktop",
+      );
+
+      await goToRace(page, "skipCountdown=1&seed=skip-test");
+      const state = await readRaceState(page);
+      expect(state?.countdownPhase).toBe("done");
+    });
+
+    test("malformed localStorage is ignored", async ({ page }, testInfo) => {
+      test.skip(
+        !DESKTOP_PROJECTS.includes(testInfo.project.name),
+        "Malformed localStorage test skipped on non-desktop",
+      );
+
+      // Write bad data before booting
+      await page.goto(game.path, { waitUntil: "domcontentloaded" });
+      await page.evaluate(() => {
+        localStorage.setItem("pa-race-best", "not-json");
+      });
+
+      // Reload — the game should ignore the bad value
+      await page.reload({ waitUntil: "domcontentloaded" });
+      await waitForPhaserReady(page);
+
+      const state = await readRaceState(page);
+      expect(state?.bestScore).toBe(0);
+
+      // Also test missing score field
+      await page.evaluate(() => {
+        localStorage.setItem("pa-race-best", JSON.stringify({}));
+      });
+      await page.reload({ waitUntil: "domcontentloaded" });
+      await waitForPhaserReady(page);
+
+      const state2 = await readRaceState(page);
+      expect(state2?.bestScore).toBe(0);
+
+      // Non-number score
+      await page.evaluate(() => {
+        localStorage.setItem("pa-race-best", JSON.stringify({ score: "abc" }));
+      });
+      await page.reload({ waitUntil: "domcontentloaded" });
+      await waitForPhaserReady(page);
+
+      const state3 = await readRaceState(page);
+      expect(state3?.bestScore).toBe(0);
+    });
+
+    test("restart clears finish and result state", async ({
+      page,
+    }, testInfo) => {
+      test.skip(
+        !DESKTOP_PROJECTS.includes(testInfo.project.name),
+        "Restart clear test skipped on non-desktop",
+      );
+
+      await goToRace(page, "seed=restart-clear");
+      await forcePlayerWin(page);
+      await page.waitForTimeout(300);
+
+      const winState = await readRaceState(page);
+      expect(winState?.finished).toBe(true);
+      expect(winState?.isNewBest).toBe(false); // score was 0
+      expect(winState?.result).toContain("TREASURE ISLAND");
+
+      // Restart
+      await page.evaluate(() => {
+        if (typeof (window as any).__paRaceDebugRestart === "function") {
+          (window as any).__paRaceDebugRestart();
+        }
+      });
+      await page.waitForFunction(
+        () => (window as any).__paRaceToTreasureIslandState?.finished === false,
+        { timeout: 10000, polling: 50 },
+      );
+      await page.waitForTimeout(2500); // let countdown finish
+
+      const restartState = await readRaceState(page);
+      expect(restartState?.finished).toBe(false);
+      expect(restartState?.result).toBe("");
+      expect(restartState?.playerWon).toBe(false);
+      expect(restartState?.isNewBest).toBe(false);
+    });
+
+    test("tint state across stun and boost", async ({ page }, testInfo) => {
+      test.skip(
+        !DESKTOP_PROJECTS.includes(testInfo.project.name),
+        "Tint test skipped on non-desktop",
+      );
+
+      await goToRace(page, "seed=tint-test");
+      let state = await readRaceState(page);
+      expect(state?.playerTint).toBe(0xffffff); // clear tint
+
+      // Simulate an obstacle hit
+      await page.evaluate(() => {
+        if (typeof (window as any).__paRaceDebugHitObstacle === "function") {
+          (window as any).__paRaceDebugHitObstacle("barrel");
+        }
+      });
+      await page.waitForTimeout(50);
+      state = await readRaceState(page);
+      // After hit: stunTimer > 0, playerTint should be red (0xff4444)
+      expect(state?.stunTimer).toBeGreaterThan(0);
+
+      // Force a restart — tint should be clear after restart
+      await page.evaluate(() => {
+        if (typeof (window as any).__paRaceDebugRestart === "function") {
+          (window as any).__paRaceDebugRestart();
+        }
+      });
+      await page.waitForFunction(
+        () => (window as any).__paRaceToTreasureIslandState?.finished === false,
+        { timeout: 10000, polling: 50 },
+      );
+      await page.waitForTimeout(2500);
+      state = await readRaceState(page);
+      expect(state?.playerTint).toBe(0xffffff);
     });
   });
 }

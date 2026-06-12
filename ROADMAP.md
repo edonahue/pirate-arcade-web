@@ -1,17 +1,22 @@
 # ROADMAP
 
-<!-- Current HEAD: Race ship visual fix -->
+<!-- Current HEAD: Race consolidation — countdown, best score, seeded RNG, tint -->
 
-## Race Ship Visual Fix (This Release)
+## Race Consolidation (This Release)
 
-Fixes the biggest experiential mismatch: Race to Treasure Island ships rendering as black squares/blobs instead of readable pirate vessels.
+Hardens the new Race systems for a polished first-session experience and flagship-ready quality.
 
-- **Root cause**: Dark brown hulls + black outline (`addOutline`) at 0.65 scale on dark ocean produced ~42×62px black blobs
-- **Ship rendering**: Replaced external PNG loading with 80×100 Phaser procedural textures in BootScene — white sails, gold/red hull stripes, no black outlines
-- **Visual composition**: Added golden glow under player ship, white hull edge highlights, wake ellipses on both ships, brighter rival sails
-- **Validation**: New `scripts/check-race-ship-assets.mjs` validates PNGs aren't black squares; 2 new canvas-pixel tests sample actual rendered pixels to catch regressions
-- **Screenshots**: Race screenshot recaptured with improved ship visuals
-- **Pipeline**: Ships are now fully procedural (consistent with all other Race textures), no external PNG loading
+- **Ship rendering**: Ships are fully procedural Phaser textures in BootScene — white sails, gold/red hull stripes, no black outlines
+- **Visual composition**: Golden glow under player ship, white hull edge highlights, wake ellipses on both ships, brighter rival sails
+- **Countdown**: Opening READY→SET→SAIL! sequence (~1.3s) with touch/keyboard-aware hint text, physics paused during countdown
+- **Boost feedback**: Gold ship tint while boosting, pulsing boost bar, speed lines at alpha 0.25
+- **Obstacle outlines**: White semi-transparent strokes on all 4 obstacle types for ocean contrast
+- **Treasure pickup**: Gold sparkle burst with deterministic cosmetic RNG
+- **Finish celebration**: Gold/orange particle burst on win, overtake count, best score display
+- **Best score**: localStorage `pa-race-best`, saved only on winning runs, malformed data handled gracefully
+- **Tint state machine**: Red while stunned, gold while boosting & not stunned, clear otherwise — explicit on restart/finish
+- **Deterministic RNG**: Three independent mulberry32 streams (course, AI, cosmetic) for reproducible screenshots and tests
+- **Validation**: Ship pixel tests, screenshot validation, countdown lifecycle tests, best-score win-only tests, 79 Race Playwright tests
 
 ---
 
@@ -115,10 +120,14 @@ Fixes the biggest experiential mismatch: Race to Treasure Island ships rendering
 - [x] Debug hooks for deterministic testability
 - [x] Playwright test suite (Chromium)
 - [x] Game data, copy, and mechanics aligned with OutRun-style pitch
+- [x] Countdown lifecycle with control hints (touch/keyboard variants)
+- [x] Best score tracking (win-only localStorage, malformed data safe)
+- [x] Deterministic cosmetic RNG for screenshot stability
+- [x] Tint state machine across boost/stun/finish/restart
 
 ## Maybe / Future
 
-- [ ] Client-side high scores (localStorage only, no backend)
+- [x] Client-side high scores (localStorage only, no backend)
 - [x] "Captain's Log" local play history panel (localStorage, no backend)
 - [ ] Sound effects or ambience on the website
 - [ ] Privacy-respecting analytics (Plausible or similar, self-hosted free tier)

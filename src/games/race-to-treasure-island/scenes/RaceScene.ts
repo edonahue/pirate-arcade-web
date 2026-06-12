@@ -648,13 +648,18 @@ export class RaceScene extends Phaser.Scene {
   private loadBestScore(): number {
     try {
       const raw = localStorage.getItem("pa-race-best");
-      if (raw) return JSON.parse(raw).score ?? 0;
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (typeof parsed?.score === "number" && parsed.score >= 0) {
+          return parsed.score;
+        }
+      }
     } catch {}
     return 0;
   }
 
   private saveBestScore(score: number): boolean {
-    if (score <= this.bestScore) return false;
+    if (typeof score !== "number" || score <= this.bestScore) return false;
     try {
       localStorage.setItem("pa-race-best", JSON.stringify({ score }));
       this.bestScore = score;
@@ -1433,11 +1438,15 @@ export class RaceScene extends Phaser.Scene {
       this.resultText.setColor(this.isNewBest ? "#ffd700" : "#88ddbb");
     } else {
       this.isNewBest = false;
+      const bestLine = this.bestScore > 0 ? `Best: ${this.bestScore}` : "";
       resultLines = [
         `Score: ${this.score}`,
         overtakeLine,
+        bestLine,
         "Use BOOST to overtake him next run!",
-      ].join("\n");
+      ]
+        .filter(Boolean)
+        .join("\n");
       this.resultText.setColor("#ff8866");
     }
     this.resultText.setLineSpacing(4);
