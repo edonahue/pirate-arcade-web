@@ -43,6 +43,25 @@
 #game-loading.game-error #game-loading-detail {
   color: #d08080;
 }
+#game-loading .loading-retry-btn {
+  display: inline-block;
+  margin-top: 1.25rem;
+  padding: 0.6rem 1.8rem;
+  border: 1px solid #e05050;
+  border-radius: 4px;
+  background: transparent;
+  color: #e05050;
+  font-family: monospace;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+#game-loading .loading-retry-btn:hover,
+#game-loading .loading-retry-btn:focus-visible {
+  background: #e05050;
+  color: #fff;
+  outline: none;
+}
 
 .game-ready #controls-hint {
   opacity: 0; pointer-events: none;

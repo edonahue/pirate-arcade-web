@@ -1,4 +1,6 @@
 import asyncio
+import json
+import builtins
 import pygame as pg
 import constants as c
 import highscores as hs
@@ -134,6 +136,24 @@ class PongGame:
             self.game_over_timer += dt
             if self.game_over_state == 'player':
                 self.particles.update(dt)
+        _gs_json = json.dumps({
+            "gameId": "cannonball-clash",
+            "phase": (
+                "game-over" if self.state == "game_over"
+                else "paused" if self.paused
+                else self.state
+            ),
+            "score": self.gameplay.player_score,
+            "secondaryScore": self.gameplay.ai_score,
+            "playerPosition": self.gameplay.player_paddle.y,
+            "actionReady": self.state == "menu",
+        })
+        builtins.__pa_game_state_json = _gs_json
+        try:
+            import __EMSCRIPTEN__ as _pa_platform
+            _pa_platform.window["pa-game-state"].innerText = _gs_json
+        except Exception:
+            pass
 
     def _draw(self, fps):
         if self.state == 'menu':

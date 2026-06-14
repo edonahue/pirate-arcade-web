@@ -176,13 +176,10 @@
       held[e.pointerId].keys.forEach(hold);
     } else if (d === 'action') {
       document.body.classList.add('game-started');
-      if (input) {
-        input.keyDown('Enter');
-        input.keyDown(' ');
-        setTimeout(function () {
-          input.keyUp(' ');
-          input.keyUp('Enter');
-        }, 220);
+      if (window.PirateArcadeActions && window.PirateArcadeActions.performPrimary) {
+        window.PirateArcadeActions.performPrimary();
+      } else if (input) {
+        input.tap('Enter', 220);
       }
     } else if (d === 'pause') {
       if (input) {
@@ -339,14 +336,12 @@
   overlay.classList.add('active');
 
   // ── Release-all: reset all input state ──────────────────────
-  function mobileReleaseAll() {
+  // PirateArcadeInput.releaseAll() handles logical key release via
+  // Python bridge + DOM fallback. This function only clears local
+  // pointer metadata and visual state — no duplicate key dispatch.
+  function mobileReleaseAll(reason) {
     if (window.PirateArcadeInput && window.PirateArcadeInput.releaseAll) {
-      window.PirateArcadeInput.releaseAll();
-    }
-    for (var id in held) {
-      if (held.hasOwnProperty(id)) {
-        held[id].keys.forEach(release);
-      }
+      window.PirateArcadeInput.releaseAll(reason || 'unknown');
     }
     held = {};
     dragActive = {};
@@ -362,13 +357,13 @@
   // ── Wire release events ─────────────────────────────────────
   if (!window.__paReleaseWired) {
     window.__paReleaseWired = true;
-    window.addEventListener('blur', mobileReleaseAll);
+    window.addEventListener('blur', function () { mobileReleaseAll('blur'); });
     document.addEventListener('visibilitychange', function () {
-      if (document.hidden) mobileReleaseAll();
+      if (document.hidden) mobileReleaseAll('visibility');
     });
-    window.addEventListener('pagehide', mobileReleaseAll);
+    window.addEventListener('pagehide', function () { mobileReleaseAll('pagehide'); });
     window.addEventListener('orientationchange', function () {
-      setTimeout(mobileReleaseAll, 100);
+      setTimeout(function () { mobileReleaseAll('orientation'); }, 100);
     });
   }
 })();

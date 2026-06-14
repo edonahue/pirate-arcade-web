@@ -5,6 +5,8 @@ import {
   pointerTouchDrag,
   getCanvasPixelSample,
   readPirateInputDebug,
+  readGameState,
+  expectGamePhase,
   startDiagnostics,
   snapshotDiagnostics,
   attachDiagnostics,
@@ -106,7 +108,7 @@ test.describe("iPad Safari Playability", () => {
       expect(blockingErrors(snap)).toEqual([]);
     });
 
-    test("START dispatches Enter and Space via bridge", async ({
+    test("START dispatches Enter (primary action) via bridge", async ({
       page,
     }, testInfo) => {
       const diag = startDiagnostics(page);
@@ -123,11 +125,11 @@ test.describe("iPad Safari Playability", () => {
           (c: { key: string; down: boolean }) => c.key === "Enter" && c.down,
         ),
       ).toBe(true);
-      expect(
-        calls.some(
-          (c: { key: string; down: boolean }) => c.key === "Space" && c.down,
-        ),
-      ).toBe(true);
+      // Action dispatches a single key — no Space double-dispatch
+      const spaceDown = calls.some(
+        (c: { key: string; down: boolean }) => c.key === "Space" && c.down,
+      );
+      expect(spaceDown).toBe(false);
 
       const afterPixels = await canvasHasNonBgPixels(page);
       expect(afterPixels).toBe(true);
@@ -200,7 +202,7 @@ test.describe("iPad Safari Playability", () => {
       expect(blockingErrors(snap)).toEqual([]);
     });
 
-    test("LAUNCH dispatches Enter and Space via bridge", async ({
+    test("LAUNCH dispatches Space (primary action) via bridge", async ({
       page,
     }, testInfo) => {
       const diag = startDiagnostics(page);
@@ -212,16 +214,17 @@ test.describe("iPad Safari Playability", () => {
 
       const debug = await readPirateInputDebug(page);
       const calls = debug?.bridgeCalls || [];
-      expect(
-        calls.some(
-          (c: { key: string; down: boolean }) => c.key === "Enter" && c.down,
-        ),
-      ).toBe(true);
+      // Treasure Cove uses Space for launch
       expect(
         calls.some(
           (c: { key: string; down: boolean }) => c.key === "Space" && c.down,
         ),
       ).toBe(true);
+      // No Enter double-dispatch
+      const enterDown = calls.some(
+        (c: { key: string; down: boolean }) => c.key === "Enter" && c.down,
+      );
+      expect(enterDown).toBe(false);
 
       const afterPixels = await canvasHasNonBgPixels(page);
       expect(afterPixels).toBe(true);
@@ -267,9 +270,7 @@ test.describe("iPad Safari Playability", () => {
           () => {
             const m = (window as any).__paBootMetrics;
             const loading = document.getElementById("game-loading");
-            return (
-              m?.["game-ready"] && loading?.classList.contains("hidden")
-            );
+            return m?.["game-ready"] && loading?.classList.contains("hidden");
           },
           { timeout: PYGAR_TIMEOUT, polling: 500 },
         )
@@ -309,9 +310,7 @@ test.describe("iPad Safari Playability", () => {
           () => {
             const m = (window as any).__paBootMetrics;
             const loading = document.getElementById("game-loading");
-            return (
-              m?.["game-ready"] && loading?.classList.contains("hidden")
-            );
+            return m?.["game-ready"] && loading?.classList.contains("hidden");
           },
           { timeout: PYGAR_TIMEOUT, polling: 500 },
         )
@@ -332,6 +331,193 @@ test.describe("iPad Safari Playability", () => {
       const snap = await snapshotDiagnostics(page, diag);
       attachDiagnostics(testInfo, snap);
       expect(blockingErrors(snap)).toEqual([]);
+    });
+  });
+
+  // ─── Gameplay Outcome Tests ────────────────────────────
+  // These tests use the shared gameplay-state contract to verify
+  // observable game behaviour (phase transitions, movement, pause),
+  // not merely bridge calls or canvas opacity.
+
+  test.describe("Gameplay Outcomes", () => {
+    test.describe("Cannonball Clash", () => {
+      test("START transitions from menu to playing", async ({
+        page,
+      }, testInfo) => {
+        test.skip(
+          testInfo.project.name !== IPAD_PROJECT,
+          `only runs on ${IPAD_PROJECT}`,
+        );
+        const diag = startDiagnostics(page);
+        await page.goto("/play/cannonball-clash/");
+        await waitForPygbagCanvas(page);
+
+        expect(await readGameState(page)).toBeTruthy();
+        await expectGamePhase(page, "menu");
+
+        await tapButtonBySelector(page, '.btn-action[data-dir="action"]');
+
+        await expectGamePhase(page, "playing");
+        const state = await readGameState(page);
+        expect(state?.score).toBe(0);
+
+        const snap = await snapshotDiagnostics(page, diag);
+        attachDiagnostics(testInfo, snap);
+        expect(blockingErrors(snap)).toEqual([]);
+      });
+
+      test("touch drag changes player paddle Y", async ({ page }, testInfo) => {
+        test.skip(
+          testInfo.project.name !== IPAD_PROJECT,
+          `only runs on ${IPAD_PROJECT}`,
+        );
+        const diag = startDiagnostics(page);
+        await page.goto("/play/cannonball-clash/");
+        await waitForPygbagCanvas(page);
+
+        // First start the game
+        expect(await readGameState(page)).toBeTruthy();
+        await expectGamePhase(page, "menu");
+        await tapButtonBySelector(page, '.btn-action[data-dir="action"]');
+        await expectGamePhase(page, "playing");
+
+        const stateBefore = await readGameState(page);
+        expect(stateBefore).toBeTruthy();
+
+        const canvas = page.locator("canvas.emscripten").first();
+        const box = await canvas.boundingBox();
+        expect(box).toBeTruthy();
+        if (!box) return;
+        const dragX = box.x + 20;
+
+        // Drag from top third to bottom third
+        await pointerTouchDrag(
+          page,
+          [
+            { x: dragX, y: box.y + box.height * 0.2 },
+            { x: dragX, y: box.y + box.height * 0.6 },
+          ],
+          { selector: ".touch-drag-zone" },
+        );
+        await page.waitForTimeout(500);
+
+        const stateAfter = await readGameState(page);
+        if (stateBefore && stateAfter) {
+          const diff = Math.abs(
+            stateAfter.playerPosition! - stateBefore.playerPosition!,
+          );
+          expect(diff).toBeGreaterThan(10);
+        }
+
+        const snap = await snapshotDiagnostics(page, diag);
+        attachDiagnostics(testInfo, snap);
+        expect(blockingErrors(snap)).toEqual([]);
+      });
+    });
+
+    test.describe("Treasure Cove", () => {
+      test("START transitions from menu to playing", async ({
+        page,
+      }, testInfo) => {
+        test.skip(
+          testInfo.project.name !== IPAD_PROJECT,
+          `only runs on ${IPAD_PROJECT}`,
+        );
+        const diag = startDiagnostics(page);
+        await page.goto("/play/treasure-cove/");
+        await waitForPygbagCanvas(page);
+
+        expect(await readGameState(page)).toBeTruthy();
+        await expectGamePhase(page, "menu");
+
+        await tapButtonBySelector(page, '.btn-action[data-dir="action"]');
+
+        await expectGamePhase(page, "playing");
+        const state = await readGameState(page);
+        expect(state?.score).toBe(0);
+
+        const snap = await snapshotDiagnostics(page, diag);
+        attachDiagnostics(testInfo, snap);
+        expect(blockingErrors(snap)).toEqual([]);
+      });
+
+      test("touch drag moves paddle X", async ({ page }, testInfo) => {
+        test.skip(
+          testInfo.project.name !== IPAD_PROJECT,
+          `only runs on ${IPAD_PROJECT}`,
+        );
+        const diag = startDiagnostics(page);
+        await page.goto("/play/treasure-cove/");
+        await waitForPygbagCanvas(page);
+
+        // First start the game
+        expect(await readGameState(page)).toBeTruthy();
+        await expectGamePhase(page, "menu");
+        await tapButtonBySelector(page, '.btn-action[data-dir="action"]');
+        await expectGamePhase(page, "playing");
+
+        const stateBefore = await readGameState(page);
+        expect(stateBefore).toBeTruthy();
+
+        const canvas = page.locator("canvas.emscripten").first();
+        const box = await canvas.boundingBox();
+        expect(box).toBeTruthy();
+        if (!box) return;
+
+        // Drag zone for breakout is horizontal (touch-drag-x) at bottom
+        // Drag across the bottom third of the canvas
+        const dragY = box.y + box.height * 0.85;
+
+        await pointerTouchDrag(
+          page,
+          [
+            { x: box.x + box.width * 0.2, y: dragY },
+            { x: box.x + box.width * 0.8, y: dragY },
+          ],
+          { selector: ".touch-drag-zone" },
+        );
+        await page.waitForTimeout(500);
+
+        const stateAfter = await readGameState(page);
+        if (stateBefore && stateAfter) {
+          const diff = Math.abs(
+            stateAfter.playerPosition! - stateBefore.playerPosition!,
+          );
+          expect(diff).toBeGreaterThan(10);
+        }
+
+        const snap = await snapshotDiagnostics(page, diag);
+        attachDiagnostics(testInfo, snap);
+        expect(blockingErrors(snap)).toEqual([]);
+      });
+    });
+
+    test.describe("Kraken's Wake", () => {
+      test("START transitions from menu to playing", async ({
+        page,
+      }, testInfo) => {
+        test.skip(
+          testInfo.project.name !== IPAD_PROJECT,
+          `only runs on ${IPAD_PROJECT}`,
+        );
+        const diag = startDiagnostics(page);
+        await page.goto("/play/krakens-wake/");
+        await waitForPygbagCanvas(page);
+
+        expect(await readGameState(page)).toBeTruthy();
+        await expectGamePhase(page, "menu");
+
+        // Asteroids mode hides action button; use primary key (Space)
+        await page.keyboard.press("Space");
+
+        await expectGamePhase(page, "playing");
+        const state = await readGameState(page);
+        expect(state?.score).toBe(0);
+
+        const snap = await snapshotDiagnostics(page, diag);
+        attachDiagnostics(testInfo, snap);
+        expect(blockingErrors(snap)).toEqual([]);
+      });
     });
   });
 

@@ -44,6 +44,7 @@
     "test:mobile-runtime": "playwright test tests/game-runtime-csp.spec.ts --project=mobile-safari --project=mobile-chrome",
     "test:mobile-drag": "playwright test tests/mobile-drag-controls.spec.ts --project=mobile-safari --project=mobile-chrome",
     "test:game-theming": "playwright test tests/game-theming.spec.ts --project=chromium-desktop",
+    "test:release-all": "playwright test tests/release-all-regression.spec.ts --project=chromium-desktop --project=mobile-chrome",
     "test:archive-parity": "node scripts/check-archive-parity.mjs",
     "test:game-versions": "node scripts/check-game-html-versions.mjs",
     "apply:game-versions": "node scripts/apply-game-asset-versions.mjs",

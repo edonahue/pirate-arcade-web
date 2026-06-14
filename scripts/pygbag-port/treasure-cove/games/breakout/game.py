@@ -1,4 +1,6 @@
 import asyncio
+import json
+import builtins
 import pygame as pg
 import constants as c
 import highscores as hs
@@ -147,6 +149,27 @@ class BreakoutGame:
                 self.state = 'game_over'
                 self.game_over_state = result[1]
                 hs.submit_breakout(self.gameplay.score)
+        _gs_json = json.dumps({
+            "gameId": "treasure-cove",
+            "phase": (
+                "game-over" if self.state == "game_over"
+                else "paused" if self.paused
+                else self.state
+            ),
+            "score": self.gameplay.score,
+            "playerPosition": self.gameplay.paddle.x,
+            "ballLaunched": self.gameplay.ball.launched,
+            "lives": self.gameplay.lives,
+            "actionReady": self.state == "menu" or (
+                self.state == "game_over" and not self.gameplay.ball.launched
+            ),
+        })
+        builtins.__pa_game_state_json = _gs_json
+        try:
+            import __EMSCRIPTEN__ as _pa_platform
+            _pa_platform.window["pa-game-state"].innerText = _gs_json
+        except Exception:
+            pass
 
     def _draw(self, fps):
         if self.state == 'menu':

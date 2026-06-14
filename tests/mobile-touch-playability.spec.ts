@@ -131,6 +131,7 @@ test.describe("mobile touch playability", () => {
 
         const box = await btn.boundingBox();
         expect(box).toBeTruthy();
+        if (!box) return;
 
         const cx = box.x + box.width / 2;
         const cy = box.y + box.height / 2;

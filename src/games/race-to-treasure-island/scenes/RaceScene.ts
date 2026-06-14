@@ -642,6 +642,25 @@ export class RaceScene extends Phaser.Scene {
         isNewBest: this.isNewBest,
         playerTint: this.player?.tintTopLeft ?? 0xffffff,
       };
+      (window as any).__pa_game_state_json = JSON.stringify({
+        gameId: "race-to-treasure-island",
+        phase: this.raceFinished
+          ? "game-over"
+          : this.paused
+            ? "paused"
+            : this.countdownPhase !== "done"
+              ? "ready"
+              : this.gameOver
+                ? "game-over"
+                : "playing",
+        score: this.score,
+        playerPosition: Math.floor(this.player?.y ?? 0),
+        secondaryPosition: Math.floor(this.player?.x ?? 0),
+        lives: undefined as any,
+        projectileCount: undefined as any,
+        actionReady: this.gameOver || this.raceFinished,
+        updatedAt: Date.now(),
+      });
     }
   }
 

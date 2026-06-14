@@ -1,4 +1,6 @@
 import asyncio
+import json
+import builtins
 import pygame as pg
 import constants as c
 import highscores as hs
@@ -182,6 +184,26 @@ class AsteroidsGame:
             traceback.print_exc()
             print("*** BUG: Uncaught exception in Asteroids _update — recovering to menu ***")
             self.state = 'menu'
+        _gs_json = json.dumps({
+            "gameId": "krakens-wake",
+            "phase": (
+                "game-over" if self.state == "game_over"
+                else "paused" if self.paused
+                else self.state
+            ),
+            "score": self.gameplay.score,
+            "lives": self.gameplay.lives,
+            "playerPosition": self.gameplay.ship.y,
+            "secondaryPosition": self.gameplay.ship.x,
+            "projectileCount": len(self.gameplay.cannonballs),
+            "actionReady": self.state == "menu",
+        })
+        builtins.__pa_game_state_json = _gs_json
+        try:
+            import __EMSCRIPTEN__ as _pa_platform
+            _pa_platform.window["pa-game-state"].innerText = _gs_json
+        except Exception:
+            pass
 
     def _draw(self, fps):
         try:

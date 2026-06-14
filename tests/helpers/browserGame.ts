@@ -985,6 +985,81 @@ export async function readPirateInputDebug(
   });
 }
 
+export interface ArcadeGameState {
+  gameId: string;
+  phase:
+    | "loading"
+    | "menu"
+    | "ready"
+    | "playing"
+    | "paused"
+    | "round-over"
+    | "game-over"
+    | "error";
+  score?: number;
+  secondaryScore?: number;
+  playerPosition?: number;
+  secondaryPosition?: number;
+  actionReady?: boolean;
+  projectileCount?: number;
+  lives?: number;
+  ballLaunched?: boolean;
+  updatedAt?: number;
+}
+
+/**
+ * Read the shared gameplay state from the page.
+ * For Pygbag games, this reads via PirateArcadeGameState or the Python bridge.
+ * For web-native games (Race), it reads window.__pa_game_state_json directly.
+ */
+export async function readGameState(
+  page: Page,
+): Promise<ArcadeGameState | null> {
+  return page.evaluate(() => {
+    // Try the shared PirateArcadeGameState API first (available in Pygbag shells)
+    if ((window as any).PirateArcadeGameState) {
+      (window as any).PirateArcadeGameState.refresh();
+      return (window as any).PirateArcadeGameState.getState();
+    }
+    // Fallback: direct JSON (set by web-native games like Race)
+    const direct = (window as any).__pa_game_state_json;
+    if (typeof direct === "string") {
+      try {
+        return JSON.parse(direct);
+      } catch {
+        return null;
+      }
+    }
+    // Last resort: read via Python bridge
+    try {
+      (window as any).python?.PyRun_SimpleString?.(
+        "import json, builtins\n" +
+          'open("/tmp/_pa_gs.json","w").write(getattr(builtins,"__pa_game_state_json","{}"))',
+      );
+      const raw = (window as any).python?.FS?.readFile?.("/tmp/_pa_gs.json", {
+        encoding: "utf8",
+      });
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  });
+}
+
+/** Assert that a game phase transition occurs within a timeout. */
+export async function expectGamePhase(
+  page: Page,
+  expectedPhase: string,
+  timeout = 15000,
+): Promise<void> {
+  await expect
+    .poll(async () => (await readGameState(page))?.phase, {
+      timeout,
+      message: `expected phase "${expectedPhase}"`,
+    })
+    .toBe(expectedPhase);
+}
+
 /**
  * Dispatch a touch-style tap at a viewport position.
  * Uses pointerdown → pointerup with pointerType: "touch" to match

@@ -111,10 +111,9 @@ test.describe("Mobile Game Layout", () => {
 
         if (game.skipIfNoLayout) {
           const hasLayout = await page
-            .waitForFunction(
-              () => !!(window as any).__paCanvasLayout,
-              { timeout: 20000 },
-            )
+            .waitForFunction(() => !!(window as any).__paCanvasLayout, {
+              timeout: 20000,
+            })
             .then(() => true)
             .catch(() => false);
           test.skip(!hasLayout, `krakens wake did not boot`);
@@ -228,10 +227,9 @@ test.describe("Mobile Game Layout", () => {
 
         if (game.skipIfNoLayout) {
           const hasLayout = await page
-            .waitForFunction(
-              () => !!(window as any).__paCanvasLayout,
-              { timeout: 20000 },
-            )
+            .waitForFunction(() => !!(window as any).__paCanvasLayout, {
+              timeout: 20000,
+            })
             .then(() => true)
             .catch(() => false);
           test.skip(!hasLayout, `krakens wake did not boot`);
@@ -300,10 +298,9 @@ test.describe("Mobile Game Layout", () => {
 
         if (game.skipIfNoLayout) {
           const hasLayout = await page
-            .waitForFunction(
-              () => !!(window as any).__paCanvasLayout,
-              { timeout: 20000 },
-            )
+            .waitForFunction(() => !!(window as any).__paCanvasLayout, {
+              timeout: 20000,
+            })
             .then(() => true)
             .catch(() => false);
           test.skip(!hasLayout, `krakens wake did not boot`);
@@ -371,10 +368,9 @@ test.describe("Mobile Game Layout", () => {
 
         if (game.skipIfNoLayout) {
           const hasLayout = await page
-            .waitForFunction(
-              () => !!(window as any).__paCanvasLayout,
-              { timeout: 20000 },
-            )
+            .waitForFunction(() => !!(window as any).__paCanvasLayout, {
+              timeout: 20000,
+            })
             .then(() => true)
             .catch(() => false);
           test.skip(!hasLayout, `krakens wake did not boot`);
