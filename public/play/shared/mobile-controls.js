@@ -337,4 +337,38 @@
     }
   }
   overlay.classList.add('active');
+
+  // ── Release-all: reset all input state ──────────────────────
+  function mobileReleaseAll() {
+    if (window.PirateArcadeInput && window.PirateArcadeInput.releaseAll) {
+      window.PirateArcadeInput.releaseAll();
+    }
+    for (var id in held) {
+      if (held.hasOwnProperty(id)) {
+        held[id].keys.forEach(release);
+      }
+    }
+    held = {};
+    dragActive = {};
+    dragStarted = false;
+    overlay.classList.remove('drag-active');
+    overlay.querySelectorAll('.btn.pressed').forEach(function (el) {
+      el.classList.remove('pressed');
+    });
+  }
+
+  window.__paReleaseAll = mobileReleaseAll;
+
+  // ── Wire release events ─────────────────────────────────────
+  if (!window.__paReleaseWired) {
+    window.__paReleaseWired = true;
+    window.addEventListener('blur', mobileReleaseAll);
+    document.addEventListener('visibilitychange', function () {
+      if (document.hidden) mobileReleaseAll();
+    });
+    window.addEventListener('pagehide', mobileReleaseAll);
+    window.addEventListener('orientationchange', function () {
+      setTimeout(mobileReleaseAll, 100);
+    });
+  }
 })();

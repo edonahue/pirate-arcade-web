@@ -73,10 +73,7 @@ test.describe("mobile controls dispatch", () => {
         var o = document.getElementById("touch-overlay");
         return o && o.classList.contains("active");
       });
-      if (!active) {
-        test.skip(true, "touch-overlay not active");
-        return;
-      }
+      expect(active).toBe(true);
 
       // Interact with left/right/action/pause buttons
       for (const dir of ["left", "right", "action", "pause"]) {

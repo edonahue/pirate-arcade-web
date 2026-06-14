@@ -35,6 +35,7 @@
     "test:mobile-regression": "playwright test tests/mobile-controls-regression.spec.ts --project=mobile-safari --project=mobile-chrome --project=webkit-desktop",
     "test:ipad-layout": "playwright test tests/mobile-game-layout.spec.ts --project=ipad-safari --project=ipad-landscape",
     "test:ipad-controls": "playwright test tests/mobile-touch-playability.spec.ts --project=ipad-safari --project=ipad-landscape",
+    "test:ipad-playability": "playwright test tests/ipad-safari-playability.spec.ts --project=ipad-landscape",
     "test:debug:webkit": "playwright test tests/browser-games.spec.ts --project=webkit-desktop --headed --debug",
     "test:debug:mobile": "playwright test tests/game-input-mobile.spec.ts --project=mobile-safari --headed --debug",
     "test:a11y": "playwright test tests/a11y.spec.ts",

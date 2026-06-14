@@ -100,10 +100,14 @@
     try { window.dispatchEvent(new KeyboardEvent(type, opts)); logDomEvent(keyName, type, 'window'); } catch (e) {}
   }
 
+  // ── Held-key tracking ──────────────────────────────────────
+  var _heldKeys = {};
+
   // ── Public API ──────────────────────────────────────────────
   var PirateArcadeInput = {
     keyDown: function (keyName) {
       keyName = normalizeKey(keyName);
+      _heldKeys[keyName] = true;
       logEvent('keyDown', { key: keyName });
       focusCanvas();
       var ok = callPythonKeyBridge(keyName, true);
@@ -114,6 +118,7 @@
 
     keyUp: function (keyName) {
       keyName = normalizeKey(keyName);
+      delete _heldKeys[keyName];
       logEvent('keyUp', { key: keyName });
       var ok = callPythonKeyBridge(keyName, false);
       logBridgeCall(keyName, false, ok);
@@ -131,6 +136,22 @@
         self.keyUp(keyName);
         logEvent('tapEnd', { key: keyName });
       }, holdMs);
+    },
+
+    releaseAll: function () {
+      logEvent('releaseAll', {});
+      for (var k in _heldKeys) {
+        if (_heldKeys.hasOwnProperty(k)) {
+          var keyName = k;
+          logEvent('releaseKey', { key: keyName });
+          callPythonKeyBridge(keyName, false);
+          logBridgeCall(keyName, false, true);
+          dispatchFallbackKeyEvent(keyName, 'keyup');
+        }
+      }
+      _heldKeys = {};
+      this.clearTouchTarget();
+      this.clearDebug();
     },
 
     getDebug: function () { return debugLog; },
@@ -165,6 +186,7 @@
 
     pause: function () {
       logEvent('pause', {});
+      this.releaseAll();
       this.tap('Escape', 120);
     },
   };
@@ -234,6 +256,7 @@
         loadingEl.classList.add('game-error');
       }
       document.body.classList.add('game-error');
+      PirateArcadeInput.releaseAll();
     },
     isReady: function () { return booted; },
   };

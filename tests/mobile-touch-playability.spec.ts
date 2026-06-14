@@ -130,10 +130,7 @@ test.describe("mobile touch playability", () => {
         await btn.waitFor({ state: "visible", timeout: 10000 });
 
         const box = await btn.boundingBox();
-        if (!box) {
-          test.skip(true, "action button not visible");
-          return;
-        }
+        expect(box).toBeTruthy();
 
         const cx = box.x + box.width / 2;
         const cy = box.y + box.height / 2;
