@@ -13,6 +13,7 @@ class Ship:
         self.thrusting = False
         self.invulnerable = 0.0
         self.alive = True
+        self.speed = 0.0
         self._flame_frame = 0
         self._flame_timer = 0.0
         self._build_ship()
@@ -117,9 +118,9 @@ class Ship:
         self.vx *= decay
         self.vy *= decay
 
-        speed = (self.vx ** 2 + self.vy ** 2) ** 0.5
-        if speed > c.SHIP_MAX_SPEED:
-            scale = c.SHIP_MAX_SPEED / speed
+        self.speed = (self.vx ** 2 + self.vy ** 2) ** 0.5
+        if self.speed > c.SHIP_MAX_SPEED:
+            scale = c.SHIP_MAX_SPEED / self.speed
             self.vx *= scale
             self.vy *= scale
 

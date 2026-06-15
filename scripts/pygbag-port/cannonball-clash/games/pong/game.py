@@ -147,6 +147,11 @@ class PongGame:
             "secondaryScore": self.gameplay.ai_score,
             "playerPosition": self.gameplay.player_paddle.y,
             "actionReady": self.state == "menu",
+            "ballSpeed": self.gameplay.ball.speed,
+            "initialBallSpeed": c.BALL_SPEED_INITIAL,
+            "maxBallSpeed": c.BALL_MAX_SPEED,
+            "rallyCount": getattr(self.gameplay, 'rally_count', 0),
+            "aiDifficulty": self.gameplay.ai.speed_factor if hasattr(self.gameplay.ai, 'speed_factor') else 0.6,
         })
         builtins.__pa_game_state_json = _gs_json
         try:

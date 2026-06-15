@@ -163,6 +163,10 @@ class BreakoutGame:
             "actionReady": self.state == "menu" or (
                 self.state == "game_over" and not self.gameplay.ball.launched
             ),
+            "ballSpeed": self.gameplay.ball.speed,
+            "initialBallSpeed": c.BALL_BREAKOUT_SPEED,
+            "maxBallSpeed": c.BALL_BREAKOUT_MAX_SPEED,
+            "bricksRemaining": self.gameplay.remaining_bricks,
         })
         builtins.__pa_game_state_json = _gs_json
         try:

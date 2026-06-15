@@ -29,6 +29,7 @@ class Gameplay:
         self._cached_ascore = -1
         self._cached_psurf = None
         self._cached_asurf = None
+        self.rally_count = 0
 
     def set_difficulty(self, difficulty):
         self.ai.set_difficulty(difficulty)
@@ -41,6 +42,7 @@ class Gameplay:
         self.ai_paddle.vy = 0
         self.player_paddle.reset()
         self.ai_paddle.reset()
+        self.rally_count = 0
 
     def reset(self):
         self.player_score = 0
@@ -121,6 +123,7 @@ class Gameplay:
                 else:
                     self.ball.x = paddle.x - paddle.width // 2 - c.BALL_SIZE // 2
                 self.ball.bump_speed()
+                self.rally_count += 1
                 self.audio.play('paddle_hit')
                 self.powerup_spawn_timer = c.POWERUP_SPAWN_INTERVAL
                 self._spawn_hit_particles(self.ball.x, self.ball.y)

@@ -461,52 +461,11 @@
     }
     </script>
 
+    <link rel="stylesheet" href="/play/shared/debug-panel.css?v=mobile-v5">
     <script src="/play/shared/pygame-input-bridge.js?v=mobile-v5"></script>
     <script src="/play/shared/game-viewport.js?v=mobile-v5"></script>
     <script src="/play/shared/mobile-controls.js?v=mobile-v5"></script>
-
-    <!-- Debug Panel (activates via ?debug=1 or ?debugPanel=1) -->
-    <script>
-      (function() {
-        const debugParam = new URLSearchParams(window.location.search);
-        const debugEnabled = debugParam.has('debug') || debugParam.has('debugPanel');
-        if (!debugEnabled) return;
-
-        const panel = document.createElement('div');
-        panel.id = 'pa-debug-panel';
-        panel.style.cssText = 'position: fixed; bottom: 0; right: 0; width: 400px; max-height: 50vh; background: #0a0e17; border: 1px solid #2a3142; border-radius: 8px 0 0 0; padding: 12px; font-family: monospace; font-size: 11px; color: #b8c4d4; z-index: 999999; overflow: auto; box-shadow: 0 -4px 24px rgba(0,0,0,0.6);';
-
-        const header = document.createElement('div');
-        header.style.cssText = 'display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px solid #2a3142;';
-        header.innerHTML = '<strong style="color: #d4a843;">Debug Panel</strong><button id="pa-debug-close" style="background: none; border: 1px solid #2a3142; color: #8a9ab0; padding: 2px 8px; border-radius: 4px; cursor: pointer; font-family: inherit;">Close</button>';
-        panel.appendChild(header);
-
-        const tabs = document.createElement('div');
-        tabs.style.cssText = 'display: flex; gap: 4px; margin-bottom: 8px;';
-        tabs.innerHTML = '<button class="pa-debug-tab active" data-tab="input" style="background: #1e2433; border: 1px solid #2a3142; color: #d4a843; padding: 4px 12px; border-radius: 4px; cursor: pointer; font-family: inherit;">Input Bridge</button><button class="pa-debug-tab" data-tab="python" style="background: #1e2433; border: 1px solid #2a3142; color: #8a9ab0; padding: 4px 12px; border-radius: 4px; cursor: pointer; font-family: inherit;">Python Bridge</button><button class="pa-debug-tab" data-tab="game" style="background: #1e2433; border: 1px solid #2a3142; color: #8a9ab0; padding: 4px 12px; border-radius: 4px; cursor: pointer; font-family: inherit;">Game State</button><button class="pa-debug-tab" data-tab="metrics" style="background: #1e2433; border: 1px solid #2a3142; color: #8a9ab0; padding: 4px 12px; border-radius: 4px; cursor: pointer; font-family: inherit;">Boot Metrics</button>';
-        panel.appendChild(tabs);
-
-        const content = document.createElement('div');
-        content.id = 'pa-debug-content';
-        content.style.cssText = 'white-space: pre-wrap; word-break: break-word; line-height: 1.5;';
-        panel.appendChild(content);
-
-        document.body.appendChild(panel);
-
-        tabs.querySelectorAll('.pa-debug-tab').forEach(btn => {
-          btn.addEventListener('click', () => {
-            tabs.querySelectorAll('.pa-debug-tab').forEach(b => { b.style.background = '#1e2433'; b.style.color = '#8a9ab0'; });
-            btn.style.background = '#2a3142'; btn.style.color = '#d4a843';
-            renderTab(btn.dataset.tab);
-          });
-        });
-
-        document.getElementById('pa-debug-close').addEventListener('click', () => { panel.remove(); });
-
-        function formatTime(ts) {
-          const d = new Date(ts);
-          return d.toLocaleTimeString() + '.' + String(d.getMilliseconds()).padStart(3, '0');
-        }
+    <script src="/play/shared/debug-panel.js?v=mobile-v5"></script>
 
         function renderTab(tab) {
           const dbg = window.__paInputDebug;

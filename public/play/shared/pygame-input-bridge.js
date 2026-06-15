@@ -102,6 +102,7 @@
 
   // ── Held-key tracking ──────────────────────────────────────
   var _heldKeys = {};
+  var _pendingTaps = {};
   var _lastReleaseReason = null;
   var _releaseCount = 0;
 
@@ -133,8 +134,13 @@
       keyName = normalizeKey(keyName);
       logEvent('tapStart', { key: keyName, holdMs: holdMs });
       this.keyDown(keyName);
+      // Cancel any existing pending tap for this key
+      if (_pendingTaps[keyName]) {
+        clearTimeout(_pendingTaps[keyName]);
+      }
       var self = this;
-      setTimeout(function () {
+      _pendingTaps[keyName] = setTimeout(function () {
+        delete _pendingTaps[keyName];
         self.keyUp(keyName);
         logEvent('tapEnd', { key: keyName });
       }, holdMs);
@@ -145,6 +151,14 @@
       _lastReleaseReason = r;
       _releaseCount++;
       logEvent('releaseAll', { reason: r, releaseCount: _releaseCount });
+      // Cancel all pending tap timers to prevent delayed duplicate key-ups
+      for (var pt in _pendingTaps) {
+        if (_pendingTaps.hasOwnProperty(pt)) {
+          clearTimeout(_pendingTaps[pt]);
+          logEvent('cancelPendingTap', { key: pt });
+        }
+      }
+      _pendingTaps = {};
       for (var k in _heldKeys) {
         if (_heldKeys.hasOwnProperty(k)) {
           var keyName = k;
@@ -165,9 +179,15 @@
       for (var k in _heldKeys) {
         if (_heldKeys.hasOwnProperty(k)) hk[k] = true;
       }
+      var pt = {};
+      for (var p in _pendingTaps) {
+        if (_pendingTaps.hasOwnProperty(p)) pt[p] = true;
+      }
       return {
         heldKeys: hk,
         heldCount: Object.keys(_heldKeys).length,
+        pendingTapKeys: pt,
+        pendingTapCount: Object.keys(_pendingTaps).length,
         releaseReason: _lastReleaseReason,
         releaseCount: _releaseCount,
         lastReleaseReason: _lastReleaseReason,
@@ -342,22 +362,40 @@
   var _gameStateSubs = [];
   var _gameStateTimer = null;
   var _gameStatePolling = false;
+  var _bridgeMeta = {
+    source: null,
+    lastUpdatedAt: null,
+    parseErrorCount: 0,
+    stale: true,
+  };
 
   function _readGameState() {
     // Fast path: JS-set state (web-native games like Race can set
     // window.__pa_game_state_json directly)
     if (typeof window.__pa_game_state_json === 'string') {
-      try { return JSON.parse(window.__pa_game_state_json); } catch (e) { return null; }
+      try {
+        _bridgeMeta = { source: 'window.__pa_game_state_json', lastUpdatedAt: Date.now(), parseErrorCount: 0, stale: false };
+        return JSON.parse(window.__pa_game_state_json);
+      } catch (e) {
+        _bridgeMeta.parseErrorCount++;
+        return null;
+      }
     }
     // DOM element bridge: Pygbag Python writes state into
     // #pa-game-state via _w["pa-game-state"].innerText.
     var bridgeEl = document.getElementById('pa-game-state');
     if (bridgeEl && bridgeEl.textContent) {
-      try { return JSON.parse(bridgeEl.textContent); } catch (e) { }
+      try {
+        _bridgeMeta = { source: 'dom#pa-game-state', lastUpdatedAt: Date.now(), parseErrorCount: 0, stale: false };
+        return JSON.parse(bridgeEl.textContent);
+      } catch (e) {
+        _bridgeMeta.parseErrorCount++;
+      }
     }
     // Fallback: Python file I/O (may not work in all Pygbag versions)
     if (!window.python || typeof window.python.PyRun_SimpleString !== 'function' ||
         typeof window.python.FS?.readFile !== 'function') {
+      _bridgeMeta.stale = true;
       return null;
     }
     try {
@@ -368,8 +406,11 @@
         ')'
       );
       var raw = window.python.FS.readFile('/tmp/_pa_game_state.json', { encoding: 'utf8' });
+      _bridgeMeta = { source: 'python-file-fallback', lastUpdatedAt: Date.now(), parseErrorCount: 0, stale: false };
       return JSON.parse(raw);
     } catch (e) {
+      _bridgeMeta.parseErrorCount++;
+      _bridgeMeta.stale = true;
       return null;
     }
   }
@@ -411,6 +452,14 @@
         }
       }
     },
+    getMeta: function () {
+      return {
+        source: _bridgeMeta.source,
+        lastUpdatedAt: _bridgeMeta.lastUpdatedAt,
+        parseErrorCount: _bridgeMeta.parseErrorCount,
+        stale: _bridgeMeta.stale,
+      };
+    },
   };
 
   window.PirateArcadeGameState = PirateArcadeGameState;
@@ -448,7 +497,21 @@
         if (mode === 'asteroids') return 'START';
         return 'START';
       }
+      // Playing phase: return game-specific label
+      var mode = '';
+      var ov = document.getElementById('touch-overlay');
+      if (ov && ov.dataset && ov.dataset.controls) mode = ov.dataset.controls;
+      if (mode === 'breakout') return 'LAUNCH';
+      if (mode === 'asteroids') return 'FIRE';
       return 'ACTION';
+    },
+    updateButtonLabel: function () {
+      var label = this.getLabel();
+      var btn = document.querySelector('.btn-action[data-dir="action"]');
+      if (btn) {
+        btn.textContent = label;
+        btn.setAttribute('aria-label', label);
+      }
     },
   };
 

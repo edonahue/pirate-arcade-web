@@ -197,6 +197,8 @@ class AsteroidsGame:
             "secondaryPosition": self.gameplay.ship.x,
             "projectileCount": len(self.gameplay.cannonballs),
             "actionReady": self.state == "menu",
+            "shipAngle": self.gameplay.ship.angle,
+            "shipSpeed": self.gameplay.ship.speed,
         })
         builtins.__pa_game_state_json = _gs_json
         try:

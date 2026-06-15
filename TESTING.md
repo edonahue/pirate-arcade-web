@@ -549,3 +549,53 @@ that game.
 - **New mobile control mode** (e.g. a third `data-controls` value)?
   Add a sub-describe in `game-input-mobile.spec.ts` mirroring the
   existing asteroids-mode section.
+
+---
+
+## Recent changes (2025-06-14)
+
+### Debug panel (`public/play/shared/debug-panel.js`, `debug-panel.css`)
+
+A unified debug panel for all Pygbag game shells. Activates via `?debug=1` or `?debugPanel=1`. Provides 5 tabs:
+
+1. **Input Bridge** — held keys, event log, bridge calls, DOM events
+2. **Python Bridge** — key/touch event counts, last key, bridge availability
+3. **Game State** — live state from DOM bridge (`#pa-game-state`)
+4. **Boot Metrics** — `__paBootMetrics` timings
+5. **Actions** — quick buttons: Release Inputs, Copy Diagnostics, Reload, Back to Arcade
+
+Features: tab persistence, auto-refresh (500ms), close lifecycle cleanup, iPad-safe layout, copy-to-clipboard diagnostics.
+
+### Game-state bridge (`public/play/shared/pygame-input-bridge.js`)
+
+Python→JS bridge now uses a DOM element (`#pa-game-state`) written via Pygbag's `_w` proxy. Replaces broken file-I/O path.
+
+- **Read order:** `window.__pa_game_state_json` → `#pa-game-state` → Python file fallback
+- **Bridge metadata:** `PirateArcadeGameState.getMeta()` returns `{ source, lastUpdatedAt, parseErrorCount, stale }`
+- **Python writers** in each game's `_update()` push state to `_w["pa-game-state"].innerText`
+
+### Ball speed tuning
+
+- **Pong (Cannonball Clash):** `BALL_SPEED_INITIAL` 500 → 650
+- **Breakout (Treasure Cove):** `BALL_BREAKOUT_SPEED` 450 → 650
+- Progression unchanged: Pong `BALL_SPEED_INCREMENT=0.05`, `BALL_MAX_SPEED=1200`; Breakout `BALL_BREAKOUT_SPEED_INCREMENT=0.02`, `BALL_BREAKOUT_MAX_SPEED=800`
+- Rally counting added to Pong (`rallyCount` resets per round)
+
+### Pending tap timer tracking
+
+`PirateArcadeInput.tap()` now tracks timers in `_pendingTaps`. `releaseAll(reason)` cancels all pending taps to prevent delayed duplicate key-ups. `getState()` exposes `pendingTapKeys` and `pendingTapCount`.
+
+### Action labels
+
+`PirateArcadeActions.getLabel()` returns phase-aware labels:
+
+- **Menu:** `START` (Pong/Asteroids), `LAUNCH` (Breakout)
+- **Playing:** `ACTION` (Pong), `LAUNCH` (Breakout), `FIRE` (Asteroids)
+- **Game-over:** `PLAY AGAIN`
+  Labels update automatically via `PirateArcadeGameState` subscription in `mobile-controls.js`.
+
+### iPad test cleanup
+
+- Removed conditional assertions (`if (stateBefore && stateAfter)`)
+- Removed early returns after required assertions (`if (!box) return`)
+- All outcome tests now require explicit state and numeric diffs

@@ -366,4 +366,13 @@
       setTimeout(function () { mobileReleaseAll('orientation'); }, 100);
     });
   }
+
+  // ── Update action button label from game state ──────────────
+  if (window.PirateArcadeGameState && window.PirateArcadeActions) {
+    window.PirateArcadeGameState.subscribe(function (state) {
+      if (state && state.phase) {
+        window.PirateArcadeActions.updateButtonLabel();
+      }
+    });
+  }
 })();

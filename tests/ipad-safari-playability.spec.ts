@@ -387,27 +387,25 @@ test.describe("iPad Safari Playability", () => {
         const canvas = page.locator("canvas.emscripten").first();
         const box = await canvas.boundingBox();
         expect(box).toBeTruthy();
-        if (!box) return;
-        const dragX = box.x + 20;
+        const dragX = box!.x + 20;
 
         // Drag from top third to bottom third
         await pointerTouchDrag(
           page,
           [
-            { x: dragX, y: box.y + box.height * 0.2 },
-            { x: dragX, y: box.y + box.height * 0.6 },
+            { x: dragX, y: box!.y + box!.height * 0.2 },
+            { x: dragX, y: box!.y + box!.height * 0.6 },
           ],
           { selector: ".touch-drag-zone" },
         );
         await page.waitForTimeout(500);
 
         const stateAfter = await readGameState(page);
-        if (stateBefore && stateAfter) {
-          const diff = Math.abs(
-            stateAfter.playerPosition! - stateBefore.playerPosition!,
-          );
-          expect(diff).toBeGreaterThan(10);
-        }
+        expect(stateAfter).toBeTruthy();
+        const diff = Math.abs(
+          stateAfter!.playerPosition! - stateBefore!.playerPosition!,
+        );
+        expect(diff).toBeGreaterThan(10);
 
         const snap = await snapshotDiagnostics(page, diag);
         attachDiagnostics(testInfo, snap);
@@ -462,29 +460,27 @@ test.describe("iPad Safari Playability", () => {
         const canvas = page.locator("canvas.emscripten").first();
         const box = await canvas.boundingBox();
         expect(box).toBeTruthy();
-        if (!box) return;
 
         // Drag zone for breakout is horizontal (touch-drag-x) at bottom
         // Drag across the bottom third of the canvas
-        const dragY = box.y + box.height * 0.85;
+        const dragY = box!.y + box!.height * 0.85;
 
         await pointerTouchDrag(
           page,
           [
-            { x: box.x + box.width * 0.2, y: dragY },
-            { x: box.x + box.width * 0.8, y: dragY },
+            { x: box!.x + box!.width * 0.2, y: dragY },
+            { x: box!.x + box!.width * 0.8, y: dragY },
           ],
           { selector: ".touch-drag-zone" },
         );
         await page.waitForTimeout(500);
 
         const stateAfter = await readGameState(page);
-        if (stateBefore && stateAfter) {
-          const diff = Math.abs(
-            stateAfter.playerPosition! - stateBefore.playerPosition!,
-          );
-          expect(diff).toBeGreaterThan(10);
-        }
+        expect(stateAfter).toBeTruthy();
+        const diff = Math.abs(
+          stateAfter!.playerPosition! - stateBefore!.playerPosition!,
+        );
+        expect(diff).toBeGreaterThan(10);
 
         const snap = await snapshotDiagnostics(page, diag);
         attachDiagnostics(testInfo, snap);
