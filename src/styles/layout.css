@@ -42,24 +42,24 @@
 /* Vignette: Treasure Island cover as edge-fragment book plate */
 .vignette--treasure-island {
   position: absolute;
-  right: -40px;
-  top: 15%;
-  width: 280px;
+  right: 0;
+  top: 0;
+  width: 100px;
   height: auto;
-  opacity: 0.18;
+  opacity: 0.2;
   pointer-events: none;
   z-index: 0;
   object-fit: contain;
   mask-image: linear-gradient(
     270deg,
-    rgba(0, 0, 0, 0.6) 0%,
-    rgba(0, 0, 0, 0.4) 40%,
+    rgba(0, 0, 0, 0.7) 0%,
+    rgba(0, 0, 0, 0.4) 50%,
     transparent 100%
   );
   -webkit-mask-image: linear-gradient(
     270deg,
-    rgba(0, 0, 0, 0.6) 0%,
-    rgba(0, 0, 0, 0.4) 40%,
+    rgba(0, 0, 0, 0.7) 0%,
+    rgba(0, 0, 0, 0.4) 50%,
     transparent 100%
   );
 }
