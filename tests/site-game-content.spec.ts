@@ -204,6 +204,83 @@ test.describe("Site Game Content", () => {
     await expect(page.locator("text=Multi-step automated")).toBeVisible();
   });
 
+  test("homepage Rhead vignette does not intersect game cards at desktop", async ({
+    page,
+  }) => {
+    await page.goto("/");
+
+    const vignette = page.locator(".vignette--treasure-island");
+    const vignetteBox = await vignette.boundingBox();
+    expect(vignetteBox).not.toBeNull();
+
+    const gameCards = page.locator(".game-chart-frame");
+    const cardCount = await gameCards.count();
+
+    for (let i = 0; i < cardCount; i++) {
+      const cardBox = await gameCards.nth(i).boundingBox();
+      if (cardBox) {
+        const noOverlap =
+          vignetteBox!.x + vignetteBox!.width <= cardBox.x ||
+          cardBox.x + cardBox.width <= vignetteBox!.x ||
+          vignetteBox!.y + vignetteBox!.height <= cardBox.y ||
+          cardBox.y + cardBox.height <= vignetteBox!.y;
+        expect(noOverlap).toBe(true);
+      }
+    }
+
+    // Start-here links also not overlapped
+    const startHere = page.locator(".start-here__link");
+    const startHereCount = await startHere.count();
+    for (let i = 0; i < startHereCount; i++) {
+      const linkBox = await startHere.nth(i).boundingBox();
+      if (linkBox) {
+        const noOverlap =
+          vignetteBox!.x + vignetteBox!.width <= linkBox.x ||
+          linkBox.x + linkBox.width <= vignetteBox!.x ||
+          vignetteBox!.y + vignetteBox!.height <= linkBox.y ||
+          linkBox.y + linkBox.height <= vignetteBox!.y;
+        expect(noOverlap).toBe(true);
+      }
+    }
+  });
+
+  test("homepage Pyle experiment art does not cover CTA or proof-strip text", async ({
+    page,
+  }) => {
+    await page.goto("/");
+
+    const art = page.locator(".section__art").last();
+    const artBox = await art.boundingBox();
+    expect(artBox).not.toBeNull();
+
+    // Check proof strip items not covered
+    const proofItems = page.locator(".proof-strip__item");
+    const proofCount = await proofItems.count();
+    for (let i = 0; i < proofCount; i++) {
+      const itemBox = await proofItems.nth(i).boundingBox();
+      if (itemBox) {
+        const noOverlap =
+          artBox!.x + artBox!.width <= itemBox.x ||
+          itemBox.x + itemBox.width <= artBox!.x ||
+          artBox!.y + artBox!.height <= itemBox.y ||
+          itemBox.y + itemBox.height <= artBox!.y;
+        expect(noOverlap).toBe(true);
+      }
+    }
+
+    // Check the experiment CTA not covered
+    const cta = page.locator('a[href="/build-log"]').last();
+    const ctaBox = await cta.boundingBox();
+    if (ctaBox) {
+      const noOverlap =
+        artBox!.x + artBox!.width <= ctaBox.x ||
+        ctaBox.x + ctaBox.width <= artBox!.x ||
+        artBox!.y + artBox!.height <= ctaBox.y ||
+        ctaBox.y + ctaBox.height <= artBox!.y;
+      expect(noOverlap).toBe(true);
+    }
+  });
+
   test("homepage primary CTA is Enter the Arcade", async ({ page }) => {
     await page.goto("/");
 
