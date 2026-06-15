@@ -1,0 +1,354 @@
+---
+// Nautical chart decorative overlay — curved lat/long lines,
+// rhumb lines, partial compass rose, X marks, mermaid and
+// treasure-chest engraved glyphs.
+// aria-hidden, pointer-events: none, responsive.
+---
+
+<svg
+  class="chart-overlay"
+  viewBox="0 0 1440 900"
+  preserveAspectRatio="xMidYMid slice"
+  aria-hidden="true"
+>
+  <defs>
+    <clipPath id="chart-clip-portrait">
+      <rect x="0" y="0" width="1440" height="900"></rect>
+    </clipPath>
+  </defs>
+
+  <!-- Curved lat/long grid lines -->
+  <g class="chart-grid-lines">
+    <path d="M -100,200 Q 360,260 720,200 T 1540,200"></path>
+    <path d="M -100,380 Q 360,440 720,380 T 1540,380"></path>
+    <path d="M -100,560 Q 360,620 720,560 T 1540,560"></path>
+    <path d="M -100,740 Q 360,800 720,740 T 1540,740"></path>
+    <path d="M 180,-100 Q 240,450 180,1000"></path>
+    <path d="M 420,-100 Q 480,450 420,1000"></path>
+    <path d="M 660,-100 Q 720,450 660,1000"></path>
+    <path d="M 900,-100 Q 960,450 900,1000"></path>
+    <path d="M 1140,-100 Q 1200,450 1140,1000"></path>
+    <path d="M 1380,-100 Q 1440,450 1380,1000"></path>
+  </g>
+
+  <!-- Rhumb lines (portolan-style intersecting lines) -->
+  <g class="chart-rhumb-lines">
+    <line x1="120" y1="160" x2="600" y2="800"></line>
+    <line x1="120" y1="160" x2="1100" y2="700"></line>
+    <line x1="120" y1="160" x2="1400" y2="300"></line>
+    <line x1="120" y1="160" x2="800" y2="900"></line>
+    <line x1="120" y1="160" x2="1350" y2="800"></line>
+    <line x1="800" y1="120" x2="200" y2="550"></line>
+    <line x1="800" y1="120" x2="300" y2="780"></line>
+    <line x1="800" y1="120" x2="1000" y2="850"></line>
+    <line x1="800" y1="120" x2="1300" y2="650"></line>
+    <line x1="500" y1="450" x2="100" y2="750"></line>
+    <line x1="500" y1="450" x2="1400" y2="600"></line>
+    <line x1="500" y1="450" x2="1200" y2="200"></line>
+  </g>
+
+  <!-- Compass rose (partially off-screen top-right) -->
+  <g class="compass-rose" transform="translate(1340, 30)">
+    <!-- Outer 8-point star -->
+    <polygon
+      points="0,-140 28,-28 140,0 28,28 0,140 -28,28 -140,0 -28,-28"
+      stroke="currentColor"
+      stroke-width="1"
+      fill="none"
+      opacity="0.35"></polygon>
+    <!-- Inner 8-point star -->
+    <polygon
+      points="0,-90 18,-18 90,0 18,18 0,90 -18,18 -90,0 -18,-18"
+      stroke="currentColor"
+      stroke-width="0.5"
+      fill="none"
+      opacity="0.25"></polygon>
+    <!-- Cardinal points filled -->
+    <polygon
+      points="0,-140 14,-14 0,0 -14,-14"
+      fill="currentColor"
+      opacity="0.12"></polygon>
+    <polygon points="0,140 14,14 0,0 -14,14" fill="currentColor" opacity="0.08"
+    ></polygon>
+    <polygon points="140,0 14,-14 0,0 14,14" fill="currentColor" opacity="0.08"
+    ></polygon>
+    <polygon
+      points="-140,0 -14,-14 0,0 -14,14"
+      fill="currentColor"
+      opacity="0.08"></polygon>
+    <!-- Labels -->
+    <text
+      x="0"
+      y="-152"
+      text-anchor="middle"
+      font-family="serif"
+      font-size="18"
+      fill="currentColor"
+      opacity="0.4">N</text
+    >
+    <text
+      x="152"
+      y="5"
+      text-anchor="middle"
+      font-family="serif"
+      font-size="18"
+      fill="currentColor"
+      opacity="0.3">E</text
+    >
+    <text
+      x="0"
+      y="165"
+      text-anchor="middle"
+      font-family="serif"
+      font-size="14"
+      fill="currentColor"
+      opacity="0.2">S</text
+    >
+    <text
+      x="-152"
+      y="5"
+      text-anchor="middle"
+      font-family="serif"
+      font-size="14"
+      fill="currentColor"
+      opacity="0.2">W</text
+    >
+    <!-- Center dot -->
+    <circle cx="0" cy="0" r="3" fill="currentColor" opacity="0.2"></circle>
+  </g>
+
+  <!-- X marks -->
+  <g class="x-marks">
+    <path
+      d="M 370,340 L 395,365 M 395,340 L 370,365"
+      stroke="currentColor"
+      stroke-width="2.5"
+      stroke-linecap="round"
+      opacity="0.35"
+      fill="none"></path>
+    <path
+      d="M 750,620 L 785,655 M 785,620 L 750,655"
+      stroke="currentColor"
+      stroke-width="2.5"
+      stroke-linecap="round"
+      opacity="0.35"
+      fill="none"></path>
+  </g>
+
+  <!-- Mermaid glyph (map engraving style) -->
+  <g class="mermaid-glyph" transform="translate(180, 210)" opacity="0.25">
+    <!-- Head -->
+    <circle
+      cx="0"
+      cy="-20"
+      r="4.5"
+      stroke="currentColor"
+      fill="none"
+      stroke-width="1.2"></circle>
+    <!-- Hair flowing back -->
+    <path
+      d="M 3,-18 Q 14,-24 20,-16 Q 18,-10 10,-14"
+      stroke="currentColor"
+      fill="none"
+      stroke-width="0.8"></path>
+    <path
+      d="M 4,-15 Q 12,-20 18,-12"
+      stroke="currentColor"
+      fill="none"
+      stroke-width="0.6"></path>
+    <!-- Torso -->
+    <path
+      d="M 0,-15 Q -4,-5 0,5 Q 4,15 0,25"
+      stroke="currentColor"
+      fill="none"
+      stroke-width="1"></path>
+    <!-- Arm reaching -->
+    <path
+      d="M 2,-8 Q 14,-10 18,-3"
+      stroke="currentColor"
+      fill="none"
+      stroke-width="0.8"></path>
+    <!-- Tail -->
+    <path
+      d="M 0,25 Q 8,35 12,42"
+      stroke="currentColor"
+      fill="none"
+      stroke-width="1"></path>
+    <path
+      d="M 0,25 Q -8,35 -12,42"
+      stroke="currentColor"
+      fill="none"
+      stroke-width="1"></path>
+    <!-- Tail fluke (left) -->
+    <path
+      d="M -12,42 Q -20,46 -18,52 Q -14,50 -8,46"
+      stroke="currentColor"
+      fill="none"
+      stroke-width="0.8"></path>
+    <!-- Tail fluke (right) -->
+    <path
+      d="M 12,42 Q 20,46 18,52 Q 14,50 8,46"
+      stroke="currentColor"
+      fill="none"
+      stroke-width="0.8"></path>
+    <!-- Scale suggestions -->
+    <path
+      d="M -2,28 Q 0,31 2,28"
+      stroke="currentColor"
+      fill="none"
+      stroke-width="0.5"></path>
+    <path
+      d="M -3,32 Q 0,35 3,32"
+      stroke="currentColor"
+      fill="none"
+      stroke-width="0.5"></path>
+    <path
+      d="M -3,36 Q 0,39 3,36"
+      stroke="currentColor"
+      fill="none"
+      stroke-width="0.5"></path>
+  </g>
+
+  <!-- Treasure chest glyph (map engraving style) -->
+  <g
+    class="treasure-chest-glyph"
+    transform="translate(755, 625)"
+    opacity="0.25"
+  >
+    <!-- Lid (open, angled up) -->
+    <path
+      d="M -14,-12 Q 0,-24 14,-12 L 14,4 L -14,4 Z"
+      stroke="currentColor"
+      fill="none"
+      stroke-width="1.2"></path>
+    <!-- Box body -->
+    <rect
+      x="-11"
+      y="4"
+      width="22"
+      height="14"
+      stroke="currentColor"
+      fill="none"
+      stroke-width="1.2"></rect>
+    <!-- Keyhole plate -->
+    <rect
+      x="-4"
+      y="6"
+      width="8"
+      height="8"
+      rx="1"
+      stroke="currentColor"
+      fill="none"
+      stroke-width="0.8"></rect>
+    <circle
+      cx="0"
+      cy="10"
+      r="1.5"
+      stroke="currentColor"
+      fill="none"
+      stroke-width="0.6"></circle>
+    <!-- Metal bands (horizontal) -->
+    <line
+      x1="-11"
+      y1="8"
+      x2="11"
+      y2="8"
+      stroke="currentColor"
+      stroke-width="0.6"></line>
+    <line
+      x1="-11"
+      y1="14"
+      x2="11"
+      y2="14"
+      stroke="currentColor"
+      stroke-width="0.6"></line>
+    <!-- Metal bands (vertical) -->
+    <line
+      x1="-11"
+      y1="4"
+      x2="-11"
+      y2="18"
+      stroke="currentColor"
+      stroke-width="0.6"></line>
+    <line
+      x1="11"
+      y1="4"
+      x2="11"
+      y2="18"
+      stroke="currentColor"
+      stroke-width="0.6"></line>
+    <!-- Lid hinge hints -->
+    <circle
+      cx="-14"
+      cy="-12"
+      r="1"
+      stroke="currentColor"
+      fill="none"
+      stroke-width="0.5"></circle>
+    <circle
+      cx="14"
+      cy="-12"
+      r="1"
+      stroke="currentColor"
+      fill="none"
+      stroke-width="0.5"></circle>
+  </g>
+</svg>
+
+<style>
+  .chart-overlay {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    pointer-events: none;
+    z-index: -1;
+    color: var(--chart-line);
+    overflow: hidden;
+  }
+
+  .chart-grid-lines {
+    stroke: currentColor;
+    stroke-width: 0.5;
+    opacity: 0.35;
+  }
+
+  .chart-rhumb-lines {
+    stroke: currentColor;
+    stroke-width: 0.3;
+    opacity: 0.15;
+  }
+
+  @media (min-width: 640px) {
+    .chart-rhumb-lines {
+      opacity: 0.12;
+    }
+  }
+
+  /* Light theme: reduce chart intensity slightly */
+  :root[data-theme="light"] .chart-overlay {
+    color: var(--chart-line);
+  }
+
+  :root[data-theme="light"] .chart-grid-lines {
+    opacity: 0.2;
+  }
+
+  :root[data-theme="light"] .chart-rhumb-lines {
+    opacity: 0.1;
+  }
+
+  /* Hide on narrow mobile — too small to read, adds noise */
+  @media (max-width: 480px) {
+    .chart-overlay {
+      display: none;
+    }
+  }
+
+  /* Respect reduced motion — static SVG so just simplify */
+  @media (prefers-reduced-motion: reduce) {
+    .chart-rhumb-lines {
+      opacity: 0.08;
+    }
+  }
+</style>

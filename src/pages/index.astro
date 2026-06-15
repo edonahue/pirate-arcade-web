@@ -27,10 +27,11 @@ const desktopOnly = games.filter((g) => g.status === "desktop-available");
   <Hero
     title="PIRATE ARCADE"
     subtitle="Five classic arcade games reimagined with a nautical twist. Built in the open as an experiment in zero-cost AI-assisted development."
-    eyebrow="Play the Games"
+    eyebrow="Choose Your Course"
     backgroundImage="/images/art/pyle-marooned.webp"
+    artPosition="50% 25%"
   >
-    <CTAButton href="/play" variant="primary">Play the Games</CTAButton>
+    <CTAButton href="/play" variant="primary">Enter the Arcade</CTAButton>
     <CTAButton href="/build-log" variant="gold">Read the Build Log</CTAButton>
     <CTAButton href="/source" variant="outline">View Source</CTAButton>
   </Hero>
@@ -42,17 +43,9 @@ const desktopOnly = games.filter((g) => g.status === "desktop-available");
     >.
   </p>
 
-  <div class="proof-teaser">
-    <span class="proof-teaser__item">Two engines</span>
-    <span class="proof-teaser__item">{browserGames.length} browser games</span>
-    <span class="proof-teaser__item">Tested release gate</span>
-    <span class="proof-teaser__item">Screenshot validation</span>
-    <span class="proof-teaser__item">Free-tier deploy</span>
-  </div>
-
-  <section class="section">
+  <section class="section section--games">
     <div class="section__header">
-      <p class="section__eyebrow">The Games</p>
+      <p class="section__eyebrow">On the Chart</p>
       <h2 class="section__title">Five Pirate Arcade Games</h2>
       <p class="section__description">
         Five classic arcade games, each reimagined with pirate flavor and modern
@@ -118,6 +111,18 @@ const desktopOnly = games.filter((g) => g.status === "desktop-available");
         >
       </div>
     </div>
+
+    <!-- Treasure Island cover vignette — edge fragment like old chart plate -->
+    <img
+      class="vignette--treasure-island"
+      src="/images/art/rhead-treasure-island-cover.webp"
+      alt=""
+      aria-hidden="true"
+      decoding="async"
+      loading="lazy"
+      width="400"
+      height="600"
+    />
   </section>
 
   <div class="section-divider" aria-hidden="true">
@@ -185,7 +190,7 @@ const desktopOnly = games.filter((g) => g.status === "desktop-available");
 
   <section class="section">
     <div class="section__header">
-      <p class="section__eyebrow">All Browser Games</p>
+      <p class="section__eyebrow">Find Your Game</p>
       <h2 class="section__title">Play in Browser Now</h2>
       <p class="section__description">
         {browserGames.length} browser-playable games — {pygbagGames.length}

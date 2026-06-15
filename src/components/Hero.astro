@@ -4,22 +4,29 @@ export interface Props {
   subtitle?: string;
   eyebrow?: string;
   backgroundImage?: string;
+  /** CSS object-position value for the background image (e.g. "50% 30%") */
+  artPosition?: string;
 }
 
-const { title, subtitle, eyebrow, backgroundImage } = Astro.props;
+const { title, subtitle, eyebrow, backgroundImage, artPosition } = Astro.props;
+const bgStyle = artPosition ? { objectPosition: artPosition } : undefined;
 ---
 
 <section class="hero">
   {
     backgroundImage && (
-      <img
-        class="hero__bg"
-        src={backgroundImage}
-        alt=""
-        aria-hidden="true"
-        decoding="async"
-        loading="lazy"
-      />
+      <>
+        <img
+          class="hero__bg"
+          src={backgroundImage}
+          alt=""
+          aria-hidden="true"
+          decoding="async"
+          loading="lazy"
+          style={bgStyle}
+        />
+        <div class="hero__bg-overlay" aria-hidden="true" />
+      </>
     )
   }
   {eyebrow && <p class="hero__eyebrow">{eyebrow}</p>}

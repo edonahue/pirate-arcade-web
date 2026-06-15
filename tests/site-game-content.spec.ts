@@ -173,18 +173,7 @@ test.describe("Site Game Content", () => {
       page.locator('.hero__credit a[href*="erichdonahue.com"]'),
     ).toBeVisible();
 
-    // Proof teaser near hero (first occurrence)
-    await expect(page.locator("text=Two engines").first()).toBeVisible();
-    await expect(page.locator("text=4 browser games").first()).toBeVisible();
-    await expect(
-      page.locator("text=Tested release gate").first(),
-    ).toBeVisible();
-    await expect(
-      page.locator("text=Screenshot validation").first(),
-    ).toBeVisible();
-    await expect(page.locator("text=Free-tier deploy").first()).toBeVisible();
-
-    // Proof strip in Experiment section (use exact match for labels)
+    // Proof strip in Experiment section
     await expect(page.locator("text=Engines").last()).toBeVisible();
     await expect(page.locator("text=Tests").last()).toBeVisible();
     await expect(page.locator("text=Release gate").last()).toBeVisible();
@@ -192,17 +181,15 @@ test.describe("Site Game Content", () => {
     await expect(page.locator("text=Infrastructure").last()).toBeVisible();
 
     // Proof strip values should be maintainable (no exact counts)
-    await expect(page.locator("text=Playwright suite").last()).toBeVisible();
-    await expect(
-      page.locator("text=Multi-step automated").last(),
-    ).toBeVisible();
+    await expect(page.locator("text=Playwright suite")).toBeVisible();
+    await expect(page.locator("text=Multi-step automated")).toBeVisible();
   });
 
-  test("homepage primary CTA is Play the Games", async ({ page }) => {
+  test("homepage primary CTA is Enter the Arcade", async ({ page }) => {
     await page.goto("/");
 
     const primaryCta = page.locator(
-      'a.cta--primary:has-text("Play the Games")',
+      'a.cta--primary:has-text("Enter the Arcade")',
     );
     await expect(primaryCta.first()).toBeVisible();
   });
@@ -210,7 +197,7 @@ test.describe("Site Game Content", () => {
   test("play page has recommended path strip", async ({ page }) => {
     await page.goto("/play/");
 
-    await expect(page.locator("text=⚡ Fastest load")).toBeVisible();
+    await expect(page.locator("text=⚡ Set sail")).toBeVisible();
     await expect(page.locator("text=👆 Easiest on touch")).toBeVisible();
     await expect(page.locator("text=🐍 Classic Pygbag set")).toBeVisible();
     await expect(page.locator("text=🖥️ Desktop collection")).toBeVisible();
@@ -336,14 +323,14 @@ test.describe("Site Game Content", () => {
     await expect(liveLink).toHaveAttribute("href", /family=IBM\+Plex\+Mono/);
   });
 
-  test("proof teaser does not overflow on mobile", async ({ page }) => {
+  test("proof strip does not overflow on mobile", async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto("/");
 
-    const proofTeaser = page.locator(".proof-teaser");
-    await expect(proofTeaser).toBeVisible();
+    const proofStrip = page.locator(".proof-strip");
+    await expect(proofStrip).toBeVisible();
 
-    const box = await proofTeaser.boundingBox();
+    const box = await proofStrip.boundingBox();
     expect(box?.width).toBeLessThanOrEqual(390);
   });
 

@@ -36,32 +36,55 @@
     );
 }
 
-/* Chart-grid lines (faint, near-invisible) */
-.site-shell::after {
-  content: "";
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
+/* Chart overlay is now in ChartOverlay.astro — a responsive
+   nautical-chart SVG layer replacing the old repeating grid. */
+
+/* Vignette: Treasure Island cover as edge-fragment book plate */
+.vignette--treasure-island {
+  position: absolute;
+  right: -40px;
+  top: 60%;
+  transform: translateY(-50%);
+  width: 280px;
+  height: auto;
+  opacity: 0.12;
   pointer-events: none;
-  z-index: -1;
-  background-image:
-    repeating-linear-gradient(
-      90deg,
-      transparent,
-      transparent 39px,
-      var(--chart-line) 39px,
-      var(--chart-line) 40px
-    ),
-    repeating-linear-gradient(
-      0deg,
-      transparent,
-      transparent 39px,
-      var(--chart-line) 39px,
-      var(--chart-line) 40px
-    );
-  opacity: 0.25;
+  z-index: 0;
+  object-fit: contain;
+  mask-image: linear-gradient(
+    270deg,
+    rgba(0, 0, 0, 0.6) 0%,
+    rgba(0, 0, 0, 0.4) 40%,
+    transparent 100%
+  );
+  -webkit-mask-image: linear-gradient(
+    270deg,
+    rgba(0, 0, 0, 0.6) 0%,
+    rgba(0, 0, 0, 0.4) 40%,
+    transparent 100%
+  );
+}
+
+.section--games {
+  position: relative;
+  overflow: hidden;
+}
+
+.section--games .section__header {
+  position: relative;
+  z-index: 1;
+}
+
+@media (max-width: 640px) {
+  .vignette--treasure-island {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vignette--treasure-island {
+    display: none;
+  }
 }
 
 /* Header — dark ocean glass */

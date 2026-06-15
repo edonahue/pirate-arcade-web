@@ -31,12 +31,12 @@ const desktopGames = games.filter((g) => g.status === "desktop-available");
   <Hero
     title="THE ARCADE"
     subtitle={`Pirate-themed arcade games. ${browserGames.length} games are playable in your browser now —
-    including the web-native Race to Treasure Island. ${desktopGames.length} game is desktop-only (Port Royale Tycoon).`}
-    eyebrow="Play the Games"
+    including the web-native Race to Treasure Island. ${desktopGames.length} ${desktopGames.length === 1 ? "game is" : "games are"} desktop-only.`}
+    eyebrow="Find Your Game"
   />
 
   <section class="section">
-    <ArcadeFrame label="Game selection" topLabel="GAME SELECT  -  P1 READY">
+    <ArcadeFrame label="Game selection" topLabel="GAME SELECT  -  COURSE READY">
       <div style="padding: 1.5rem;">
         <h2 class="sr-only">Available Games</h2>
         <div class="game-grid">
@@ -48,7 +48,7 @@ const desktopGames = games.filter((g) => g.status === "desktop-available");
 
   <div class="recommended-path">
     <div class="recommended-path__item">
-      <span class="recommended-path__label">⚡ Fastest load</span>
+      <span class="recommended-path__label">⚡ Set sail — instant</span>
       <a href="/play/race-to-treasure-island/" class="recommended-path__link"
         >Race to Treasure Island</a
       >

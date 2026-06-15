@@ -3,6 +3,7 @@ import "../styles/global.css";
 import { site } from "../data/profile";
 import Nav from "../components/Nav.astro";
 import Footer from "../components/Footer.astro";
+import ChartOverlay from "../components/ChartOverlay.astro";
 import { absoluteUrl, canonicalPath } from "../lib/site";
 import {
   jsonLdGraph,
@@ -171,6 +172,7 @@ const jsonLd = jsonLdGraph([
         </div>
       </div>
     </header>
+    <ChartOverlay />
     <main id="main-content" class="site-shell page-main" tabindex="-1">
       <slot />
     </main>

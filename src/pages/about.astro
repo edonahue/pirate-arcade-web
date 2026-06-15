@@ -12,13 +12,13 @@ const webNativeGames = browserGames.filter((g) => g.engine === "phaser");
 
 <BaseLayout
   title="About"
-  description="About Pirate Arcade: a pirate-themed arcade collection and public build experiment by Erich Donahue. 4 browser games across two engines on free infrastructure."
+  description={`About Pirate Arcade: a pirate-themed arcade collection and public build experiment by Erich Donahue. ${browserGames.length} browser games across two engines on free infrastructure.`}
   current="about"
   jsonLd={[
     webPageNode(
       "/about/",
       "About Pirate Arcade",
-      "About Pirate Arcade: a pirate-themed arcade collection and public build experiment by Erich Donahue. 4 browser games across two engines on free infrastructure.",
+      `About Pirate Arcade: a pirate-themed arcade collection and public build experiment by Erich Donahue. ${browserGames.length} browser games across two engines on free infrastructure.`,
       "AboutPage",
     ),
   ]}
