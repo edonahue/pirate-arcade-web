@@ -4,7 +4,7 @@ import builtins
 import pygame as pg
 import constants as c
 import highscores as hs
-from games.breakout.gameplay import Gameplay
+from games.breakout.gameplay import Gameplay, STAGE_NAMES
 from renderer import _OVERLAY, _VIGNETTE
 
 
@@ -25,6 +25,7 @@ class BreakoutGame:
         self.hud_font = pg.font.Font(c.FONT_NAME, c.FONT_SIZE_HUD)
         self.inst_font = pg.font.Font(c.FONT_NAME, c.FONT_SIZE_INSTRUCTIONS)
         self.score_font = pg.font.Font(c.FONT_NAME, c.FONT_SIZE_SCORE)
+        self.small_font = pg.font.Font(c.FONT_NAME, c.FONT_SIZE_SMALL)
 
         self._menu_title = self.title_font.render("TREASURE COVE", True, c.WHITE)
         self._hs_label = None
@@ -35,7 +36,8 @@ class BreakoutGame:
             "ESC / P / Click        —  Pause",
             "F    —  FPS counter",
             "",
-            "Smash through the fort defenses!",
+            "Three stages of fortress siege!",
+            "Collect power-ups from Treasure Bricks!",
         ]
         self._menu_lines = [self.inst_font.render(line, True, c.GRAY) for line in lines]
         self._menu_prompt = self.hud_font.render("Press SPACE to set sail!", True, c.PAUSE_HIGHLIGHT)
@@ -67,7 +69,9 @@ class BreakoutGame:
 
         self._g_over_win = self.title_font.render("LOOT SECURED!", True, c.PIRATE_GOLD)
         self._g_over_lose = self.title_font.render("SHIP SUNK!", True, c.PIRATE_RED)
+        self._g_over_stages = self.hud_font.render("STAGES CLEARED!", True, c.PIRATE_GOLD)
         self._g_over_score = (-1, None)
+        self._g_over_stage_detail = None
 
     async def run(self):
         while True:
@@ -149,24 +153,50 @@ class BreakoutGame:
                 self.state = 'game_over'
                 self.game_over_state = result[1]
                 hs.submit_breakout(self.gameplay.score)
+
+        primary_ball = self.gameplay.balls[0] if self.gameplay.balls else self.gameplay.balls[0] if len(self.gameplay.balls) > 0 else None
+        if primary_ball is None:
+            primary_ball = self.gameplay.balls[0]
+        launched_count = sum(1 for b in self.gameplay.balls if b.launched)
+        active_balls = sum(1 for b in self.gameplay.balls if b.launched and b.y + b.radius <= c.WINDOW_HEIGHT)
+        effective_speed = max((b.speed for b in self.gameplay.balls if b.launched), default=c.BALL_BREAKOUT_SPEED)
+        underlying_speed = max((b._underlying_speed for b in self.gameplay.balls if b.launched), default=c.BALL_BREAKOUT_SPEED)
+
         _gs_json = json.dumps({
             "gameId": "treasure-cove",
             "phase": (
                 "game-over" if self.state == "game_over"
                 else "paused" if self.paused
+                else "stage-transition" if self.gameplay.stage_transition_phase
                 else self.state
             ),
             "score": self.gameplay.score,
             "playerPosition": self.gameplay.paddle.x,
-            "ballLaunched": self.gameplay.ball.launched,
+            "ballLaunched": any(b.launched for b in self.gameplay.balls),
             "lives": self.gameplay.lives,
             "actionReady": self.state == "menu" or (
-                self.state == "game_over" and not self.gameplay.ball.launched
+                self.state == "game_over" and not self.gameplay.stage_transition_phase
             ),
-            "ballSpeed": self.gameplay.ball.speed,
+            "stage": self.gameplay.stage,
+            "maxStage": self.gameplay.max_stage,
+            "ballsActive": active_balls,
+            "ballSpeeds": [b.speed for b in self.gameplay.balls if b.launched],
+            "underlyingBallSpeed": underlying_speed,
+            "effectiveBallSpeed": effective_speed,
             "initialBallSpeed": c.BALL_BREAKOUT_SPEED,
             "maxBallSpeed": c.BALL_BREAKOUT_MAX_SPEED,
             "bricksRemaining": self.gameplay.remaining_bricks,
+            "standardBricksRemaining": self.gameplay.standard_count,
+            "reinforcedBricksRemaining": self.gameplay.reinforced_count,
+            "powderKegsRemaining": self.gameplay.powder_keg_count,
+            "treasureBricksRemaining": self.gameplay.treasure_count,
+            "fallingPickupCount": len(self.gameplay.falling_pickups),
+            "lastPickupType": self.gameplay.last_pickup_type,
+            "widePaddleActive": self.gameplay.wide_paddle_timer > 0,
+            "widePaddleRemainingMs": int(self.gameplay.wide_paddle_timer * 1000),
+            "slowMotionActive": self.gameplay.slow_motion_timer > 0,
+            "slowMotionRemainingMs": int(self.gameplay.slow_motion_timer * 1000),
+            "stageTransitionActive": self.gameplay.stage_transition_phase is not None,
         })
         builtins.__pa_game_state_json = _gs_json
         try:
@@ -250,15 +280,38 @@ class BreakoutGame:
         else:
             result_text = self._g_over_lose
         self.surface.blit(result_text, (c.WINDOW_WIDTH // 2 - result_text.get_width() // 2,
-                                        c.WINDOW_HEIGHT // 2 - 80))
+                                        c.WINDOW_HEIGHT // 2 - 100))
 
         if self.gameplay.score != self._g_over_score[0]:
             self._g_over_score = (self.gameplay.score,
                                   self.score_font.render(str(self.gameplay.score), True, c.PIRATE_GOLD))
         self.surface.blit(self._g_over_score[1],
                           (c.WINDOW_WIDTH // 2 - self._g_over_score[1].get_width() // 2,
-                           c.WINDOW_HEIGHT // 2))
+                           c.WINDOW_HEIGHT // 2 - 30))
+
+        if self.game_over_state == 'won' and self.gameplay.run_complete:
+            detail = f"All {self.gameplay.max_stage} stages cleared!"
+            self._g_over_stage_detail = self.hud_font.render(detail, True, c.PIRATE_TEAL)
+            if self._g_over_stage_detail:
+                self.surface.blit(self._g_over_stage_detail,
+                                  (c.WINDOW_WIDTH // 2 - self._g_over_stage_detail.get_width() // 2,
+                                   c.WINDOW_HEIGHT // 2 + 10))
+        elif self.game_over_state == 'won' and self.gameplay.run_complete is False:
+            cleared = self.gameplay.stage - 1
+            detail = f"Stages cleared: {cleared}"
+            self._g_over_stage_detail = self.hud_font.render(detail, True, c.PIRATE_TAN)
+            if self._g_over_stage_detail:
+                self.surface.blit(self._g_over_stage_detail,
+                                  (c.WINDOW_WIDTH // 2 - self._g_over_stage_detail.get_width() // 2,
+                                   c.WINDOW_HEIGHT // 2 + 10))
+        else:
+            detail = f"Stage {self.gameplay.stage}"
+            self._g_over_stage_detail = self.hud_font.render(detail, True, c.GRAY)
+            if self._g_over_stage_detail:
+                self.surface.blit(self._g_over_stage_detail,
+                                  (c.WINDOW_WIDTH // 2 - self._g_over_stage_detail.get_width() // 2,
+                                   c.WINDOW_HEIGHT // 2 + 10))
 
         self.surface.blit(self._game_over_prompt,
                           (c.WINDOW_WIDTH // 2 - self._game_over_prompt.get_width() // 2,
-                           c.WINDOW_HEIGHT // 2 + 80))
+                           c.WINDOW_HEIGHT // 2 + 60))

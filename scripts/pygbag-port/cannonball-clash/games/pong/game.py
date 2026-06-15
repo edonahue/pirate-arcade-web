@@ -151,6 +151,12 @@ class PongGame:
             "initialBallSpeed": c.BALL_SPEED_INITIAL,
             "maxBallSpeed": c.BALL_MAX_SPEED,
             "rallyCount": getattr(self.gameplay, 'rally_count', 0),
+            "currentRally": getattr(self.gameplay, 'rally_count', 0),
+            "longestRally": getattr(self.gameplay, 'longest_rally', 0),
+            "rallyTier": getattr(self.gameplay, 'rally_tier', 0),
+            "powerupType": None if self.gameplay.powerup is None else ("large_paddle" if self.gameplay.powerup.powerup_type == c.POWERUP_TYPE_LARGE_PADDLE else "cursed_powder"),
+            "aiShrinkActive": getattr(self.gameplay, 'ai_shrink_timer', 0) > 0,
+            "aiShrinkRemainingMs": int(getattr(self.gameplay, 'ai_shrink_timer', 0) * 1000),
             "aiDifficulty": self.gameplay.ai.speed_factor if hasattr(self.gameplay.ai, 'speed_factor') else 0.6,
         })
         builtins.__pa_game_state_json = _gs_json

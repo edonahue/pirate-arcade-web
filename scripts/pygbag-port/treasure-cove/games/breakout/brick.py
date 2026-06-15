@@ -1,20 +1,17 @@
 import pygame as pg
 import constants as c
 
-# Richer fortress palette — stone-like hues with pirate flavor per row
-# Enhanced for row readability: better luminance/hue separation between adjacent rows
 BRICK_FORTRESS_COLORS = [
-    (85, 40, 35),     # Row 0 — dark iron stone (deep)
-    (120, 65, 45),    # Row 1 — weathered brick (distinct from row 0)
-    (160, 90, 50),    # Row 2 — terracotta (warm orange-brown)
-    (185, 120, 55),   # Row 3 — golden sandstone (lighter, yellow-tinted)
-    (150, 140, 80),   # Row 4 — limestone (pale yellow-gray)
-    (95, 145, 95),    # Row 5 — mossy stone (green tint for contrast)
-    (80, 135, 145),   # Row 6 — sea-weathered (cool blue-gray)
-    (195, 185, 135),  # Row 7 — pale treasure vault (warm cream)
+    (85, 40, 35),
+    (120, 65, 45),
+    (160, 90, 50),
+    (185, 120, 55),
+    (150, 140, 80),
+    (95, 145, 95),
+    (80, 135, 145),
+    (195, 185, 135),
 ]
 
-# Bevel highlight colors (lighter edge)
 BRICK_HIGHLIGHT = [
     (115, 65, 50),
     (150, 90, 60),
@@ -26,7 +23,6 @@ BRICK_HIGHLIGHT = [
     (215, 205, 150),
 ]
 
-# Bevel shadow colors (darker edge)
 BRICK_SHADOW = [
     (55, 25, 20),
     (85, 40, 30),
@@ -38,33 +34,43 @@ BRICK_SHADOW = [
     (135, 125, 85),
 ]
 
-# Row-specific accent colors for subtle vertical marker on each brick
-# Helps distinguish rows at a glance while maintaining stone aesthetic
 BRICK_ROW_ACCENT = [
-    (180, 60, 40),    # Row 0 — deep crimson
-    (200, 120, 40),   # Row 1 — burnt orange
-    (220, 160, 30),   # Row 2 — gold
-    (180, 200, 60),   # Row 3 — olive gold
-    (120, 180, 100),  # Row 4 — sage green
-    (80, 180, 140),   # Row 5 — teal
-    (60, 140, 180),   # Row 6 — ocean blue
-    (220, 190, 80),   # Row 7 — warm amber
+    (180, 60, 40),
+    (200, 120, 40),
+    (220, 160, 30),
+    (180, 200, 60),
+    (120, 180, 100),
+    (80, 180, 140),
+    (60, 140, 180),
+    (220, 190, 80),
 ]
 
+REINFORCED_OVERLAY_COLOR = (60, 55, 50, 180)
+CRACK_COLOR = (160, 140, 100)
+
+
 class Brick:
-    def __init__(self, col, row):
+    def __init__(self, col, row, brick_type=c.BRICK_STANDARD):
         self.col = col
         self.row = row
+        self.brick_type = brick_type
         self.color = BRICK_FORTRESS_COLORS[row]
         self.highlight = BRICK_HIGHLIGHT[row]
         self.shadow = BRICK_SHADOW[row]
         self.accent = BRICK_ROW_ACCENT[row]
-        self.health = 1
+
+        if brick_type == c.BRICK_REINFORCED:
+            self.max_health = c.REINFORCED_HEALTH
+        else:
+            self.max_health = 1
+        self.health = self.max_health
+
         self.x = c.BRICK_LEFT + col * (c.BRICK_WIDTH + c.BRICK_PADDING)
         self.y = c.BRICK_MARGIN_TOP + row * (c.BRICK_HEIGHT + c.BRICK_PADDING)
         self.width = c.BRICK_WIDTH
         self.height = c.BRICK_HEIGHT
         self._build_glow()
+        self._build_special_surfs()
 
     def _build_glow(self):
         pad = 6
@@ -76,6 +82,40 @@ class Brick:
             r = pg.Rect(i, i, w - i * 2, h - i * 2)
             pg.draw.rect(self._glow_surf, (*c.PIRATE_GOLD, alpha), r, border_radius=3)
 
+    def _build_special_surfs(self):
+        self._reinforced_overlay = None
+        self._keg_surf = None
+        self._treasure_surf = None
+
+        if self.brick_type == c.BRICK_REINFORCED:
+            self._reinforced_overlay = pg.Surface((self.width, self.height), pg.SRCALPHA)
+            pg.draw.rect(self._reinforced_overlay, (60, 55, 50, 180), (0, 0, self.width, self.height), border_radius=2)
+            pg.draw.rect(self._reinforced_overlay, (120, 110, 80, 200), (0, 0, self.width, self.height), 2, border_radius=2)
+            for bx in range(0, self.width, 12):
+                pg.draw.line(self._reinforced_overlay, (100, 90, 60, 120), (bx, 0), (bx, self.height), 1)
+        elif self.brick_type == c.BRICK_POWDER_KEG:
+            self._keg_surf = pg.Surface((self.width, self.height), pg.SRCALPHA)
+            cx, cy = self.width // 2, self.height // 2
+            r = min(self.width, self.height) // 2 - 2
+            pg.draw.circle(self._keg_surf, c.PIRATE_FLAME, (cx, cy), r)
+            pg.draw.circle(self._keg_surf, c.PIRATE_FLAME_INNER, (cx, cy), r - 2)
+            pg.draw.circle(self._keg_surf, (255, 255, 200, 60), (cx - 2, cy - 2), r - 4)
+            fuse = [(cx + 4, cy - r), (cx + 8, cy - r - 4), (cx + 6, cy - r - 8)]
+            pg.draw.lines(self._keg_surf, (180, 100, 50), False, fuse, 2)
+            pg.draw.circle(self._keg_surf, (255, 200, 50), (cx + 6, cy - r - 8), 2)
+        elif self.brick_type == c.BRICK_TREASURE:
+            self._treasure_surf = pg.Surface((self.width, self.height), pg.SRCALPHA)
+            cx, cy = self.width // 2, self.height // 2
+            tw, th = 14, 10
+            tx, ty = cx - tw // 2, cy - th // 2
+            pg.draw.rect(self._treasure_surf, c.PIRATE_BROWN_DARK, (tx, ty, tw, th), border_radius=2)
+            pg.draw.rect(self._treasure_surf, c.PIRATE_GOLD, (tx, ty, tw, th), 1, border_radius=2)
+            pg.draw.line(self._treasure_surf, c.PIRATE_GOLD, (tx, ty + th // 2 - 1), (tx + tw, ty + th // 2 - 1), 1)
+            pg.draw.circle(self._treasure_surf, c.PIRATE_TREASURE, (cx, cy), 2)
+            for si in range(4):
+                sx = tx + 3 + si * 3
+                pg.draw.line(self._treasure_surf, (255, 220, 100, 40), (sx, ty + 2), (sx + 1, ty + th - 2), 1)
+
     @property
     def rect(self):
         return pg.Rect(self.x, self.y, self.width, self.height)
@@ -86,7 +126,14 @@ class Brick:
 
     @property
     def points(self):
-        return (self.row + 1) * c.BRICK_POINTS_BASE
+        base = (self.row + 1) * c.BRICK_POINTS_BASE
+        if self.brick_type == c.BRICK_REINFORCED:
+            base *= c.REINFORCED_POINTS_MULTIPLIER
+        elif self.brick_type == c.BRICK_POWDER_KEG:
+            base = c.POWDER_KEG_POINTS
+        elif self.brick_type == c.BRICK_TREASURE:
+            base = c.TREASURE_BRICK_POINTS
+        return base
 
     def hit(self):
         self.health -= 1
@@ -101,52 +148,45 @@ class Brick:
         bh = self.height
         bevel = 3
 
-        # Stone block body
         pg.draw.rect(surface, self.color, r, border_radius=2)
 
-        # Beveled top edge (highlight)
         pg.draw.polygon(surface, self.highlight, [
-            (r.x, r.y),
-            (r.x + bw, r.y),
-            (r.x + bw - bevel, r.y + bevel),
-            (r.x + bevel, r.y + bevel),
+            (r.x, r.y), (r.x + bw, r.y),
+            (r.x + bw - bevel, r.y + bevel), (r.x + bevel, r.y + bevel),
         ])
-
-        # Beveled left edge (highlight)
         pg.draw.polygon(surface, self.highlight, [
-            (r.x, r.y),
-            (r.x + bevel, r.y + bevel),
-            (r.x + bevel, r.y + bh - bevel),
-            (r.x, r.y + bh),
+            (r.x, r.y), (r.x + bevel, r.y + bevel),
+            (r.x + bevel, r.y + bh - bevel), (r.x, r.y + bh),
         ])
-
-        # Beveled bottom edge (shadow)
         pg.draw.polygon(surface, self.shadow, [
-            (r.x, r.y + bh),
-            (r.x + bevel, r.y + bh - bevel),
-            (r.x + bw - bevel, r.y + bh - bevel),
-            (r.x + bw, r.y + bh),
+            (r.x, r.y + bh), (r.x + bevel, r.y + bh - bevel),
+            (r.x + bw - bevel, r.y + bh - bevel), (r.x + bw, r.y + bh),
         ])
-
-        # Beveled right edge (shadow)
         pg.draw.polygon(surface, self.shadow, [
-            (r.x + bw, r.y),
-            (r.x + bw - bevel, r.y + bevel),
-            (r.x + bw - bevel, r.y + bh - bevel),
-            (r.x + bw, r.y + bh),
+            (r.x + bw, r.y), (r.x + bw - bevel, r.y + bevel),
+            (r.x + bw - bevel, r.y + bh - bevel), (r.x + bw, r.y + bh),
         ])
 
-        # Stone joint lines (horizontal)
         joint_y = r.y + bh // 2
         pg.draw.line(surface, self.shadow, (r.x + 2, joint_y), (r.x + bw - 2, joint_y), 1)
 
-        # Subtle row accent marker — thin vertical line near left edge
-        # Helps distinguish rows while maintaining fortress aesthetic
         accent_x = r.x + 3
         pg.draw.line(surface, self.accent, (accent_x, r.y + 4), (accent_x, r.y + bh - 4), 1)
 
-        # Crack detail if damaged (health < original)
-        if self.health < 1:
-            crack_color = (min(255, self.color[0] - 30), min(255, self.color[1] - 30), min(255, self.color[2] - 30))
-            pg.draw.line(surface, crack_color, (r.x + bw // 4, r.y + 2), (r.x + bw // 3, r.y + bh - 2), 1)
-            pg.draw.line(surface, crack_color, (r.x + bw // 3, r.y + bh - 2), (r.x + bw // 2, r.y + bh // 2), 1)
+        if self.brick_type == c.BRICK_REINFORCED and self._reinforced_overlay:
+            surface.blit(self._reinforced_overlay, (r.x, r.y))
+            if self.health < self.max_health:
+                crack_color = CRACK_COLOR
+                pg.draw.line(surface, crack_color, (r.x + bw // 4, r.y + 2), (r.x + bw // 3, r.y + bh - 2), 2)
+                pg.draw.line(surface, crack_color, (r.x + bw // 3, r.y + bh - 2), (r.x + bw // 2, r.y + bh // 2), 2)
+
+        if self.brick_type == c.BRICK_POWDER_KEG and self._keg_surf:
+            surface.blit(self._keg_surf, (r.x, r.y))
+
+        if self.brick_type == c.BRICK_TREASURE and self._treasure_surf:
+            surface.blit(self._treasure_surf, (r.x, r.y))
+
+        if self.health < 1 and self.brick_type != c.BRICK_REINFORCED:
+            dc = (min(255, self.color[0] - 30), min(255, self.color[1] - 30), min(255, self.color[2] - 30))
+            pg.draw.line(surface, dc, (r.x + bw // 4, r.y + 2), (r.x + bw // 3, r.y + bh - 2), 1)
+            pg.draw.line(surface, dc, (r.x + bw // 3, r.y + bh - 2), (r.x + bw // 2, r.y + bh // 2), 1)

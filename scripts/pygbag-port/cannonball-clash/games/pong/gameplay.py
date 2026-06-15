@@ -14,6 +14,7 @@ class Gameplay:
         self.audio = audio
         self.score_font = pg.font.Font(c.FONT_NAME, c.FONT_SIZE_SCORE)
         self.hud_font = pg.font.Font(c.FONT_NAME, c.FONT_SIZE_HUD)
+        self.small_font = pg.font.Font(c.FONT_NAME, c.FONT_SIZE_SMALL)
         self.player_paddle = Paddle(c.PADDLE_MARGIN, c.WINDOW_HEIGHT // 2, side='left')
         self.ai_paddle = Paddle(c.WINDOW_WIDTH - c.PADDLE_MARGIN, c.WINDOW_HEIGHT // 2, side='right')
         self.ball = Ball()
@@ -30,6 +31,13 @@ class Gameplay:
         self._cached_psurf = None
         self._cached_asurf = None
         self.rally_count = 0
+        self.longest_rally = 0
+        self.rally_tier = 0
+        self.rally_callout_timer = 0.0
+        self.rally_callout_text = None
+        self.rally_callout_surf = None
+        self.ai_shrink_timer = 0.0
+        self.ai_base_height = c.PADDLE_HEIGHT
 
     def set_difficulty(self, difficulty):
         self.ai.set_difficulty(difficulty)
@@ -43,14 +51,25 @@ class Gameplay:
         self.player_paddle.reset()
         self.ai_paddle.reset()
         self.rally_count = 0
+        self.rally_callout_timer = 0.0
+        self.rally_callout_text = None
+        self.rally_callout_surf = None
+        self.ai_shrink_timer = 0.0
+        self.ai_paddle.height = self.ai_base_height
+        self.ai_paddle._built = False
 
     def reset(self):
         self.player_score = 0
         self.ai_score = 0
+        self.longest_rally = 0
+        self.rally_tier = 0
         self.powerup = None
         self.powerup_spawn_timer = c.POWERUP_SPAWN_INTERVAL
         self.hit_particles = []
         self.flash_timer = 0.0
+        self.ai_shrink_timer = 0.0
+        self.ai_paddle.height = self.ai_base_height
+        self.ai_paddle._built = False
         self.reset_round()
 
     def _spawn_hit_particles(self, x, y):
@@ -124,6 +143,22 @@ class Gameplay:
                     self.ball.x = paddle.x - paddle.width // 2 - c.BALL_SIZE // 2
                 self.ball.bump_speed()
                 self.rally_count += 1
+                if self.rally_count > self.longest_rally:
+                    self.longest_rally = self.rally_count
+                new_tier = 0
+                for m in sorted(c.RALLY_MILESTONES, reverse=True):
+                    if self.rally_count >= m:
+                        new_tier = m
+                        break
+                if new_tier > self.rally_tier:
+                    self.rally_tier = new_tier
+                    label = c.RALLY_LABELS.get(new_tier, f"RALLY {new_tier}")
+                    self.rally_callout_text = label
+                    self.rally_callout_surf = self.hud_font.render(label, True, c.PIRATE_GOLD)
+                    self.rally_callout_timer = 1.5
+                    self.ball.set_rally_tier(self.rally_tier)
+                elif self.rally_tier > 0:
+                    self.ball.set_rally_tier(self.rally_tier)
                 self.audio.play('paddle_hit')
                 self.powerup_spawn_timer = c.POWERUP_SPAWN_INTERVAL
                 self._spawn_hit_particles(self.ball.x, self.ball.y)
@@ -156,10 +191,29 @@ class Gameplay:
             if self.powerup.expired:
                 self.powerup = None
             elif self.powerup.rect.colliderect(self.player_paddle.rect):
-                self.player_paddle.activate_big()
+                if self.powerup.powerup_type == c.POWERUP_TYPE_LARGE_PADDLE:
+                    self.player_paddle.activate_big()
+                elif self.powerup.powerup_type == c.POWERUP_TYPE_CURSED_POWDER:
+                    self.ai_shrink_timer = c.CURSED_POWDER_DURATION
+                    shrink_h = int(self.ai_base_height * c.CURSED_POWDER_SHRINK)
+                    self.ai_paddle.height = shrink_h
+                    self.ai_paddle._built = False
                 self.audio.play('powerup')
                 self.powerup = None
                 self.powerup_spawn_timer = c.POWERUP_SPAWN_INTERVAL
+
+        if self.ai_shrink_timer > 0:
+            self.ai_shrink_timer -= dt
+            if self.ai_shrink_timer <= 0:
+                self.ai_paddle.height = self.ai_base_height
+                self.ai_paddle._built = False
+                self.ai_shrink_timer = 0.0
+
+        if self.rally_callout_timer > 0:
+            self.rally_callout_timer -= dt
+            if self.rally_callout_timer <= 0:
+                self.rally_callout_text = None
+                self.rally_callout_surf = None
 
         self.hit_particles = [p for p in self.hit_particles if not p.dead]
         for p in self.hit_particles:
@@ -174,11 +228,21 @@ class Gameplay:
         draw_center_line(surface)
         self.player_paddle.draw(surface)
         self.ai_paddle.draw(surface)
+
+        if self.ai_shrink_timer > 0:
+            pulse = abs(math.sin(pg.time.get_ticks() * 0.008))
+            near_expiry = self.ai_shrink_timer < 2.0
+            shrink_color = (180, 40, 180)
+            if near_expiry and pulse > 0.7:
+                shrink_color = (255, 100, 255)
+            pg.draw.rect(surface, shrink_color, self.ai_paddle.rect, 3)
+
         self.ball.draw(surface)
         if self.powerup:
             self.powerup.draw(surface)
         for p in self.hit_particles:
             p.draw(surface)
+
         if self.player_score != self._cached_pscore or self.ai_score != self._cached_ascore:
             self._cached_pscore = self.player_score
             self._cached_ascore = self.ai_score
@@ -186,6 +250,21 @@ class Gameplay:
             self._cached_asurf = self.score_font.render(str(self.ai_score), True, c.PIRATE_TEAL)
         surface.blit(self._cached_psurf, (c.WINDOW_WIDTH // 2 - 120 - self._cached_psurf.get_width() // 2, 20))
         surface.blit(self._cached_asurf, (c.WINDOW_WIDTH // 2 + 120 - self._cached_asurf.get_width() // 2, 20))
+
+        if self.rally_callout_surf and self.rally_callout_timer > 0:
+            rx = c.WINDOW_WIDTH // 2 - self.rally_callout_surf.get_width() // 2
+            ry = c.WINDOW_HEIGHT // 2 - 60
+            surface.blit(self.rally_callout_surf, (rx, ry))
+
+        rally_text = f"RALLY: {self.rally_count}"
+        rally_surf = self.small_font.render(rally_text, True, c.PIRATE_TAN)
+        surface.blit(rally_surf, (20, 20))
+
+        if self.ai_shrink_timer > 0:
+            shrink_text = f"CURSED: {int(self.ai_shrink_timer)}s"
+            shrink_surf = self.small_font.render(shrink_text, True, (180, 40, 180))
+            surface.blit(shrink_surf, (20, 45))
+
         if self.flash_timer > 0:
             draw_flash(surface, self.flash_timer)
         if self.show_fps:

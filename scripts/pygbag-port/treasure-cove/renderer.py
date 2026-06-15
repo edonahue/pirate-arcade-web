@@ -200,6 +200,38 @@ def _get_particle_surfs(size, color):
         _particle_surf_cache[key] = surfs
     return _particle_surf_cache[key]
 
+class ExplosionParticle:
+    def __init__(self, x, y, color=None):
+        if color is None:
+            color = random.choice([(255, 120, 30), (255, 200, 50), (255, 80, 20), (200, 60, 10)])
+        angle = random.uniform(0, math.pi * 2)
+        speed = random.uniform(100, 350)
+        self.x = x
+        self.y = y
+        self.vx = math.cos(angle) * speed
+        self.vy = math.sin(angle) * speed - 50
+        self.life = random.uniform(0.2, 0.5)
+        self.max_life = self.life
+        self.size = int(random.uniform(2, 6))
+        self.color = color
+        self._surfs = _get_particle_surfs(self.size, color)
+
+    def update(self, dt):
+        self.x += self.vx * dt
+        self.y += self.vy * dt
+        self.vy += 200 * dt
+        self.life -= dt
+
+    @property
+    def dead(self):
+        return self.life <= 0
+
+    def draw(self, surface):
+        idx = int(self.life / self.max_life * (_ALPHA_LEVELS - 1))
+        idx = max(0, min(_ALPHA_LEVELS - 1, idx))
+        surface.blit(self._surfs[idx], (int(self.x - self.size), int(self.y - self.size)))
+
+
 class HitParticle:
     def __init__(self, x, y, color=(255, 255, 255)):
         angle = random.uniform(0, math.pi * 2)
