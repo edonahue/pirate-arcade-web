@@ -10,13 +10,8 @@
   viewBox="0 0 1440 900"
   preserveAspectRatio="xMidYMid slice"
   aria-hidden="true"
+  focusable="false"
 >
-  <defs>
-    <clipPath id="chart-clip-portrait">
-      <rect x="0" y="0" width="1440" height="900"></rect>
-    </clipPath>
-  </defs>
-
   <!-- Curved lat/long grid lines -->
   <g class="chart-grid-lines">
     <path d="M -100,200 Q 360,260 720,200 T 1540,200"></path>
@@ -119,20 +114,8 @@
 
   <!-- X marks -->
   <g class="x-marks">
-    <path
-      d="M 370,340 L 395,365 M 395,340 L 370,365"
-      stroke="currentColor"
-      stroke-width="2.5"
-      stroke-linecap="round"
-      opacity="0.35"
-      fill="none"></path>
-    <path
-      d="M 750,620 L 785,655 M 785,620 L 750,655"
-      stroke="currentColor"
-      stroke-width="2.5"
-      stroke-linecap="round"
-      opacity="0.35"
-      fill="none"></path>
+    <path d="M 370,340 L 395,365 M 395,340 L 370,365"></path>
+    <path d="M 750,620 L 785,655 M 785,620 L 750,655"></path>
   </g>
 
   <!-- Mermaid glyph (map engraving style) -->
@@ -319,10 +302,12 @@
     opacity: 0.15;
   }
 
-  @media (min-width: 640px) {
-    .chart-rhumb-lines {
-      opacity: 0.12;
-    }
+  .x-marks {
+    stroke: currentColor;
+    stroke-width: 2.5;
+    stroke-linecap: round;
+    opacity: 0.35;
+    fill: none;
   }
 
   /* Light theme: reduce chart intensity slightly */
@@ -338,17 +323,37 @@
     opacity: 0.1;
   }
 
-  /* Hide on narrow mobile — too small to read, adds noise */
+  /* Mobile: sparse simplified chart instead of hiding entirely */
   @media (max-width: 480px) {
-    .chart-overlay {
+    .chart-rhumb-lines,
+    .compass-rose,
+    .mermaid-glyph,
+    .treasure-chest-glyph {
       display: none;
+    }
+
+    .x-marks {
+      opacity: 0.2;
+    }
+
+    .chart-grid-lines {
+      opacity: 0.2;
+    }
+
+    .chart-overlay {
+      opacity: 0.6;
     }
   }
 
-  /* Respect reduced motion — static SVG so just simplify */
-  @media (prefers-reduced-motion: reduce) {
-    .chart-rhumb-lines {
-      opacity: 0.08;
+  /* Tablet: ensure compass rose and glyphs stay clear of header/reading area */
+  @media (min-width: 481px) and (max-width: 820px) {
+    .compass-rose {
+      opacity: 0.5;
+    }
+
+    .mermaid-glyph,
+    .treasure-chest-glyph {
+      opacity: 0.15;
     }
   }
 </style>

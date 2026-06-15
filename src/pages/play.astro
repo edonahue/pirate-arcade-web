@@ -17,7 +17,7 @@ const desktopGames = games.filter((g) => g.status === "desktop-available");
 
 <BaseLayout
   title="Play"
-  description="Play 4 pirate-themed arcade games in your browser now — including a Phaser 3 web-native racer and 3 Pygbag/WebAssembly ports. No install required."
+  description={`Play ${browserGames.length} pirate-themed arcade games in your browser now — including a Phaser 3 web-native racer and ${pygbagGames.length} Pygbag/WebAssembly ports. No install required.`}
   current="play"
   jsonLd={[
     webPageNode(

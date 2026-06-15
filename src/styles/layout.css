@@ -43,11 +43,10 @@
 .vignette--treasure-island {
   position: absolute;
   right: -40px;
-  top: 60%;
-  transform: translateY(-50%);
+  top: 15%;
   width: 280px;
   height: auto;
-  opacity: 0.12;
+  opacity: 0.18;
   pointer-events: none;
   z-index: 0;
   object-fit: contain;
@@ -76,12 +75,6 @@
 }
 
 @media (max-width: 640px) {
-  .vignette--treasure-island {
-    display: none;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
   .vignette--treasure-island {
     display: none;
   }

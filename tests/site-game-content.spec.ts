@@ -78,17 +78,36 @@ test.describe("Site Game Content", () => {
     }
   });
 
-  test("home page game count matches registry", async ({ page }) => {
+  test("home page stats strip has 3 registry-derived counts", async ({
+    page,
+  }) => {
     await page.goto("/");
 
-    const totalCount = page.locator(".stats-strip__count").first();
-    await expect(totalCount).toHaveText(String(games.length));
+    const statsItems = page.locator(".stats-strip__item");
+    await expect(statsItems).toHaveCount(3);
 
-    const browserCount = page.locator(".stats-strip__count").nth(1);
-    await expect(browserCount).toHaveText(String(browserGames.length));
+    const engines = new Set(browserGames.map((g: any) => g.engine));
 
-    const desktopCount = page.locator(".stats-strip__count").nth(4);
-    await expect(desktopCount).toHaveText(String(desktopGames.length));
+    const totalLabel = page.locator(
+      '.stats-strip__item:has-text("Total Games")',
+    );
+    await expect(totalLabel.locator(".stats-strip__count")).toHaveText(
+      String(games.length),
+    );
+
+    const browserLabel = page.locator(
+      '.stats-strip__item:has-text("Play in Browser")',
+    );
+    await expect(browserLabel.locator(".stats-strip__count")).toHaveText(
+      String(browserGames.length),
+    );
+
+    const enginesLabel = page.locator(
+      '.stats-strip__item:has-text("Browser Engines")',
+    );
+    await expect(enginesLabel.locator(".stats-strip__count")).toHaveText(
+      String(engines.size),
+    );
   });
 
   test("source page license claim matches package.json", async ({ page }) => {
@@ -283,7 +302,9 @@ test.describe("Site Game Content", () => {
     expect(linkText?.trim()).toContain("Buy me a coffee");
   });
 
-  test("metadata descriptions within reasonable length", async ({ page }) => {
+  test("metadata descriptions within reasonable length and contain registry-derived counts", async ({
+    page,
+  }) => {
     const pages = [
       { path: "/", maxLen: 200 },
       { path: "/about/", maxLen: 200 },
@@ -298,6 +319,11 @@ test.describe("Site Game Content", () => {
         .getAttribute("content");
       expect(desc).toBeTruthy();
       expect(desc!.length).toBeLessThanOrEqual(maxLen);
+
+      // Homepage and Play page descriptions should contain derived browser count
+      if (path === "/" || path === "/play/") {
+        expect(desc).toContain(String(browserGames.length));
+      }
     }
 
     // Game detail pages

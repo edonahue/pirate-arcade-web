@@ -9,24 +9,24 @@ import { webPageNode } from "../lib/schema";
 const browserGames = games.filter((g) => g.status === "browser-playable");
 const pygbagGames = browserGames.filter((g) => g.engine === "pygbag");
 const webNativeGames = browserGames.filter((g) => g.engine === "phaser");
-const desktopOnly = games.filter((g) => g.status === "desktop-available");
+const browserEngines = new Set(browserGames.map((g) => g.engine));
 ---
 
 <BaseLayout
   current="home"
-  description="A pirate-themed arcade collection and public build experiment. Play 4 browser games — Phaser 3 web-native racer and 3 Pygbag/WebAssembly ports, zero-cost AI-assisted."
+  description={`A pirate-themed arcade collection and public build experiment. Play ${browserGames.length} browser games — ${webNativeGames.length} Phaser 3 web-native ${webNativeGames.length === 1 ? "racer" : "racers"} and ${pygbagGames.length} Pygbag/WebAssembly ports, zero-cost AI-assisted.`}
   jsonLd={[
     webPageNode(
       "/",
       "Pirate Arcade",
-      "A pirate-themed arcade collection and public build experiment. Play 4 browser games — Phaser 3 web-native racer and 3 Pygbag/WebAssembly ports, zero-cost AI-assisted.",
+      `A pirate-themed arcade collection and public build experiment. Play ${browserGames.length} browser games — ${webNativeGames.length} Phaser 3 web-native ${webNativeGames.length === 1 ? "racer" : "racers"} and ${pygbagGames.length} Pygbag/WebAssembly ports, zero-cost AI-assisted.`,
       "CollectionPage",
     ),
   ]}
 >
   <Hero
     title="PIRATE ARCADE"
-    subtitle="Five classic arcade games reimagined with a nautical twist. Built in the open as an experiment in zero-cost AI-assisted development."
+    subtitle={`${games.length} classic arcade games reimagined with a nautical twist. Built in the open as an experiment in zero-cost AI-assisted development.`}
     eyebrow="Choose Your Course"
     backgroundImage="/images/art/pyle-marooned.webp"
     artPosition="50% 25%"
@@ -46,10 +46,10 @@ const desktopOnly = games.filter((g) => g.status === "desktop-available");
   <section class="section section--games">
     <div class="section__header">
       <p class="section__eyebrow">On the Chart</p>
-      <h2 class="section__title">Five Pirate Arcade Games</h2>
+      <h2 class="section__title">{games.length} Pirate Arcade Games</h2>
       <p class="section__description">
-        Five classic arcade games, each reimagined with pirate flavor and modern
-        visual effects. {browserGames.length} browser-playable — {
+        {games.length} classic arcade games, each reimagined with pirate flavor and
+        modern visual effects. {browserGames.length} browser-playable — {
           pygbagGames.length
         }
         Pygbag/WebAssembly ports and {webNativeGames.length} web-native Phaser
@@ -65,19 +65,11 @@ const desktopOnly = games.filter((g) => g.status === "desktop-available");
       </div>
       <div class="stats-strip__item">
         <span class="stats-strip__count">{browserGames.length}</span>
-        <span class="stats-strip__label">Browser-Ready</span>
+        <span class="stats-strip__label">Play in Browser</span>
       </div>
       <div class="stats-strip__item">
-        <span class="stats-strip__count">{pygbagGames.length}</span>
-        <span class="stats-strip__label">Pygbag Ports</span>
-      </div>
-      <div class="stats-strip__item">
-        <span class="stats-strip__count">{webNativeGames.length}</span>
-        <span class="stats-strip__label">Web-Native (Phaser)</span>
-      </div>
-      <div class="stats-strip__item">
-        <span class="stats-strip__count">{desktopOnly.length}</span>
-        <span class="stats-strip__label">Desktop-Only</span>
+        <span class="stats-strip__count">{browserEngines.size}</span>
+        <span class="stats-strip__label">Browser Engines</span>
       </div>
     </div>
 

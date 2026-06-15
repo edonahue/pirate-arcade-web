@@ -9,7 +9,7 @@ test.describe("Site Visual Theme", () => {
     // Check main sections exist
     await expect(page.locator("h1.hero__title")).toContainText("PIRATE ARCADE");
     await expect(page.locator("h2.section__title").first()).toContainText(
-      "Five",
+      "Games",
     );
     await expect(page.locator("h2.section__title").nth(1)).toContainText(
       "Race to Treasure",
@@ -125,6 +125,75 @@ test.describe("Site Visual Theme", () => {
         expect(navBox.width).toBeLessThanOrEqual(viewport.width);
       }
     }
+  });
+});
+
+test.describe("Chart Overlay", () => {
+  test.use({ viewport: { width: 1440, height: 900 } });
+
+  test("chart overlay exists and is inaccessible", async ({ page }) => {
+    await page.goto("/");
+
+    const overlay = page.locator(".chart-overlay");
+    await expect(overlay).toHaveCount(1);
+    await expect(overlay).toHaveAttribute("aria-hidden", "true");
+    await expect(overlay).toHaveAttribute("focusable", "false");
+
+    const pe = await overlay.evaluate(
+      (el) => window.getComputedStyle(el).pointerEvents,
+    );
+    expect(pe).toBe("none");
+  });
+
+  test("chart-overlay groups exist at desktop width", async ({ page }) => {
+    await page.goto("/");
+
+    await expect(page.locator(".chart-grid-lines")).toBeVisible();
+    await expect(page.locator(".compass-rose")).toBeVisible();
+    await expect(page.locator(".x-marks")).toBeVisible();
+    await expect(page.locator(".mermaid-glyph")).toBeVisible();
+    await expect(page.locator(".treasure-chest-glyph")).toBeVisible();
+  });
+
+  test("chart overlay visible in dark and light themes", async ({ page }) => {
+    await page.goto("/");
+
+    // Dark
+    await expect(page.locator(".chart-overlay")).toBeVisible();
+
+    // Switch to light
+    await page.evaluate(() => {
+      document.documentElement.dataset.theme = "light";
+    });
+    await page.waitForTimeout(100);
+    await expect(page.locator(".chart-overlay")).toBeVisible();
+  });
+
+  test("chart overlay is simplified on mobile (≤480px)", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/");
+
+    // Chart still present
+    const overlay = page.locator(".chart-overlay");
+    await expect(overlay).toBeAttached();
+
+    // Dense motifs are hidden
+    await expect(page.locator(".compass-rose")).toBeHidden();
+    await expect(page.locator(".mermaid-glyph")).toBeHidden();
+    await expect(page.locator(".treasure-chest-glyph")).toBeHidden();
+    await expect(page.locator(".chart-rhumb-lines")).toBeHidden();
+
+    // Grid lines still rendered
+    await expect(page.locator(".chart-grid-lines")).toBeAttached();
+
+    // No horizontal overflow with chart present
+    const hasOverflow = await page.evaluate(() => {
+      return (
+        document.documentElement.scrollWidth >
+        document.documentElement.clientWidth
+      );
+    });
+    expect(hasOverflow).toBe(false);
   });
 });
 
