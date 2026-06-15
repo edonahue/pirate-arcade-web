@@ -114,8 +114,10 @@
 
   <!-- X marks -->
   <g class="x-marks">
-    <path d="M 370,340 L 395,365 M 395,340 L 370,365"></path>
-    <path d="M 750,620 L 785,655 M 785,620 L 750,655"></path>
+    <path class="x-mark--primary" d="M 370,340 L 395,365 M 395,340 L 370,365"
+    ></path>
+    <path class="x-mark--secondary" d="M 750,620 L 785,655 M 785,620 L 750,655"
+    ></path>
   </g>
 
   <!-- Mermaid glyph (map engraving style) -->
@@ -285,7 +287,7 @@
     width: 100vw;
     height: 100vh;
     pointer-events: none;
-    z-index: -1;
+    z-index: 0;
     color: var(--chart-line);
     overflow: hidden;
   }
@@ -329,6 +331,10 @@
     .compass-rose,
     .mermaid-glyph,
     .treasure-chest-glyph {
+      display: none;
+    }
+
+    .x-mark--secondary {
       display: none;
     }
 

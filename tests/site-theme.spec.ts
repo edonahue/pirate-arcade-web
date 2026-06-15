@@ -186,6 +186,10 @@ test.describe("Chart Overlay", () => {
     // Grid lines still rendered
     await expect(page.locator(".chart-grid-lines")).toBeAttached();
 
+    // Only primary X marker visible on mobile
+    await expect(page.locator(".x-mark--primary")).toBeAttached();
+    await expect(page.locator(".x-mark--secondary")).toBeHidden();
+
     // No horizontal overflow with chart present
     const hasOverflow = await page.evaluate(() => {
       return (
@@ -194,6 +198,68 @@ test.describe("Chart Overlay", () => {
       );
     });
     expect(hasOverflow).toBe(false);
+  });
+
+  test("global backdrop and hero stacking order is correct", async ({
+    page,
+  }) => {
+    await page.goto("/");
+
+    const chart = page.locator(".chart-overlay");
+    const pageMain = page.locator(".page-main");
+    const siteFooter = page.locator(".site-footer");
+    const siteHeader = page.locator(".site-header");
+    const heroBg = page.locator(".hero__bg");
+    const heroTitle = page.locator(".hero__title");
+    const heroActions = page.locator(".hero__actions");
+
+    // Chart at base layer
+    const chartZ = await chart.evaluate(
+      (el) => window.getComputedStyle(el).zIndex,
+    );
+    expect(chartZ).toBe("0");
+
+    // Page content above chart
+    const pageMainZ = await pageMain.evaluate(
+      (el) => window.getComputedStyle(el).zIndex,
+    );
+    expect(parseInt(pageMainZ, 10)).toBeGreaterThan(parseInt(chartZ, 10));
+
+    // Footer above chart
+    const footerZ = await siteFooter.evaluate(
+      (el) => window.getComputedStyle(el).zIndex,
+    );
+    expect(parseInt(footerZ, 10)).toBeGreaterThan(parseInt(chartZ, 10));
+
+    // Header above main content
+    const headerZ = await siteHeader.evaluate(
+      (el) => window.getComputedStyle(el).zIndex,
+    );
+    expect(parseInt(headerZ, 10)).toBeGreaterThan(parseInt(pageMainZ, 10));
+
+    // Hero bg at base layer
+    const heroBgZ = await heroBg.evaluate(
+      (el) => window.getComputedStyle(el).zIndex,
+    );
+    expect(heroBgZ).toBe("0");
+
+    // Hero text above hero bg
+    const heroTitleZ = await heroTitle.evaluate(
+      (el) => window.getComputedStyle(el).zIndex,
+    );
+    expect(parseInt(heroTitleZ, 10)).toBeGreaterThan(parseInt(heroBgZ, 10));
+
+    // Hero actions above hero bg
+    const heroActionsZ = await heroActions.evaluate(
+      (el) => window.getComputedStyle(el).zIndex,
+    );
+    expect(parseInt(heroActionsZ, 10)).toBeGreaterThan(parseInt(heroBgZ, 10));
+
+    // Chart still non-interactive
+    const chartPe = await chart.evaluate(
+      (el) => window.getComputedStyle(el).pointerEvents,
+    );
+    expect(chartPe).toBe("none");
   });
 });
 

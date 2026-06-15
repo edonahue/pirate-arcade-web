@@ -17,6 +17,16 @@ const desktopGames = games.filter((g: any) => g.status === "desktop-available");
 const pygbagGames = browserGames.filter((g: any) => g.engine === "pygbag");
 const phaserGames = browserGames.filter((g: any) => g.engine === "phaser");
 
+type Rect = { x: number; y: number; width: number; height: number };
+function rectanglesDoNotOverlap(a: Rect, b: Rect): boolean {
+  return (
+    a.x + a.width <= b.x ||
+    b.x + b.width <= a.x ||
+    a.y + a.height <= b.y ||
+    b.y + b.height <= a.y
+  );
+}
+
 test.describe("Site Game Content", () => {
   test.use({ viewport: { width: 1440, height: 900 } });
 
@@ -219,12 +229,7 @@ test.describe("Site Game Content", () => {
     for (let i = 0; i < cardCount; i++) {
       const cardBox = await gameCards.nth(i).boundingBox();
       if (cardBox) {
-        const noOverlap =
-          vignetteBox!.x + vignetteBox!.width <= cardBox.x ||
-          cardBox.x + cardBox.width <= vignetteBox!.x ||
-          vignetteBox!.y + vignetteBox!.height <= cardBox.y ||
-          cardBox.y + cardBox.height <= vignetteBox!.y;
-        expect(noOverlap).toBe(true);
+        expect(rectanglesDoNotOverlap(vignetteBox!, cardBox)).toBe(true);
       }
     }
 
@@ -234,13 +239,20 @@ test.describe("Site Game Content", () => {
     for (let i = 0; i < startHereCount; i++) {
       const linkBox = await startHere.nth(i).boundingBox();
       if (linkBox) {
-        const noOverlap =
-          vignetteBox!.x + vignetteBox!.width <= linkBox.x ||
-          linkBox.x + linkBox.width <= vignetteBox!.x ||
-          vignetteBox!.y + vignetteBox!.height <= linkBox.y ||
-          linkBox.y + linkBox.height <= vignetteBox!.y;
-        expect(noOverlap).toBe(true);
+        expect(rectanglesDoNotOverlap(vignetteBox!, linkBox)).toBe(true);
       }
+    }
+
+    // Section title and description not overlapped
+    const sectionTitle = page.locator(".section--games .section__title");
+    const sectionDesc = page.locator(".section--games .section__description");
+    const titleBox = await sectionTitle.boundingBox();
+    const descBox = await sectionDesc.boundingBox();
+    if (titleBox) {
+      expect(rectanglesDoNotOverlap(vignetteBox!, titleBox)).toBe(true);
+    }
+    if (descBox) {
+      expect(rectanglesDoNotOverlap(vignetteBox!, descBox)).toBe(true);
     }
   });
 
@@ -259,12 +271,7 @@ test.describe("Site Game Content", () => {
     for (let i = 0; i < proofCount; i++) {
       const itemBox = await proofItems.nth(i).boundingBox();
       if (itemBox) {
-        const noOverlap =
-          artBox!.x + artBox!.width <= itemBox.x ||
-          itemBox.x + itemBox.width <= artBox!.x ||
-          artBox!.y + artBox!.height <= itemBox.y ||
-          itemBox.y + itemBox.height <= artBox!.y;
-        expect(noOverlap).toBe(true);
+        expect(rectanglesDoNotOverlap(artBox!, itemBox)).toBe(true);
       }
     }
 
@@ -272,12 +279,7 @@ test.describe("Site Game Content", () => {
     const cta = page.locator('a[href="/build-log"]').last();
     const ctaBox = await cta.boundingBox();
     if (ctaBox) {
-      const noOverlap =
-        artBox!.x + artBox!.width <= ctaBox.x ||
-        ctaBox.x + ctaBox.width <= artBox!.x ||
-        artBox!.y + artBox!.height <= ctaBox.y ||
-        ctaBox.y + ctaBox.height <= artBox!.y;
-      expect(noOverlap).toBe(true);
+      expect(rectanglesDoNotOverlap(artBox!, ctaBox)).toBe(true);
     }
   });
 
