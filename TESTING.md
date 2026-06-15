@@ -599,3 +599,30 @@ Python→JS bridge now uses a DOM element (`#pa-game-state`) written via Pygbag'
 - Removed conditional assertions (`if (stateBefore && stateAfter)`)
 - Removed early returns after required assertions (`if (!box) return`)
 - All outcome tests now require explicit state and numeric diffs
+
+## Recent changes (2025-06-14)
+
+### Treasure Cove — Fortress Siege + 3-stage system
+
+- **Data model**: `self.ball` → `self.balls: list[Ball]`, `self.stage` (1-3), `self.max_stage=3`
+- **Stage speeds**: 650 (Stage 1 Outer Wall) → 700 (Stage 2 Inner Fortress) → 750 (Stage 3 Treasure Vault)
+- **4 brick types**: Standard (1-hit), Reinforced (2-hit, `BRICK_REINFORCED=1`), Powder-Keg (`BRICK_POWDER_KEG=2`, chain-explosion 1.5× grid radius, max 20 bricks), Treasure (`BRICK_TREASURE=3`, drops falling pickup)
+- **Falling pickups** (`Pickup` class in `pickup.py`): Multiball (gold, creates 2 extra balls), Wide Paddle (cyan, 1.6× width, 8s), Slow Seas (green, 72% speed, 6s). Fall speed 180, lifetime 8s, label banner on collection.
+- **Multi-ball**: `ball.clone()` with ±30–45° angle offsets, 3-ball cap, life lost only on final ball
+- **Stage transition**: `stage_transition_phase` ("breached"→2s→"enter"→1.5s→playing), `run_complete` flag
+- **HUD**: Stage (1/3), ball count when >1, power-up remaining time, crew lives (♠), score popups, flash panel
+
+### Cannonball Clash — Rally Fever + Cursed Powder
+
+- **Rally Fever**: Milestones at rally 5/10/15/20 (`RALLY_MILESTONES=[5,10,15,20]`); labels: RALLY 5, CANNONBALL FEVER, HIGH SEAS RALLY, LEGENDARY RALLY; ball glow tint tiers (gold→orange→red→magenta); trail length and particle count increase per tier
+- **Cursed Powder**: `POWERUP_TYPE_CURSED_POWDER=1`, shrinks AI paddle to 65% height for 7s (purple icon/visual), timer refresh on recollect
+- **Two pickup types**: Large paddle (gold chest) and Cursed Powder (purple icon, `POWERUP_SYMBOLS`)
+- **AI paddle**: Height restored on timer expiry, pulse border while shrunk
+- **Extended game state bridge**: `currentRally`, `longestRally`, `rallyTier`, `powerupType`, `aiShrinkActive`, `aiShrinkRemainingMs`
+
+### Game state bridge (extended)
+
+Both games now expose extended JSON dumps with:
+
+- Treasure Cove: `stage`, `maxStage`, `ballsActive`, `ballSpeeds`, `underlyingBallSpeed`, `effectiveBallSpeed`, `bricksRemaining`, `standardBricksRemaining`, `reinforcedBricksRemaining`, `powderKegsRemaining`, `treasureBricksRemaining`, `fallingPickupCount`, `lastPickupType`, `widePaddleActive`, `widePaddleRemainingMs`, `slowMotionActive`, `slowMotionRemainingMs`, `stageTransitionActive`
+- Cannonball Clash: `currentRally`, `longestRally`, `rallyTier`, `powerupType`, `aiShrinkActive`, `aiShrinkRemainingMs`

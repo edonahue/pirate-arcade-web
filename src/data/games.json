@@ -20,8 +20,15 @@
     "firstPlayTip": "Slide ship up/down, tap START. Build rallies for legendary effects!",
     "bestFor": "Quick first touch game — simplest controls, instant action.",
     "availabilityNote": "Playable in browser now via Pygbag and WebAssembly, and also included in the desktop release.",
-    "seoDescription": "Play Cannonball Clash in your browser — a naval Pong duel with Rally Fever, Cursed Powder power-up, AI opponent, and procedural audio.",
-    "features": ["1-2 players", "AI opponent", "Rally Fever streaks", "Cursed Powder power-up", "Large paddle power-up", "Procedural audio"],
+    "seoDescription": "Play Cannonball Clash — a naval Pong duel. Rally Fever streaks, Cursed Powder power-up, AI opponent, and procedural audio.",
+    "features": [
+      "1-2 players",
+      "AI opponent",
+      "Rally Fever streaks",
+      "Cursed Powder power-up",
+      "Large paddle power-up",
+      "Procedural audio"
+    ],
     "demonstrates": [
       "Pygbag/WebAssembly port pipeline",
       "Touch input bridge for slide controls",
@@ -52,7 +59,7 @@
     "firstPlayTip": "Slide longboat left/right, tap LAUNCH. Destroy Powder Kegs for chain reactions!",
     "bestFor": "Breakout fans who want a multi-stage fortress siege with power-ups and special bricks.",
     "availabilityNote": "Playable in browser now via Pygbag and WebAssembly, and also included in the desktop release.",
-    "seoDescription": "Play Treasure Cove in your browser — a 3-stage Fortress Siege Breakout game with Powder-Keg chain reactions, Treasure Bricks, Multiball, Wide Paddle, and Slow Seas power-ups.",
+    "seoDescription": "Play Treasure Cove in your browser — a 3-stage Fortress Siege Breakout. Powder-Keg chains, Treasure Bricks, Multiball, Wide Paddle, and Slow Seas power-ups.",
     "features": [
       "3-stage Fortress Siege (Outer Wall, Inner Fortress, Treasure Vault)",
       "Escalating stage speed (650 → 700 → 750)",

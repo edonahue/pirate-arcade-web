@@ -1,6 +1,6 @@
 # ROADMAP
 
-<!-- Current HEAD: Race consolidation — countdown, best score, seeded RNG, tint -->
+<!-- Current HEAD: Fortress Siege + Rally Fever — 3-stage Breakout, 4 brick types, 3 power-ups, Rally tiers, Cursed Powder -->
 
 ## Race Consolidation (This Release)
 
@@ -49,7 +49,7 @@ Hardens the new Race systems for a polished first-session experience and flagshi
 ## Phase 2: Browser Play Feasibility ✓ (Live)
 
 - [x] Evaluate porting strategy — Pygbag/WebAssembly recommended for Phase 2
-- [x] Choose first game: Cannonball Clash (simplest game, minimal changes)
+- [x] Choose first game: Cannonball Clash
 - [x] Port Cannonball Clash via Pygbag as feasibility spike
 - [x] Measure bundle size, load time, frame rate, input latency
 - [x] Embed web-playable game prototype on /play
@@ -124,6 +124,20 @@ Hardens the new Race systems for a polished first-session experience and flagshi
 - [x] Best score tracking (win-only localStorage, malformed data safe)
 - [x] Deterministic cosmetic RNG for screenshot stability
 - [x] Tint state machine across boost/stun/finish/restart
+
+## Phase 7: Fortress Siege & Rally Fever ✓ (Live)
+
+- [x] **Treasure Cove — 3-stage Fortress Siege**: Outer Wall (650 speed), Inner Fortress (700), Treasure Vault (750) with escalating fortress layouts
+- [x] **Treasure Cove — 4 brick types**: Standard (1-hit), Reinforced (2-hit, metal bands), Powder-Keg (chain-explosion in 1.5× grid radius), Treasure (drops falling pickup on destroy)
+- [x] **Treasure Cove — Falling pickups**: Multiball (2 extra balls, 3-ball cap), Wide Paddle (1.6× width, 8s, cyan glow), Slow Seas (72% speed, 6s, green glow)
+- [x] **Treasure Cove — Multi-ball**: Clone with ±30–45° angle offset, life lost only when final ball falls, cap at 3
+- [x] **Treasure Cove — Stage transition**: FORTRESS BREACHED banner → stage name → rebuild fortress → reset to one ball
+- [x] **Treasure Cove — HUD**: Stage indicator, ball count, power-up timers, crew lives, score popups
+- [x] **Cannonball Clash — Rally Fever**: Milestones at rally 5/10/15/20 with distinct labels, ball glow tint (gold→orange→red→magenta), trail length, particle count
+- [x] **Cannonball Clash — Cursed Powder**: New pickup type shrinks AI paddle to 65% height for 7s (purple glow/border pulse)
+- [x] **Cannonball Clash — Two pickup system**: Large paddle (gold chest) and Cursed Powder (purple icon), timer refresh mechanics
+- [x] **Game state bridge**: Extended JSON dump with stage, ballsActive, ballSpeeds, bricksRemaining sub-types, power-up state
+- [x] **650 ball speeds preserved**: Both games start at 650; Treasure Cove escalates 650→700→750 across stages
 
 ## Maybe / Future
 
