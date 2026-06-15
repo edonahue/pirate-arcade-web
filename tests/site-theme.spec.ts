@@ -184,10 +184,10 @@ test.describe("Chart Overlay", () => {
     await expect(page.locator(".chart-rhumb-lines")).toBeHidden();
 
     // Grid lines still rendered
-    await expect(page.locator(".chart-grid-lines")).toBeAttached();
+    await expect(page.locator(".chart-grid-lines")).toBeVisible();
 
     // Only primary X marker visible on mobile
-    await expect(page.locator(".x-mark--primary")).toBeAttached();
+    await expect(page.locator(".x-mark--primary")).toBeVisible();
     await expect(page.locator(".x-mark--secondary")).toBeHidden();
 
     // No horizontal overflow with chart present
@@ -260,6 +260,55 @@ test.describe("Chart Overlay", () => {
       (el) => window.getComputedStyle(el).pointerEvents,
     );
     expect(chartPe).toBe("none");
+  });
+
+  test("Play page hero has correct public-domain art and stacking", async ({
+    page,
+  }) => {
+    await page.goto("/play/");
+
+    const heroBg = page.locator(".hero__bg");
+    const heroTitle = page.locator(".hero__title");
+    const heroSubtitle = page.locator(".hero__subtitle");
+
+    // Hero background uses the Blackbeard illustration
+    await expect(heroBg).toBeVisible();
+    const src = await heroBg.getAttribute("src");
+    expect(src).toContain("pyle-blackbeard-buries-treasure.webp");
+    await expect(heroBg).toHaveAttribute("alt", "");
+    await expect(heroBg).toHaveAttribute("aria-hidden", "true");
+
+    // Hero text remains above background by z-index
+    const heroBgZ = await heroBg.evaluate(
+      (el) => window.getComputedStyle(el).zIndex,
+    );
+    const heroTitleZ = await heroTitle.evaluate(
+      (el) => window.getComputedStyle(el).zIndex,
+    );
+    const heroSubtitleZ = await heroSubtitle.evaluate(
+      (el) => window.getComputedStyle(el).zIndex,
+    );
+    expect(parseInt(heroTitleZ, 10)).toBeGreaterThan(parseInt(heroBgZ, 10));
+    expect(parseInt(heroSubtitleZ, 10)).toBeGreaterThan(parseInt(heroBgZ, 10));
+
+    // No horizontal overflow at desktop
+    let hasOverflow = await page.evaluate(() => {
+      return (
+        document.documentElement.scrollWidth >
+        document.documentElement.clientWidth
+      );
+    });
+    expect(hasOverflow).toBe(false);
+
+    // No horizontal overflow at mobile
+    await page.setViewportSize({ width: 390, height: 844 });
+    hasOverflow = await page.evaluate(() => {
+      return (
+        document.documentElement.scrollWidth >
+        document.documentElement.clientWidth
+      );
+    });
+    expect(hasOverflow).toBe(false);
   });
 });
 

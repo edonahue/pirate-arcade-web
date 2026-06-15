@@ -295,10 +295,69 @@ test.describe("Site Game Content", () => {
   test("play page has recommended path strip", async ({ page }) => {
     await page.goto("/play/");
 
-    await expect(page.locator("text=⚡ Set sail")).toBeVisible();
-    await expect(page.locator("text=👆 Easiest on touch")).toBeVisible();
-    await expect(page.locator("text=🐍 Classic Pygbag set")).toBeVisible();
-    await expect(page.locator("text=🖥️ Desktop collection")).toBeVisible();
+    await expect(
+      page.locator(".recommended-path__label:has-text('Instant Course')"),
+    ).toBeVisible();
+    await expect(
+      page.locator(".recommended-path__label:has-text('Best on Touch')"),
+    ).toBeVisible();
+    await expect(
+      page.locator(".recommended-path__label:has-text('Pygbag Classics')"),
+    ).toBeVisible();
+    await expect(
+      page.locator(".recommended-path__label:has-text('Desktop Collection')"),
+    ).toBeVisible();
+  });
+
+  test("homepage quick-start labels are text-only", async ({ page }) => {
+    await page.goto("/");
+
+    await expect(
+      page.locator(".start-here__badge:has-text('Instant Load')"),
+    ).toBeVisible();
+    await expect(
+      page.locator(".start-here__badge:has-text('Best on Touch')"),
+    ).toBeVisible();
+    await expect(
+      page.locator(".start-here__badge:has-text('Desktop Only')"),
+    ).toBeVisible();
+  });
+
+  test("Rhead vignette does not intersect content at tablet width", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 768, height: 900 });
+    await page.goto("/");
+
+    const vignette = page.locator(".vignette--treasure-island");
+    const vignetteBox = await vignette.boundingBox();
+    expect(vignetteBox).not.toBeNull();
+
+    // Section title and description not overlapped
+    const sectionTitle = page.locator(".section--games .section__title");
+    const sectionDesc = page.locator(".section--games .section__description");
+    const titleBox = await sectionTitle.boundingBox();
+    const descBox = await sectionDesc.boundingBox();
+    if (titleBox) {
+      expect(rectanglesDoNotOverlap(vignetteBox!, titleBox)).toBe(true);
+    }
+    if (descBox) {
+      expect(rectanglesDoNotOverlap(vignetteBox!, descBox)).toBe(true);
+    }
+
+    // Document has no horizontal overflow
+    const hasOverflow = await page.evaluate(() => {
+      return (
+        document.documentElement.scrollWidth >
+        document.documentElement.clientWidth
+      );
+    });
+    expect(hasOverflow).toBe(false);
+
+    // Section description retains practical readable width
+    if (descBox) {
+      expect(descBox.width).toBeGreaterThanOrEqual(300);
+    }
   });
 
   test("about page links to builder sites", async ({ page }) => {

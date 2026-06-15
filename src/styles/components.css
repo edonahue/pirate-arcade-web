@@ -389,11 +389,31 @@
 }
 
 .section-divider__dot {
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
+  position: relative;
+  width: 10px;
+  height: 10px;
+  flex: 0 0 auto;
+  opacity: 0.4;
+}
+
+.section-divider__dot::before,
+.section-divider__dot::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 1px;
+  height: 100%;
   background: var(--accent);
-  opacity: 0.5;
+  transform-origin: center;
+}
+
+.section-divider__dot::before {
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+
+.section-divider__dot::after {
+  transform: translate(-50%, -50%) rotate(-45deg);
 }
 
 /* Section */
@@ -792,48 +812,6 @@
   text-align: center;
 }
 
-/* Proof teaser — compact row near hero on homepage */
-.proof-teaser {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 0.5rem;
-  margin: 0.75rem auto 1.5rem;
-  max-width: 640px;
-}
-
-.proof-teaser__item {
-  font-family: var(--mono);
-  font-size: 0.6875rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--accent);
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  padding: 0.375rem 0.75rem;
-  white-space: nowrap;
-}
-
-@media (max-width: 640px) {
-  .proof-teaser {
-    gap: 0.375rem;
-    margin: 0.5rem auto 1rem;
-  }
-
-  .proof-teaser__item {
-    font-size: 0.625rem;
-    padding: 0.3125rem 0.5rem;
-  }
-}
-
-@media (max-width: 380px) {
-  .proof-teaser__item {
-    font-size: 0.5625rem;
-    padding: 0.25rem 0.375rem;
-  }
-}
-
 /* Engineering proof cards — source page */
 .engineering-proof {
   display: grid;
@@ -1038,7 +1016,7 @@
   line-height: 1.5;
 }
 
-/* Remove duplicate recommended-first blocks inherited from layout.css */
+/* Homepage quick-start strip */
 .start-here {
   display: flex;
   flex-wrap: wrap;
