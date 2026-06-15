@@ -154,7 +154,7 @@ name from `playwright.config.ts`).
 ## Test architecture
 
 ```
-playwright.config.ts            # 5 projects + webServer (astro preview)
+playwright.config.ts            # 7 projects + webServer (astro preview)
 tests/
   helpers/
     browserGame.ts              # Shared helpers (diagnostics, runtime, input, touch)
@@ -178,13 +178,15 @@ tests/
 
 ### Projects
 
-`playwright.config.ts` defines five browser projects:
+`playwright.config.ts` defines seven browser projects:
 
 - `chromium-desktop` — Desktop Chrome (Playwright `Desktop Chrome`)
 - `firefox-desktop` — Desktop Firefox
 - `webkit-desktop` — Desktop Safari (Playwright `Desktop Safari`)
 - `mobile-chrome` — Pixel 5 profile
 - `mobile-safari` — iPhone 13 profile
+- `ipad-safari` — iPad Safari (portrait)
+- `ipad-landscape` — iPad Safari (landscape)
 
 > **Mobile emulation is not real-device testing.** Playwright's device
 > descriptors emulate viewport, user-agent, and pointer characteristics,
@@ -458,8 +460,8 @@ iPad before each release.
 
 ## Browser game screenshots
 
-The 3 production browser-game screenshots
-(`public/images/screenshot-{cannonball-clash,treasure-cove,krakens-wake}.png`)
+The 4 production browser-game screenshots
+(`public/images/screenshot-{cannonball-clash,treasure-cove,krakens-wake,race-to-treasure-island}.png`)
 are committed static assets at 1280×720. They are NOT generated at
 build time or on user devices — they are refreshed manually when a
 game's visuals, theming, or boot path changes.
@@ -476,7 +478,7 @@ The script (`scripts/capture-browser-game-screenshots.mjs`):
 
 1. Starts `astro preview` on `127.0.0.1:4321` (override with
    `PA_CAPTURE_HOST` / `PA_CAPTURE_PORT`).
-2. For each of the 3 games, launches a headless Chromium context at
+2. For each of the 4 browser-playable games, launches a headless Chromium context at
    `1280×720` viewport, navigates to `/play/<id>/`, clicks once to
    unlock audio and create a user gesture for autoplay, waits for:
    - `__paBootMetrics["game-ready"]` set
@@ -502,14 +504,14 @@ warning is expected (Pygbag internal noise).
 npm run test:screenshot-assets
 ```
 
-Asserts for each of the 3 PNGs:
+Asserts for each of the 4 browser PNGs:
 
 - File exists at the expected path.
 - File size is 5 KB – 2 MB.
 - Valid PNG signature (8-byte magic).
 - IHDR width ≥ 1280, height ≥ 720, aspect within 2% of 16:9.
 - Bit depth 8, color type 2 (RGB) or 6 (RGBA).
-- All 3 are byte-distinct (SHA-256 mismatch check).
+- All 4 are byte-distinct (SHA-256 mismatch check).
 
 Exits 0 on success, 1 on any failure. Included in
 `verify:release:fast`.

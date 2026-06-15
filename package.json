@@ -74,7 +74,8 @@
     "test:game-registry": "node scripts/check-game-registry.mjs",
     "test:screenshot-assets": "node scripts/check-screenshot-assets.mjs",
     "test:race-ship-assets": "node scripts/check-race-ship-assets.mjs",
-    "capture:screenshots": "astro build && node scripts/capture-browser-game-screenshots.mjs"
+    "capture:screenshots": "astro build && node scripts/capture-browser-game-screenshots.mjs",
+    "test:docs": "node scripts/check-repository-docs.mjs"
   },
   "engines": {
     "node": ">=22"
@@ -138,10 +139,6 @@
     "yaml-language-server": "^1.20.0"
   },
   "description": "A pirate-themed arcade collection and an experiment in zero-cost AI-assisted development.",
-  "main": "index.js",
-  "directories": {
-    "test": "tests"
-  },
   "dependencies": {
     "phaser": "^3.90.0"
   },
@@ -149,11 +146,21 @@
     "type": "git",
     "url": "git+https://github.com/edonahue/pirate-arcade-web.git"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": [
+    "astro",
+    "phaser",
+    "pygame",
+    "pygbag",
+    "webassembly",
+    "playwright",
+    "browser-games",
+    "cloudflare-pages",
+    "ai-assisted-development"
+  ],
+  "author": "Erich Donahue",
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/edonahue/pirate-arcade-web/issues"
   },
-  "homepage": "https://github.com/edonahue/pirate-arcade-web#readme"
+  "homepage": "https://pirate-arcade-web.pages.dev"
 }

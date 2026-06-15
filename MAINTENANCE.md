@@ -148,8 +148,9 @@ Run `npm run test:check-headers` to validate CSP.
 
 `scripts/check-dependency-hygiene.mjs` uses **explicit allowlists**:
 
-- `ALLOWED_RUNTIME_DEPS` — currently **empty** (`{}`). This is a static
-  Astro site — no runtime code needs npm packages. Keep it empty.
+- `ALLOWED_RUNTIME_DEPS` — contains **phaser** (production dependency).
+  Race to Treasure Island imports it at runtime/build time. Only add to this
+  list for genuine runtime packages needed by browser-playable games.
 - `ALLOWED_DEV_DEPS` — 56 intentional dev-only packages (build, test,
   lint, validation tooling).
 
@@ -213,8 +214,10 @@ Budgets file: runs from `dist/` after build.
 ## New browser game architecture & checklist
 
 - **ADR 0001** (`docs/adr/0001-fourth-browser-game-architecture.md`):
-  Documents the decision to continue with Pygame/Pygbag for the fourth
-  browser-playable game.
+  Original fourth-browser-game decision (Pygame/Pygbag). **Superseded by ADR 0002.**
+- **ADR 0002** (`docs/adr/0002-race-to-treasure-island-phaser.md`):
+  Documents the decision to build Race to Treasure Island as a web-native
+  Phaser 3 game instead of continuing with Pygbag.
 - **New game checklist** (`docs/new-browser-game-checklist.md`): 22-step
   checklist covering everything from source setup through post-release
   verification.

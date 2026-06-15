@@ -2,7 +2,13 @@
 
 ## Status
 
-Accepted
+**Superseded by ADR 0002 (Phaser 3 — Race to Treasure Island)**
+
+The decision to continue with Pygame/Pygbag was made before the Race to
+Treasure Island project scope was fully understood. ADR 0002 documents
+the actual architecture used for the fourth browser game: web-native
+Phaser 3, chosen for instant loading, WASM-free performance, and
+native touch support on iPad Safari.
 
 ## Context
 
@@ -139,6 +145,6 @@ The consistency, reuse, and maintainability benefits outweigh the payload/boot-t
 
 ## Related
 
-- ADR 0002 (future): If payload/boot time becomes unacceptable, evaluate Vanilla JS Canvas alternative
+- ADR 0002: Race to Treasure Island — Phaser 3 decision
 - `docs/new-browser-game-checklist.md` for onboarding steps
 - `scripts/check-browser-game-shells.mjs` validates new game automatically

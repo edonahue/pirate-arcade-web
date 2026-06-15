@@ -149,5 +149,3 @@ See [DEPLOYMENT.md](./DEPLOYMENT.md) for Cloudflare Pages setup instructions.
 ## License
 
 MIT
-
-<!-- Last updated: Wed Jun 10 2026 -->

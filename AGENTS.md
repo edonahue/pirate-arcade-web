@@ -66,12 +66,15 @@ screenshot — do not capture it from `/play/`.
 
 ## Game data notes
 
-- Browser-playable: cannonball-clash, treasure-cove, krakens-wake (from `games.json`)
+- Browser-playable: cannonball-clash, treasure-cove, krakens-wake, race-to-treasure-island (from `games.json`)
 - Desktop-only: port-royale-tycoon
+- Race to Treasure Island is web-native Phaser 3 (not Pygbag) — loads instantly, no WASM download
 - Prewarm uses passive touchstart, no `preventDefault()`
 - `__paCanvasLayout`, `__paBootMetrics`, `PirateArcadeInput` are runtime globals from shared scripts
-- Fourth game architecture documented in `docs/adr/0001-fourth-browser-game-architecture.md`
-- Onboarding steps in `docs/new-browser-game-checklist.md` (22-step checklist)
+- Race-to-Treasure-Island has additional globals: `window.game`, `window.testEvents` (Phaser game instance and test hooks)
+- ADR 0001 (`docs/adr/0001-fourth-browser-game-architecture.md`): Original Pygbag recommendation (superseded)
+- ADR 0002 (`docs/adr/0002-race-to-treasure-island-phaser.md`): Race to Treasure Island Phaser decision
+- Onboarding steps in `docs/new-browser-game-checklist.md` (22-step checklist; supports both Pygbag and Phaser paths)
 - Scaffold tool: `scripts/create-browser-game-scaffold.mjs` (dry-run-first, requires `--apply`)
 
 ## Constraint reminders
@@ -80,7 +83,7 @@ screenshot — do not capture it from `/play/`.
 - Vanilla CSS via tokens — no Tailwind or CSS-in-JS
 - Never add paid cloud services or backends
 - Every game is a data point in the AI experiment
-- `dependencies` should remain empty (`{}`); all packages go in `devDependencies`
+- `dependencies` intentionally contains **phaser** (needed by Race to Treasure Island at runtime/build time); all other packages in `devDependencies`
 - Adding a dev-dep requires updating both `package.json` and `ALLOWED_DEV_DEPS` in `check-dependency-hygiene.mjs`
 
 ## Validation auto-discovery

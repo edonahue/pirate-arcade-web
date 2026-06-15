@@ -35,11 +35,13 @@ Always use `ASSET_VERSION` from `scripts/game-asset-versions.mjs` for archive UR
 
 ## Game Data
 
-- Browser-playable: cannonball-clash, treasure-cove, krakens-wake (from `games.json`)
+- Browser-playable: cannonball-clash, treasure-cove, krakens-wake, race-to-treasure-island (from `games.json`)
 - Desktop-only: port-royale-tycoon (linked to GH releases)
+- Race to Treasure Island is web-native Phaser 3 (not Pygbag) — loads instantly, no WASM download
 - Prewarm uses `passive: true` touchstart with no `preventDefault()`
 - Runtime globals in `public/play/shared/`: `__paCanvasLayout`, `__paBootMetrics`, `PirateArcadeInput`
-- See `docs/adr/0001-fourth-browser-game-architecture.md` for fourth game decision
+- Race-to-Treasure-Island has additional globals: `window.game`, `window.testEvents`
+- See `docs/adr/0001-fourth-browser-game-architecture.md` (superseded) and `docs/adr/0002-race-to-treasure-island-phaser.md`
 - See `docs/new-browser-game-checklist.md` for full onboarding checklist
 - See `scripts/create-browser-game-scaffold.mjs` for new game scaffold tool
 

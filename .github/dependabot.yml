@@ -5,8 +5,18 @@ updates:
     schedule:
       interval: "weekly"
       day: "monday"
-    open-pull-requests-limit: 5
+    # Limit open PRs to keep the queue reviewable
+    open-pull-requests-limit: 3
     versioning-strategy: increase-if-necessary
+    # Ignore semver-major updates for all packages — major bumps require
+    # dedicated CI compatibility passes and are deferred. Patch/minor updates
+    # flow through normally via grouped PRs below.
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+      # Phaser 4 is a major engine migration (not a simple semver bump).
+      # Pinned to 3.x until we decide to do a dedicated migration spike.
+      - dependency-name: "phaser"
     groups:
       dev-deps-testing:
         dependency-type: "development"

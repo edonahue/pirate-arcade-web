@@ -2,21 +2,22 @@
 
 <!-- Current HEAD: Fortress Siege + Rally Fever — 3-stage Breakout, 4 brick types, 3 power-ups, Rally tiers, Cursed Powder -->
 
-## Race Consolidation (This Release)
+## Current Shipped State
 
-Hardens the new Race systems for a polished first-session experience and flagship-ready quality.
+**Four browser-playable games + one desktop-only game:**
 
-- **Ship rendering**: Ships are fully procedural Phaser textures in BootScene — white sails, gold/red hull stripes, no black outlines
-- **Visual composition**: Golden glow under player ship, white hull edge highlights, wake ellipses on both ships, brighter rival sails
-- **Countdown**: Opening READY→SET→SAIL! sequence (~1.3s) with touch/keyboard-aware hint text, physics paused during countdown
-- **Boost feedback**: Gold ship tint while boosting, pulsing boost bar, speed lines at alpha 0.25
-- **Obstacle outlines**: White semi-transparent strokes on all 4 obstacle types for ocean contrast
-- **Treasure pickup**: Gold sparkle burst with deterministic cosmetic RNG
-- **Finish celebration**: Gold/orange particle burst on win, overtake count, best score display
-- **Best score**: localStorage `pa-race-best`, saved only on winning runs, malformed data handled gracefully
-- **Tint state machine**: Red while stunned, gold while boosting & not stunned, clear otherwise — explicit on restart/finish
-- **Deterministic RNG**: Three independent mulberry32 streams (course, AI, cosmetic) for reproducible screenshots and tests
-- **Validation**: Ship pixel tests, screenshot validation, countdown lifecycle tests, best-score win-only tests, 79 Race Playwright tests
+| Game                    | Engine                | Platform          |
+| ----------------------- | --------------------- | ----------------- |
+| Cannonball Clash        | Pygbag / WebAssembly  | Browser + Desktop |
+| Treasure Cove           | Pygbag / WebAssembly  | Browser + Desktop |
+| Kraken's Wake           | Pygbag / WebAssembly  | Browser + Desktop |
+| Race to Treasure Island | Phaser 3 (web-native) | Browser only      |
+| Port Royale Tycoon      | Python / Pygame       | Desktop only      |
+
+Race to Treasure Island is the first web-native Phaser game — loads instantly,
+no WASM download. Fortress Siege (3-stage Breakout with 4 brick types and
+falling pickups) and Rally Fever (rally-tier system with Cursed Powder pickup)
+are the latest Pygbag game features on the existing three ports.
 
 ---
 
@@ -97,12 +98,13 @@ Hardens the new Race systems for a polished first-session experience and flagshi
 
 ## Phase 5: Dependency Manifest Repair + Future-Game Readiness ✓ (Live)
 
-- [x] Package manifest cleanup: `dependencies` emptied (`{}`), all packages to `devDependencies`
+- [x] Package manifest cleanup: `dependencies` moved to `devDependencies` for static site, later reverted when Phaser was added as a runtime dep for Race
 - [x] Dependency hygiene rewritten with explicit allowlists (ALLOWED_RUNTIME_DEPS, ALLOWED_DEV_DEPS)
 - [x] SEO audit enhanced: 7 new guardrails (browserUrl, screenshot, llms.txt consistency, per-game metadata)
 - [x] CSP validators derive game list from `games.json` (catches missing `_headers` entries)
 - [x] SW validators verify ALL browser games in ASSETS_TO_CACHE + isGameShell fetch strategy
-- [x] ADR 0001: Fourth browser game architecture (Pygame/Pygbag recommended)
+- [x] ADR 0001: Fourth browser game architecture (Pygame/Pygbag recommended) — Superseded by ADR 0002
+- [x] ADR 0002: Race to Treasure Island — Phaser 3 decision
 - [x] New browser game checklist (22-step onboarding)
 - [x] Scaffold script (`create-browser-game-scaffold.mjs`)
 
@@ -139,16 +141,14 @@ Hardens the new Race systems for a polished first-session experience and flagshi
 - [x] **Game state bridge**: Extended JSON dump with stage, ballsActive, ballSpeeds, bricksRemaining sub-types, power-up state
 - [x] **650 ball speeds preserved**: Both games start at 650; Treasure Cove escalates 650→700→750 across stages
 
-## Maybe / Future
+## Next Priorities
 
-- [x] Client-side high scores (localStorage only, no backend)
-- [x] "Captain's Log" local play history panel (localStorage, no backend)
-- [ ] Sound effects or ambience on the website
-- [ ] Privacy-respecting analytics (Plausible or similar, self-hosted free tier)
-- [ ] RSS feed for build log
-- [ ] Contribution guide for open source contributors
-- [ ] "How I Built This" technical deep-dive posts
-- [ ] Side-by-side free vs paid model comparison post
+- [ ] **Real iPad Safari playtest** — verify Race touch controls, Pygbag cold start, and orientation lock on physical hardware
+- [ ] **Player feedback first pass** — watch someone play through all four games, identify friction points
+- [ ] **Kraken's Wake depth review** — gameplay variety, difficulty curve, visual variety
+- [ ] **Accessibility audit** — screen reader, keyboard nav, color blindness, motion sensitivity
+- [ ] **Performance / Lighthouse audit** — target 90+ all categories with Race and Pygbag games
+- [ ] **Phaser 4 compatibility spike** — evaluate migration effort, requires focused spike (deferred from Dependabot)
 
 ## Non-Goals (Intentionally Not Building)
 

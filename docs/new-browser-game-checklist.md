@@ -2,16 +2,25 @@
 
 This checklist covers all steps to add a new browser-playable game to Pirate Arcade. Follow in order.
 
-## Prerequisites
+## Choose Your Path
+
+There are two supported paths for adding a browser game:
+
+| Path              | When to Use                                | Example                 |
+| ----------------- | ------------------------------------------ | ----------------------- |
+| **Pygbag port**   | Porting from Python/Pygame desktop version | cannonball-clash        |
+| **Web-native JS** | Building directly for web (Phaser/Canvas)  | race-to-treasure-island |
+
+## Prerequisites (Both Paths)
 
 - [ ] Game concept chosen and approved
-- [ ] Python/Pygame source ready under `scripts/pygbag-port/<id>/`
-- [ ] Game runs locally with `python -m <game_module>`
-- [ ] Game has desktop build working
+- [ ] Game ID chosen (lowercase kebab-case, e.g. `my-new-game`)
 
 ---
 
-## 1. Add Game Source
+## Pygbag Port Path
+
+### 1. Add Game Source
 
 ```bash
 # Create directory structure
@@ -26,7 +35,7 @@ mkdir -p scripts/pygbag-port/<game-id>/games/<game-module>/
 # - scripts/pygbag-port/<game-id>/requirements.txt (if needed)
 ```
 
-## 2. Build Browser Archive
+### 2. Build Browser Archive
 
 ```bash
 # From repo root
@@ -38,12 +47,11 @@ python -m pygbag --build --ume_block=0 .
 cp build/<game-id>.tar.gz ../../../public/play/<game-id>/<game-id>.tar.gz
 ```
 
-## 3. Create Browser Shell
+### 3. Create Browser Shell
 
 ```bash
 # Create directory
 mkdir -p public/play/<game-id>/
-
 # Create index.html based on existing template (copy from cannonball-clash)
 cp public/play/cannonball-clash/index.html public/play/<game-id>/index.html
 
@@ -54,6 +62,48 @@ cp public/play/cannonball-clash/index.html public/play/<game-id>/index.html
 # - Update game-title, controlMode, data-controls
 # - Update manifest comment: <!-- GAME: <game-id> -->
 # - Verify shared script references use ?v=<ASSET_VERSION>
+```
+
+---
+
+## Web-Native JS Path (Phaser / Canvas)
+
+### 1. Create Game Source
+
+```bash
+# Create directory
+mkdir -p public/play/<game-id>/
+# Create game shell with framework-specific HTML
+# See public/play/race-to-treasure-island/index.html as template
+# Key differences from Pygbag shell:
+# - No pygbag CDN or archive preload
+# - Loads framework from CDN (e.g. jsDelivr for Phaser)
+# - No #transfer overlay or #game-loading infobox
+# - CSP does NOT need unsafe-eval
+# - Service worker caches as shell JS (network-first),
+#   not as archive (network-first for tarball)
+```
+
+### 2. Build Game Bundle
+
+```bash
+# If using Phaser, the game can be a single JS file or ES module.
+# No pygbag build step needed.
+# Place compiled/bundled JS in:
+# public/play/<game-id>/game.js
+```
+
+### 3. CSP Headers
+
+Web-native games do not need `unsafe-eval`. Add `connect-src` for the framework CDN:
+
+```bash
+# Edit public/_headers:
+/play/<game-id>/
+/play/<game-id>/index.html
+/play/<game-id>/*
+  ! Content-Security-Policy
+  Content-Security-Policy: ... (copy from race-to-treasure-island)
 ```
 
 ## 4. Update Game Data
@@ -85,7 +135,7 @@ cp public/play/cannonball-clash/index.html public/play/<game-id>/index.html
 }
 ```
 
-## 5. Update Asset Versions
+## 5. Update Asset Versions (Both Paths)
 
 ```bash
 # If shared assets changed, bump version in scripts/game-asset-versions.mjs
@@ -93,30 +143,33 @@ cp public/play/cannonball-clash/index.html public/play/<game-id>/index.html
 # export const CACHE_VERSION = "pirate-arcade-games-v9";  # bump if SW behavior changed
 ```
 
-## 6. Apply Versions to Game Shells
+## 6. Apply Versions to Game Shells (Both Paths)
 
 ```bash
 npm run apply:game-versions
 # This updates ?v= queries in all game HTML files
 ```
 
-## 7. Validate Archive/Source Parity
+## 7. Validate Archive/Source Parity (Pygbag Only)
 
 ```bash
 npm run test:archive-parity
-# Verifies source matches shipped tarball
+# Verifies source matches shipped tarball. Skip for web-native games
+# (no archive to check).
 ```
 
-## 8. Update Service Worker Cache List
+## 8. Update Service Worker Cache List (Both Paths)
 
 ```bash
 # Edit public/sw.js
 # Add to ASSETS_TO_CACHE:
 #   "/play/<game-id>/",
+# For Pygbag games, also add:
 #   "/play/<game-id>/<game-id>.tar.gz",
+# For web-native games, add framework CDN to network-first if needed
 ```
 
-## 9. Update CSP Headers
+## 9. Update CSP Headers (Both Paths)
 
 ```bash
 # Edit public/_headers
@@ -126,10 +179,13 @@ npm run test:archive-parity
 # /play/<game-id>/*
 # Each needs:
 #   ! Content-Security-Policy
-#   Content-Security-Policy: ... (copy from existing game, update cdn.pygame.org connect-src)
+#   Content-Security-Policy: ...
+# For Pygbag games: copy from existing game (requires unsafe-eval)
+# For web-native (Phaser): copy from race-to-treasure-island (no unsafe-eval,
+#   needs connect-src for framework CDN)
 ```
 
-## 9. Run Validation Checks
+## 10. Run Validation Checks (Both Paths)
 
 ```bash
 # Core validation (should all pass)
@@ -137,13 +193,14 @@ npm run test:browser-game-shells
 npm run test:service-worker
 npm run test:cache-versioning
 npm run test:game-versions
-npm run test:archive-parity
-npm run audit:game-archives
 npm run test:public-domain-art
 npm run test:game-theming-source
+# Pygbag-only:
+npm run test:archive-parity
+npm run audit:game-archives
 ```
 
-## 10. Capture Screenshots
+## 11. Capture Screenshots (Both Paths)
 
 ```bash
 # Build and capture real in-game screenshots
@@ -151,14 +208,14 @@ npm run capture:screenshots
 # Output: public/images/screenshot-<game-id>.png (1280x720 PNG)
 ```
 
-## 11. Validate Screenshots
+## 12. Validate Screenshots (Both Paths)
 
 ```bash
 npm run test:screenshot-assets
 # Validates: PNG format, 1280x720, aspect ratio, brightness, diversity, distinctness
 ```
 
-## 11. Update SEO/Discoverability (Data-Driven - Auto)
+## 13. Update SEO/Discoverability (Both Paths - Auto)
 
 ```bash
 # These are automatically updated from games.json:
@@ -167,7 +224,7 @@ npm run build  # regenerates sitemap.xml with new routes
 npm run seo:audit
 ```
 
-## 12. Full Validation
+## 14. Full Validation (Both Paths)
 
 ```bash
 npm run verify:release:fast
@@ -175,7 +232,7 @@ npm run verify:release:fast
 npm run verify:release:full
 ```
 
-## 12. Manual Testing (Real Devices)
+## 15. Manual Testing (Both Paths)
 
 ```bash
 # Follow tests/TESTING_CHECKLIST.md
@@ -222,15 +279,16 @@ npm run verify:release:full
 
 ## Template Files Reference
 
-| File                 | Purpose                  | Location                                  |
-| -------------------- | ------------------------ | ----------------------------------------- |
-| Game HTML shell      | Template for new game    | `public/play/cannonball-clash/index.html` |
-| Game data entry      | Schema reference         | `src/data/games.json`                     |
-| Game detail page     | Auto-generates from data | `src/pages/games/[id].astro`              |
-| CSP headers          | Per-game CSP blocks      | `public/_headers`                         |
-| Service worker       | Cache list               | `public/sw.js`                            |
-| Asset versions       | Version constants        | `scripts/game-asset-versions.mjs`         |
-| Game theming markers | Source verification      | `scripts/check-game-theming.mjs`          |
+| File                     | Purpose                  | Location                                         |
+| ------------------------ | ------------------------ | ------------------------------------------------ |
+| Game HTML shell (Pygbag) | Template for new game    | `public/play/cannonball-clash/index.html`        |
+| Game HTML shell (Phaser) | Template for web-native  | `public/play/race-to-treasure-island/index.html` |
+| Game data entry          | Schema reference         | `src/data/games.json`                            |
+| Game detail page         | Auto-generates from data | `src/pages/games/[id].astro`                     |
+| CSP headers              | Per-game CSP blocks      | `public/_headers`                                |
+| Service worker           | Cache list               | `public/sw.js`                                   |
+| Asset versions           | Version constants        | `scripts/game-asset-versions.mjs`                |
+| Game theming markers     | Source verification      | `scripts/check-game-theming.mjs`                 |
 
 ---
 
