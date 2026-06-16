@@ -82,9 +82,14 @@ jobs:
         run: npx playwright install chromium
       - name: Install system Chromium
         run: sudo apt-get update && sudo apt-get install -y chromium-browser
+      - name: Find Chromium path
+        run: |
+          CHROME_PATH=$(which chromium-browser 2>/dev/null || which chromium 2>/dev/null || find /usr/bin -name "chromium*" -type f 2>/dev/null | head -1)
+          echo "CHROME_PATH=$CHROME_PATH" >> $GITHUB_ENV
+          echo "Found Chrome at: $CHROME_PATH"
       - name: Lighthouse CI collect + assert
         env:
-          CHROME_PATH: /usr/bin/chromium
+          CHROME_PATH: ${{ env.CHROME_PATH }}
         run: npx lhci collect && npx lhci assert
         timeout-minutes: 10
 
