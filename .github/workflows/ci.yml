@@ -81,6 +81,8 @@ jobs:
       - name: Install Playwright Chromium
         run: npx playwright install chromium
       - name: Lighthouse CI collect + assert
+        env:
+          CHROME_PATH: /home/runner/.cache/ms-playwright/chromium-1223/chrome-linux64/chrome
         run: npx lhci collect && npx lhci assert
         timeout-minutes: 10
 
