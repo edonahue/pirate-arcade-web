@@ -83,10 +83,29 @@ jobs:
           chrome-version: stable
       - name: Debug Chrome
         run: |
-          echo "Chrome in PATH:"
-          which google-chrome || which chrome || which chromium || which chromium-browser || echo "No Chrome found in PATH"
-          google-chrome --version || chrome --version || chromium --version || chromium-browser --version || echo "Version check failed"
-          ls -la /usr/bin/google-chrome 2>/dev/null || ls -la /usr/bin/chrome 2>/dev/null || ls -la /usr/bin/chromium 2>/dev/null || ls -la /usr/bin/chromium-browser 2>/dev/null || echo "No Chrome in /usr/bin"
+          echo "=== Chrome Debug Info ==="
+          echo "PATH: $PATH"
+          echo "=== which commands ==="
+          which google-chrome || echo "google-chrome not in PATH"
+          which chrome || echo "chrome not in PATH"
+          which chromium || echo "chromium not in PATH"
+          which chromium-browser || echo "chromium-browser not in PATH"
+          echo "=== version commands ==="
+          google-chrome --version 2>/dev/null || echo "google-chrome --version failed"
+          chrome --version 2>/dev/null || echo "chrome --version failed"
+          chromium --version 2>/dev/null || echo "chromium --version failed"
+          chromium-browser --version 2>/dev/null || echo "chromium-browser --version failed"
+          echo "=== /usr/bin listing ==="
+          ls -la /usr/bin/google-chrome 2>/dev/null || echo "No /usr/bin/google-chrome"
+          ls -la /usr/bin/chrome 2>/dev/null || echo "No /usr/bin/chrome"
+          ls -la /usr/bin/chromium 2>/dev/null || echo "No /usr/bin/chromium"
+          ls -la /usr/bin/chromium-browser 2>/dev/null || echo "No /usr/bin/chromium-browser"
+          echo "=== find chrome in /opt ==="
+          find /opt -name "chrome" -type f 2>/dev/null | head -5 || echo "No chrome in /opt"
+          echo "=== find chrome in /home ==="
+          find /home -name "chrome" -type f 2>/dev/null | head -5 || echo "No chrome in /home"
+          echo "=== env CHROME_PATH ==="
+          echo "CHROME_PATH=$CHROME_PATH"
       - name: Lighthouse CI collect + assert
         env:
           CHROME_PATH: /usr/bin/google-chrome
