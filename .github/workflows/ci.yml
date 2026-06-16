@@ -81,7 +81,9 @@ jobs:
       - name: Install Playwright Chromium
         run: npx playwright install chromium
       - name: Get Chrome path
-        run: echo "CHROME_PATH=$(npx playwright install chromium --dry-run 2>/dev/null | grep -o '/home/runner/[^ ]*chromium[^ ]*' | head -1)" >> $GITHUB_ENV
+        run: |
+          CHROME_PATH=$(find /home/runner/.cache/ms-playwright -name "chrome" -type f 2>/dev/null | head -1)
+          echo "CHROME_PATH=$CHROME_PATH" >> $GITHUB_ENV
       - name: Lighthouse CI collect + assert
         run: npx lhci collect && npx lhci assert
         timeout-minutes: 10
