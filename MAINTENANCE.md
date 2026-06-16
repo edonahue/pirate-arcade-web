@@ -60,7 +60,7 @@ The validator (`scripts/check-screenshot-assets.mjs`):
 Three local verification commands (defined in `scripts/verify-release.mjs`):
 
 ```sh
-npm run verify:release:fast   # ~22 deterministic checks (2–5 min)
+npm run verify:release:fast   # ~24 deterministic checks (~14 s)
 npm run verify:release:full   # fast + Playwright tests (15–25 min)
 npm run test:lhci             # Lighthouse CI audit (5–10 min, requires build)
 ```
@@ -70,7 +70,7 @@ CSS tokens, visual contrast, dependency hygiene, cloudflare headers,
 browser game consistency & shells, service worker, cache versioning,
 game versions, HTML structure, archive parity & audit,
 public domain art, game theming source, screenshot assets, performance
-budgets.
+budgets, site links, game registry, repository docs, race ship assets.
 
 The full gate adds: site theme, a11y (axe scans with strict color-contrast
 on all non-game pages), mobile layout/pause/input/navigation/regression,

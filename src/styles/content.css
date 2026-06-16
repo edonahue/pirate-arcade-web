@@ -24,6 +24,17 @@
   color: var(--ink);
 }
 
+.prose a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  text-decoration-thickness: 1px;
+}
+
+.prose a:hover {
+  text-decoration: underline;
+}
+
 .prose ul,
 .prose ol {
   margin-bottom: 1.25rem;

@@ -204,18 +204,35 @@ test.describe("Game Prewarm", () => {
       }
     });
 
-    // If there's no SW controller, test that prewarm still fires (graceful degradation)
+    // Trigger prewarm on a browser-playable CTA
+    const cannonballCta = page.locator(
+      'a[data-game-id="cannonball-clash"][data-browser-playable="true"]',
+    );
+    await cannonballCta.first().dispatchEvent("pointerenter");
+    await page.waitForTimeout(300);
+
     const hasController = await page.evaluate(
       () => !!navigator.serviceWorker.controller,
     );
 
-    if (!hasController) {
-      // Still verify the DOM side worked
-      const ctas = page.locator(
-        'a[data-game-id="cannonball-clash"][data-browser-playable="true"]',
+    if (hasController) {
+      const msg = await page.evaluate(() => (window as any).__paLastWarmCache);
+      expect(msg).not.toBeNull();
+      expect(msg.type).toBe("WARM_CACHE");
+      expect(msg.urls.length).toBeGreaterThanOrEqual(1);
+      expect(msg.urls.some((u: string) => u.includes("cannonball-clash"))).toBe(
+        true,
       );
-      await ctas.first().dispatchEvent("pointerenter");
-      await page.waitForTimeout(300);
+    } else {
+      // Without SW controller, verify the DOM side still worked
+      const prefetched = await page.evaluate(() => {
+        return Array.from(
+          document.querySelectorAll('link[rel="prefetch"]'),
+        ).some((l) =>
+          (l as HTMLLinkElement).href?.includes("cannonball-clash"),
+        );
+      });
+      expect(prefetched).toBe(true);
     }
   });
 

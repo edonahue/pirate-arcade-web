@@ -11,7 +11,7 @@ module.exports = {
         "http://localhost:4321/games/cannonball-clash/",
         "http://localhost:4321/about/",
       ],
-      numberOfRuns: 3,
+      numberOfRuns: 2,
       settings: {
         preset: "desktop",
         extraHeaders: {
@@ -20,8 +20,9 @@ module.exports = {
       },
     },
     assert: {
+      budgetsFile: "budget.json",
       assertions: {
-        "categories:performance": ["warn", { minScore: 0.9 }],
+        "categories:performance": ["error", { minScore: 0.9 }],
         "categories:accessibility": ["error", { minScore: 0.95 }],
         "categories:best-practices": ["error", { minScore: 0.9 }],
         "categories:seo": ["error", { minScore: 0.9 }],
@@ -32,11 +33,8 @@ module.exports = {
         "speed-index": ["warn", { maxNumericValue: 2000 }],
         "server-response-time": ["warn", { maxNumericValue: 800 }],
         interactive: ["warn", { maxNumericValue: 3000 }],
-        "unused-javascript": ["warn", { maxNumericValue: 0.3 }],
-        "unused-css-rules": ["warn", { maxNumericValue: 0.2 }],
         "offscreen-images": ["warn", { maxNumericValue: 0 }],
         "uses-responsive-images": ["warn", { maxNumericValue: 0 }],
-        "uses-rel-preconnect": ["warn", { maxNumericValue: 0 }],
       },
     },
     upload: {

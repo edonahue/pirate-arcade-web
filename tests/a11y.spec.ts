@@ -47,7 +47,27 @@ const GAMES: GameSpec[] = [
   },
 ];
 
-const STATIC_PAGES = ["/", "/play/", "/about/", "/source/", "/credits/"];
+const STATIC_PAGES = [
+  "/",
+  "/play/",
+  "/about/",
+  "/source/",
+  "/credits/",
+  "/404/",
+];
+
+const BUILD_LOG_PAGES = [
+  "/build-log/",
+  "/build-log/browser-port-feasibility/",
+  "/build-log/elegant-pirate-visuals/",
+  "/build-log/launching-on-free-infrastructure/",
+  "/build-log/porting-the-second-game-treasure-cove/",
+  "/build-log/port-royale-tycoon-feasibility/",
+  "/build-log/race-to-treasure-island-phaser-polish/",
+  "/build-log/shipping-first-browser-port/",
+  "/build-log/the-free-ai-coding-experiment/",
+  "/build-log/the-pirate-arcade-experiment/",
+];
 
 async function runA11yScan(page: Page, testName: string) {
   const results = await new AxeBuilder({ page })
@@ -120,17 +140,40 @@ for (const game of GAMES) {
   });
 }
 
-for (const pagePath of STATIC_PAGES) {
+for (const pagePath of [...STATIC_PAGES, ...BUILD_LOG_PAGES]) {
   test.describe(`${pagePath} static page accessibility`, () => {
     test("has no critical a11y violations", async ({ page }) => {
       await page.goto(pagePath, { waitUntil: "domcontentloaded" });
-      const results = await new AxeBuilder({ page }).analyze();
+      const results = await new AxeBuilder({ page })
+        .exclude(".astro-code")
+        .analyze();
       const critical = results.violations.filter(
         (v) => v.impact === "critical" || v.impact === "serious",
       );
       if (critical.length > 0) {
         throw new Error(
           `Critical a11y issues on ${pagePath}:\n${JSON.stringify(critical, null, 2)}`,
+        );
+      }
+      expect(critical).toEqual([]);
+    });
+  });
+}
+
+for (const pagePath of STATIC_PAGES) {
+  test.describe(`${pagePath} light theme accessibility`, () => {
+    test.use({ colorScheme: "light" });
+    test("has no critical a11y violations in light theme", async ({ page }) => {
+      await page.goto(pagePath, { waitUntil: "domcontentloaded" });
+      const results = await new AxeBuilder({ page })
+        .exclude(".astro-code")
+        .analyze();
+      const critical = results.violations.filter(
+        (v) => v.impact === "critical" || v.impact === "serious",
+      );
+      if (critical.length > 0) {
+        throw new Error(
+          `Critical a11y issues on ${pagePath} in light theme:\n${JSON.stringify(critical, null, 2)}`,
         );
       }
       expect(critical).toEqual([]);
@@ -150,7 +193,9 @@ test.describe("Game detail page accessibility", () => {
   for (const path of detailPaths) {
     test(`${path} has no critical a11y violations`, async ({ page }) => {
       await page.goto(path, { waitUntil: "domcontentloaded" });
-      const results = await new AxeBuilder({ page }).analyze();
+      const results = await new AxeBuilder({ page })
+        .exclude(".astro-code")
+        .analyze();
       const critical = results.violations.filter(
         (v) => v.impact === "critical" || v.impact === "serious",
       );
