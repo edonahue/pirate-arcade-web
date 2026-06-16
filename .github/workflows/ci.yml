@@ -106,11 +106,14 @@ jobs:
           find /home -name "chrome" -type f 2>/dev/null | head -5 || echo "No chrome in /home"
           echo "=== env CHROME_PATH ==="
           echo "CHROME_PATH=$CHROME_PATH"
-      - name: Lighthouse CI collect + assert
+      - name: Lighthouse CI collect
         env:
           CHROME_PATH: /usr/bin/google-chrome
-        run: npx lhci collect && npx lhci assert
+        run: npx lhci collect
         timeout-minutes: 10
+      - name: Lighthouse CI assert
+        run: npx lhci assert
+        timeout-minutes: 5
 
   # Fast release gate — runs all non-Playwright deterministic checks
   # from FAST_GATE (minus steps already done in verify job).
