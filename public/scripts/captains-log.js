@@ -24,9 +24,16 @@
   const STORAGE_WORKS = isStorageAvailable();
 
   function isValidEntry(entry) {
-    return (
-      entry && typeof entry === "object" && typeof entry.gameId === "string"
-    );
+    if (!entry || typeof entry !== "object") return false;
+    if (typeof entry.gameId !== "string" || entry.gameId.length === 0)
+      return false;
+    if (typeof entry.title !== "string" || entry.title.length === 0)
+      return false;
+    if (typeof entry.timestamp !== "number" || !isFinite(entry.timestamp))
+      return false;
+    if (typeof entry.route !== "string" || !entry.route.startsWith("/"))
+      return false;
+    return true;
   }
 
   function saveLog(log) {
@@ -52,6 +59,9 @@
   }
 
   function addEntry(gameId, title, route) {
+    if (typeof gameId !== "string" || gameId.length === 0) return [];
+    if (typeof title !== "string" || title.length === 0) title = gameId;
+    if (typeof route !== "string") route = "/";
     const log = getLog();
     const now = Date.now();
     const entry = {

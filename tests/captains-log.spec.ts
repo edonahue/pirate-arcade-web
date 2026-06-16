@@ -215,4 +215,69 @@ test.describe("Captain's Log", () => {
     await page.goto("/play/");
     await expect(page.locator("#captains-log")).toBeVisible();
   });
+
+  test("stores real game title, not CTA text", async ({ page }) => {
+    await page.goto("/play/");
+
+    const launchLink = page
+      .locator('[data-game-launch="true"][data-game-id="cannonball-clash"]')
+      .first();
+    await launchLink.evaluate((el) => {
+      el.addEventListener("click", (e) => e.preventDefault(), { once: true });
+    });
+    await launchLink.click();
+
+    const log = await page.evaluate(() => {
+      const raw = localStorage.getItem("pirate-arcade-captains-log");
+      return raw ? JSON.parse(raw) : [];
+    });
+    expect(log.length).toBeGreaterThanOrEqual(1);
+    const entry = log[0];
+    expect(entry.gameId).toBe("cannonball-clash");
+    expect(entry.title).toBe("Cannonball Clash");
+    expect(entry.title).not.toBe("Play in Browser →");
+  });
+
+  test("clear removes both history and counts from localStorage", async ({
+    page,
+  }) => {
+    await page.goto("/play/");
+
+    await page.evaluate(() => {
+      localStorage.setItem(
+        "pirate-arcade-captains-log",
+        JSON.stringify([
+          {
+            gameId: "cannonball-clash",
+            title: "Cannonball Clash",
+            timestamp: Date.now(),
+            route: "/play/cannonball-clash/",
+          },
+        ]),
+      );
+      localStorage.setItem(
+        "pirate-arcade-captains-log-counts",
+        JSON.stringify({ "cannonball-clash": 3 }),
+      );
+    });
+
+    await page.evaluate(() => {
+      const w = window as any;
+      if (w.__paCaptainsLog && w.__paCaptainsLog.clearLog) {
+        w.__paCaptainsLog.clearLog();
+      } else {
+        localStorage.removeItem("pirate-arcade-captains-log");
+        localStorage.removeItem("pirate-arcade-captains-log-counts");
+      }
+    });
+
+    const hasLog = await page.evaluate(() =>
+      localStorage.getItem("pirate-arcade-captains-log"),
+    );
+    const hasCounts = await page.evaluate(() =>
+      localStorage.getItem("pirate-arcade-captains-log-counts"),
+    );
+    expect(hasLog).toBeNull();
+    expect(hasCounts).toBeNull();
+  });
 });

@@ -1,17 +1,37 @@
 import { test, expect } from "@playwright/test";
+import { readFileSync } from "node:fs";
+import { join, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 
-const BROWSER_PLAYABLE = [
-  { id: "cannonball-clash", name: "Cannonball Clash", engine: "pygbag" },
-  { id: "treasure-cove", name: "Treasure Cove", engine: "pygbag" },
-  { id: "krakens-wake", name: "Kraken's Wake", engine: "pygbag" },
-  {
-    id: "race-to-treasure-island",
-    name: "Race to Treasure Island",
-    engine: "phaser",
-  },
-];
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
-const DESKTOP_ONLY = [{ id: "port-royale-tycoon", name: "Port Royale Tycoon" }];
+interface Game {
+  id: string;
+  title: string;
+  status: string;
+  engine?: string;
+}
+
+const games: Game[] = JSON.parse(
+  readFileSync(join(__dirname, "..", "src/data/games.json"), "utf-8"),
+);
+
+const BROWSER_PLAYABLE = games
+  .filter((g) => g.status === "browser-playable")
+  .map((g) => ({ id: g.id, name: g.title, engine: g.engine ?? "pygbag" }));
+
+const DESKTOP_ONLY = games
+  .filter((g) => g.status === "desktop-available")
+  .map((g) => ({ id: g.id, name: g.title }));
+
+const assetVersionsSrc = readFileSync(
+  join(__dirname, "..", "scripts/game-asset-versions.mjs"),
+  "utf-8",
+);
+const ASSET_VERSION_MATCH = assetVersionsSrc.match(
+  /export\s+const\s+ASSET_VERSION\s*=\s*"([^"]+)"/,
+);
+const ASSET_VERSION = ASSET_VERSION_MATCH ? ASSET_VERSION_MATCH[1] : "unknown";
 
 test.describe("Game Prewarm", () => {
   test.use({ viewport: { width: 1440, height: 900 } });
@@ -51,7 +71,7 @@ test.describe("Game Prewarm", () => {
         const archiveUrl = await cta.getAttribute("data-game-archive");
         if (game.engine === "pygbag") {
           expect(archiveUrl).toMatch(
-            new RegExp(`${game.id}\\.tar\\.gz\\?v=mobile-v5$`),
+            new RegExp(`${game.id}\\.tar\\.gz\\?v=${ASSET_VERSION}$`),
           );
         } else {
           expect(archiveUrl).toBe("");
@@ -67,7 +87,7 @@ test.describe("Game Prewarm", () => {
       const standaloneCta = page.locator(
         `a[href="/play/${game.id}/"][data-game-id="${game.id}"][data-browser-playable="true"]`,
       );
-      await expect(standaloneCta).toBeVisible();
+      await expect(standaloneCta.first()).toBeVisible();
     }
   });
 
@@ -230,5 +250,31 @@ test.describe("Game Prewarm", () => {
       await expect(cardLink).toHaveAttribute("data-game-page");
       await expect(cardLink).toHaveAttribute("data-game-archive");
     }
+  });
+
+  test("detail links are not treated as launches", async ({ page }) => {
+    await page.goto("/play/");
+
+    const screenshotLink = page
+      .locator('[data-game-id="cannonball-clash"].game-card__image')
+      .first();
+    await expect(screenshotLink).not.toHaveAttribute("target", "_blank");
+
+    const launchLink = page
+      .locator('[data-game-launch="true"][data-game-id="cannonball-clash"]')
+      .first();
+    await expect(launchLink).toBeVisible();
+    await expect(launchLink).toHaveAttribute("data-browser-playable", "true");
+    await expect(launchLink).toHaveAttribute(
+      "data-game-title",
+      "Cannonball Clash",
+    );
+
+    await expect(
+      page.locator('a[href="#pygbag-games"][data-game-launch]'),
+    ).toHaveCount(0);
+    await expect(
+      page.locator('a[href="#desktop-collection"][data-game-launch]'),
+    ).toHaveCount(0);
   });
 });

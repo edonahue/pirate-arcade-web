@@ -72,6 +72,9 @@ npm run test:debug:webkit
 # Headed + debug on emulated iPhone Safari
 npm run test:debug:mobile
 
+# Built HTML structure (jsdom — no server required, all BaseLayout pages)
+npm run test:html-structure
+
 # Game loading performance (measures cold-start phase timings)
 npm run test:game-performance
 
@@ -172,7 +175,8 @@ tests/
   mobile-drag-controls.spec.ts  # Drag-zone input verification
   mobile-touch-playability.spec.ts # Tap/hold/action button E2E
   mobile-controls-regression.spec.ts # iOS Safari classList.contains bug
-  a11y.spec.ts                  # Accessibility (axe-core, ~7 tests)
+  a11y.spec.ts                  # Accessibility (axe-core, 4 browser games, 5 static pages,
+                                #   5 game detail pages, keyboard-nav smoke, ~22 tests)
   TESTING_CHECKLIST.md          # Manual real-device checklist
 ```
 
@@ -283,8 +287,14 @@ downloads hit CDN rate limits and can be flaky. The total runtime is
 
 ### `tests/a11y.spec.ts` (accessibility)
 
-- Uses `@axe-core/playwright` to scan each game page on three states
-  (initial, runtime-ready, during gameplay) and the `/play/` index.
+- Uses `@axe-core/playwright` to scan all 4 browser game pages on initial DOM
+  (Kraken's Wake and Race to Treasure Island added in Phase 8).
+- Pygbag games (cannonball-clash, treasure-cove, krakens-wake) also scanned on
+  two additional states: after runtime ready, and during gameplay.
+- All 5 static pages scanned: `/`, `/play/`, `/about/`, `/source/`, `/credits/`.
+- All 5 game detail pages scanned: `/games/*/`.
+- Two keyboard-navigation smoke tests: homepage tab focus visibility, `/play/`
+  tab-focus trap detection.
 - Asserts no **critical** or **serious** WCAG 2.1 AA violations.
 - Three rules are explicitly disabled with documented rationale:
   - `color-contrast` — tiny fixed-position dev overlays

@@ -25,6 +25,7 @@ const FAST_GATE = [
   { name: "Service worker", cmd: "npm run test:service-worker" },
   { name: "Cache versioning", cmd: "npm run test:cache-versioning" },
   { name: "Game versions", cmd: "npm run test:game-versions" },
+  { name: "HTML structure", cmd: "npm run test:html-structure" },
   { name: "Archive parity", cmd: "npm run test:archive-parity" },
   { name: "Audit game archives", cmd: "npm run audit:game-archives" },
   { name: "Site links", cmd: "npm run test:site-links" },
@@ -34,6 +35,7 @@ const FAST_GATE = [
   { name: "Repository docs", cmd: "npm run test:docs" },
   { name: "Race ship assets", cmd: "npm run test:race-ship-assets" },
   { name: "Screenshot assets", cmd: "npm run test:screenshot-assets" },
+  { name: "Game prewarm", cmd: "npm run test:game-prewarm" },
   {
     name: "Performance budgets",
     cmd: "npm run test:performance-budgets",

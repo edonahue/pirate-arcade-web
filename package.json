@@ -47,6 +47,7 @@
     "test:release-all": "playwright test tests/release-all-regression.spec.ts --project=chromium-desktop --project=mobile-chrome",
     "test:archive-parity": "node scripts/check-archive-parity.mjs",
     "test:game-versions": "node scripts/check-game-html-versions.mjs",
+    "test:html-structure": "node scripts/check-built-html-structure.mjs",
     "apply:game-versions": "node scripts/apply-game-asset-versions.mjs",
     "patch:game-archives": "node scripts/patch-browser-game-archives.mjs",
     "test:cache-versioning": "node scripts/check-game-cache-versioning.mjs",

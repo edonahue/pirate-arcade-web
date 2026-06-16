@@ -1,6 +1,6 @@
 # ROADMAP
 
-<!-- Current HEAD: Fortress Siege + Rally Fever — 3-stage Breakout, 4 brick types, 3 power-ups, Rally tiers, Cursed Powder -->
+<!-- Current HEAD: Release-candidate hardening — play page document structure repair, test consolidation, a11y expansion, validation automation -->
 
 ## Current Shipped State
 
@@ -78,11 +78,9 @@ are the latest Pygbag game features on the existing three ports.
       joint/crack details)
 - [x] Archives repacked with updated Python source for all three games
 - [x] visual/art direction smoke checklist added to manual test docs
-- [ ] CRT scanline effect toggle (accessibility opt-out)
+- [ ] CRT scanline user-facing toggle in site settings (in-game toggle already exists)
 - [ ] Pixel/arcade accent animations (score counter, selection highlight)
 - [ ] Nautical chart map background motif for hero or sections
-- [ ] Performance audit (Lighthouse target: 90+ all categories)
-- [ ] Full accessibility audit (screen reader, contrast testing)
 
 ## Phase 4: Maintenance Hardening ✓ (Live)
 
@@ -141,13 +139,24 @@ are the latest Pygbag game features on the existing three ports.
 - [x] **Game state bridge**: Extended JSON dump with stage, ballsActive, ballSpeeds, bricksRemaining sub-types, power-up state
 - [x] **650 ball speeds preserved**: Both games start at 650; Treasure Cove escalates 650→700→750 across stages
 
+## Phase 8: Release Candidate Hardening ✓ (Live)
+
+- [x] **Play page document structure repair**: all content inside `<main#main-content>`, validated by `test:html-structure`
+- [x] **Built HTML structure validator**: `scripts/check-built-html-structure.mjs` using jsdom, checks 21 BaseLayout pages for correct `<main>` → `<footer>` ordering
+- [x] **Test ownership refactor**: Captain's Log tests moved to `captains-log.spec.ts`, launch-semantics moved to `game-prewarm.spec.ts`, removed from `site-game-content.spec.ts`
+- [x] **captains-log.js hardening**: entry validation now requires `gameId`, `title`, `timestamp` (finite number), `route` (starts with `/`); `addEntry` parameter guards
+- [x] **Hardcoded game lists removed**: `game-prewarm.spec.ts` derives game lists from `games.json` and `ASSET_VERSION` from `game-asset-versions.mjs`
+- [x] **A11y coverage expanded**: Kraken's Wake + Race to Treasure Island added, 5 static pages, 5 game detail pages, two keyboard-navigation smoke tests
+- [x] **Gate consolidation**: `test:html-structure` and `test:game-prewarm` added to FAST_GATE
+
 ## Next Priorities
 
 - [ ] **Real iPad Safari playtest** — verify Race touch controls, Pygbag cold start, and orientation lock on physical hardware
 - [ ] **Player feedback first pass** — watch someone play through all four games, identify friction points
 - [ ] **Kraken's Wake depth review** — gameplay variety, difficulty curve, visual variety
-- [ ] **Accessibility audit** — screen reader, keyboard nav, color blindness, motion sensitivity
+- [ ] **Full accessibility audit** — screen reader, color blindness, motion sensitivity beyond axe-core
 - [ ] **Performance / Lighthouse audit** — target 90+ all categories with Race and Pygbag games
+- [ ] **CRT scanline user-facing toggle** in site settings
 - [ ] **Phaser 4 compatibility spike** — evaluate migration effort, requires focused spike (deferred from Dependabot)
 
 ## Non-Goals (Intentionally Not Building)

@@ -60,15 +60,16 @@ The validator (`scripts/check-screenshot-assets.mjs`):
 Two local verification commands (defined in `scripts/verify-release.mjs`):
 
 ```sh
-npm run verify:release:fast   # ~20 deterministic checks (2–5 min)
+npm run verify:release:fast   # ~22 deterministic checks (2–5 min)
 npm run verify:release:full   # fast + Playwright tests (10–15 min)
 ```
 
 The fast gate checks: format, typecheck, build, SEO audit, copy tone,
 CSS tokens, visual contrast, dependency hygiene, cloudflare headers,
 browser game consistency & shells, service worker, cache versioning,
-game versions, archive parity & audit, public domain art, game theming
-source, screenshot assets, performance budgets.
+game versions, HTML structure, game prewarm, archive parity & audit,
+public domain art, game theming source, screenshot assets, performance
+budgets.
 
 The full gate adds: site theme, a11y, mobile layout/pause/input/navigation/
 regression, iPad layout/controls, browser games (chromium), game theming
