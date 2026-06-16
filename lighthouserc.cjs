@@ -31,7 +31,7 @@ module.exports = {
         "cumulative-layout-shift": ["warn", { maxNumericValue: 1.0 }],
         "speed-index": ["warn", { maxNumericValue: 5000 }],
         "server-response-time": ["warn", { maxNumericValue: 2000 }],
-        interactive: ["warn", { maxNumericValue": 5000 }],
+        interactive: ["warn", { maxNumericValue: 5000 }],
         "offscreen-images": ["warn", { maxNumericValue: 100000 }],
         "uses-responsive-images": ["warn", { maxNumericValue: 100000 }],
       },
