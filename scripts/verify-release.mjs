@@ -35,7 +35,6 @@ const FAST_GATE = [
   { name: "Repository docs", cmd: "npm run test:docs" },
   { name: "Race ship assets", cmd: "npm run test:race-ship-assets" },
   { name: "Screenshot assets", cmd: "npm run test:screenshot-assets" },
-  { name: "Game prewarm", cmd: "npm run test:game-prewarm" },
   {
     name: "Performance budgets",
     cmd: "npm run test:performance-budgets",
@@ -63,6 +62,7 @@ const FULL_GATE = [
     cmd: "npm run test:web-native-games:chromium",
   },
   { name: "Game theming (visual)", cmd: "npm run test:game-theming" },
+  { name: "Game prewarm", cmd: "npm run test:game-prewarm" },
   { name: "Captain's Log", cmd: "npm run test:captains-log" },
 ];
 

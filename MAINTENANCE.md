@@ -73,7 +73,7 @@ budgets.
 
 The full gate adds: site theme, a11y, mobile layout/pause/input/navigation/
 regression, iPad layout/controls, browser games (chromium), game theming
-(visual), Captain's Log.
+(visual), game prewarm, Captain's Log.
 
 **Before pushing, always run:**
 
