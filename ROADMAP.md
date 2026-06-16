@@ -155,7 +155,10 @@ are the latest Pygbag game features on the existing three ports.
 - [ ] **Player feedback first pass** — watch someone play through all four games, identify friction points
 - [ ] **Kraken's Wake depth review** — gameplay variety, difficulty curve, visual variety
 - [ ] **Full accessibility audit** — screen reader, color blindness, motion sensitivity beyond axe-core
-- [x] **Performance / Lighthouse audit** — route budgets + CI config created; `lighthouserc.cjs` enforces per-route targets
+- [x] **Lighthouse CI execution** — hosted runs, Chrome stable, artifact upload
+- [ ] **Meaningful CI threshold calibration** — inspect multiple CI artifacts, establish medians/percentiles, ratchet one category at a time
+- [ ] **Route-specific hard budgets** — promote budget.json warnings to failures after calibration
+- [ ] **Pygbag playable-readiness measurement** — measure WASM/Python startup, not shell readiness
 - [ ] **CRT scanline user-facing toggle** in site settings
 - [ ] **Phaser 4 compatibility spike** — evaluate migration effort, requires focused spike (deferred from Dependabot)
 

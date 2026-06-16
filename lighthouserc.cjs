@@ -20,6 +20,11 @@ module.exports = {
       },
     },
     assert: {
+      budgetsFile: "budget.json",
+      // CI smoke/baseline thresholds — NOT final performance budgets.
+      // These verify Lighthouse executes and produces reports in CI.
+      // Route-specific budgets from budget.json currently report warnings only.
+      // Stronger thresholds must be calibrated from stored CI artifacts.
       assertions: {
         "categories:performance": ["warn", { minScore: 0.5 }],
         "categories:accessibility": ["warn", { minScore: 0.5 }],

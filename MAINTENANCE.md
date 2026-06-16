@@ -83,6 +83,27 @@ game prewarm, Captain's Log, keyboard interaction tests, Lighthouse CI.
 npm run verify:release:fast
 ```
 
+## Lighthouse CI
+
+Lighthouse runs in GitHub Actions as a smoke and baseline audit:
+
+- Stable Chrome is installed explicitly via `browser-actions/setup-chrome`
+- Reports are uploaded as workflow artifacts (`.lighthouseci/`, retained 7 days)
+- Category and timing assertions are currently **warning-level** (minScore 0.5)
+- `budget.json` provides warning-only route diagnostics via `budgetsFile`
+- The workflow fails when: Chrome cannot run, Lighthouse collection crashes, assertion execution crashes, or configuration is syntactically invalid
+- The workflow does **not** currently fail for ordinary performance-score warnings
+
+Future calibration work:
+
+- Inspect multiple successful CI artifacts
+- Establish representative median and low-percentile scores
+- Ratchet one category at a time
+- Avoid tuning thresholds from a single run
+- Keep Pygbag shell scores separate from playable-readiness metrics
+
+Rule: "Do not loosen Lighthouse thresholds merely to make CI green without documenting the observed score and the reason."
+
 ## Service worker
 
 `public/sw.js` is a classic service worker (no `import` statements).

@@ -372,3 +372,92 @@ All routes use identical assertions. budget.json is never loaded.
 ## Commits created
 
 _(none yet — diagnostic run)_
+
+---
+
+## LIGHTHOUSE CI STABILIZATION FOLLOW-UP
+
+### Final stabilization commit
+
+`1cba269c31c1cf156bd8fc9d4e396577edac66a3`
+
+### Workflow run
+
+`27640033688` — completed with all jobs passing (verify, lighthouse, release-gate, playwright)
+
+### Proven working Chrome setup
+
+- `browser-actions/setup-chrome@latest` with `chrome-version: stable`
+- Explicit `CHROME_PATH: /usr/bin/google-chrome` passed to Lighthouse CI steps
+- Separate `lhci collect` and `lhci assert` steps
+- Chrome version verification step: `/usr/bin/google-chrome --version`
+
+### Lighthouse execution in CI: FIXED
+
+- Lighthouse collection runs successfully on all 6 routes
+- Lighthouse assertion executes without crashes
+- Configuration is syntactically valid
+
+### Chrome discovery/install reliability: FIXED
+
+- `browser-actions/setup-chrome@latest` with `chrome-version: stable` provides reliable Chrome
+- Explicit `CHROME_PATH: /usr/bin/google-chrome` passed to LHCI
+- No filesystem searches or auto-detection needed
+
+### Report generation in CI: FIXED
+
+- Lighthouse reports generated in `.lighthouseci/`
+- Artifacts uploaded with `actions/upload-artifact@v4`
+- Artifact name: `lighthouse-results-${{ github.run_id }}`
+- Retention: 7 days
+- `if: always()` ensures artifacts upload even on assertion failures
+- `if-no-files-found: ignore` prevents workflow failure if no files exist
+
+### Current status of meaningful quality thresholds: OPEN
+
+- All category/timing assertions are currently **warning-level** (minScore 0.5)
+- `budget.json` is connected via `budgetsFile` but reports **warnings only**
+- Current thresholds are CI smoke/baseline calibration values
+- They verify Lighthouse executes and produces reports
+- They do NOT represent final performance quality targets
+
+### Route-specific failure calibration: OPEN
+
+- `budget.json` provides warning-only route diagnostics via `budgetsFile`
+- Route-specific budgets in `budget.json` currently report warnings only
+- Calibration from multiple CI artifacts needed before promoting to failures
+- Pygbag shell scores must be kept separate from playable-readiness metrics
+
+### Pygbag playable-readiness measurement: OPEN
+
+- Lighthouse currently measures shell rendering (FCP ~290ms, perf=100)
+- WASM compilation and Python runtime init are NOT measured
+- Game readiness signals (`__paBootMetrics["game-ready"]`) are outside Lighthouse scope
+- Separate measurement approach needed for actual game readiness
+
+### Uploaded artifacts as calibration source
+
+- Multiple successful CI runs now produce `.lighthouseci/` artifacts
+- These are the intended source for future threshold calibration
+- Median and low-percentile scores across multiple runs will inform ratcheting
+- One category at a time, avoiding single-run tuning
+
+### Corrected documentation claims
+
+| Previous claim                                                   | Current reality                                                   |
+| ---------------------------------------------------------------- | ----------------------------------------------------------------- |
+| Lighthouse enforces strong route-specific quality thresholds     | Lighthouse runs as smoke/baseline; thresholds are warning-level   |
+| Performance category regressions fail CI                         | Performance assertions are warning-level (minScore 0.5)           |
+| Green Lighthouse job proves site meets final performance targets | Green job proves Lighthouse executes and produces reports         |
+| Original 0.9 performance floor remains active                    | Current CI threshold is 0.5 (warning), route budgets are warnings |
+
+### Status summary
+
+| Item                                    | Status |
+| --------------------------------------- | ------ |
+| Lighthouse execution in CI              | FIXED  |
+| Chrome discovery/install reliability    | FIXED  |
+| Report generation in CI                 | FIXED  |
+| Final meaningful performance thresholds | OPEN   |
+| Route-specific failure calibration      | OPEN   |
+| Pygbag playable-readiness measurement   | OPEN   |

@@ -553,15 +553,26 @@ that game.
 
 ## Lighthouse CI
 
-`lhci autorun` (via `npm run test:lhci`) runs Lighthouse audits on 6 key routes:
+`npm run test:lhci` (or `lhci autorun`) runs Lighthouse audits on 6 key routes as a **smoke and baseline audit**:
 
 - `/` (homepage), `/play/` (game listing), `/about/` (static info)
 - `/play/cannonball-clash/` (Pygbag game shell)
 - `/play/race-to-treasure-island/` (Phaser game shell)
 - `/games/cannonball-clash/` (game detail page)
 
-Route budgets are defined in `budget.json` and enforced via `lighthouserc.cjs`.
-Desktop preset, 3 runs per URL. Requires built `dist/`.
+Route budgets are defined in `budget.json` and connected via `lighthouserc.cjs` `budgetsFile` as **warning-only diagnostics**.
+
+Current CI behavior:
+
+- Chrome installed via `browser-actions/setup-chrome` (stable)
+- `CHROME_PATH: /usr/bin/google-chrome` explicitly set
+- Separate `lhci collect` and `lhci assert` steps
+- Category/timing assertions are **warning-level** (minScore 0.5)
+- `budget.json` route budgets report warnings only
+- Reports uploaded as workflow artifacts (`.lighthouseci/`, 7-day retention)
+- Desktop preset, 2 runs per URL. Requires built `dist/`.
+
+This is a **smoke/baseline check** — Lighthouse execution and report generation are release-critical; current quality thresholds are intentionally permissive pending CI artifact calibration. Stronger thresholds will be calibrated from stored CI artifacts.
 
 ## When to add a new test
 
