@@ -36,49 +36,75 @@ const ASSET_VERSION = ASSET_VERSION_MATCH ? ASSET_VERSION_MATCH[1] : "unknown";
 test.describe("Game Prewarm", () => {
   test.use({ viewport: { width: 1440, height: 900 } });
 
-  test("single prewarm installer runs once on /play/", async ({ page }) => {
-    let installerCount = 0;
-    await page.exposeFunction("__paTrackPrewarm", () => {
-      installerCount++;
-    });
-
-    await page.goto("/play/");
-
-    const installed = await page.evaluate(
-      () => !!(window as any).__paGamePrewarmInstalled,
-    );
-    expect(installed).toBe(true);
-  });
-
-  test("browser-playable CTAs have versioned data attributes", async ({
+  (test("prewarm installer flag is set and repeated intent does not duplicate prefetch links", async ({
     page,
   }) => {
     await page.goto("/play/");
 
-    for (const game of BROWSER_PLAYABLE) {
-      const ctas = page.locator(
-        `a[data-game-id="${game.id}"][data-browser-playable="true"]`,
-      );
-      const count = await ctas.count();
-      expect(count).toBeGreaterThanOrEqual(2); // GameCard image + Play link
+    // Verify the prewarm installer flag is set
+    const installed = await page.evaluate(
+      () => !!(window as any).__paGamePrewarmInstalled,
+    );
+    expect(installed).toBe(true);
 
-      // Each CTA should have versioned data attributes
-      for (let i = 0; i < count; i++) {
-        const cta = ctas.nth(i);
-        await expect(cta).toHaveAttribute("data-game-page");
-        await expect(cta).toHaveAttribute("data-game-archive");
+    // Trigger pointerenter twice on the same link
+    const cannonballCta = page
+      .locator(
+        'a[data-game-id="cannonball-clash"][data-browser-playable="true"]',
+      )
+      .last();
 
-        const archiveUrl = await cta.getAttribute("data-game-archive");
-        if (game.engine === "pygbag") {
-          expect(archiveUrl).toMatch(
-            new RegExp(`${game.id}\\.tar\\.gz\\?v=${ASSET_VERSION}$`),
-          );
-        } else {
-          expect(archiveUrl).toBe("");
+    await cannonballCta.dispatchEvent("pointerenter");
+    await page.waitForTimeout(300);
+
+    const prefetchCount = await page.evaluate(() => {
+      return Array.from(
+        document.querySelectorAll('link[rel="prefetch"]'),
+      ).filter((l) => (l as HTMLLinkElement).href?.includes("cannonball-clash"))
+        .length;
+    });
+    expect(prefetchCount).toBeGreaterThanOrEqual(1);
+
+    await cannonballCta.dispatchEvent("pointerenter");
+    await page.waitForTimeout(300);
+
+    const prefetchCountAfterRepeat = await page.evaluate(() => {
+      return Array.from(
+        document.querySelectorAll('link[rel="prefetch"]'),
+      ).filter((l) => (l as HTMLLinkElement).href?.includes("cannonball-clash"))
+        .length;
+    });
+    expect(prefetchCountAfterRepeat).toBe(prefetchCount);
+  }),
+    test("browser-playable CTAs have versioned data attributes", async ({
+      page,
+    }) => {
+      await page.goto("/play/");
+
+      for (const game of BROWSER_PLAYABLE) {
+        const ctas = page.locator(
+          `a[data-game-id="${game.id}"][data-browser-playable="true"]`,
+        );
+        const count = await ctas.count();
+        expect(count).toBeGreaterThanOrEqual(2); // GameCard image + Play link
+
+        // Each CTA should have versioned data attributes
+        for (let i = 0; i < count; i++) {
+          const cta = ctas.nth(i);
+          await expect(cta).toHaveAttribute("data-game-page");
+          await expect(cta).toHaveAttribute("data-game-archive");
+
+          const archiveUrl = await cta.getAttribute("data-game-archive");
+          if (game.engine === "pygbag") {
+            expect(archiveUrl).toMatch(
+              new RegExp(`${game.id}\\.tar\\.gz\\?v=${ASSET_VERSION}$`),
+            );
+          } else {
+            expect(archiveUrl).toBe("");
+          }
         }
       }
-    }
-  });
+    }));
 
   test("standalone CTAs have prewarm data attributes", async ({ page }) => {
     await page.goto("/play/");
@@ -182,58 +208,139 @@ test.describe("Game Prewarm", () => {
     expect(prefetched).toBe(true);
   });
 
-  test("WARM_CACHE payload includes page and versioned archive URLs", async ({
+  test("WARM_CACHE payload includes page and versioned archive URLs (Pygbag)", async ({
     page,
   }) => {
-    let receivedMessage: any = null;
-    await page.exposeFunction("__paCaptureWarmCache", (msg: any) => {
-      receivedMessage = msg;
+    // Mock service worker controller for deterministic testing
+    await page.addInitScript(() => {
+      // Create a mock service worker controller
+      const mockController = {
+        postMessage: (msg: any) => {
+          if (msg.type === "WARM_CACHE") {
+            (window as any).__paWarmCacheMessages =
+              (window as any).__paWarmCacheMessages || [];
+            (window as any).__paWarmCacheMessages.push(msg);
+          }
+        },
+      };
+      // Use Object.defineProperty to properly mock navigator.serviceWorker
+      Object.defineProperty(navigator, "serviceWorker", {
+        value: { controller: mockController },
+        writable: true,
+        configurable: true,
+      });
     });
 
     await page.goto("/play/");
 
-    // Intercept postMessage before the prewarm fires
-    await page.evaluate(() => {
-      const origPostMessage = navigator.serviceWorker.controller?.postMessage;
-      if (origPostMessage) {
-        (navigator.serviceWorker.controller as any).postMessage = (
-          msg: any,
-        ) => {
-          (window as any).__paLastWarmCache = msg;
-        };
-      }
-    });
-
-    // Trigger prewarm on a browser-playable CTA
-    const cannonballCta = page.locator(
-      'a[data-game-id="cannonball-clash"][data-browser-playable="true"]',
-    );
-    await cannonballCta.first().dispatchEvent("pointerenter");
+    // Trigger prewarm on a browser-playable CTA (Cannonball Clash - Pygbag)
+    const cannonballCta = page
+      .locator(
+        'a[data-game-id="cannonball-clash"][data-browser-playable="true"]',
+      )
+      .last();
+    await cannonballCta.dispatchEvent("pointerenter");
     await page.waitForTimeout(300);
 
-    const hasController = await page.evaluate(
-      () => !!navigator.serviceWorker.controller,
+    // Verify the WARM_CACHE message was captured
+    const messages = await page.evaluate(
+      () => (window as any).__paWarmCacheMessages || [],
     );
+    expect(messages).not.toBeNull();
+    expect(messages.length).toBeGreaterThanOrEqual(1);
 
-    if (hasController) {
-      const msg = await page.evaluate(() => (window as any).__paLastWarmCache);
-      expect(msg).not.toBeNull();
-      expect(msg.type).toBe("WARM_CACHE");
-      expect(msg.urls.length).toBeGreaterThanOrEqual(1);
-      expect(msg.urls.some((u: string) => u.includes("cannonball-clash"))).toBe(
-        true,
-      );
-    } else {
-      // Without SW controller, verify the DOM side still worked
-      const prefetched = await page.evaluate(() => {
-        return Array.from(
-          document.querySelectorAll('link[rel="prefetch"]'),
-        ).some((l) =>
-          (l as HTMLLinkElement).href?.includes("cannonball-clash"),
-        );
+    const msg = messages[0];
+    expect(msg.type).toBe("WARM_CACHE");
+    expect(msg.urls.length).toBeGreaterThanOrEqual(1);
+    expect(msg.urls.some((u: string) => u.includes("cannonball-clash"))).toBe(
+      true,
+    );
+    expect(
+      msg.urls.some((u: string) => u.includes("cannonball-clash.tar.gz")),
+    ).toBe(true);
+    expect(
+      msg.urls.some((u: string) => u.includes("cannonball-clash.tar.gz?v=")),
+    ).toBe(true);
+    expect(msg.urls.some((u: string) => u === "")).toBe(false);
+  });
+
+  test("WARM_CACHE payload includes page only (Phaser)", async ({ page }) => {
+    // Mock service worker controller for deterministic testing
+    await page.addInitScript(() => {
+      const mockController = {
+        postMessage: (msg: any) => {
+          if (msg.type === "WARM_CACHE") {
+            (window as any).__paWarmCacheMessages =
+              (window as any).__paWarmCacheMessages || [];
+            (window as any).__paWarmCacheMessages.push(msg);
+          }
+        },
+      };
+      // Use Object.defineProperty to properly mock navigator.serviceWorker
+      Object.defineProperty(navigator, "serviceWorker", {
+        value: { controller: mockController },
+        writable: true,
+        configurable: true,
       });
-      expect(prefetched).toBe(true);
-    }
+    });
+
+    await page.goto("/play/");
+
+    // Trigger prewarm on a browser-playable CTA (Race to Treasure Island - Phaser)
+    const raceCta = page
+      .locator(
+        'a[data-game-id="race-to-treasure-island"][data-browser-playable="true"]',
+      )
+      .last();
+    await raceCta.dispatchEvent("pointerenter");
+    await page.waitForTimeout(300);
+
+    // Verify the WARM_CACHE message was captured
+    const messages = await page.evaluate(
+      () => (window as any).__paWarmCacheMessages || [],
+    );
+    expect(messages).not.toBeNull();
+    expect(messages.length).toBeGreaterThanOrEqual(1);
+
+    const msg = messages[0];
+    expect(msg.type).toBe("WARM_CACHE");
+    expect(msg.urls.length).toBeGreaterThanOrEqual(1);
+    expect(
+      msg.urls.some((u: string) => u.includes("race-to-treasure-island")),
+    ).toBe(true);
+    expect(msg.urls.some((u: string) => u.includes("tar.gz"))).toBe(false);
+    expect(msg.urls.some((u: string) => u === "")).toBe(false);
+  });
+
+  test("graceful degradation when no service worker controller", async ({
+    page,
+  }) => {
+    // Ensure no service worker controller
+    await page.addInitScript(() => {
+      Object.defineProperty(navigator, "serviceWorker", {
+        value: { controller: null },
+        writable: true,
+        configurable: true,
+      });
+    });
+
+    await page.goto("/play/");
+
+    // Verify the DOM side still works (prefetch links are created)
+    const cannonballCta = page
+      .locator(
+        'a[data-game-id="cannonball-clash"][data-browser-playable="true"]',
+      )
+      .last();
+    await cannonballCta.dispatchEvent("pointerenter");
+    await page.waitForTimeout(300);
+
+    const prefetched = await page.evaluate(() => {
+      return Array.from(document.querySelectorAll('link[rel="prefetch"]')).some(
+        (l) => (l as HTMLLinkElement).href?.includes("cannonball-clash"),
+      );
+    });
+    expect(prefetched).toBe(true);
   });
 
   test("only browser-playable game IDs are in the CTA selector", async ({

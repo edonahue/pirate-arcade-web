@@ -131,6 +131,10 @@ test.describe("Captain's Log", () => {
         "pirate-arcade-captains-log",
         JSON.stringify([entry]),
       );
+      localStorage.setItem(
+        "pirate-arcade-captains-log-counts",
+        JSON.stringify({ "cannonball-clash": 1 }),
+      );
     });
 
     await page.reload();
@@ -146,11 +150,15 @@ test.describe("Captain's Log", () => {
     // Log should be hidden
     await expect(logPanel).toBeHidden();
 
-    // localStorage should be cleared
-    const stored = await page.evaluate(() =>
+    // Both localStorage keys should be cleared
+    const hasLog = await page.evaluate(() =>
       localStorage.getItem("pirate-arcade-captains-log"),
     );
-    expect(stored).toBeNull();
+    const hasCounts = await page.evaluate(() =>
+      localStorage.getItem("pirate-arcade-captains-log-counts"),
+    );
+    expect(hasLog).toBeNull();
+    expect(hasCounts).toBeNull();
   });
 
   test("corrupted localStorage data is handled safely", async ({ page }) => {
@@ -236,48 +244,5 @@ test.describe("Captain's Log", () => {
     expect(entry.gameId).toBe("cannonball-clash");
     expect(entry.title).toBe("Cannonball Clash");
     expect(entry.title).not.toBe("Play in Browser →");
-  });
-
-  test("clear removes both history and counts from localStorage", async ({
-    page,
-  }) => {
-    await page.goto("/play/");
-
-    await page.evaluate(() => {
-      localStorage.setItem(
-        "pirate-arcade-captains-log",
-        JSON.stringify([
-          {
-            gameId: "cannonball-clash",
-            title: "Cannonball Clash",
-            timestamp: Date.now(),
-            route: "/play/cannonball-clash/",
-          },
-        ]),
-      );
-      localStorage.setItem(
-        "pirate-arcade-captains-log-counts",
-        JSON.stringify({ "cannonball-clash": 3 }),
-      );
-    });
-
-    await page.evaluate(() => {
-      const w = window as any;
-      if (w.__paCaptainsLog && w.__paCaptainsLog.clearLog) {
-        w.__paCaptainsLog.clearLog();
-      } else {
-        localStorage.removeItem("pirate-arcade-captains-log");
-        localStorage.removeItem("pirate-arcade-captains-log-counts");
-      }
-    });
-
-    const hasLog = await page.evaluate(() =>
-      localStorage.getItem("pirate-arcade-captains-log"),
-    );
-    const hasCounts = await page.evaluate(() =>
-      localStorage.getItem("pirate-arcade-captains-log-counts"),
-    );
-    expect(hasLog).toBeNull();
-    expect(hasCounts).toBeNull();
   });
 });
