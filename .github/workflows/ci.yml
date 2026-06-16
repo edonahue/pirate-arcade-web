@@ -87,6 +87,8 @@ jobs:
           echo "Found Chrome at: $CHROME_PATH"
           ls -la "$CHROME_PATH" 2>/dev/null || echo "File not found or not executable"
       - name: Lighthouse CI collect + assert
+        env:
+          CHROME_PATH: ${{ env.CHROME_PATH }}
         run: npx lhci collect && npx lhci assert
         timeout-minutes: 10
 
