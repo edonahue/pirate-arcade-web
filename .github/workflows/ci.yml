@@ -80,18 +80,10 @@ jobs:
       - run: npm run build
       - name: Install Playwright Chromium
         run: npx playwright install chromium
-      - name: Get Chrome path
-        run: |
-          CHROME_PATH=$(find /home/runner/.cache/ms-playwright -name "chrome" -type f 2>/dev/null | head -1)
-          echo "CHROME_PATH=$CHROME_PATH" >> $GITHUB_ENV
-          echo "Found Chrome at: $CHROME_PATH"
-          ls -la "$CHROME_PATH" 2>/dev/null || echo "File not found or not executable"
+      - name: Install system Chromium
+        run: sudo apt-get update && sudo apt-get install -y chromium-browser
       - name: Lighthouse CI collect + assert
-        run: |
-          CHROME_PATH=$(find /home/runner/.cache/ms-playwright -name "chrome" -type f 2>/dev/null | head -1)
-          echo "Found Chrome at: $CHROME_PATH"
-          ls -la "$CHROME_PATH" 2>/dev/null || echo "File not found or not executable"
-          npx lhci collect && npx lhci assert
+        run: npx lhci collect && npx lhci assert
         timeout-minutes: 10
 
   # Fast release gate — runs all non-Playwright deterministic checks
