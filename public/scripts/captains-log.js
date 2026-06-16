@@ -23,6 +23,12 @@
 
   const STORAGE_WORKS = isStorageAvailable();
 
+  function isValidEntry(entry) {
+    return (
+      entry && typeof entry === "object" && typeof entry.gameId === "string"
+    );
+  }
+
   function saveLog(log) {
     if (!STORAGE_WORKS) return;
     try {
@@ -65,10 +71,17 @@
     return filtered;
   }
 
+  function getRegistryTitle(gameId) {
+    const gamesData = window.__PA_GAMES_DATA || [];
+    const game = gamesData.find((g) => g.id === gameId);
+    return game?.title || null;
+  }
+
   function clearLog() {
     if (!STORAGE_WORKS) return [];
     try {
       localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem(STORAGE_KEY + "-counts");
     } catch {
       // Ignore
     }
@@ -135,26 +148,35 @@
     }
 
     list.innerHTML = log
-      .map(
-        (entry) => `
-      <li class="captains-log__item">
-        <div class="captains-log__item-header">
-          <span class="captains-log__game-name">${escapeHtml(entry.title)}</span>
-          <span class="captains-log__game-classic">${escapeHtml(getClassic(entry.gameId))}</span>
-        </div>
-        <div class="captains-log__meta">
-          <span class="captains-log__meta-item">
-            <span class="captains-log__meta-label">Launches:</span>
-            <span>${getLaunchCount(entry.gameId)}</span>
-          </span>
-          <span class="captains-log__meta-item">
-            <span class="captains-log__meta-label">Last played:</span>
-            <span>${formatDate(entry.timestamp)}</span>
-          </span>
-        </div>
-      </li>
-    `,
-      )
+      .map(function (entry) {
+        const displayTitle = getRegistryTitle(entry.gameId) || entry.title;
+        return (
+          '<li class="captains-log__item">' +
+          '<div class="captains-log__item-header">' +
+          '<span class="captains-log__game-name">' +
+          escapeHtml(displayTitle) +
+          "</span>" +
+          '<span class="captains-log__game-classic">' +
+          escapeHtml(getClassic(entry.gameId)) +
+          "</span>" +
+          "</div>" +
+          '<div class="captains-log__meta">' +
+          '<span class="captains-log__meta-item">' +
+          '<span class="captains-log__meta-label">Launches:</span>' +
+          "<span>" +
+          getLaunchCount(entry.gameId) +
+          "</span>" +
+          "</span>" +
+          '<span class="captains-log__meta-item">' +
+          '<span class="captains-log__meta-label">Last played:</span>' +
+          "<span>" +
+          formatDate(entry.timestamp) +
+          "</span>" +
+          "</span>" +
+          "</div>" +
+          "</li>"
+        );
+      })
       .join("");
   }
 
@@ -186,9 +208,8 @@
   window.__paCaptainsLog = {
     addEntry,
     incrementLaunchCount,
+    clearLog,
   };
-
-  console.log("[CaptainsLog] Script loaded, readyState:", document.readyState);
 
   // Run init immediately if DOM is ready, otherwise wait
   if (document.readyState === "loading") {

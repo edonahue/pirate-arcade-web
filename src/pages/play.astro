@@ -13,6 +13,27 @@ const browserGames = games.filter((g) => g.status === "browser-playable");
 const pygbagGames = browserGames.filter((g) => g.engine === "pygbag");
 const webNativeGames = browserGames.filter((g) => g.engine === "phaser");
 const desktopGames = games.filter((g) => g.status === "desktop-available");
+
+const browserEngineCount = new Set(browserGames.map((game) => game.engine))
+  .size;
+
+const getTouchLabel = (difficulty: string) => {
+  switch (difficulty) {
+    case "easy":
+      return "Easiest on touch";
+    case "medium":
+      return "Medium on touch";
+    case "harder":
+      return "Harder on touch";
+    default:
+      return "";
+  }
+};
+
+const getArchiveUrl = (gameId: string, engine: string) => {
+  if (engine === "phaser") return "";
+  return `/play/${gameId}/${gameId}.tar.gz?v=${ASSET_VERSION}`;
+};
 ---
 
 <BaseLayout
@@ -37,9 +58,9 @@ const desktopGames = games.filter((g) => g.status === "desktop-available");
     artPosition="50% 45%"
   />
 
-  <section class="section">
+  <section class="section" id="game-selection">
     <ArcadeFrame label="Game selection" topLabel="GAME SELECT  -  COURSE READY">
-      <div style="padding: 1.5rem;">
+      <div class="game-selection__inner">
         <h2 class="sr-only">Available Games</h2>
         <div class="game-grid">
           {games.map((game) => <GameCard game={game} />)}
@@ -51,39 +72,59 @@ const desktopGames = games.filter((g) => g.status === "desktop-available");
   <div class="recommended-path">
     <div class="recommended-path__item">
       <span class="recommended-path__label">Instant Course</span>
-      <a href="/play/race-to-treasure-island/" class="recommended-path__link"
-        >Race to Treasure Island</a
+      <a
+        href="/play/race-to-treasure-island/"
+        class="recommended-path__link"
+        data-game-id="race-to-treasure-island"
+        data-game-title="Race to Treasure Island"
+        data-browser-playable="true"
+        data-game-page="/play/race-to-treasure-island/"
+        data-game-archive=""
+        data-game-launch="true"
+        data-captains-log="race-to-treasure-island">Race to Treasure Island</a
       >
     </div>
     <div class="recommended-path__item">
       <span class="recommended-path__label">Best on Touch</span>
-      <a href="/play/cannonball-clash/" class="recommended-path__link"
-        >Cannonball Clash</a
+      <a
+        href="/play/cannonball-clash/"
+        class="recommended-path__link"
+        data-game-id="cannonball-clash"
+        data-game-title="Cannonball Clash"
+        data-browser-playable="true"
+        data-game-page="/play/cannonball-clash/"
+        data-game-archive={getArchiveUrl("cannonball-clash", "pygbag")}
+        data-game-launch="true"
+        data-captains-log="cannonball-clash">Cannonball Clash</a
       >
     </div>
     <div class="recommended-path__item">
       <span class="recommended-path__label">Pygbag Classics</span>
-      <a href="/play/" class="recommended-path__link"
+      <a href="#pygbag-games" class="recommended-path__link"
         >Cannonball, Treasure Cove, Kraken's Wake</a
       >
     </div>
     <div class="recommended-path__item">
       <span class="recommended-path__label">Desktop Collection</span>
-      <a href="/games/port-royale-tycoon/" class="recommended-path__link"
-        >Port Royale Tycoon</a
+      <a href="#desktop-collection" class="recommended-path__link"
+        >Downloads and Port Royale Tycoon</a
       >
     </div>
   </div>
 
-  <section class="section">
+  <section class="section" id="browser-games">
     <div class="section__header">
       <p class="section__eyebrow">Browser</p>
       <h2 class="section__title">Play Now</h2>
       <p class="section__description">
-        {browserGames.length} browser-playable games across two engine types: {
-          pygbagGames.length
-        }
-        Pygbag/WebAssembly ports and {webNativeGames.length} web-native Phaser
+        {browserGames.length} browser-playable game{
+          browserGames.length !== 1 ? "s" : ""
+        } across {browserEngineCount} engine type{
+          browserEngineCount !== 1 ? "s" : ""
+        }: {pygbagGames.length}
+        Pygbag/WebAssembly port{pygbagGames.length !== 1 ? "s" : ""} and {
+          webNativeGames.length
+        } web-native Phaser
         {webNativeGames.length === 1 ? "game" : "games"}. All {
           browserGames.length
         } are playable right now.
@@ -91,9 +132,12 @@ const desktopGames = games.filter((g) => g.status === "desktop-available");
     </div>
 
     <div class="engine-split">
-      <div class="engine-card">
+      <div class="engine-card" id="pygbag-games">
         <div class="engine-card__header">
-          <span class="engine-card__icon" aria-hidden="true">🐍</span>
+          <span
+            class="engine-card__marker engine-card__marker--python"
+            aria-hidden="true">PY</span
+          >
           <h3 class="engine-card__title">Pygbag / WebAssembly</h3>
         </div>
         <p class="engine-card__desc">
@@ -102,41 +146,43 @@ const desktopGames = games.filter((g) => g.status === "desktop-available");
           after first click.
         </p>
         <ul class="engine-card__games">
-          <li>
-            <a
-              href="/play/cannonball-clash/"
-              rel="noopener noreferrer"
-              data-captains-log="cannonball-clash"
-            >
-              Cannonball Clash
-            </a>
-            <span class="engine-card__tag touch-easy">Easiest on touch</span>
-          </li>
-          <li>
-            <a
-              href="/play/treasure-cove/"
-              rel="noopener noreferrer"
-              data-captains-log="treasure-cove"
-            >
-              Treasure Cove
-            </a>
-            <span class="engine-card__tag touch-medium">Medium on touch</span>
-          </li>
-          <li>
-            <a
-              href="/play/krakens-wake/"
-              rel="noopener noreferrer"
-              data-captains-log="krakens-wake"
-            >
-              Kraken's Wake
-            </a>
-            <span class="engine-card__tag touch-harder">Harder on touch</span>
-          </li>
+          {
+            pygbagGames.map((game) => (
+              <li>
+                <a
+                  href={game.browserUrl}
+                  data-game-id={game.id}
+                  data-game-title={game.title}
+                  data-browser-playable="true"
+                  data-game-page={game.browserUrl}
+                  data-game-archive={getArchiveUrl(
+                    game.id,
+                    game.engine ?? "pygbag",
+                  )}
+                  data-game-launch="true"
+                  data-captains-log={game.id}
+                >
+                  {game.title}
+                </a>
+                <span
+                  class={
+                    "engine-card__tag touch-" +
+                    (game.touchDifficulty ?? "medium")
+                  }
+                >
+                  {getTouchLabel(game.touchDifficulty ?? "medium")}
+                </span>
+              </li>
+            ))
+          }
         </ul>
       </div>
-      <div class="engine-card">
+      <div class="engine-card" id="web-native-games">
         <div class="engine-card__header">
-          <span class="engine-card__icon" aria-hidden="true">⚡</span>
+          <span
+            class="engine-card__marker engine-card__marker--javascript"
+            aria-hidden="true">JS</span
+          >
           <h3 class="engine-card__title">Web Native (Phaser 3)</h3>
         </div>
         <p class="engine-card__desc">
@@ -145,421 +191,485 @@ const desktopGames = games.filter((g) => g.status === "desktop-available");
           wind boost mechanics.
         </p>
         <ul class="engine-card__games">
-          <li>
-            <a
-              href="/play/race-to-treasure-island/"
-              rel="noopener noreferrer"
-              data-captains-log="race-to-treasure-island"
-            >
-              Race to Treasure Island
-            </a>
-            <span class="engine-card__tag touch-medium">Medium on touch</span>
-          </li>
+          {
+            webNativeGames.map((game) => (
+              <li>
+                <a
+                  href={game.browserUrl}
+                  data-game-id={game.id}
+                  data-game-title={game.title}
+                  data-browser-playable="true"
+                  data-game-page={game.browserUrl}
+                  data-game-archive={getArchiveUrl(
+                    game.id,
+                    game.engine ?? "phaser",
+                  )}
+                  data-game-launch="true"
+                  data-captains-log={game.id}
+                >
+                  {game.title}
+                </a>
+                <span
+                  class={
+                    "engine-card__tag touch-" +
+                    (game.touchDifficulty ?? "medium")
+                  }
+                >
+                  {getTouchLabel(game.touchDifficulty ?? "medium")}
+                </span>
+              </li>
+            ))
+          }
         </ul>
       </div>
     </div>
-
-    <div class="before-launch mt-4">
-      <div class="before-launch__inner">
-        <p class="before-launch__heading">Before you launch</p>
-        <ul class="before-launch__list">
-          <li>
-            <strong>Pygbag games:</strong> ~12 MB first-visit download (cached on
-            repeat).
-          </li>
-          <li>
-            <strong>Web-native games:</strong> Load instantly — no runtime needed.
-          </li>
-          <li>
-            <strong>Audio:</strong> Starts after your first click or tap.
-          </li>
-          <li>
-            <strong>Controls:</strong> Keyboard works best. On-screen touch controls
-            also available.
-          </li>
-          <li>
-            <strong>Orientation:</strong> Landscape recommended.
-          </li>
-        </ul>
-      </div>
-    </div>
-
-    <ArcadeStatusPanel />
-
-    <section class="section">
-      <div class="section__header">
-        <p class="section__eyebrow">Desktop</p>
-        <h2 class="section__title">Desktop Collection</h2>
-        <p class="section__description">
-          The {pygbagGames.length} Pygbag games ({
-            pygbagGames.map((g) => g.title).join(", ")
-          }) are also available as desktop downloads via the desktop repo. Race
-          to Treasure Island is web-native and has no desktop build. Port Royale
-          Tycoon is the only desktop-only game (see roadmap below).
-        </p>
-      </div>
-
-      <div class="text-center mt-2">
-        <a
-          href="https://github.com/edonahue/pirate-arcade/releases"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="cta cta--gold"
-        >
-          Download Latest Release
-        </a>
-      </div>
-
-      <div class="release-details mt-2">
-        <div class="release-details__grid">
-          <div class="release-details__item">
-            <span class="release-details__label">Windows</span>
-            <span class="release-details__value">Standalone .exe</span>
-          </div>
-          <div class="release-details__item">
-            <span class="release-details__label">Linux</span>
-            <span class="release-details__value">.deb package</span>
-          </div>
-          <div class="release-details__item">
-            <span class="release-details__label">macOS</span>
-            <span class="release-details__value">Build from source</span>
-          </div>
-          <div class="release-details__item">
-            <span class="release-details__label">Source</span>
-            <span class="release-details__value">MIT license</span>
-          </div>
-        </div>
-        <p class="release-details__note">
-          <a href="/build-log/launching-on-free-infrastructure">
-            Read about the infrastructure
-          </a>
-          {" \u2014 "}how everything ships on free tiers.
-        </p>
-      </div>
-    </section>
-
-    <section class="section">
-      <div class="section__header">
-        <p class="section__eyebrow">Roadmap</p>
-        <h2 class="section__title">What's Next</h2>
-        <p class="section__description">
-          <strong>Race to Treasure Island</strong> is our first web-native (Phaser)
-          game — load it instantly, no runtime download. Port Royale Tycoon (trading
-          board game) remains the only desktop-only game. A browser port has been
-          evaluated — see the feasibility review in the build log.
-        </p>
-        <p class="section__description mt-1">
-          <a href="/build-log/browser-port-feasibility">
-            Read the feasibility analysis
-          </a>
-          {" \u2014 "}Pygbag vs Canvas rewrite trade-offs.
-        </p>
-      </div>
-    </section>
-
-    <CaptainsLog games={games} />
   </section>
 
-  <script define:vars={{ ASSET_VERSION }} is:inline>
-    if (!window.__paGamePrewarmInstalled) {
-      window.__paGamePrewarmInstalled = true;
+  <div class="before-launch mt-4">
+    <div class="before-launch__inner">
+      <p class="before-launch__heading">Before you launch</p>
+      <ul class="before-launch__list">
+        <li>
+          <strong>Pygbag games:</strong> ~12 MB first-visit download (cached on repeat).
+        </li>
+        <li>
+          <strong>Web-native games:</strong> Load instantly — no runtime needed.
+        </li>
+        <li>
+          <strong>Audio:</strong> Starts after your first click or tap.
+        </li>
+        <li>
+          <strong>Controls:</strong> Keyboard works best. On-screen touch controls
+          also available.
+        </li>
+        <li>
+          <strong>Orientation:</strong> Landscape recommended.
+        </li>
+      </ul>
+    </div>
+  </div>
+</BaseLayout>
 
-      /** @type {Map<string, {timeout: number|null, prefetchedUrls: Set<string>}>} */
-      var prewarmState = new Map();
+<ArcadeStatusPanel />
 
-      function triggerGamePrewarm(gameId, pageUrl, archiveUrl) {
-        var state = prewarmState.get(gameId);
-        if (!state) {
-          state = { timeout: null, prefetchedUrls: new Set() };
-          prewarmState.set(gameId, state);
-        }
-        if (state.timeout) clearTimeout(state.timeout);
-        state.timeout = setTimeout(function () {
-          var urls = [pageUrl];
-          if (!state.prefetchedUrls.has(pageUrl)) {
-            var link = document.createElement("link");
-            link.rel = "prefetch";
-            link.href = pageUrl;
-            document.head.appendChild(link);
-            state.prefetchedUrls.add(pageUrl);
-          }
-          if (archiveUrl && !state.prefetchedUrls.has(archiveUrl)) {
-            var link = document.createElement("link");
-            link.rel = "prefetch";
-            link.href = archiveUrl;
-            link.as = "fetch";
-            document.head.appendChild(link);
-            state.prefetchedUrls.add(archiveUrl);
-            urls.push(archiveUrl);
-          }
-          if (
-            "serviceWorker" in navigator &&
-            navigator.serviceWorker.controller
-          ) {
-            navigator.serviceWorker.controller.postMessage({
-              type: "WARM_CACHE",
-              urls: urls,
-            });
-          }
-        }, 150);
+<section class="section" id="desktop-collection">
+  <div class="section__header">
+    <p class="section__eyebrow">Desktop</p>
+    <h2 class="section__title">Desktop Collection</h2>
+    <p class="section__description">
+      The {pygbagGames.length} Pygbag game{pygbagGames.length !== 1 ? "s" : ""} ({
+        pygbagGames.map((g) => g.title).join(", ")
+      }) are also available as desktop downloads via the desktop repo. Race to
+      Treasure Island is web-native and has no desktop build. Port Royale Tycoon
+      is the only desktop-only game (see roadmap below).
+    </p>
+  </div>
+
+  <div class="text-center mt-2">
+    <a
+      href="https://github.com/edonahue/pirate-arcade/releases"
+      target="_blank"
+      rel="noopener noreferrer"
+      class="cta cta--gold"
+    >
+      Download Latest Release
+    </a>
+  </div>
+
+  <div class="release-details mt-2">
+    <div class="release-details__grid">
+      <div class="release-details__item">
+        <span class="release-details__label">Windows</span>
+        <span class="release-details__value">Standalone .exe</span>
+      </div>
+      <div class="release-details__item">
+        <span class="release-details__label">Linux</span>
+        <span class="release-details__value">.deb package</span>
+      </div>
+      <div class="release-details__item">
+        <span class="release-details__label">macOS</span>
+        <span class="release-details__value">Build from source</span>
+      </div>
+      <div class="release-details__item">
+        <span class="release-details__label">Source</span>
+        <span class="release-details__value">MIT license</span>
+      </div>
+    </div>
+    <p class="release-details__note">
+      <a href="/build-log/launching-on-free-infrastructure">
+        Read about the infrastructure
+      </a>
+      {" \u2014 "}how everything ships on free tiers.
+    </p>
+  </div>
+</section>
+
+<section class="section" id="roadmap">
+  <div class="section__header">
+    <p class="section__eyebrow">Roadmap</p>
+    <h2 class="section__title">What's Next</h2>
+    <p class="section__description">
+      <strong>Race to Treasure Island</strong> is our first web-native (Phaser) game
+      — load it instantly, no runtime download. Port Royale Tycoon (trading board
+      game) remains the only desktop-only game. A browser port has been evaluated
+      — see the feasibility review in the build log.
+    </p>
+    <p class="section__description mt-1">
+      <a href="/build-log/browser-port-feasibility">
+        Read the feasibility analysis
+      </a>
+      {" \u2014 "}Pygbag vs Canvas rewrite trade-offs.
+    </p>
+  </div>
+</section>
+
+<CaptainsLog games={games} />
+
+<script define:vars={{ ASSET_VERSION }} is:inline>
+  if (!window.__paGamePrewarmInstalled) {
+    window.__paGamePrewarmInstalled = true;
+
+    /** @type {Map<string, {timeout: number|null, prefetchedUrls: Set<string>}>} */
+    var prewarmState = new Map();
+
+    function triggerGamePrewarm(gameId, pageUrl, archiveUrl) {
+      var state = prewarmState.get(gameId);
+      if (!state) {
+        state = { timeout: null, prefetchedUrls: new Set() };
+        prewarmState.set(gameId, state);
       }
-
-      function cancelGamePrewarm(gameId) {
-        var state = prewarmState.get(gameId);
-        if (state && state.timeout) {
-          clearTimeout(state.timeout);
-          state.timeout = null;
+      if (state.timeout) clearTimeout(state.timeout);
+      state.timeout = setTimeout(function () {
+        var urls = [pageUrl];
+        if (!state.prefetchedUrls.has(pageUrl)) {
+          var link = document.createElement("link");
+          link.rel = "prefetch";
+          link.href = pageUrl;
+          document.head.appendChild(link);
+          state.prefetchedUrls.add(pageUrl);
         }
-      }
-
-      var isDesktop = window.matchMedia("(pointer: fine)").matches;
-      var links = document.querySelectorAll(
-        "a[data-game-id][data-browser-playable=true]",
-      );
-      links.forEach(function (link) {
-        // Open in new tab on desktop (fine pointer); same tab on mobile (coarse pointer)
-        if (isDesktop) {
-          link.setAttribute("target", "_blank");
+        if (archiveUrl && !state.prefetchedUrls.has(archiveUrl)) {
+          var link = document.createElement("link");
+          link.rel = "prefetch";
+          link.href = archiveUrl;
+          link.as = "fetch";
+          document.head.appendChild(link);
+          state.prefetchedUrls.add(archiveUrl);
+          urls.push(archiveUrl);
         }
-        var gameId = link.getAttribute("data-game-id");
-        var pageUrl = link.getAttribute("data-game-page") || "";
-        var archiveUrl = link.getAttribute("data-game-archive") || "";
-        var captainsLogId = link.getAttribute("data-captains-log");
-        if (!pageUrl) return;
-
-        link.addEventListener("pointerenter", function () {
-          triggerGamePrewarm(gameId, pageUrl, archiveUrl);
-        });
-        link.addEventListener("pointerleave", function () {
-          cancelGamePrewarm(gameId);
-        });
-        link.addEventListener("focus", function () {
-          triggerGamePrewarm(gameId, pageUrl, archiveUrl);
-        });
-        link.addEventListener("blur", function () {
-          cancelGamePrewarm(gameId);
-        });
-        link.addEventListener(
-          "touchstart",
-          function () {
-            triggerGamePrewarm(gameId, pageUrl, archiveUrl);
-          },
-          { passive: true },
-        );
-
-        // Captain's Log: record launch on click (before navigation)
-        if (captainsLogId) {
-          link.addEventListener("click", function () {
-            if (window.__paCaptainsLog && window.__paCaptainsLog.addEntry) {
-              window.__paCaptainsLog.addEntry(
-                captainsLogId,
-                link.textContent?.trim() || gameId,
-                pageUrl,
-              );
-              window.__paCaptainsLog.incrementLaunchCount(captainsLogId);
-            }
+        if (
+          "serviceWorker" in navigator &&
+          navigator.serviceWorker.controller
+        ) {
+          navigator.serviceWorker.controller.postMessage({
+            type: "WARM_CACHE",
+            urls: urls,
           });
         }
+      }, 150);
+    }
+
+    function cancelGamePrewarm(gameId) {
+      var state = prewarmState.get(gameId);
+      if (state && state.timeout) {
+        clearTimeout(state.timeout);
+        state.timeout = null;
+      }
+    }
+
+    var isDesktop = window.matchMedia("(pointer: fine)").matches;
+
+    // Prewarming applies to all browser-game links (detail + launch)
+    var allLinks = document.querySelectorAll(
+      "a[data-game-id][data-browser-playable=true]",
+    );
+    allLinks.forEach(function (link) {
+      var gameId = link.getAttribute("data-game-id");
+      var pageUrl = link.getAttribute("data-game-page") || "";
+      var archiveUrl = link.getAttribute("data-game-archive") || "";
+      if (!pageUrl) return;
+
+      link.addEventListener("pointerenter", function () {
+        triggerGamePrewarm(gameId, pageUrl, archiveUrl);
       });
-    }
-  </script>
+      link.addEventListener("pointerleave", function () {
+        cancelGamePrewarm(gameId);
+      });
+      link.addEventListener("focus", function () {
+        triggerGamePrewarm(gameId, pageUrl, archiveUrl);
+      });
+      link.addEventListener("blur", function () {
+        cancelGamePrewarm(gameId);
+      });
+      link.addEventListener(
+        "touchstart",
+        function () {
+          triggerGamePrewarm(gameId, pageUrl, archiveUrl);
+        },
+        { passive: true },
+      );
+    });
 
-  <style>
-    .engine-split {
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 1.25rem;
-      max-width: 680px;
-      margin: 0 auto 2rem;
-    }
+    // Launch behavior only for actual launch links
+    var launchLinks = document.querySelectorAll("a[data-game-launch=true]");
+    launchLinks.forEach(function (link) {
+      var gameId = link.getAttribute("data-game-id");
+      var pageUrl = link.getAttribute("data-game-page") || "";
+      var title = link.getAttribute("data-game-title") || gameId;
+      var captainsLogId = link.getAttribute("data-captains-log");
 
+      // Open in new tab on desktop (fine pointer); same tab on mobile (coarse pointer)
+      if (isDesktop) {
+        link.setAttribute("target", "_blank");
+        link.setAttribute("rel", "noopener noreferrer");
+      }
+
+      // Captain's Log: record launch on click (before navigation)
+      if (captainsLogId) {
+        link.addEventListener("click", function () {
+          if (window.__paCaptainsLog && window.__paCaptainsLog.addEntry) {
+            window.__paCaptainsLog.addEntry(captainsLogId, title, pageUrl);
+            window.__paCaptainsLog.incrementLaunchCount(captainsLogId);
+          }
+        });
+      }
+    });
+  }
+</script>
+
+<style>
+  #game-selection,
+  #browser-games,
+  #pygbag-games,
+  #web-native-games,
+  #desktop-collection,
+  #roadmap,
+  #captains-log {
+    scroll-margin-top: 5.5rem;
+  }
+
+  .game-selection__inner {
+    padding: 1.5rem;
+  }
+
+  @media (max-width: 640px) {
+    .game-selection__inner {
+      padding: 1rem;
+    }
+  }
+
+  .engine-split {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+    max-width: 680px;
+    margin: 0 auto 2rem;
+  }
+
+  .engine-card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+  }
+
+  @media (max-width: 640px) {
     .engine-card {
-      background: var(--surface);
-      border: 1px solid var(--line);
-      border-radius: var(--radius-lg);
-      padding: 1.5rem;
-    }
-
-    @media (max-width: 640px) {
-      .engine-card {
-        padding: 1rem;
-      }
-
-      .engine-card__desc {
-        font-size: 0.8125rem;
-      }
-
-      .engine-card__games li {
-        font-size: 0.8125rem;
-      }
-
-      .engine-card__tag {
-        font-size: 0.5625rem;
-        padding: 0.1rem 0.3rem;
-      }
-    }
-
-    .engine-card:first-child {
-      border-left: 3px solid var(--gold);
-    }
-
-    .engine-card:last-child {
-      border-left: 3px solid var(--sea);
-    }
-
-    .engine-card__header {
-      display: flex;
-      align-items: center;
-      gap: 0.625rem;
-      margin-bottom: 0.75rem;
-    }
-
-    .engine-card__icon {
-      font-size: 1.25rem;
-      line-height: 1;
-    }
-
-    .engine-card__title {
-      font-family: var(--display);
-      font-size: 1.125rem;
-      color: var(--ink);
+      padding: 1rem;
     }
 
     .engine-card__desc {
-      font-size: 0.875rem;
-      color: var(--muted);
-      line-height: 1.6;
-      margin-bottom: 1rem;
-    }
-
-    .engine-card__games {
-      list-style: none;
-      padding: 0;
-      margin: 0;
-      display: flex;
-      flex-direction: column;
-      gap: 0.5rem;
+      font-size: 0.8125rem;
     }
 
     .engine-card__games li {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      font-size: 0.875rem;
-    }
-
-    .engine-card__games a {
-      color: var(--accent);
-      text-decoration: underline;
-      text-underline-offset: 2px;
-    }
-
-    .engine-card__games a:hover {
-      color: var(--ink);
+      font-size: 0.8125rem;
     }
 
     .engine-card__tag {
-      font-family: var(--mono);
-      font-size: 0.625rem;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      padding: 0.125rem 0.375rem;
-      border: 1px solid currentColor;
-      border-radius: 3px;
-      white-space: nowrap;
+      font-size: 0.5625rem;
+      padding: 0.1rem 0.3rem;
     }
+  }
 
-    .engine-card__tag.touch-easy {
-      color: var(--sea);
+  .engine-card:first-child {
+    border-left: 3px solid var(--gold);
+  }
+
+  .engine-card:last-child {
+    border-left: 3px solid var(--sea);
+  }
+
+  .engine-card__header {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .engine-card__marker {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    border: 1px solid currentColor;
+    border-radius: 4px;
+    flex-shrink: 0;
+  }
+
+  .engine-card__marker--python {
+    color: var(--gold);
+  }
+
+  .engine-card__marker--javascript {
+    color: var(--sea);
+  }
+
+  .engine-card__title {
+    font-family: var(--display);
+    font-size: 1.125rem;
+    color: var(--ink);
+  }
+
+  .engine-card__desc {
+    font-size: 0.875rem;
+    color: var(--muted);
+    line-height: 1.6;
+    margin-bottom: 1rem;
+  }
+
+  .engine-card__games {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .engine-card__games li {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+  }
+
+  .engine-card__games a {
+    color: var(--accent);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  .engine-card__games a:hover {
+    color: var(--ink);
+  }
+
+  .engine-card__tag {
+    font-family: var(--mono);
+    font-size: 0.625rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 0.125rem 0.375rem;
+    border: 1px solid currentColor;
+    border-radius: 3px;
+    white-space: nowrap;
+  }
+
+  .engine-card__tag.touch-easy {
+    color: var(--sea);
+  }
+
+  .engine-card__tag.touch-medium {
+    color: var(--gold);
+  }
+
+  .engine-card__tag.touch-harder {
+    color: var(--rum);
+  }
+
+  @media (min-width: 640px) {
+    .engine-split {
+      grid-template-columns: 1fr 1fr;
+      max-width: 780px;
     }
+  }
 
-    .engine-card__tag.touch-medium {
-      color: var(--gold);
-    }
+  .before-launch {
+    max-width: 580px;
+    margin-left: auto;
+    margin-right: auto;
+  }
 
-    .engine-card__tag.touch-harder {
-      color: var(--rum);
-    }
+  .before-launch__inner {
+    padding: 1.25rem 1.5rem;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    border-left: 3px solid var(--accent);
+  }
 
-    @media (min-width: 640px) {
-      .engine-split {
-        grid-template-columns: 1fr 1fr;
-        max-width: 780px;
-      }
-    }
-
-    .before-launch {
-      max-width: 580px;
-      margin-left: auto;
-      margin-right: auto;
-    }
-
+  @media (max-width: 640px) {
     .before-launch__inner {
-      padding: 1.25rem 1.5rem;
-      background: var(--surface);
-      border: 1px solid var(--line);
-      border-radius: var(--radius-lg);
-      border-left: 3px solid var(--accent);
-    }
-
-    @media (max-width: 640px) {
-      .before-launch__inner {
-        padding: 1rem 1rem;
-      }
-
-      .before-launch__heading {
-        font-size: 0.625rem;
-      }
-
-      .before-launch__list li {
-        font-size: 0.75rem;
-        padding-left: 0.75rem;
-      }
+      padding: 1rem 1rem;
     }
 
     .before-launch__heading {
-      font-family: var(--mono);
-      font-size: 0.6875rem;
-      text-transform: uppercase;
-      letter-spacing: 0.12em;
-      color: var(--accent);
-      margin-bottom: 0.75rem;
-    }
-
-    .before-launch__list {
-      list-style: none;
-      padding: 0;
-      margin: 0;
-      display: flex;
-      flex-direction: column;
-      gap: 0.5rem;
+      font-size: 0.625rem;
     }
 
     .before-launch__list li {
-      font-size: 0.8125rem;
-      color: var(--muted);
-      line-height: 1.5;
-      padding-left: 1rem;
-      position: relative;
+      font-size: 0.75rem;
+      padding-left: 0.75rem;
     }
+  }
 
-    .before-launch__list li::before {
-      content: "\25B8";
-      position: absolute;
-      left: 0;
-      color: var(--accent);
-    }
+  .before-launch__heading {
+    font-family: var(--mono);
+    font-size: 0.6875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--accent);
+    margin-bottom: 0.75rem;
+  }
 
-    .before-launch__list li strong {
-      color: var(--ink);
-    }
+  .before-launch__list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
 
-    .release-details__note a,
-    .section__description a {
-      text-decoration: underline;
-      text-underline-offset: 2px;
-    }
-  </style>
+  .before-launch__list li {
+    font-size: 0.8125rem;
+    color: var(--muted);
+    line-height: 1.5;
+    padding-left: 1rem;
+    position: relative;
+  }
 
-  <script is:inline src="/scripts/captains-log.js"></script>
-</BaseLayout>
+  .before-launch__list li::before {
+    content: "\25B8";
+    position: absolute;
+    left: 0;
+    color: var(--accent);
+  }
+
+  .before-launch__list li strong {
+    color: var(--ink);
+  }
+
+  .release-details__note a,
+  .section__description a {
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+</style>
+
+<script is:inline src="/scripts/captains-log.js"></script>

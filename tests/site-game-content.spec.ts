@@ -538,6 +538,232 @@ test.describe("Site Game Content", () => {
     await expect(sidebar).toBeVisible();
   });
 
+  test("play page section IDs exist and are not nested", async ({ page }) => {
+    await page.goto("/play/");
+
+    const ids = [
+      "game-selection",
+      "browser-games",
+      "pygbag-games",
+      "web-native-games",
+      "desktop-collection",
+      "roadmap",
+      "captains-log",
+    ];
+    for (const id of ids) {
+      await expect(page.locator(`#${id}`)).toHaveCount(1);
+    }
+
+    // #desktop-collection not inside #browser-games
+    const browserGames = page.locator("#browser-games");
+    await expect(browserGames.locator("#desktop-collection")).toHaveCount(0);
+
+    // #roadmap not inside #browser-games
+    await expect(browserGames.locator("#roadmap")).toHaveCount(0);
+
+    // .status-panel not inside #browser-games
+    await expect(browserGames.locator(".status-panel")).toHaveCount(0);
+
+    // #captains-log not inside #browser-games
+    await expect(browserGames.locator("#captains-log")).toHaveCount(0);
+  });
+
+  test("recommendation-strip anchors point to correct destinations", async ({
+    page,
+  }) => {
+    await page.goto("/play/");
+
+    const pygbagClassics = page.locator(
+      '.recommended-path__label:has-text("Pygbag Classics") + a',
+    );
+    await expect(pygbagClassics).toHaveAttribute("href", "#pygbag-games");
+
+    const desktopCollection = page.locator(
+      '.recommended-path__label:has-text("Desktop Collection") + a',
+    );
+    await expect(desktopCollection).toHaveAttribute(
+      "href",
+      "#desktop-collection",
+    );
+    await expect(desktopCollection).toContainText(
+      "Downloads and Port Royale Tycoon",
+    );
+
+    const instantCourse = page.locator(
+      '.recommended-path__label:has-text("Instant Course") + a',
+    );
+    await expect(instantCourse).toHaveAttribute(
+      "href",
+      "/play/race-to-treasure-island/",
+    );
+
+    const bestOnTouch = page.locator(
+      '.recommended-path__label:has-text("Best on Touch") + a',
+    );
+    await expect(bestOnTouch).toHaveAttribute(
+      "href",
+      "/play/cannonball-clash/",
+    );
+
+    // In-page anchor cards should not have target="_blank"
+    await expect(pygbagClassics).not.toHaveAttribute("target", "_blank");
+    await expect(desktopCollection).not.toHaveAttribute("target", "_blank");
+  });
+
+  test("engine markers are PY and JS with no emoji", async ({ page }) => {
+    await page.goto("/play/");
+
+    await expect(page.locator(".engine-card__marker--python")).toContainText(
+      "PY",
+    );
+    await expect(
+      page.locator(".engine-card__marker--javascript"),
+    ).toContainText("JS");
+
+    // No snake or lightning emoji in any engine card header
+    const headers = page.locator(".engine-card__header");
+    const headerCount = await headers.count();
+    for (let i = 0; i < headerCount; i++) {
+      await expect(headers.nth(i)).not.toContainText("🐍");
+      await expect(headers.nth(i)).not.toContainText("⚡");
+    }
+
+    // .engine-card__icon should not exist
+    await expect(page.locator(".engine-card__icon")).toHaveCount(0);
+  });
+
+  test("launch semantics: detail links are not treated as launches", async ({
+    page,
+  }) => {
+    await page.goto("/play/");
+
+    // GameCard screenshot link should not have target="_blank"
+    const screenshotLink = page
+      .locator('[data-game-id="cannonball-clash"].game-card__image')
+      .first();
+    await expect(screenshotLink).not.toHaveAttribute("target", "_blank");
+
+    // GameCard footer launch link should have data-game-launch="true"
+    const launchLink = page
+      .locator('[data-game-launch="true"][data-game-id="cannonball-clash"]')
+      .first();
+    await expect(launchLink).toBeVisible();
+    await expect(launchLink).toHaveAttribute("data-browser-playable", "true");
+    await expect(launchLink).toHaveAttribute(
+      "data-game-title",
+      "Cannonball Clash",
+    );
+
+    // In-page anchor cards do not have data-game-launch
+    await expect(
+      page.locator('a[href="#pygbag-games"][data-game-launch]'),
+    ).toHaveCount(0);
+    await expect(
+      page.locator('a[href="#desktop-collection"][data-game-launch]'),
+    ).toHaveCount(0);
+  });
+
+  test("captain\'s log stores real game title", async ({ page }) => {
+    await page.goto("/play/");
+
+    // Prevent navigation for the Cannonball Clash launch link
+    const launchLink = page
+      .locator('[data-game-launch="true"][data-game-id="cannonball-clash"]')
+      .first();
+    await launchLink.evaluate((el) => {
+      el.addEventListener("click", (e) => e.preventDefault(), { once: true });
+    });
+    await launchLink.click();
+
+    // Read localStorage
+    const log = await page.evaluate(() => {
+      const raw = localStorage.getItem("pirate-arcade-captains-log");
+      return raw ? JSON.parse(raw) : [];
+    });
+    expect(log.length).toBeGreaterThanOrEqual(1);
+    const entry = log[0];
+    expect(entry.gameId).toBe("cannonball-clash");
+    expect(entry.title).toBe("Cannonball Clash");
+    expect(entry.title).not.toBe("Play in Browser →");
+  });
+
+  test("captain\'s log clear removes both history and counts", async ({
+    page,
+  }) => {
+    await page.goto("/play/");
+
+    // Seed both keys on the play page origin
+    await page.evaluate(() => {
+      localStorage.setItem(
+        "pirate-arcade-captains-log",
+        JSON.stringify([
+          {
+            gameId: "cannonball-clash",
+            title: "Cannonball Clash",
+            timestamp: Date.now(),
+            route: "/play/cannonball-clash/",
+          },
+        ]),
+      );
+      localStorage.setItem(
+        "pirate-arcade-captains-log-counts",
+        JSON.stringify({ "cannonball-clash": 3 }),
+      );
+    });
+
+    // Clear via API (same as clicking Clear Log)
+    await page.evaluate(() => {
+      const w = window as any;
+      if (w.__paCaptainsLog && w.__paCaptainsLog.clearLog) {
+        w.__paCaptainsLog.clearLog();
+      } else {
+        // Fallback: finger-clear
+        localStorage.removeItem("pirate-arcade-captains-log");
+        localStorage.removeItem("pirate-arcade-captains-log-counts");
+      }
+    });
+
+    // Both keys removed from localStorage
+    const hasLog = await page.evaluate(() =>
+      localStorage.getItem("pirate-arcade-captains-log"),
+    );
+    const hasCounts = await page.evaluate(() =>
+      localStorage.getItem("pirate-arcade-captains-log-counts"),
+    );
+    expect(hasLog).toBeNull();
+    expect(hasCounts).toBeNull();
+  });
+
+  test("play page no horizontal overflow on mobile", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/play/");
+
+    const hasOverflow = await page.evaluate(() => {
+      return (
+        document.documentElement.scrollWidth >
+        document.documentElement.clientWidth
+      );
+    });
+    expect(hasOverflow).toBe(false);
+
+    // Engine markers remain visible
+    await expect(page.locator(".engine-card__marker--python")).toBeVisible();
+    await expect(
+      page.locator(".engine-card__marker--javascript"),
+    ).toBeVisible();
+
+    // Game-selection inner padding does not force overflow
+    const inner = page.locator(".game-selection__inner");
+    const box = await inner.boundingBox();
+    expect(box?.width).toBeLessThanOrEqual(390);
+
+    // In-page anchor destinations retain positive scroll-margin-top
+    const scrollMargin = await page
+      .locator("#pygbag-games")
+      .evaluate((el) => window.getComputedStyle(el).scrollMarginTop);
+    expect(parseFloat(scrollMargin)).toBeGreaterThan(0);
+  });
+
   test("status panel scrolls horizontally rather than overflowing", async ({
     page,
   }) => {

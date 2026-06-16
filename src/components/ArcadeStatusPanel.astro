@@ -1,5 +1,6 @@
 ---
 import { games } from "../data/games";
+import { ASSET_VERSION } from "../../scripts/game-asset-versions.mjs";
 ---
 
 <section class="section status-panel">
@@ -30,7 +31,21 @@ import { games } from "../data/games";
               </td>
               <td>
                 {game.status === "browser-playable" ? (
-                  <a href={game.browserUrl!} class="status-panel__play-link">
+                  <a
+                    href={game.browserUrl!}
+                    class="status-panel__play-link"
+                    data-game-id={game.id}
+                    data-game-title={game.title}
+                    data-browser-playable="true"
+                    data-game-page={game.browserUrl!}
+                    data-game-archive={
+                      game.engine === "pygbag"
+                        ? `/play/${game.id}/${game.id}.tar.gz?v=${ASSET_VERSION}`
+                        : ""
+                    }
+                    data-game-launch="true"
+                    data-captains-log={game.id}
+                  >
                     In browser
                   </a>
                 ) : (
@@ -78,7 +93,7 @@ import { games } from "../data/games";
   </div>
 
   <p class="status-panel__footnote">
-    Load: Pygbag games download an ~12 MB CPython runtime on first visit (cached
+    Load: Pygbag games download a ~12 MB CPython runtime on first visit (cached
     on repeat). Web-native Phaser games load instantly. Desktop games require
     native install. Audio in browser games unlocks after first click or tap
     (autoplay policy). Mobile tested via simulated viewports — real device
