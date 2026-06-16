@@ -36,7 +36,7 @@ const ASSET_VERSION = ASSET_VERSION_MATCH ? ASSET_VERSION_MATCH[1] : "unknown";
 test.describe("Game Prewarm", () => {
   test.use({ viewport: { width: 1440, height: 900 } });
 
-  (test("prewarm installer flag is set and repeated intent does not duplicate prefetch links", async ({
+  test("prewarm installer is active and repeated hover does not duplicate URLs", async ({
     page,
   }) => {
     await page.goto("/play/");
@@ -47,7 +47,14 @@ test.describe("Game Prewarm", () => {
     );
     expect(installed).toBe(true);
 
-    // Trigger pointerenter twice on the same link
+    // Verify Cannonball Clash is a Pygbag game
+    const cannonballGame = BROWSER_PLAYABLE.find(
+      (g) => g.id === "cannonball-clash",
+    );
+    expect(cannonballGame).toBeDefined();
+    expect(cannonballGame!.engine).toBe("pygbag");
+
+    // Trigger pointerenter
     const cannonballCta = page
       .locator(
         'a[data-game-id="cannonball-clash"][data-browser-playable="true"]',
@@ -57,54 +64,68 @@ test.describe("Game Prewarm", () => {
     await cannonballCta.dispatchEvent("pointerenter");
     await page.waitForTimeout(300);
 
-    const prefetchCount = await page.evaluate(() => {
-      return Array.from(
-        document.querySelectorAll('link[rel="prefetch"]'),
-      ).filter((l) => (l as HTMLLinkElement).href?.includes("cannonball-clash"))
-        .length;
+    // First intent creates exactly one prefetch for page and one for archive
+    const prefetchUrls = await page.evaluate(() => {
+      return Array.from(document.querySelectorAll('link[rel="prefetch"]'))
+        .filter((l) =>
+          (l as HTMLLinkElement).href?.includes("cannonball-clash"),
+        )
+        .map((l) => (l as HTMLLinkElement).href);
     });
-    expect(prefetchCount).toBeGreaterThanOrEqual(1);
+    expect(prefetchUrls).toHaveLength(2);
+    const pageUrl = prefetchUrls.find(
+      (u) => u.includes("/play/cannonball-clash/") && !u.includes(".tar.gz"),
+    );
+    const archiveUrl = prefetchUrls.find((u) => u.includes(".tar.gz"));
+    expect(pageUrl).toBeDefined();
+    expect(archiveUrl).toBeDefined();
+    expect(archiveUrl).toMatch(
+      new RegExp(`cannonball-clash\\.tar\\.gz\\?v=${ASSET_VERSION}$`),
+    );
 
+    // Repeated pointerenter creates no additional copies
     await cannonballCta.dispatchEvent("pointerenter");
     await page.waitForTimeout(300);
 
-    const prefetchCountAfterRepeat = await page.evaluate(() => {
-      return Array.from(
-        document.querySelectorAll('link[rel="prefetch"]'),
-      ).filter((l) => (l as HTMLLinkElement).href?.includes("cannonball-clash"))
-        .length;
+    const prefetchUrlsAfterRepeat = await page.evaluate(() => {
+      return Array.from(document.querySelectorAll('link[rel="prefetch"]'))
+        .filter((l) =>
+          (l as HTMLLinkElement).href?.includes("cannonball-clash"),
+        )
+        .map((l) => (l as HTMLLinkElement).href);
     });
-    expect(prefetchCountAfterRepeat).toBe(prefetchCount);
-  }),
-    test("browser-playable CTAs have versioned data attributes", async ({
-      page,
-    }) => {
-      await page.goto("/play/");
+    expect(prefetchUrlsAfterRepeat).toEqual(prefetchUrls);
+  });
 
-      for (const game of BROWSER_PLAYABLE) {
-        const ctas = page.locator(
-          `a[data-game-id="${game.id}"][data-browser-playable="true"]`,
-        );
-        const count = await ctas.count();
-        expect(count).toBeGreaterThanOrEqual(2); // GameCard image + Play link
+  test("browser-playable CTAs have versioned data attributes", async ({
+    page,
+  }) => {
+    await page.goto("/play/");
 
-        // Each CTA should have versioned data attributes
-        for (let i = 0; i < count; i++) {
-          const cta = ctas.nth(i);
-          await expect(cta).toHaveAttribute("data-game-page");
-          await expect(cta).toHaveAttribute("data-game-archive");
+    for (const game of BROWSER_PLAYABLE) {
+      const ctas = page.locator(
+        `a[data-game-id="${game.id}"][data-browser-playable="true"]`,
+      );
+      const count = await ctas.count();
+      expect(count).toBeGreaterThanOrEqual(2); // GameCard image + Play link
 
-          const archiveUrl = await cta.getAttribute("data-game-archive");
-          if (game.engine === "pygbag") {
-            expect(archiveUrl).toMatch(
-              new RegExp(`${game.id}\\.tar\\.gz\\?v=${ASSET_VERSION}$`),
-            );
-          } else {
-            expect(archiveUrl).toBe("");
-          }
+      // Each CTA should have versioned data attributes
+      for (let i = 0; i < count; i++) {
+        const cta = ctas.nth(i);
+        await expect(cta).toHaveAttribute("data-game-page");
+        await expect(cta).toHaveAttribute("data-game-archive");
+
+        const archiveUrl = await cta.getAttribute("data-game-archive");
+        if (game.engine === "pygbag") {
+          expect(archiveUrl).toMatch(
+            new RegExp(`${game.id}\\.tar\\.gz\\?v=${ASSET_VERSION}$`),
+          );
+        } else {
+          expect(archiveUrl).toBe("");
         }
       }
-    }));
+    }
+  });
 
   test("standalone CTAs have prewarm data attributes", async ({ page }) => {
     await page.goto("/play/");
@@ -144,44 +165,6 @@ test.describe("Game Prewarm", () => {
       );
       await expect(playable).toHaveCount(0);
     }
-  });
-
-  test("prewarm fires exactly one prefetch link per URL on hover", async ({
-    page,
-  }) => {
-    await page.goto("/play/");
-
-    const cannonballCta = page
-      .locator(
-        'a[data-game-id="cannonball-clash"][data-browser-playable="true"]',
-      )
-      .last();
-
-    // Trigger pointerenter
-    await cannonballCta.dispatchEvent("pointerenter");
-    await page.waitForTimeout(300);
-
-    // Count prefetch links for cannonball
-    const prefetchCount = await page.evaluate(() => {
-      return Array.from(
-        document.querySelectorAll('link[rel="prefetch"]'),
-      ).filter((l) => (l as HTMLLinkElement).href?.includes("cannonball-clash"))
-        .length;
-    });
-    expect(prefetchCount).toBeGreaterThanOrEqual(1);
-
-    // Trigger pointerenter again — should NOT create duplicate prefetch links
-    await cannonballCta.dispatchEvent("pointerenter");
-    await page.waitForTimeout(300);
-
-    const prefetchCountAfterRepeat = await page.evaluate(() => {
-      return Array.from(
-        document.querySelectorAll('link[rel="prefetch"]'),
-      ).filter((l) => (l as HTMLLinkElement).href?.includes("cannonball-clash"))
-        .length;
-    });
-    // Should still be the same count (no duplicates)
-    expect(prefetchCountAfterRepeat).toBe(prefetchCount);
   });
 
   test("prewarm fires on touchstart without blocking navigation", async ({
@@ -247,21 +230,31 @@ test.describe("Game Prewarm", () => {
       () => (window as any).__paWarmCacheMessages || [],
     );
     expect(messages).not.toBeNull();
-    expect(messages.length).toBeGreaterThanOrEqual(1);
+    expect(messages).toHaveLength(1);
 
     const msg = messages[0];
     expect(msg.type).toBe("WARM_CACHE");
-    expect(msg.urls.length).toBeGreaterThanOrEqual(1);
-    expect(msg.urls.some((u: string) => u.includes("cannonball-clash"))).toBe(
-      true,
-    );
-    expect(
-      msg.urls.some((u: string) => u.includes("cannonball-clash.tar.gz")),
-    ).toBe(true);
-    expect(
-      msg.urls.some((u: string) => u.includes("cannonball-clash.tar.gz?v=")),
-    ).toBe(true);
+    expect(msg.urls).toHaveLength(2);
+
+    // Extract page URL and archive URL
+    const urls = new Set(msg.urls);
+    const gamePageUrl = `/play/cannonball-clash/`;
+    const archiveUrl = `/play/cannonball-clash/cannonball-clash.tar.gz?v=${ASSET_VERSION}`;
+
+    expect(urls.has(gamePageUrl)).toBe(true);
+    expect(urls.has(archiveUrl)).toBe(true);
+
+    // No empty URL, no unrelated game URLs
     expect(msg.urls.some((u: string) => u === "")).toBe(false);
+    expect(
+      msg.urls.some((u: string) => u.includes("race-to-treasure-island")),
+    ).toBe(false);
+    expect(msg.urls.some((u: string) => u.includes("treasure-cove"))).toBe(
+      false,
+    );
+    expect(msg.urls.some((u: string) => u.includes("krakens-wake"))).toBe(
+      false,
+    );
   });
 
   test("WARM_CACHE payload includes page only (Phaser)", async ({ page }) => {
@@ -300,16 +293,29 @@ test.describe("Game Prewarm", () => {
       () => (window as any).__paWarmCacheMessages || [],
     );
     expect(messages).not.toBeNull();
-    expect(messages.length).toBeGreaterThanOrEqual(1);
+    expect(messages).toHaveLength(1);
 
     const msg = messages[0];
     expect(msg.type).toBe("WARM_CACHE");
-    expect(msg.urls.length).toBeGreaterThanOrEqual(1);
-    expect(
-      msg.urls.some((u: string) => u.includes("race-to-treasure-island")),
-    ).toBe(true);
+    expect(msg.urls).toHaveLength(1);
+
+    const urls = new Set(msg.urls);
+    const racePageUrl = `/play/race-to-treasure-island/`;
+
+    expect(urls.has(racePageUrl)).toBe(true);
+
+    // No .tar.gz URL, no empty URL, no unrelated game URLs
     expect(msg.urls.some((u: string) => u.includes("tar.gz"))).toBe(false);
     expect(msg.urls.some((u: string) => u === "")).toBe(false);
+    expect(msg.urls.some((u: string) => u.includes("cannonball-clash"))).toBe(
+      false,
+    );
+    expect(msg.urls.some((u: string) => u.includes("treasure-cove"))).toBe(
+      false,
+    );
+    expect(msg.urls.some((u: string) => u.includes("krakens-wake"))).toBe(
+      false,
+    );
   });
 
   test("graceful degradation when no service worker controller", async ({
@@ -326,7 +332,7 @@ test.describe("Game Prewarm", () => {
 
     await page.goto("/play/");
 
-    // Verify the DOM side still works (prefetch links are created)
+    // Verify the DOM side still works (prefetch links) still works
     const cannonballCta = page
       .locator(
         'a[data-game-id="cannonball-clash"][data-browser-playable="true"]',
@@ -335,12 +341,19 @@ test.describe("Game Prewarm", () => {
     await cannonballCta.dispatchEvent("pointerenter");
     await page.waitForTimeout(300);
 
+    // DOM prefetching still occurs
     const prefetched = await page.evaluate(() => {
       return Array.from(document.querySelectorAll('link[rel="prefetch"]')).some(
         (l) => (l as HTMLLinkElement).href?.includes("cannonball-clash"),
       );
     });
     expect(prefetched).toBe(true);
+
+    // No WARM_CACHE message expected
+    const messages = await page.evaluate(
+      () => (window as any).__paWarmCacheMessages || [],
+    );
+    expect(messages).toHaveLength(0);
   });
 
   test("only browser-playable game IDs are in the CTA selector", async ({
@@ -383,6 +396,10 @@ test.describe("Game Prewarm", () => {
       .locator('[data-game-id="cannonball-clash"].game-card__image')
       .first();
     await expect(screenshotLink).not.toHaveAttribute("target", "_blank");
+    await expect(screenshotLink).not.toHaveAttribute(
+      "data-game-launch",
+      "true",
+    );
 
     const launchLink = page
       .locator('[data-game-launch="true"][data-game-id="cannonball-clash"]')
@@ -393,12 +410,29 @@ test.describe("Game Prewarm", () => {
       "data-game-title",
       "Cannonball Clash",
     );
+    await expect(launchLink).toHaveAttribute("target", "_blank");
 
+    const rel = await launchLink.getAttribute("rel");
+    expect(rel).toContain("noopener");
+    expect(rel).toContain("noreferrer");
+
+    // In-page recommendation anchors should not have launch semantics
     await expect(
       page.locator('a[href="#pygbag-games"][data-game-launch]'),
     ).toHaveCount(0);
     await expect(
       page.locator('a[href="#desktop-collection"][data-game-launch]'),
     ).toHaveCount(0);
+
+    // Additional in-page anchors without _blank
+    const inPageAnchors = page.locator(
+      'a[href="#pygbag-games"], a[href="#desktop-collection"]',
+    );
+    const count = await inPageAnchors.count();
+    for (let i = 0; i < count; i++) {
+      const anchor = inPageAnchors.nth(i);
+      await expect(anchor).not.toHaveAttribute("target", "_blank");
+      await expect(anchor).not.toHaveAttribute("data-game-launch", "true");
+    }
   });
 });

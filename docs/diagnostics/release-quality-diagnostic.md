@@ -381,9 +381,10 @@ _(none yet — diagnostic run)_
 
 `1cba269c31c1cf156bd8fc9d4e396577edac66a3`
 
-### Workflow run
+### Workflow runs
 
-`27640033688` — completed with all jobs passing (verify, lighthouse, release-gate, playwright)
+- `27640033688` — completed with all jobs passing (verify, lighthouse, release-gate, playwright)
+- New run (after cleanup): will be recorded after push
 
 ### Proven working Chrome setup
 
@@ -391,6 +392,7 @@ _(none yet — diagnostic run)_
 - Explicit `CHROME_PATH: /usr/bin/google-chrome` passed to Lighthouse CI steps
 - Separate `lhci collect` and `lhci assert` steps
 - Chrome version verification step: `/usr/bin/google-chrome --version`
+- Lighthouse artifact upload with `if: always()`, 7-day retention
 
 ### Lighthouse execution in CI: FIXED
 
@@ -412,6 +414,14 @@ _(none yet — diagnostic run)_
 - Retention: 7 days
 - `if: always()` ensures artifacts upload even on assertion failures
 - `if-no-files-found: ignore` prevents workflow failure if no files exist
+
+### Prewarm test suite cleanup: COMPLETED
+
+- Removed duplicate hover-deduplication test
+- Made WARM_CACHE assertions exact for Pygbag (Cannonball Clash), Phaser (Race to Treasure Island), and no-controller cases
+- Extended desktop launch-semantics coverage (target="\_blank", rel="noopener noreferrer", data attributes)
+- Removed joined test declaration bug
+- All tests use exact URL comparisons, no loose `includes()` checks
 
 ### Current status of meaningful quality thresholds: OPEN
 
@@ -458,6 +468,9 @@ _(none yet — diagnostic run)_
 | Lighthouse execution in CI              | FIXED  |
 | Chrome discovery/install reliability    | FIXED  |
 | Report generation in CI                 | FIXED  |
+| Lighthouse artifact upload              | FIXED  |
+| Prewarm test exactness                  | FIXED  |
+| Desktop launch-semantics coverage       | FIXED  |
 | Final meaningful performance thresholds | OPEN   |
 | Route-specific failure calibration      | OPEN   |
 | Pygbag playable-readiness measurement   | OPEN   |
