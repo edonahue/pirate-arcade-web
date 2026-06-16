@@ -82,8 +82,6 @@ jobs:
         with:
           chrome-version: stable
       - name: Lighthouse CI collect + assert
-        env:
-          CHROME_PATH: /usr/bin/google-chrome
         run: npx lhci collect && npx lhci assert
         timeout-minutes: 10
 
