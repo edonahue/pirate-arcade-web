@@ -447,6 +447,11 @@
   line-height: 1.6;
 }
 
+.section__description a {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
 /* Game Grid */
 .game-grid {
   display: grid;
@@ -523,6 +528,8 @@
 
 .release-details__note a {
   color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 
 /* CRT Scanline decoration */
@@ -725,6 +732,11 @@
   color: var(--muted);
   text-align: center;
   line-height: 1.5;
+}
+
+.art-provenance__note a {
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 
 .art-provenance__note code {

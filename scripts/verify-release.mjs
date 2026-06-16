@@ -64,6 +64,7 @@ const FULL_GATE = [
   { name: "Game theming (visual)", cmd: "npm run test:game-theming" },
   { name: "Game prewarm", cmd: "npm run test:game-prewarm" },
   { name: "Captain's Log", cmd: "npm run test:captains-log" },
+  { name: "Lighthouse CI", cmd: "npm run test:lhci", slow: true },
 ];
 
 function runCommand(name, cmd, continueOnFail) {

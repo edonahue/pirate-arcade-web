@@ -293,13 +293,15 @@ downloads hit CDN rate limits and can be flaky. The total runtime is
   two additional states: after runtime ready, and during gameplay.
 - All 5 static pages scanned: `/`, `/play/`, `/about/`, `/source/`, `/credits/`.
 - All 5 game detail pages scanned: `/games/*/`.
-- Two keyboard-navigation smoke tests: homepage tab focus visibility, `/play/`
-  tab-focus trap detection.
+- Four keyboard-navigation tests: skip-to-content link, visible focus indicators
+  on all focusable elements, main nav link reachability, homepage tab focus
+  visibility, `/play/` tab-focus trap detection.
 - Asserts no **critical** or **serious** WCAG 2.1 AA violations.
-- Three rules are explicitly disabled with documented rationale:
-  - `color-contrast` — tiny fixed-position dev overlays
-  - `meta-viewport` — `user-scalable=no` is required for Pygbag canvases
-  - `region` — overlays above the canvas are not in landmark regions
+- Rules disabled (game shells only): `color-contrast` — Pygbag canvas overlays
+  have fixed non-theme colors; `meta-viewport` — `user-scalable=no` required
+  for Pygbag canvases; `region` — overlays above canvas are not in landmarks.
+- Static pages (/, /play/, /about/, /source/, /credits/) and game detail pages
+  (/games/\*/) run with **no rules disabled** — color-contrast is enforced.
 
 ---
 
@@ -548,6 +550,18 @@ Desktop-only. The desktop screenshot in
 that game.
 
 ---
+
+## Lighthouse CI
+
+`lhci autorun` (via `npm run test:lhci`) runs Lighthouse audits on 6 key routes:
+
+- `/` (homepage), `/play/` (game listing), `/about/` (static info)
+- `/play/cannonball-clash/` (Pygbag game shell)
+- `/play/race-to-treasure-island/` (Phaser game shell)
+- `/games/cannonball-clash/` (game detail page)
+
+Route budgets are defined in `budget.json` and enforced via `lighthouserc.cjs`.
+Desktop preset, 3 runs per URL. Requires built `dist/`.
 
 ## When to add a new test
 

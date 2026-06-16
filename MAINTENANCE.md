@@ -57,23 +57,25 @@ The validator (`scripts/check-screenshot-assets.mjs`):
 
 ## Release gates
 
-Two local verification commands (defined in `scripts/verify-release.mjs`):
+Three local verification commands (defined in `scripts/verify-release.mjs`):
 
 ```sh
 npm run verify:release:fast   # ~22 deterministic checks (2–5 min)
-npm run verify:release:full   # fast + Playwright tests (10–15 min)
+npm run verify:release:full   # fast + Playwright tests (15–25 min)
+npm run test:lhci             # Lighthouse CI audit (5–10 min, requires build)
 ```
 
 The fast gate checks: format, typecheck, build, SEO audit, copy tone,
 CSS tokens, visual contrast, dependency hygiene, cloudflare headers,
 browser game consistency & shells, service worker, cache versioning,
-game versions, HTML structure, game prewarm, archive parity & audit,
+game versions, HTML structure, archive parity & audit,
 public domain art, game theming source, screenshot assets, performance
 budgets.
 
-The full gate adds: site theme, a11y, mobile layout/pause/input/navigation/
-regression, iPad layout/controls, browser games (chromium), game theming
-(visual), game prewarm, Captain's Log.
+The full gate adds: site theme, a11y (axe scans with strict color-contrast
+on all non-game pages), mobile layout/pause/input/navigation/regression,
+iPad layout/controls, browser games (chromium), game theming (visual),
+game prewarm, Captain's Log, keyboard interaction tests, Lighthouse CI.
 
 **Before pushing, always run:**
 
@@ -203,14 +205,26 @@ same across all browser games. Currently `"mobile-v5"`.
 
 ## Performance budgets
 
-`scripts/check-performance-budgets.mjs` checks:
+Two systems enforce budgets:
 
-- Total CSS size < 100 KB (gzipped).
-- Total JS size < 50 KB (gzipped, not counting game archives).
-- Total HTML size < 200 KB.
-- Total image size < 500 KB.
+### Asset-size budgets (`scripts/check-performance-budgets.mjs`)
 
-Budgets file: runs from `dist/` after build.
+- Total CSS size < 50 KB (gzipped).
+- Total JS size < 500 KB (gzipped, includes Phaser).
+- Total HTML size < 100 KB (gzipped per page).
+- Total image size < 3 MB (raw).
+- Runs from `dist/` after build.
+
+### Lighthouse budgets (`budget.json` + `lighthouserc.cjs`)
+
+- **Static pages** (/, /about/, /source/, /credits/, /games/\*/):
+  FCP ≤ 1.5s, LCP ≤ 2.5s, TBT ≤ 50ms, CLS ≤ 0.1, Performance ≥ 90.
+- **Game listing** (/play/):
+  FCP ≤ 1.8s, LCP ≤ 3.0s, TBT ≤ 100ms, CLS ≤ 0.1.
+- **Game shells** (/play/cannonball-clash/, /play/race-to-treasure-island/):
+  FCP ≤ 2.0s, LCP ≤ 4.0s, TBT ≤ 200ms, CLS ≤ 0.1.
+
+Run manually: `npm run test:lhci` (requires built `dist/`).
 
 ## New browser game architecture & checklist
 

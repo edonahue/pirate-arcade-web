@@ -124,9 +124,7 @@ for (const pagePath of STATIC_PAGES) {
   test.describe(`${pagePath} static page accessibility`, () => {
     test("has no critical a11y violations", async ({ page }) => {
       await page.goto(pagePath, { waitUntil: "domcontentloaded" });
-      const results = await new AxeBuilder({ page })
-        .disableRules(["color-contrast"])
-        .analyze();
+      const results = await new AxeBuilder({ page }).analyze();
       const critical = results.violations.filter(
         (v) => v.impact === "critical" || v.impact === "serious",
       );
@@ -152,9 +150,7 @@ test.describe("Game detail page accessibility", () => {
   for (const path of detailPaths) {
     test(`${path} has no critical a11y violations`, async ({ page }) => {
       await page.goto(path, { waitUntil: "domcontentloaded" });
-      const results = await new AxeBuilder({ page })
-        .disableRules(["color-contrast"])
-        .analyze();
+      const results = await new AxeBuilder({ page }).analyze();
       const critical = results.violations.filter(
         (v) => v.impact === "critical" || v.impact === "serious",
       );
@@ -168,7 +164,81 @@ test.describe("Game detail page accessibility", () => {
   }
 });
 
-test.describe("Keyboard navigation smoke", () => {
+test.describe("Keyboard navigation", () => {
+  test("skip-to-content link navigates to main", async ({ page }) => {
+    await page.goto("/", { waitUntil: "domcontentloaded" });
+    const skipLink = page.locator('a[href="#main-content"]');
+    await expect(skipLink).toBeVisible();
+    await expect(skipLink).toHaveAttribute("href", "#main-content");
+
+    // Tab to skip link and activate it
+    await page.keyboard.press("Tab");
+    await expect(skipLink).toBeFocused();
+    await skipLink.press("Enter");
+    await expect(page.locator("main#main-content")).toBeFocused();
+  });
+
+  test("focused elements have visible focus indicators", async ({ page }) => {
+    await page.goto("/", { waitUntil: "domcontentloaded" });
+    const focusable = page.locator(
+      'a, button, [tabindex]:not([tabindex="-1"])',
+    );
+    const count = await focusable.count();
+    expect(count).toBeGreaterThan(0);
+
+    // Check first 8 focusable elements for visible focus styles
+    const max = Math.min(count, 8);
+    for (let i = 0; i < max; i++) {
+      await focusable.nth(i).focus();
+      await page.waitForTimeout(50);
+      const hasFocusStyle = await focusable.nth(i).evaluate((el) => {
+        const style = window.getComputedStyle(el);
+        const outline = style.outline;
+        const outlineColor = style.outlineColor;
+        const boxShadow = style.boxShadow;
+        return (
+          (outline !== "none" &&
+            outline !== "" &&
+            outlineColor !== "rgba(0, 0, 0, 0)") ||
+          (boxShadow !== "none" && boxShadow !== "")
+        );
+      });
+      expect(hasFocusStyle).toBe(true);
+    }
+  });
+
+  test("main navigation links are reachable via Tab", async ({ page }) => {
+    await page.goto("/", { waitUntil: "domcontentloaded" });
+    const navLinks = page.locator("nav a");
+    const linkCount = await navLinks.count();
+
+    // Tab to the first focusable element (should be skip-link or nav)
+    await page.keyboard.press("Tab");
+    // Press Tab until we hit a nav link or exhaust attempts
+    let found = false;
+    for (let i = 0; i < 20 && !found; i++) {
+      const active = page.locator(":focus");
+      const tag = await active
+        .first()
+        .evaluate((el) => el.tagName.toLowerCase());
+      const href = await active.first().getAttribute("href");
+      if (
+        tag === "a" &&
+        href &&
+        (href === "/" ||
+          href === "/play/" ||
+          href === "/about/" ||
+          href === "/source/")
+      ) {
+        found = true;
+      }
+      if (!found && i < 19) {
+        await page.keyboard.press("Tab");
+      }
+    }
+    expect(found).toBe(true);
+  });
+
   test("homepage tab sequence focuses visible elements", async ({ page }) => {
     await page.goto("/", { waitUntil: "domcontentloaded" });
 
@@ -177,7 +247,6 @@ test.describe("Keyboard navigation smoke", () => {
     );
     await expect(focusable.first()).toBeVisible();
 
-    // Tab through first 10 focusable elements
     for (let i = 0; i < 10; i++) {
       await page.keyboard.press("Tab");
       await page.waitForTimeout(100);
@@ -194,7 +263,6 @@ test.describe("Keyboard navigation smoke", () => {
   test("/play/ tab sequence does not trap focus", async ({ page }) => {
     await page.goto("/play/", { waitUntil: "domcontentloaded" });
 
-    // Tab through first 20 focusable elements to check for focus trap
     for (let i = 0; i < 20; i++) {
       await page.keyboard.press("Tab");
       await page.waitForTimeout(50);
@@ -204,7 +272,6 @@ test.describe("Keyboard navigation smoke", () => {
       expect(count).toBeGreaterThanOrEqual(1);
 
       const tagName = await active.first().evaluate((el) => el.tagName);
-      // Should always be a focusable element, never the body
       expect(tagName.toLowerCase()).not.toBe("body");
     }
   });

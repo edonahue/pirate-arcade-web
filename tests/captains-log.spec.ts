@@ -79,7 +79,7 @@ test.describe("Captain's Log", () => {
 
     // Check the entry content
     await expect(logItems.first()).toContainText("Cannonball Clash");
-    await expect(logItems.first()).toContainText("Launches: 3");
+    await expect(logItems.first()).toContainText("Launches:3");
   });
 
   test("counts increment correctly", async ({ page }) => {

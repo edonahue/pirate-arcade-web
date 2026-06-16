@@ -589,6 +589,10 @@ const getArchiveUrl = (gameId: string, engine: string) => {
     }
 
     .engine-card__tag.touch-harder {
+      color: #d46040;
+    }
+
+    :global(:root[data-theme="light"]) .engine-card__tag.touch-harder {
       color: var(--rum);
     }
 

@@ -155,7 +155,7 @@ are the latest Pygbag game features on the existing three ports.
 - [ ] **Player feedback first pass** — watch someone play through all four games, identify friction points
 - [ ] **Kraken's Wake depth review** — gameplay variety, difficulty curve, visual variety
 - [ ] **Full accessibility audit** — screen reader, color blindness, motion sensitivity beyond axe-core
-- [ ] **Performance / Lighthouse audit** — target 90+ all categories with Race and Pygbag games
+- [x] **Performance / Lighthouse audit** — route budgets + CI config created; `lighthouserc.cjs` enforces per-route targets
 - [ ] **CRT scanline user-facing toggle** in site settings
 - [ ] **Phaser 4 compatibility spike** — evaluate migration effort, requires focused spike (deferred from Dependabot)
 
