@@ -88,6 +88,8 @@ jobs:
           google-chrome --version || chrome --version || chromium --version || chromium-browser --version || echo "Version check failed"
           ls -la /usr/bin/google-chrome 2>/dev/null || ls -la /usr/bin/chrome 2>/dev/null || ls -la /usr/bin/chromium 2>/dev/null || ls -la /usr/bin/chromium-browser 2>/dev/null || echo "No Chrome in /usr/bin"
       - name: Lighthouse CI collect + assert
+        env:
+          CHROME_PATH: /usr/bin/google-chrome
         run: npx lhci collect && npx lhci assert
         timeout-minutes: 10
 
