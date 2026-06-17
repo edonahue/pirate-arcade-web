@@ -45,9 +45,23 @@ gate and will fail if someone hand-edits a shell without regenerating.
 
 `npm run test:pygbag-boot-contract` validates that each shell contains
 the correct ordered sequence of PirateArcadeMetrics marks (JS + Python
-phases), including structural invariants (`async def boot()`,
-`asyncio.ensure_future`, `computeDurations` after `game-ready`,
-`sys.print_exception` in the exception handler).
+phases), including structural invariants:
+
+- Phase sequence: cross-file-replaced → pythons-js-requested → python-ready → boot-start → pygame-install-start → archive-fetch-start → pygame-install-end → archive-fetch-end → archive-extract-start → archive-extract-end → input-bridge-installed → display-init-start → display-init-end → game-object-created → game-ready
+- `async def boot():` + `asyncio.ensure_future(boot())`
+- `computeDurations()` after `game-ready`
+- `sys.print_exception` in exception handler
+- `sys.path.insert(0, a)` present before import
+- `os.chdir(a)` present before import
+- Import statement appears AFTER both `sys.path.insert` and `os.chdir`
+
+### Playable-readiness telemetry
+
+`__paBootMetrics["playable"]` flag is set to `true` when the loading
+overlay is hidden (`ready()` called) AND the game state (via
+`PirateArcadeGameState`) confirms the game is running (phase is not
+"loading" or "menu"). The performance test (`game-load-performance.spec.ts`)
+asserts `playable === true` for all Pygbag games.
 
 ### Static integrity
 
@@ -129,7 +143,7 @@ The validator (`scripts/check-screenshot-assets.mjs`):
 Three local verification commands (defined in `scripts/verify-release.mjs`):
 
 ```sh
-npm run verify:release:fast   # ~24 deterministic checks (~14 s)
+npm run verify:release:fast   # 27 deterministic checks (~14 s)
 npm run verify:release:full   # fast + Playwright tests (15–25 min)
 npm run test:lhci             # Lighthouse CI audit (5–10 min, requires build)
 ```
@@ -140,7 +154,7 @@ browser game consistency & shells, service worker, cache versioning,
 pygbag boot contract, pygbag shell drift, game versions, HTML structure,
 archive parity & audit, public domain art, game theming source,
 screenshot assets, performance budgets, site links, game registry,
-repository docs, race ship assets.
+repository docs, race ship assets, screenshot assets.
 
 The full gate adds: site theme, a11y (axe scans with strict color-contrast
 on all non-game pages), mobile layout/pause/input/navigation/regression,
@@ -180,7 +194,7 @@ Rule: "Do not loosen Lighthouse thresholds merely to make CI green without docum
 
 **Cache version** (`CACHE_VERSION` constant in `public/sw.js`) must match
 `CACHE_VERSION` in `scripts/game-asset-versions.mjs`. Both are
-`"pirate-arcade-games-v8"`. Bump both when game assets change.
+`"pirate-arcade-games-v11"`. Bump both when game assets change.
 
 **ASSETS_TO_CACHE** must include:
 
@@ -283,7 +297,7 @@ Browser game Python archives live at:
 `https://pygame-web.github.io/archives/<id>-<ASSET_VERSION>.tar.gz`
 
 `ASSET_VERSION` (from `scripts/game-asset-versions.mjs`) must be the
-same across all browser games. Currently `"mobile-v5"`.
+same across all browser games. Currently `"mobile-v8"`.
 
 **Validation:**
 

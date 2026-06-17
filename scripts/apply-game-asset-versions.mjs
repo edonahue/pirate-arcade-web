@@ -81,6 +81,7 @@ for (const gameDir of GAMES) {
 
     // Update shared JS scripts
     const sharedScripts = [
+      "pygbag-loading.js",
       "pygame-input-bridge.js",
       "game-viewport.js",
       "mobile-controls.js",

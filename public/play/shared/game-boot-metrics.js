@@ -75,6 +75,19 @@
       if (m['loader-hidden'] && m['page-script-start']) {
         setMetric('total-to-loader-hidden', m['loader-hidden'] - m['page-script-start']);
       }
+    },
+
+    // Playable-readiness flag: true when loader is hidden AND game state
+    // indicates the game is running (not loading/menu). Set by loading API
+    // after ready() + input bridge confirmation.
+    markPlayable: function () {
+      if (!measures.playable) {
+        setMetric('playable', true);
+      }
+    },
+
+    isPlayable: function () {
+      return !!measures.playable;
     }
   };
 

@@ -88,19 +88,67 @@ screenshot — do not capture it from `/play/`.
 - `dependencies` intentionally contains **phaser** (needed by Race to Treasure Island at runtime/build time); all other packages in `devDependencies`
 - Adding a dev-dep requires updating both `package.json` and `ALLOWED_DEV_DEPS` in `check-dependency-hygiene.mjs`
 
+## Architecture notes (new)
+
+### Structured game config (Phase 1)
+
+`scripts/pygbag-game-config.mjs` now uses structured fields instead of a monolithic `moduleImport` string:
+
+- `pythonModule`: Python module path (e.g., `"games.pong.game"`)
+- `gameClass`: Class name to instantiate (e.g., `"PongGame"`)
+
+Template generates `from ${pythonModule} import ${gameClass}` at runtime.
+
+### Boot contract validation (Phase 2)
+
+`scripts/check-pygbag-boot-contract.mjs` validates:
+
+- Required `sys.path.insert(0, a)` before game module import
+- Required `os.chdir(a)` to set working directory for assets
+- Import statement appears AFTER both path/chdir (correct resolution order)
+
+### Loading API policy (Phase 3)
+
+`public/play/shared/pygbag-loading.js` is the single authoritative source:
+
+- Platform-neutral copy (no iPad-specific wording)
+- Ownership marker: `__pirateArcadeOwned: true`
+- Stable error state: once `error()` called, `set()`/`ready()` are no-ops
+- Idempotent: double-setup guard, double-error guard
+- Body-attachment verification for lazy element lookups
+- Sets `__paBootMetrics.playable` after `ready()` + game state confirms running phase
+
+### Asset version consistency (Phase 4)
+
+`DEBUG_PANEL_VERSION` in template now references `ASSET_VERSION` directly (no separate constant).
+
+### Generator usability (Phase 5)
+
+`scripts/generate-pygbag-shells.mjs` improvements:
+
+- Unchanged-file detection (skips write when content matches)
+- Dry-run shows per-file diff summary
+- Warning header in generated output
+
+### Playable-readiness telemetry (Checkpoint 2)
+
+- `__paBootMetrics["playable"]` boolean flag set after loader hidden + game phase ≠ loading/menu
+- Performance test (`game-load-performance.spec.ts`) asserts `playable === true`
+- Test game lists derived from `games.json` (no hardcoding)
+
 ## Validation auto-discovery
 
 Several validators derive game lists from `games.json` and will catch
 missing entries if you forget to update related files:
 
-| Validator                         | What it catches                                                   |
-| --------------------------------- | ----------------------------------------------------------------- |
-| `check-cloudflare-headers.mjs`    | Missing CSP entries in `_headers`                                 |
-| `check-service-worker-compat.mjs` | Missing ASSETS_TO_CACHE or `isGameShell` paths in `sw.js`         |
-| `check-browser-game-shells.mjs`   | Missing shell files, CSP, SW cache entries                        |
-| `seo-audit.mjs`                   | Missing browserUrl, screenshot, llms.txt, sitemap coverage        |
-| `check-pygbag-boot-contract.mjs`  | Missing Python boot phases, wrong ordering, structural invariants |
-| `check-pygbag-shell-drift.mjs`    | Hand-edited generated shells (in-memory render mismatch)          |
+| Validator                         | What it catches                                                                                             |
+| --------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `check-cloudflare-headers.mjs`    | Missing CSP entries in `_headers`                                                                           |
+| `check-service-worker-compat.mjs` | Missing ASSETS_TO_CACHE or `isGameShell` paths in `sw.js`                                                   |
+| `check-browser-game-shells.mjs`   | Missing shell files, CSP, SW cache entries                                                                  |
+| `seo-audit.mjs`                   | Missing browserUrl, screenshot, llms.txt, sitemap coverage                                                  |
+| `check-pygbag-boot-contract.mjs`  | Missing Python boot phases, wrong ordering, structural invariants (sys.path.insert, os.chdir, import order) |
+| `check-pygbag-shell-drift.mjs`    | Hand-edited generated shells (in-memory render mismatch)                                                    |
 
 ## Copy & Tone
 

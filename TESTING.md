@@ -172,7 +172,7 @@ tests/
   browser-games.spec.ts         # Health/smoke (~18 tests)
   game-input-desktop.spec.ts    # Desktop keyboard/mouse (~12 tests)
   game-input-mobile.spec.ts     # Mobile touch/orientation (~15 tests)
-  game-load-performance.spec.ts # Cold/warm load metrics, resource breakdown
+  game-load-performance.spec.ts # Cold/warm load metrics, resource breakdown, playable flag
   game-theming.spec.ts          # Visual theming: ship/longboat source markers, archive parity,
                                 #   paddle color diversity, pixel rendering, Kraken's Wake CI skip
   game-prewarm.spec.ts          # Prewarm data attributes + WARM_CACHE + single-installer + dedup
@@ -587,8 +587,10 @@ This is a **smoke/baseline check** — Lighthouse execution and report generatio
 - **Behavior changed in production code?** Add a regression test in
   the appropriate spec file. The two input specs are good homes for
   any change to keyboard/mouse/touch handling.
-- **New browser game added?** Update the `GAMES` array in both input
-  specs and the `browser-games.spec.ts` smoke spec.
+- **New browser game added?** Add entry to `src/data/games.json` with
+  `engine: "pygbag"` and `status: "browser-playable"`. Test lists in
+  `game-load-performance.spec.ts` and `game-shell-integrity.spec.ts`
+  are derived from `games.json` automatically.
 - **New CSP directive or CDN URL?** Update `tests/TESTING_CHECKLIST.md`
   and consider adding a dedicated CSP test in `browser-games.spec.ts`.
 - **New mobile control mode** (e.g. a third `data-controls` value)?

@@ -1,4 +1,22 @@
 import { test, expect } from "@playwright/test";
+import { readFileSync } from "fs";
+import { resolve } from "path";
+
+function loadPybagGames() {
+  const gamesPath = resolve(__dirname, "../src/data/games.json");
+  const games = JSON.parse(readFileSync(gamesPath, "utf-8"));
+  return games
+    .filter(
+      (g: any) => g.engine === "pygbag" && g.status === "browser-playable",
+    )
+    .map((g: any) => ({
+      id: g.id,
+      name: g.title,
+      path: g.browserUrl,
+    }));
+}
+
+const GAMES = loadPybagGames();
 
 interface ResourceSummary {
   wasm: { count: number; totalDuration: number };
@@ -142,16 +160,6 @@ function deriveMetrics(metrics: Record<string, number>, bootStartKey: string) {
   };
 }
 
-const GAMES = [
-  {
-    id: "cannonball-clash",
-    name: "Cannonball Clash",
-    path: "/play/cannonball-clash/",
-  },
-  { id: "treasure-cove", name: "Treasure Cove", path: "/play/treasure-cove/" },
-  { id: "krakens-wake", name: "Kraken's Wake", path: "/play/krakens-wake/" },
-];
-
 for (const game of GAMES) {
   test.describe(`${game.name} load performance`, () => {
     test("cold load — collect metrics, resources, and identify bottlenecks", async ({
@@ -192,6 +200,8 @@ for (const game of GAMES) {
       expect(result.metrics).toHaveProperty("input-bridge-installed");
       expect(result.metrics).toHaveProperty("game-ready");
       expect(result.metrics).toHaveProperty("loader-hidden");
+      expect(result.metrics).toHaveProperty("playable");
+      expect(result.metrics.playable).toBe(true);
 
       const derived = deriveMetrics(result.metrics, "boot-start");
 
