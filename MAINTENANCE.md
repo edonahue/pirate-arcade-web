@@ -16,9 +16,40 @@ and by multiple scripts (`check-game-cache-versioning.mjs`,
   unless a real browser build is published.
 - Game IDs must match directory names in `public/play/<id>/`.
 
-## Pygbag game shell integrity
+## Pygbag game shell generation
 
-All three Pygbag game shells (`cannonball-clash`, `treasure-cove`, `krakens-wake`) share a common HTML structure verified by:
+All three Pygbag game shells (`cannonball-clash`, `treasure-cove`, `krakens-wake`)
+are **generated files** — never hand-edited.
+
+### Source files
+
+| File                                 | Purpose                                                       |
+| ------------------------------------ | ------------------------------------------------------------- |
+| `scripts/pygbag-game-config.mjs`     | Per-game parameters (title, module, touch overlay mode, etc.) |
+| `scripts/pygbag-shell-template.mjs`  | HTML template renderer with all shared boilerplate            |
+| `scripts/generate-pygbag-shells.mjs` | Generator entry point (dry-run without `--apply`)             |
+
+### Regenerating
+
+```sh
+npm run generate:pygbag-shells   # regenerate and write shell files
+```
+
+### Drift check
+
+`npm run test:pygbag-shell-drift` verifies that committed shell files
+match what the generator produces. This is included in the fast release
+gate and will fail if someone hand-edits a shell without regenerating.
+
+### Boot contract
+
+`npm run test:pygbag-boot-contract` validates that each shell contains
+the correct ordered sequence of PirateArcadeMetrics marks (JS + Python
+phases), including structural invariants (`async def boot()`,
+`asyncio.ensure_future`, `computeDurations` after `game-ready`,
+`sys.print_exception` in the exception handler).
+
+### Static integrity
 
 ```sh
 npm run test:game-shell-integrity
@@ -34,6 +65,15 @@ The static checker (`scripts/check-game-shell-integrity.mjs`) validates:
 - No non-whitespace direct body text nodes (JSDOM)
 - No duplicate element IDs
 - Cross-shell structural parity
+
+### Shared loading API
+
+The loading overlay (`PirateArcadeLoading`) is defined once in
+`public/play/shared/pygbag-loading.js` and loaded early in every
+shell `<head>`. The old per-shell inline copies and the override in
+`pygame-input-bridge.js` have been removed.
+
+### Playwright validation
 
 The Playwright shell test (`tests/game-shell-integrity.spec.ts`) validates at runtime:
 
@@ -97,9 +137,10 @@ npm run test:lhci             # Lighthouse CI audit (5–10 min, requires build)
 The fast gate checks: format, typecheck, build, SEO audit, copy tone,
 CSS tokens, visual contrast, dependency hygiene, cloudflare headers,
 browser game consistency & shells, service worker, cache versioning,
-game versions, HTML structure, archive parity & audit,
-public domain art, game theming source, screenshot assets, performance
-budgets, site links, game registry, repository docs, race ship assets.
+pygbag boot contract, pygbag shell drift, game versions, HTML structure,
+archive parity & audit, public domain art, game theming source,
+screenshot assets, performance budgets, site links, game registry,
+repository docs, race ship assets.
 
 The full gate adds: site theme, a11y (axe scans with strict color-contrast
 on all non-game pages), mobile layout/pause/input/navigation/regression,

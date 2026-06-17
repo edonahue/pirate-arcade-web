@@ -25,6 +25,8 @@ const FAST_GATE = [
   { name: "Game shell integrity", cmd: "npm run test:game-shell-integrity" },
   { name: "Service worker", cmd: "npm run test:service-worker" },
   { name: "Cache versioning", cmd: "npm run test:cache-versioning" },
+  { name: "Pygbag boot contract", cmd: "npm run test:pygbag-boot-contract" },
+  { name: "Pygbag shell drift", cmd: "npm run test:pygbag-shell-drift" },
   { name: "Game versions", cmd: "npm run test:game-versions" },
   { name: "HTML structure", cmd: "npm run test:html-structure" },
   { name: "Archive parity", cmd: "npm run test:archive-parity" },

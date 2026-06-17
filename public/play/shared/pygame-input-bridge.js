@@ -263,87 +263,8 @@
   window.PirateArcadeInput = PirateArcadeInput;
   window.__paInputDebug = debugLog;
 
-  // ── Loading overlay API ─────────────────────────────────────
-  var loadingEl = document.getElementById('game-loading');
-  var loadingDetail = document.getElementById('game-loading-detail');
-  var booted = false;
-  var _loadingWarnTimer = null;
-  var _retryBtn = null;
-
-  function _startLoadingWarn() {
-    _clearLoadingWarn();
-    _loadingWarnTimer = setTimeout(function () {
-      var note = loadingEl && loadingEl.querySelector('.loader-note');
-      if (note) note.textContent = 'Still working — first load takes a little while on iPad.';
-    }, 30000);
-  }
-
-  function _clearLoadingWarn() {
-    if (_loadingWarnTimer) {
-      clearTimeout(_loadingWarnTimer);
-      _loadingWarnTimer = null;
-    }
-  }
-
-  function _removeRetryBtn() {
-    if (_retryBtn && _retryBtn.parentNode) {
-      _retryBtn.parentNode.removeChild(_retryBtn);
-    }
-    _retryBtn = null;
-  }
-
-  function _showRetryBtn() {
-    _removeRetryBtn();
-    _retryBtn = document.createElement('button');
-    _retryBtn.textContent = 'Try Again';
-    _retryBtn.className = 'loading-retry-btn';
-    _retryBtn.addEventListener('click', function () {
-      logEvent('loadingRetry', {});
-      window.location.reload();
-    });
-    if (loadingEl) loadingEl.appendChild(_retryBtn);
-  }
-
-  var PirateArcadeLoading = {
-    set: function (msg) {
-      logEvent('loadingSet', { msg: msg });
-      if (loadingDetail) loadingDetail.textContent = msg;
-      if (loadingEl) {
-        loadingEl.classList.remove('hidden', 'game-error');
-      }
-      _removeRetryBtn();
-      _startLoadingWarn();
-    },
-    ready: function (msg) {
-      logEvent('loadingReady', { msg: msg || '' });
-      booted = true;
-      _clearLoadingWarn();
-      _removeRetryBtn();
-      if (msg && loadingDetail) loadingDetail.textContent = msg;
-      if (loadingEl) {
-        loadingEl.classList.add('hidden');
-        if (window.PirateArcadeMetrics) {
-          window.PirateArcadeMetrics.mark('loader-hidden');
-          window.PirateArcadeMetrics.computeDurations();
-        }
-      }
-    },
-    error: function (msg) {
-      logEvent('loadingError', { msg: msg });
-      _clearLoadingWarn();
-      if (loadingDetail) loadingDetail.textContent = msg;
-      if (loadingEl) {
-        loadingEl.classList.remove('hidden');
-        loadingEl.classList.add('game-error');
-      }
-      document.body.classList.add('game-error');
-      PirateArcadeInput.releaseAll('error');
-      _showRetryBtn();
-    },
-    isReady: function () { return booted; },
-  };
-
-  window.PirateArcadeLoading = PirateArcadeLoading;
+  // PirateArcadeLoading is now defined in pygbag-loading.js
+  // (loaded before this script in the shell <head>).
 
   // ── Shared game-state contract ──────────────────────────────
   // Reads Python-side __pa_game_state_json (set each frame by each

@@ -12,8 +12,9 @@
     <link rel="preconnect" href="https://pygame-web.github.io">
     <link rel="dns-prefetch" href="https://pygame-web.github.io">
     <link rel="modulepreload" href="https://pygame-web.github.io/cdn/0.9.3/pythons.js">
-    <link rel="preload" href="/play/cannonball-clash/cannonball-clash.tar.gz?v=mobile-v6" as="fetch">
+    <link rel="preload" href="/play/cannonball-clash/cannonball-clash.tar.gz?v=mobile-v7" as="fetch">
     <script src="/play/shared/game-boot-metrics.js"></script>
+    <script src="/play/shared/pygbag-loading.js?v=mobile-v7"></script>
     <style>
       * { margin: 0; padding: 0; box-sizing: border-box; }
       html, body { width: 100%; height: 100%; overflow: hidden; background: #0a0e17; color: #b8c4d4; }
@@ -62,7 +63,7 @@
         #game-wrap { display: none; }
       }
     </style>
-    <link rel="stylesheet" href="/play/shared/mobile-controls.css?v=mobile-v6">
+    <link rel="stylesheet" href="/play/shared/mobile-controls.css?v=mobile-v7">
     <!--
       CDN VERSION PIN: pythons.js@0.9.3 — if upgrading, test thoroughly.
       The inline script below depends on pygbag internals (FS, cross_file,
@@ -72,43 +73,6 @@
     -->
     <script>
       console.log('INLINE_SCRIPT: starting');
-
-      window.PirateArcadeLoading = {
-        _detailEl: null,
-        _overlayEl: null,
-        _slowTimer: null,
-        _ensureEls: function() {
-          if (!this._detailEl) this._detailEl = document.getElementById('game-loading-detail');
-          if (!this._overlayEl) this._overlayEl = document.getElementById('game-loading');
-        },
-        set: function(text) {
-          this._ensureEls();
-          if (this._detailEl) this._detailEl.textContent = text;
-          if (this._overlayEl) this._overlayEl.classList.remove('hidden', 'game-error');
-          if (!this._slowTimer) {
-            this._slowTimer = setTimeout(function () {
-              var note = document.querySelector('#game-loading .loader-note');
-              if (note) note.textContent = 'Still working — first load can be slow; repeat visits are often faster.';
-            }, 4000);
-          }
-        },
-        ready: function(text) {
-          this._ensureEls();
-          if (this._slowTimer) { clearTimeout(this._slowTimer); this._slowTimer = null; }
-          if (text && this._detailEl) this._detailEl.textContent = text;
-          if (this._overlayEl) this._overlayEl.classList.add('hidden');
-          if (text) console.log('Ready:', text);
-        },
-        error: function(text) {
-          this._ensureEls();
-          if (this._slowTimer) { clearTimeout(this._slowTimer); this._slowTimer = null; }
-          if (this._detailEl) this._detailEl.textContent = 'Error: ' + text;
-          if (this._overlayEl) {
-            this._overlayEl.classList.remove('hidden');
-            this._overlayEl.classList.add('game-error');
-          }
-        }
-      };
 
       (function() {
         var _origFetch = window.fetch.bind(window);
@@ -172,14 +136,14 @@
               '        _w.transfer.hidden = True',
               '        _w.canvas.style.visibility = "visible"',
               '        _w.PirateArcadeMetrics.mark("boot-start")',
-              '        _w.PirateArcadeLoading.set("Starting game engine\u2026")',
+              '        _w.PirateArcadeLoading.set("Starting game engine…")',
               '',
               '        # Pre-install pygame wheel from CDN and fetch archive in parallel',
               '        _w.PirateArcadeMetrics.mark("pygame-install-start")',
               '        _w.PirateArcadeMetrics.mark("archive-fetch-start")',
-              '        _w.PirateArcadeLoading.set("Installing Pygame and downloading game package\u2026")',
+              '        _w.PirateArcadeLoading.set("Installing Pygame and downloading game package…")',
               '        import aio.pep0723',
-              '        url = _w.location.href + "cannonball-clash.tar.gz?v=mobile-v6"',
+              '        url = _w.location.href + "cannonball-clash.tar.gz?v=mobile-v7"',
               '        async def fetch_archive():',
               '            async with platform.fopen(url, "rb") as f:',
               '                return f.read()',
@@ -190,7 +154,7 @@
               '        _w.PirateArcadeMetrics.mark("archive-fetch-end")',
               '',
               '        _w.PirateArcadeMetrics.mark("archive-extract-start")',
-              '        _w.PirateArcadeLoading.set("Extracting game files\u2026")',
+              '        _w.PirateArcadeLoading.set("Extracting game files…")',
               '        d = "/tmp/game_extract"',
               '        os.makedirs(d, exist_ok=True)',
               '        tarfile.open(fileobj=io.BytesIO(data)).extractall(d)',
@@ -278,7 +242,7 @@
               '        _w.PirateArcadeMetrics.mark("input-bridge-installed")',
               '',
               '        _w.PirateArcadeMetrics.mark("display-init-start")',
-              '        _w.PirateArcadeLoading.set("Initializing display\u2026")',
+              '        _w.PirateArcadeLoading.set("Initializing display…")',
               '        import constants as c',
               '        s = pg.display.set_mode((c.WINDOW_WIDTH, c.WINDOW_HEIGHT))',
               '        pg.display.set_caption("Cannonball Clash")',
@@ -287,7 +251,7 @@
               '',
               '        class WebAudio:',
               '            def __init__(self):',
-              '                self._js = platform.window.PirateArcadeAudio',
+              '                self._js = _w.PirateArcadeAudio',
               '                self._js.init()',
               '                self._muted = False',
               '            @property',
@@ -304,17 +268,17 @@
               '                pass',
               '',
               '        _w.PirateArcadeMetrics.mark("game-object-created")',
-              '        _w.PirateArcadeLoading.set("Installing touch controls\u2026")',
+              '        _w.PirateArcadeLoading.set("Installing touch controls…")',
               '        game = PongGame(s, WebAudio())',
               '        _w.PirateArcadeMetrics.mark("game-ready")',
               '        _w.PirateArcadeMetrics.computeDurations()',
-              '        _w.PirateArcadeLoading.ready("Ready \u2014 tap START")',
+              '        _w.PirateArcadeLoading.ready("Ready — tap START")',
               '        _w.infobox.innerText = "Cannonball Clash loaded! Audio starts after your first click."',
               '        await game.run()',
               '    except Exception as e:',
               '        sys.print_exception(e)',
               '        msg = str(e) if str(e) else type(e).__name__',
-              '        platform.window.PirateArcadeLoading.error("Error: " + msg)',
+              '        _w.PirateArcadeLoading.error("Error: " + msg)',
               '',
               'asyncio.ensure_future(boot())',
             ].join('\n');
@@ -444,16 +408,19 @@
     </script>
 
     <link rel="stylesheet" href="/play/shared/debug-panel.css?v=mobile-v5">
-    <script src="/play/shared/pygame-input-bridge.js?v=mobile-v6"></script>
-    <script src="/play/shared/game-viewport.js?v=mobile-v6"></script>
-    <script src="/play/shared/mobile-controls.js?v=mobile-v6"></script>
+    <script src="/play/shared/pygame-input-bridge.js?v=mobile-v7"></script>
+    <script src="/play/shared/game-viewport.js?v=mobile-v7"></script>
+    <script src="/play/shared/mobile-controls.js?v=mobile-v7"></script>
     <script src="/play/shared/debug-panel.js?v=mobile-v5"></script>
     <!--
       GAME: cannonball-clash
-      ARCHIVE: /play/cannonball-clash/cannonball-clash.tar.gz
+      ARCHIVE: /play/cannonball-clash/cannonball-clash.tar.gz?v=mobile-v7
       CONTROL: keyboard + touch
       CDN: pythons.js@0.9.3
-      SHARED: pygame-input-bridge.js, game-viewport.js, mobile-controls.js
+      SHARED: pygbag-loading.js, pygame-input-bridge.js, game-viewport.js, mobile-controls.js
+      GENERATED FILE — DO NOT EDIT DIRECTLY
+      Source: scripts/pygbag-shell-template.mjs
+      Regenerate: node scripts/generate-pygbag-shells.mjs [--apply]
     -->
   </body>
 </html>

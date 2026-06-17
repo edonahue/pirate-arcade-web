@@ -181,61 +181,29 @@ describe("pygame-input-bridge", () => {
     });
   });
 
-  describe("PirateArcadeLoading API", () => {
+  describe("PirateArcadeLoading — not redefined by bridge", () => {
     beforeEach(() => {
       document.body.innerHTML = `
         <div id="game-loading">
           <div class="loader-title">Loading</div>
           <div id="game-loading-detail"></div>
         </div>`;
+    });
+
+    it("bridge does not redefine PirateArcadeLoading after pygbag-loading.js", () => {
+      // Simulate pygbag-loading.js loading first
+      (window as any).PirateArcadeLoading = {
+        set: () => {},
+        ready: () => {},
+        error: () => {},
+        isReady: () => false,
+        _marker: "pygbag-loading",
+      };
+      const before = (window as any).PirateArcadeLoading;
       loadBridge();
-    });
-
-    it("set updates detail text and removes hidden class", () => {
-      const loading = (window as any).PirateArcadeLoading;
-      const el = document.getElementById("game-loading")!;
-      el.classList.add("hidden");
-      loading.set("Downloading assets...");
-      expect(document.getElementById("game-loading-detail")!.textContent).toBe(
-        "Downloading assets...",
-      );
-      expect(el.classList.contains("hidden")).toBe(false);
-    });
-
-    it("ready hides overlay immediately and updates detail text", () => {
-      const loading = (window as any).PirateArcadeLoading;
-      const el = document.getElementById("game-loading")!;
-      loading.ready("Ready!");
-      expect(el.classList.contains("hidden")).toBe(true);
-      expect(document.getElementById("game-loading-detail")!.textContent).toBe(
-        "Ready!",
-      );
-    });
-
-    it("ready sets booted flag immediately", () => {
-      const loading = (window as any).PirateArcadeLoading;
-      expect(loading.isReady()).toBe(false);
-      loading.ready();
-      expect(loading.isReady()).toBe(true);
-    });
-
-    it("error adds error class and updates detail", () => {
-      const loading = (window as any).PirateArcadeLoading;
-      const el = document.getElementById("game-loading")!;
-      loading.error("Failed to load!");
-      expect(document.getElementById("game-loading-detail")!.textContent).toBe(
-        "Failed to load!",
-      );
-      expect(el.classList.contains("game-error")).toBe(true);
-      expect(document.body.classList.contains("game-error")).toBe(true);
-    });
-
-    it("error removes hidden class", () => {
-      const loading = (window as any).PirateArcadeLoading;
-      const el = document.getElementById("game-loading")!;
-      el.classList.add("hidden");
-      loading.error("fail");
-      expect(el.classList.contains("hidden")).toBe(false);
+      const after = (window as any).PirateArcadeLoading;
+      expect(after).toBe(before);
+      expect(after._marker).toBe("pygbag-loading");
     });
   });
 

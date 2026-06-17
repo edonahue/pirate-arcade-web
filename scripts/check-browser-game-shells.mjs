@@ -50,6 +50,7 @@ const REQUIRED_INVARIANTS = [
 ];
 
 const REQUIRED_SHARED_SCRIPTS = [
+  "pygbag-loading.js",
   "pygame-input-bridge.js",
   "game-viewport.js",
   "mobile-controls.js",
@@ -179,23 +180,11 @@ for (const game of pygbagGames) {
     fail(`${gameDir}: SW registration missing updateViaCache: none`);
   }
 
-  if (html.includes("window.PirateArcadeLoading")) {
-    const hasEnsureEls = html.includes("_ensureEls");
-    const hasSetter = html.includes("set:") || html.includes("set(");
-    const hasReady = html.includes("ready:");
-    const hasError = html.includes("error:");
-    const features = [
-      hasEnsureEls ? "_ensureEls" : null,
-      hasSetter ? "set" : null,
-      hasReady ? "ready" : null,
-      hasError ? "error" : null,
-    ].filter(Boolean);
-    ok(`PirateArcadeLoading API (${features.join(", ")})`);
-    if (!hasEnsureEls) {
-      fail(`${gameDir}: PirateArcadeLoading missing _ensureEls`);
-    }
+  if (html.includes("pygbag-loading.js")) {
+    // PirateArcadeLoading API is defined in the shared pygbag-loading.js
+    ok("PirateArcadeLoading via pygbag-loading.js");
   } else {
-    fail(`${gameDir}: missing PirateArcadeLoading API`);
+    fail(`${gameDir}: missing pygbag-loading.js`);
   }
 
   const controlsPattern = new RegExp(`data-controls="${controlMode}"`);

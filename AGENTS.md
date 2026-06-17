@@ -11,6 +11,8 @@ Modern pirate arcade + public builder notebook. Playful but not cheesy. Honest a
 ## Critical fragility
 
 - `public/play/*` — browser-game shells. Pinned Pygbag CDN version (0.9.3). Never edit without Playwright validation.
+- Pygbag shells (`cannonball-clash`, `treasure-cove`, `krakens-wake`) are **generated** from `scripts/pygbag-shell-template.mjs` + `scripts/pygbag-game-config.mjs`. Hand-editing generated shells is forbidden. Regenerate via `npm run generate:pygbag-shells`.
+- `public/play/shared/pygbag-loading.js` — single authoritative `PirateArcadeLoading` API (30s slow timer, retry button, no "Error:" prefix). The bridge (`pygame-input-bridge.js`) no longer defines or replaces it.
 - `public/_headers` — per-route CSP. `unsafe-eval` only on game routes (`/play/*`). Keep global CSP strict.
 - `public/sw.js` — classic service worker (no `import`). CACHE_VERSION inlined by build script. WARM_CACHE listener at top scope.
 - `src/data/games.json` — source of truth. Browser-playable entries have `browserUrl`, desktop-only entries don't.
@@ -91,12 +93,14 @@ screenshot — do not capture it from `/play/`.
 Several validators derive game lists from `games.json` and will catch
 missing entries if you forget to update related files:
 
-| Validator                         | What it catches                                            |
-| --------------------------------- | ---------------------------------------------------------- |
-| `check-cloudflare-headers.mjs`    | Missing CSP entries in `_headers`                          |
-| `check-service-worker-compat.mjs` | Missing ASSETS_TO_CACHE or `isGameShell` paths in `sw.js`  |
-| `check-browser-game-shells.mjs`   | Missing shell files, CSP, SW cache entries                 |
-| `seo-audit.mjs`                   | Missing browserUrl, screenshot, llms.txt, sitemap coverage |
+| Validator                         | What it catches                                                   |
+| --------------------------------- | ----------------------------------------------------------------- |
+| `check-cloudflare-headers.mjs`    | Missing CSP entries in `_headers`                                 |
+| `check-service-worker-compat.mjs` | Missing ASSETS_TO_CACHE or `isGameShell` paths in `sw.js`         |
+| `check-browser-game-shells.mjs`   | Missing shell files, CSP, SW cache entries                        |
+| `seo-audit.mjs`                   | Missing browserUrl, screenshot, llms.txt, sitemap coverage        |
+| `check-pygbag-boot-contract.mjs`  | Missing Python boot phases, wrong ordering, structural invariants |
+| `check-pygbag-shell-drift.mjs`    | Hand-edited generated shells (in-memory render mismatch)          |
 
 ## Copy & Tone
 
