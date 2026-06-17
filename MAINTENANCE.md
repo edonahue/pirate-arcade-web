@@ -16,6 +16,35 @@ and by multiple scripts (`check-game-cache-versioning.mjs`,
   unless a real browser build is published.
 - Game IDs must match directory names in `public/play/<id>/`.
 
+## Pygbag game shell integrity
+
+All three Pygbag game shells (`cannonball-clash`, `treasure-cove`, `krakens-wake`) share a common HTML structure verified by:
+
+```sh
+npm run test:game-shell-integrity
+```
+
+The static checker (`scripts/check-game-shell-integrity.mjs`) validates:
+
+- Strict UTF-8 decode (no mojibake or replacement characters)
+- `<meta charset="UTF-8">` within the first 1024 bytes
+- Valid document order (DOCTYPE → `<html>` → `<head>` → `<body>`)
+- Balanced `<script>` tags and exactly one pygbag module script
+- No orphaned inline debug-panel source code
+- No non-whitespace direct body text nodes (JSDOM)
+- No duplicate element IDs
+- Cross-shell structural parity
+
+The Playwright shell test (`tests/game-shell-integrity.spec.ts`) validates at runtime:
+
+- `document.characterSet` is UTF-8
+- No leaked JavaScript signatures in rendered body text
+- Expected loading copy matches exactly
+- No mojibake patterns in visible text
+- Loading API uses `textContent` (safe from HTML injection)
+
+**Principle:** Expected elements existing does not prove unexpected content is absent. Always add negative assertions for leaked code.
+
 ## Browser game screenshots
 
 Production screenshots (`public/images/screenshot-<id>.png`, 1280x720 PNG)

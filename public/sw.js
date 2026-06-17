@@ -9,7 +9,7 @@
 // constant is populated by scripts/apply-game-asset-versions.mjs when
 // versions change. Do NOT add top-level import statements.
 
-const CACHE_VERSION = "pirate-arcade-games-v8";
+const CACHE_VERSION = "pirate-arcade-games-v9";
 const CACHE_NAME = CACHE_VERSION;
 
 // List of assets to cache - only confirmed browser-playable games.

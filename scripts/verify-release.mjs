@@ -22,6 +22,7 @@ const FAST_GATE = [
   { name: "Dependency hygiene", cmd: "npm run check:dependency-hygiene" },
   { name: "Cloudflare headers", cmd: "npm run test:check-headers" },
   { name: "Browser game shells", cmd: "npm run test:browser-game-shells" },
+  { name: "Game shell integrity", cmd: "npm run test:game-shell-integrity" },
   { name: "Service worker", cmd: "npm run test:service-worker" },
   { name: "Cache versioning", cmd: "npm run test:cache-versioning" },
   { name: "Game versions", cmd: "npm run test:game-versions" },

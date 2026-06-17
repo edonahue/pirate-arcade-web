@@ -67,6 +67,7 @@
     "verify:release:fast": "node scripts/verify-release.mjs --fast",
     "verify:release:full": "node scripts/verify-release.mjs",
     "test:copy-tone": "node scripts/check-copy-tone.mjs",
+    "test:game-shell-integrity": "node scripts/check-game-shell-integrity.mjs",
     "test:performance-budgets": "node scripts/check-performance-budgets.mjs",
     "test:visual-polish": "playwright test tests/mobile-visual-polish.spec.ts",
     "test:visual-contrast": "node scripts/check-visual-contrast.mjs",

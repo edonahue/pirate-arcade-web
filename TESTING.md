@@ -75,6 +75,14 @@ npm run test:debug:mobile
 # Built HTML structure (jsdom — no server required, all BaseLayout pages)
 npm run test:html-structure
 
+# Game shell source integrity (jsdom — validates encoding, structure,
+# no orphaned source code in Pygbag game shells)
+npm run test:game-shell-integrity
+
+# Cross-browser game shell integrity (chromium, WebKit mobile, iPad)
+# Intercepts Pygbag runtime — tests static loading shell only
+npm run test:e2e -- tests/game-shell-integrity.spec.ts
+
 # Game loading performance (measures cold-start phase timings)
 npm run test:game-performance
 

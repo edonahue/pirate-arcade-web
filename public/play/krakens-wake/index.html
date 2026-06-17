@@ -1,342 +1,27 @@
 <!DOCTYPE html>
-<html lang="en-us">
-  <!-- INLINE SCRIPT: must be BEFORE the pygbag module script -->
-  <!--
-    CDN VERSION PIN: pythons.js@0.9.3 — if upgrading, test thoroughly.
-    The inline script below depends on pygbag internals (FS, cross_file,
-    window.python, script.blocks[0], MM.UME). These are semi-stable
-    implementation details that could change between minor versions.
-    Always run the Playwright test suite after a version bump.
-  -->
-    <script>
-      console.log('INLINE_SCRIPT: starting');
-
-      // Define PirateArcadeLoading for the static #game-loading overlay.
-      // Operates on the statically-defined HTML overlay (not a JS-created one)
-      // so it works before the DOM is fully parsed. pygame-input-bridge.js
-      // overrides this later with a CSS-class-based version.
-      window.PirateArcadeLoading = {
-        _detailEl: null,
-        _overlayEl: null,
-        _slowTimer: null,
-        _ensureEls: function() {
-          if (!this._detailEl) this._detailEl = document.getElementById('game-loading-detail');
-          if (!this._overlayEl) this._overlayEl = document.getElementById('game-loading');
-        },
-        set: function(text) {
-          this._ensureEls();
-          if (this._detailEl) this._detailEl.textContent = text;
-          if (this._overlayEl) this._overlayEl.classList.remove('hidden', 'game-error');
-          // If more than 4s in a phase, show gentle note
-          if (!this._slowTimer) {
-            this._slowTimer = setTimeout(function () {
-              var note = document.querySelector('#game-loading .loader-note');
-              if (note) note.textContent = 'Still working — first load is slower; repeat visits should be faster.';
-            }, 4000);
-          }
-        },
-        ready: function(text) {
-          this._ensureEls();
-          if (this._slowTimer) { clearTimeout(this._slowTimer); this._slowTimer = null; }
-          if (text && this._detailEl) this._detailEl.textContent = text;
-          if (this._overlayEl) this._overlayEl.classList.add('hidden');
-          if (text) console.log('Ready:', text);
-        },
-        error: function(text) {
-          this._ensureEls();
-          if (this._slowTimer) { clearTimeout(this._slowTimer); this._slowTimer = null; }
-          if (this._detailEl) this._detailEl.textContent = 'Error: ' + text;
-          if (this._overlayEl) {
-            this._overlayEl.classList.remove('hidden');
-            this._overlayEl.classList.add('game-error');
-          }
-        }
-      };
-
-      // Replace pythons.js cross_file with a correct implementation.
-    // Original has two bugs: missing return resp.arrayBuffer() in the .then chain,
-    // and fetch hangs when init is a Python bridge JSHandle proxy (Firefox).
-    (function() {
-      var _origFetch = window.fetch.bind(window);
-      var done = false;
-      var check = setInterval(function() {
-        if ((typeof FS !== 'undefined' || typeof window.FS !== 'undefined') && typeof window.cross_file === 'function' && !done) {
-          clearInterval(check); done = true;
-          var fs = typeof FS !== 'undefined' ? FS : window.FS;
-          window.cross_file = function*(url, store, flags) {
-            console.log('cross_file.patched', url);
-            var content = 0;
-            var error = null;
-            _origFetch(url).then(function(resp) {
-              if (!resp.ok) { error = new Error('HTTP ' + resp.status); return; }
-              return resp.arrayBuffer();
-            }).then(function(buf) {
-              if (buf) content = new Uint8Array(buf);
-            }).catch(function(err) {
-              error = err;
-            });
-            while (!content && !error) { yield; }
-            if (error) { console.error('cross_file.error', error.message, 'url=', url); throw error; }
-            console.log('cross_file.patched.done', url, 'len=', content ? content.length : 0);
-            if (content && content.length) {
-              fs.writeFile(store, content);
-            }
-            yield store;
-          };
-        }
-      }, 10);
-      setTimeout(function() { clearInterval(check); }, 10000);
-    })();
-
-    (function() {
-      var _paStateEl = document.createElement('div');
-      _paStateEl.id = 'pa-game-state';
-      _paStateEl.style.display = 'none';
-      _paStateEl.setAttribute('aria-hidden', 'true');
-      document.documentElement.appendChild(_paStateEl);
-    })();
-
-    console.log('INLINE_SCRIPT: cross_file replacement done');
-    if (window.PirateArcadeMetrics) window.PirateArcadeMetrics.mark('cross-file-replaced');
-
-    // Poll for Python interpreter and inject game startup code via blocks[0].
-    console.log('INJECT_SCRIPT: setting up poll');
-    if (window.PirateArcadeMetrics) window.PirateArcadeMetrics.mark('pythons-js-requested');
-    (function() {
-      var pyReady = setInterval(function() {
-        if (typeof window.python === 'object' && window.python !== null && typeof window.python.PyRun_SimpleString === 'function') {
-          clearInterval(pyReady);
-          console.log('JS_INJECT: python ready, injecting startup code');
-          if (window.PirateArcadeMetrics) window.PirateArcadeMetrics.mark('python-ready');
-
-          var gameCode = [
-            'import sys, asyncio, tarfile, io, os',
-            '',
-            'async def boot():',
-            '    import __EMSCRIPTEN__ as platform',
-            '    try:',
-            "        _w = platform.window",
-            "        _w.transfer.hidden = True",
-            '        _w.canvas.style.visibility = "visible"',
-            "        _w.PirateArcadeMetrics.mark('boot-start')",
-            "        _w.PirateArcadeLoading.set('Starting game engine\u2026')",
-            '',
-            '        # Pre-install pygame wheel from CDN and fetch archive in parallel',
-            "        _w.PirateArcadeMetrics.mark('pygame-install-start')",
-            "        _w.PirateArcadeMetrics.mark('archive-fetch-start')",
-            "        _w.PirateArcadeLoading.set('Installing Pygame and downloading game package\u2026')",
-            '        import aio.pep0723',
-            "        url = _w.location.href + 'krakens-wake.tar.gz?v=mobile-v5'",
-            '        async def fetch_archive():',
-            '            async with platform.fopen(url, "rb") as f:',
-            '                return f.read()',
-            '        archive_task = asyncio.create_task(fetch_archive())',
-            '        await aio.pep0723.pip_install("pygame")',
-            '        data = await archive_task',
-            "        _w.PirateArcadeMetrics.mark('pygame-install-end')",
-            "        _w.PirateArcadeMetrics.mark('archive-fetch-end')",
-            '',
-            "        _w.PirateArcadeMetrics.mark('archive-extract-start')",
-            "        _w.PirateArcadeLoading.set('Extracting game files\u2026')",
-            '        d = "/tmp/game_extract"',
-            '        os.makedirs(d, exist_ok=True)',
-            '        tarfile.open(fileobj=io.BytesIO(data)).extractall(d)',
-            "        _w.PirateArcadeMetrics.mark('archive-extract-end')",
-            '',
-            '        # Init pygame display, then import game modules',
-            '        a = os.path.join(d, "assets")',
-            '        sys.path.insert(0, a)',
-            '        os.chdir(a)',
-            '',
-            '        # Browser FS: ~/.local/share/pirate-arcade/ may not be writable.',
-            '        # The desktop highscores.py tries to persist scores there; in the',
-            '        # browser that path can fail (Emscripten FS quirks). Disable saving',
-            '        # and treat the cache as empty so submit_asteroids()/get_high() are',
-            '        # no-ops for the lifetime of the page. The menu still shows',
-            '        # "Best: ..." only when a real high score is present in the cache.',
-            '        try:',
-            '            import highscores as hs',
-            '            hs._cache = {}',
-            '            hs._load = lambda: {}',
-            '            hs._save = lambda data: None',
-            '        except Exception:',
-            '            pass',
-            '',
-        '        import pygame as pg',
-        '        pg.display.init()',
-        '        pg.font.init()',
-        '',
-        '        # ── Input bridge shim ──',
-        '        import builtins',
-        '        builtins.__pa_web_keys__ = set()',
-        '        _orig_get_pressed = pg.key.get_pressed',
-        '',
-        '        class _PAWebKeyState:',
-        '            def __init__(self, base):',
-        '                self.base = base',
-        '            def __getitem__(self, key):',
-        '                try:',
-        '                    web_down = key in builtins.__pa_web_keys__',
-        '                    native = self.base is not None and self.base[key]',
-        '                    return web_down or native',
-        '                except Exception:',
-        '                    return key in builtins.__pa_web_keys__',
-        '            def __len__(self):',
-        '                try: return len(self.base)',
-        '                except Exception: return 0',
-        '            def __iter__(self):',
-        '                return iter(self.base)',
-        '',
-        '        def _pa_get_pressed():',
-        '            return _PAWebKeyState(_orig_get_pressed())',
-        '        pg.key.get_pressed = _pa_get_pressed',
-        '',
-        '        _KEY_MAP = {',
-        '            "ArrowUp": pg.K_UP, "ArrowDown": pg.K_DOWN,',
-        '            "ArrowLeft": pg.K_LEFT, "ArrowRight": pg.K_RIGHT,',
-        '            "w": pg.K_w, "s": pg.K_s, "a": pg.K_a, "d": pg.K_d,',
-        '            "Space": pg.K_SPACE, "Enter": pg.K_RETURN,',
-        '            "Escape": pg.K_ESCAPE, "p": pg.K_p,',
-        '        }',
-        '',
-        '        _key_count = 0',
-        '        builtins.__pa_key_event_count__ = 0',
-        '        builtins.__pa_last_key__ = None',
-        '        builtins.__pa_last_key_down__ = False',
-        '',
-        '        def __pa_post_key(name, down):',
-        '            key = _KEY_MAP.get(str(name))',
-        '            if key is None:',
-        '                return',
-        '            nonlocal _key_count',
-        '            _key_count += 1',
-        '            builtins.__pa_key_event_count__ = _key_count',
-        '            builtins.__pa_last_key__ = str(name)',
-        '            builtins.__pa_last_key_down__ = down',
-        '            if down:',
-        '                builtins.__pa_web_keys__.add(key)',
-        '                pg.event.post(pg.event.Event(pg.KEYDOWN, key=key))',
-        '            else:',
-        '                builtins.__pa_web_keys__.discard(key)',
-        '                pg.event.post(pg.event.Event(pg.KEYUP, key=key))',
-        '        builtins.__pa_post_key = __pa_post_key',
-        '',
-        '        # ── Touch target bridge shim ──',
-        '        builtins.__pa_touch_axis__ = None',
-        '        builtins.__pa_touch_value__ = None',
-        '        builtins.__pa_touch_active__ = False',
-        '        builtins.__pa_touch_event_count__ = 0',
-        '        builtins.__pa_last_touch_axis__ = None',
-        '        builtins.__pa_last_touch_value__ = None',
-        '',
-        '        def __pa_set_touch_target(axis, value, active):',
-        '            builtins.__pa_touch_axis__ = str(axis)',
-        '            builtins.__pa_touch_value__ = float(value)',
-        '            builtins.__pa_touch_active__ = bool(active)',
-        '            builtins.__pa_touch_event_count__ += 1',
-        '            builtins.__pa_last_touch_axis__ = str(axis)',
-        '            builtins.__pa_last_touch_value__ = float(value)',
-        '        builtins.__pa_set_touch_target = __pa_set_touch_target',
-        '        # ── End touch target bridge shim ──',
-        '',
-        "        _w.PirateArcadeMetrics.mark('input-bridge-installed')",
-        '',
-        "        _w.PirateArcadeMetrics.mark('display-init-start')",
-        "        _w.PirateArcadeLoading.set('Initializing display\u2026')",
-        '        import constants as c',
-        '        s = pg.display.set_mode((c.WINDOW_WIDTH, c.WINDOW_HEIGHT))',
-        "        pg.display.set_caption(\"Kraken's Wake\")",
-        "        _w.PirateArcadeMetrics.mark('display-init-end')",
-        '        from games.asteroids.game import AsteroidsGame',
-            '',
-            '        class WebAudio:',
-            '            def __init__(self):',
-            '                self._js = _w.PirateArcadeAudio',
-            '                self._js.init()',
-            '                self._muted = False',
-            '            @property',
-            '            def muted(self):',
-            '                return self._muted',
-            '            @muted.setter',
-            '            def muted(self, val):',
-            '                self._muted = val',
-            '                self._js.setMuted(val)',
-            '            def play(self, name, *a, **kw):',
-            '                self._js.resume()',
-            '                self._js.play(name)',
-            '            def load(self, *a, **kw):',
-            '                pass',
-            '',
-            "        _w.PirateArcadeMetrics.mark('game-object-created')",
-            "        _w.PirateArcadeLoading.set('Setting up game\u2026')",
-            '        game = AsteroidsGame(s, WebAudio())',
-            "        _w.PirateArcadeMetrics.mark('game-ready')",
-            "        _w.PirateArcadeMetrics.computeDurations()",
-            "        _w.PirateArcadeLoading.ready('Ready \u2014 tap to play')",
-            '        _w.infobox.innerText = "Kraken\u2019s Wake loaded! Audio starts after your first click."',
-            '        await game.run()',
-            '    except Exception as e:',
-            '        sys.print_exception(e)',
-            '        msg = str(e) if str(e) else type(e).__name__',
-            "        _w.PirateArcadeLoading.error('Error: ' + msg)",
-            '',
-            'asyncio.ensure_future(boot())',
-          ].join('\n');
-          window.python.FS.writeFile('/tmp/game.py', gameCode);
-          window.python.script.blocks[0] = 'import sys;exec(open("/tmp/game.py").read())';
-          console.log('JS_INJECT: wrote /tmp/game.py and set blocks[0]');
-        }
-      }, 100);
-      setTimeout(function() { clearInterval(pyReady); }, 120000);
-    })();
-
-    console.log('INLINE_SCRIPT: all setup done');
-  </script>
-  <script src="audio-bridge.js"></script>
-  <script
-    src="https://pygame-web.github.io/cdn/0.9.3/pythons.js"
-    type="module"
-    id="site"
-    data-python="python3.12"
-    data-LINES="42"
-    data-COLUMNS="132"
-    data-os="vtx,gui"
-    async
-    defer
-  >
-    #<!--
-    # empty template - game is started via JS injection above
-    import sys
-    sys.path.append('/data/data/org.python/assets/site-packages')
-    # BEGIN BLOCK
-    #
-    # now this is the html part you can (and should) customize
-    # It is not mandatory : pygame-script when it reads the first line (also called
-    # shebang ) of above code create absolute minimal widget set
-    # required for running with default rules
-    #
-    # do not alter that comment block it is separating python code from html code
-    # =============================================================================
-    # -->
-  </script>
+<html lang="en">
   <head>
-    <title>Kraken’s Wake – Pirate Arcade</title>
     <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-capable" content="yes"/>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>Kraken's Wake – Pirate Arcade</title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <!-- Resource hints for performance -->
     <link rel="preconnect" href="https://pygame-web.github.io">
     <link rel="dns-prefetch" href="https://pygame-web.github.io">
     <link rel="modulepreload" href="https://pygame-web.github.io/cdn/0.9.3/pythons.js">
-    <link rel="preload" href="/play/krakens-wake/krakens-wake.tar.gz?v=mobile-v5" as="fetch">
-      <script src="/play/shared/game-boot-metrics.js"></script>
+    <link rel="preload" href="/play/krakens-wake/krakens-wake.tar.gz?v=mobile-v6" as="fetch">
+    <script src="/play/shared/game-boot-metrics.js"></script>
     <style>
       * { margin: 0; padding: 0; box-sizing: border-box; }
       html, body { width: 100%; height: 100%; overflow: hidden; background: #0a0e17; color: #b8c4d4; }
-
+      canvas.emscripten {
+        border: 0; background: transparent; width: 100%; height: 100%;
+        z-index: 5; padding: 0; margin: 0 auto;
+        position: absolute; top: 0; bottom: 0; left: 0; right: 0;
+      }
       #back-link {
         position: fixed; top: 12px; left: 12px; z-index: 999999;
         color: #8a9ab0; font: 13px/1 monospace; text-decoration: none;
@@ -364,8 +49,6 @@
       #status { display: inline-block; vertical-align: top; margin: 20px 0 0 30px; font-weight: bold; color: #5a6a7e; }
       #progress { height: 20px; width: 300px; accent-color: #d4a843; }
       #pyconsole > #terminal { z-index: 0; }
-
-      /* ── orientation lock ── */
       #rotate-device {
         display: none; position: fixed; inset: 0; z-index: 99999999;
         background: #0a0e17; color: #b8c4d4;
@@ -378,138 +61,311 @@
         #rotate-device { display: flex; }
         #game-wrap { display: none; }
       }
-
     </style>
-    <link rel="stylesheet" href="/play/shared/mobile-controls.css?v=mobile-v5">
-  </head>
-  <body>
-    <div id="rotate-device"><div class="icon">↻</div><div>Rotate your device to landscape</div><div style="margin-top:0.5rem;font-size:13px;color:#6b7a8f;">This game is designed for landscape orientation.</div></div>
-    <div id="game-loading" role="status" aria-live="polite">
-      <div class="loader-title">Loading Kraken's Wake</div>
-      <div class="loader-spinner" aria-hidden="true"></div>
-      <div id="game-loading-detail">Starting game engine…</div>
-      <div class="loader-note">First visit downloads ~12 MB. Repeat visits load from cache.</div>
-    </div>
-    <div id="game-wrap">
-    <a id="back-link" href="/play/" data-no-touch-control>← Back to Arcade</a>
-    <div id="controls-hint">TURN  \u2022  THRUST  \u2022  FIRE  \u2022  PAUSE</div>
-    <div id="transfer" align=center>
-      <div class="emscripten" id="status">Downloading Python runtime...</div>
-      <div class="emscripten"><progress value="0" max="100" id="progress"></progress></div>
-    </div>
-    <canvas class="emscripten" id="canvas"
-      width="1px" height="1px"
-      oncontextmenu="event.preventDefault()" tabindex=1>
-    </canvas>
-    <canvas class="emscripten" id="canvas3d"
-      width="1280px" height="720px"
-      oncontextmenu="event.preventDefault()" tabindex=1 hidden>
-    </canvas>
-    <div id="infobox">Loading Kraken’s Wake — first visit downloads the Python/Pygame runtime (~12 MB). Audio starts after your first click.</div>
-    <div id="pyconsole"><div id="terminal" tabIndex=1 align="left"></div></div>
+    <link rel="stylesheet" href="/play/shared/mobile-controls.css?v=mobile-v6">
+    <!--
+      CDN VERSION PIN: pythons.js@0.9.3 — if upgrading, test thoroughly.
+      The inline script below depends on pygbag internals (FS, cross_file,
+      window.python, script.blocks[0], MM.UME). These are semi-stable
+      implementation details that could change between minor versions.
+      Always run the Playwright test suite after a version bump.
+    -->
+    <script>
+      console.log('INLINE_SCRIPT: starting');
 
-    <div class="touch-overlay" id="touch-overlay" data-controls="asteroids">
-      <div class="btn btn-arrow btn-left" data-dir="left">◀</div>
-      <div class="btn btn-arrow btn-right" data-dir="right">▶</div>
-      <div class="btn btn-action" data-dir="action">⏎</div>
-      <div class="btn btn-pause" data-dir="pause">❚❚</div>
-      <div class="btn btn-menu-up" data-dir="up">▲</div>
-      <div class="btn btn-menu-down" data-dir="down">▼</div>
-      <div class="btn btn-thrust" data-dir="thrust">THRUST</div>
-      <div class="btn btn-fire" data-dir="fire">FIRE</div>
-    </div>
-    </div>
-
-    <script type="application/javascript">
-    // Audio unlock handler for iOS Safari - unlock AudioContext on first user interaction
-    function unlockAudioOnInteraction() {
-      const audio = window.PirateArcadeAudio;
-      if (audio && typeof audio.resume === 'function') {
-        audio.resume();
-      }
-      // Remove listeners after first interaction
-      document.removeEventListener('touchstart', unlockAudioOnInteraction);
-      document.removeEventListener('click', unlockAudioOnInteraction);
-    }
-    // Add listeners for first interaction
-    document.addEventListener('touchstart', unlockAudioOnInteraction, { passive: true });
-    document.addEventListener('click', unlockAudioOnInteraction, { passive: true });
-
-    async function custom_onload(debug_hidden) {
-      console.log('custom_onload');
-      pyconsole.hidden = debug_hidden;
-      transfer.hidden = debug_hidden;
-      show_infobox();
-    }
-    function custom_prerun() { console.log('custom_prerun'); }
-    function custom_postrun() { console.log('custom_postrun'); }
-    function show_infobox() {
-      infobox.style.display = 'block';
-      const w = infobox.offsetWidth, h = infobox.offsetHeight;
-      infobox.style.left = ((window.innerWidth - w) / 2) + 'px';
-      infobox.style.top = ((window.innerHeight - h) / 2) + 'px';
-    }
-    // On touch devices, focusing the canvas triggers the iOS virtual keyboard —
-    // the touch overlay handles input so keyboard focus is neither needed nor desired.
-    var _isTouch = window.matchMedia && window.matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window;
-    if (!_isTouch) {
-      new MutationObserver(() => {
-        const c = document.getElementById('canvas');
-        if (c && c.style.visibility === 'visible' && document.activeElement !== c) {
-          c.focus();
-        }
-      }).observe(document.documentElement, { attributes: true, subtree: true, attributeFilter: ['style'] });
-    }
-    </script>
-
-    <link rel="stylesheet" href="/play/shared/debug-panel.css?v=mobile-v5">
-    <script src="/play/shared/pygame-input-bridge.js?v=mobile-v5"></script>
-    <script src="/play/shared/game-viewport.js?v=mobile-v5"></script>
-    <script src="/play/shared/mobile-controls.js?v=mobile-v5"></script>
-    <script src="/play/shared/debug-panel.js?v=mobile-v5"></script>
-
-        function renderTab(tab) {
-          const dbg = window.__paInputDebug;
-          const input = window.PirateArcadeInput;
-          const gameState = window.PirateArcadeGameState;
-          const metrics = window.__paBootMetrics;
-          let html = '';
-
-          if (tab === 'input') {
-            if (!dbg) { html = 'No debug log available'; }
-            else {
-              const events = dbg.events.slice(-20).map(e => formatTime(e.ts) + ' [' + e.tag + '] ' + JSON.stringify(e.data)).join('\\n');
-              const bridges = dbg.bridgeCalls.slice(-10).map(b => formatTime(b.ts) + ' [bridge] ' + b.key + ' ' + (b.down ? 'DOWN' : 'UP') + ' ' + (b.ok ? 'OK' : 'FAIL')).join('\\n');
-              const dom = dbg.domEvents.slice(-10).map(d => formatTime(d.ts) + ' [dom] ' + d.key + ' ' + d.type + ' ' + d.target).join('\\n');
-              const state = input?.getState?.();
-              html = '=== INPUT STATE ===\\n' + JSON.stringify(state, null, 2) + '\\n\\n=== EVENTS (last 20) ===\\n' + (events || '(none)') + '\\n\\n=== BRIDGE CALLS (last 10) ===\\n' + (bridges || '(none)') + '\\n\\n=== DOM EVENTS (last 10) ===\\n' + (dom || '(none)');
-            }
-          } else if (tab === 'python') {
-            const pyState = input?.getDebugPythonState?.();
-            if (pyState) { html = '=== PYTHON BRIDGE STATE ===\\n' + JSON.stringify(pyState, null, 2) + '\\n\\nbridgeAvailable: ' + pyState.bridgeAvailable + (pyState.error ? '\\nerror: ' + pyState.error : ''); }
-            else { html = 'Python bridge state unavailable'; }
-          } else if (tab === 'game') {
-            let state = null;
-            if (gameState) { gameState.refresh?.(); state = gameState.getState?.(); }
-            if (typeof window.__pa_game_state_json === 'string') { try { state = JSON.parse(window.__pa_game_state_json); } catch (e) {} }
-            if (state) { html = '=== GAME STATE ===\\n' + JSON.stringify(state, null, 2); }
-            else { html = 'Game state unavailable (bridge not connected)'; }
-          } else if (tab === 'metrics') {
-            if (metrics) { html = '=== BOOT METRICS ===\\n' + JSON.stringify(metrics, null, 2); }
-            else { html = 'Boot metrics unavailable'; }
+      window.PirateArcadeLoading = {
+        _detailEl: null,
+        _overlayEl: null,
+        _slowTimer: null,
+        _ensureEls: function() {
+          if (!this._detailEl) this._detailEl = document.getElementById('game-loading-detail');
+          if (!this._overlayEl) this._overlayEl = document.getElementById('game-loading');
+        },
+        set: function(text) {
+          this._ensureEls();
+          if (this._detailEl) this._detailEl.textContent = text;
+          if (this._overlayEl) this._overlayEl.classList.remove('hidden', 'game-error');
+          if (!this._slowTimer) {
+            this._slowTimer = setTimeout(function () {
+              var note = document.querySelector('#game-loading .loader-note');
+              if (note) note.textContent = 'Still working — first load can be slow; repeat visits are often faster.';
+            }, 4000);
           }
-          content.textContent = html;
+        },
+        ready: function(text) {
+          this._ensureEls();
+          if (this._slowTimer) { clearTimeout(this._slowTimer); this._slowTimer = null; }
+          if (text && this._detailEl) this._detailEl.textContent = text;
+          if (this._overlayEl) this._overlayEl.classList.add('hidden');
+          if (text) console.log('Ready:', text);
+        },
+        error: function(text) {
+          this._ensureEls();
+          if (this._slowTimer) { clearTimeout(this._slowTimer); this._slowTimer = null; }
+          if (this._detailEl) this._detailEl.textContent = 'Error: ' + text;
+          if (this._overlayEl) {
+            this._overlayEl.classList.remove('hidden');
+            this._overlayEl.classList.add('game-error');
+          }
         }
+      };
 
-        renderTab('input');
-        const refreshInterval = setInterval(() => {
-          const activeTab = tabs.querySelector('.pa-debug-tab.active')?.dataset.tab;
-          if (activeTab) renderTab(activeTab);
-        }, 500);
-        window.addEventListener('beforeunload', () => clearInterval(refreshInterval));
+      (function() {
+        var _origFetch = window.fetch.bind(window);
+        var done = false;
+        var check = setInterval(function() {
+          if ((typeof FS !== 'undefined' || typeof window.FS !== 'undefined') && typeof window.cross_file === 'function' && !done) {
+            clearInterval(check); done = true;
+            var fs = typeof FS !== 'undefined' ? FS : window.FS;
+            window.cross_file = function*(url, store, flags) {
+              console.log('cross_file.patched', url);
+              var content = 0;
+              var error = null;
+              _origFetch(url).then(function(resp) {
+                if (!resp.ok) { error = new Error('HTTP ' + resp.status); return; }
+                return resp.arrayBuffer();
+              }).then(function(buf) {
+                if (buf) content = new Uint8Array(buf);
+              }).catch(function(err) {
+                error = err;
+              });
+              while (!content && !error) { yield; }
+              if (error) { console.error('cross_file.error', error.message, 'url=', url); throw error; }
+              console.log('cross_file.patched.done', url, 'len=', content ? content.length : 0);
+              if (content && content.length) {
+                fs.writeFile(store, content);
+              }
+              yield store;
+            };
+          }
+        }, 10);
+        setTimeout(function() { clearInterval(check); }, 10000);
       })();
-    </script>
 
+      (function() {
+        var _paStateEl = document.createElement('div');
+        _paStateEl.id = 'pa-game-state';
+        _paStateEl.style.display = 'none';
+        _paStateEl.setAttribute('aria-hidden', 'true');
+        document.documentElement.appendChild(_paStateEl);
+      })();
+
+      console.log('INLINE_SCRIPT: cross_file replacement done');
+      if (window.PirateArcadeMetrics) window.PirateArcadeMetrics.mark('cross-file-replaced');
+
+      console.log('INJECT_SCRIPT: setting up poll');
+      if (window.PirateArcadeMetrics) window.PirateArcadeMetrics.mark('pythons-js-requested');
+      (function() {
+        var pyReady = setInterval(function() {
+          if (typeof window.python === 'object' && window.python !== null && typeof window.python.PyRun_SimpleString === 'function') {
+            clearInterval(pyReady);
+            console.log('JS_INJECT: python ready, injecting startup code');
+            if (window.PirateArcadeMetrics) window.PirateArcadeMetrics.mark('python-ready');
+
+            var gameCode = [
+              'import sys, asyncio, tarfile, io, os',
+              '',
+              'async def boot():',
+              '    import __EMSCRIPTEN__ as platform',
+              '    try:',
+              "        _w = platform.window",
+              "        _w.transfer.hidden = True",
+              '        _w.canvas.style.visibility = "visible"',
+              "        _w.PirateArcadeMetrics.mark('boot-start')",
+              "        _w.PirateArcadeLoading.set('Starting game engine\u2026')",
+              '',
+              '        # Pre-install pygame wheel from CDN and fetch archive in parallel',
+              "        _w.PirateArcadeMetrics.mark('pygame-install-start')",
+              "        _w.PirateArcadeMetrics.mark('archive-fetch-start')",
+              "        _w.PirateArcadeLoading.set('Installing Pygame and downloading game package\u2026')",
+              '        import aio.pep0723',
+              "        url = _w.location.href + 'krakens-wake.tar.gz?v=mobile-v6'",
+              '        async def fetch_archive():',
+              '            async with platform.fopen(url, "rb") as f:',
+              '                return f.read()',
+              '        archive_task = asyncio.create_task(fetch_archive())',
+              '        await aio.pep0723.pip_install("pygame")',
+              '        data = await archive_task',
+              "        _w.PirateArcadeMetrics.mark('pygame-install-end')",
+              "        _w.PirateArcadeMetrics.mark('archive-fetch-end')",
+              '',
+              "        _w.PirateArcadeMetrics.mark('archive-extract-start')",
+              "        _w.PirateArcadeLoading.set('Extracting game files\u2026')",
+              '        d = "/tmp/game_extract"',
+              '        os.makedirs(d, exist_ok=True)',
+              '        tarfile.open(fileobj=io.BytesIO(data)).extractall(d)',
+              "        _w.PirateArcadeMetrics.mark('archive-extract-end')",
+              '',
+              '        # Browser FS: ~/.local/share/pirate-arcade/ may not be writable.',
+              '        # The desktop highscores.py tries to persist scores there; in the',
+              '        # browser that path can fail (Emscripten FS quirks). Disable saving',
+              '        # and treat the cache as empty so submit_asteroids()/get_high() are',
+              '        # no-ops for the lifetime of the page. The menu still shows',
+              '        # "Best: ..." only when a real high score is present in the cache.',
+              '        try:',
+              '            import highscores as hs',
+              '            hs._cache = {}',
+              '            hs._load = lambda: {}',
+              '            hs._save = lambda data: None',
+              '        except Exception:',
+              '            pass',
+              '',
+              '        import pygame as pg',
+              '        pg.display.init()',
+              '        pg.font.init()',
+              '',
+              '        # Input bridge shim',
+              '        import builtins',
+              '        builtins.__pa_web_keys__ = set()',
+              '        _orig_get_pressed = pg.key.get_pressed',
+              '',
+              '        class _PAWebKeyState:',
+              '            def __init__(self, base):',
+              '                self.base = base',
+              '            def __getitem__(self, key):',
+              '                try:',
+              '                    web_down = key in builtins.__pa_web_keys__',
+              '                    native = self.base is not None and self.base[key]',
+              '                    return web_down or native',
+              '                except Exception:',
+              '                    return key in builtins.__pa_web_keys__',
+              '            def __len__(self):',
+              '                try: return len(self.base)',
+              '                except Exception: return 0',
+              '            def __iter__(self):',
+              '                return iter(self.base)',
+              '',
+              '        def _pa_get_pressed():',
+              '            return _PAWebKeyState(_orig_get_pressed())',
+              '        pg.key.get_pressed = _pa_get_pressed',
+              '',
+              '        _KEY_MAP = {',
+              '            "ArrowUp": pg.K_UP, "ArrowDown": pg.K_DOWN,',
+              '            "ArrowLeft": pg.K_LEFT, "ArrowRight": pg.K_RIGHT,',
+              '            "w": pg.K_w, "s": pg.K_s, "a": pg.K_a, "d": pg.K_d,',
+              '            "Space": pg.K_SPACE, "Enter": pg.K_RETURN,',
+              '            "Escape": pg.K_ESCAPE, "p": pg.K_p,',
+              '        }',
+              '',
+              '        _key_count = 0',
+              '        builtins.__pa_key_event_count__ = 0',
+              '        builtins.__pa_last_key__ = None',
+              '        builtins.__pa_last_key_down__ = False',
+              '',
+              '        def __pa_post_key(name, down):',
+              '            key = _KEY_MAP.get(str(name))',
+              '            if key is None:',
+              '                return',
+              '            nonlocal _key_count',
+              '            _key_count += 1',
+              '            builtins.__pa_key_event_count__ = _key_count',
+              '            builtins.__pa_last_key__ = str(name)',
+              '            builtins.__pa_last_key_down__ = down',
+              '            if down:',
+              '                builtins.__pa_web_keys__.add(key)',
+              '                pg.event.post(pg.event.Event(pg.KEYDOWN, key=key))',
+              '            else:',
+              '                builtins.__pa_web_keys__.discard(key)',
+              '                pg.event.post(pg.event.Event(pg.KEYUP, key=key))',
+              '        builtins.__pa_post_key = __pa_post_key',
+              '',
+              '        # Touch target bridge shim',
+              '        builtins.__pa_touch_axis__ = None',
+              '        builtins.__pa_touch_value__ = None',
+              '        builtins.__pa_touch_active__ = False',
+              '        builtins.__pa_touch_event_count__ = 0',
+              '        builtins.__pa_last_touch_axis__ = None',
+              '        builtins.__pa_last_touch_value__ = None',
+              '',
+              '        def __pa_set_touch_target(axis, value, active):',
+              '            builtins.__pa_touch_axis__ = str(axis)',
+              '            builtins.__pa_touch_value__ = float(value)',
+              '            builtins.__pa_touch_active__ = bool(active)',
+              '            builtins.__pa_touch_event_count__ += 1',
+              '            builtins.__pa_last_touch_axis__ = str(axis)',
+              '            builtins.__pa_last_touch_value__ = float(value)',
+              '        builtins.__pa_set_touch_target = __pa_set_touch_target',
+              '',
+              "        _w.PirateArcadeMetrics.mark('input-bridge-installed')",
+              '',
+              "        _w.PirateArcadeMetrics.mark('display-init-start')",
+              "        _w.PirateArcadeLoading.set('Initializing display\u2026')",
+              '        import constants as c',
+              '        s = pg.display.set_mode((c.WINDOW_WIDTH, c.WINDOW_HEIGHT))',
+              "        pg.display.set_caption(\"Kraken's Wake\")",
+              "        _w.PirateArcadeMetrics.mark('display-init-end')",
+              '        from games.asteroids.game import AsteroidsGame',
+              '',
+              '        class WebAudio:',
+              '            def __init__(self):',
+              '                self._js = _w.PirateArcadeAudio',
+              '                self._js.init()',
+              '                self._muted = False',
+              '            @property',
+              '            def muted(self):',
+              '                return self._muted',
+              '            @muted.setter',
+              '            def muted(self, val):',
+              '                self._muted = val',
+              '                self._js.setMuted(val)',
+              '            def play(self, name, *a, **kw):',
+              '                self._js.resume()',
+              '                self._js.play(name)',
+              '            def load(self, *a, **kw):',
+              '                pass',
+              '',
+              "        _w.PirateArcadeMetrics.mark('game-object-created')",
+              "        _w.PirateArcadeLoading.set('Setting up game\u2026')",
+              '        game = AsteroidsGame(s, WebAudio())',
+              "        _w.PirateArcadeMetrics.mark('game-ready')",
+              "        _w.PirateArcadeMetrics.computeDurations()",
+              "        _w.PirateArcadeLoading.ready('Ready \u2014 tap to play')",
+              '        _w.infobox.innerText = "Kraken\u2019s Wake loaded! Audio starts after your first click."',
+              '        await game.run()',
+              '    except Exception as e:',
+              '        sys.print_exception(e)',
+              '        msg = str(e) if str(e) else type(e).__name__',
+              "        _w.PirateArcadeLoading.error('Error: ' + msg)",
+              '',
+              'asyncio.ensure_future(boot())',
+            ].join('\n');
+            window.python.FS.writeFile('/tmp/game.py', gameCode);
+            window.python.script.blocks[0] = 'import sys;exec(open("/tmp/game.py").read())';
+            console.log('JS_INJECT: wrote /tmp/game.py and set blocks[0]');
+          }
+        }, 100);
+        setTimeout(function() { clearInterval(pyReady); }, 120000);
+      })();
+
+      console.log('INLINE_SCRIPT: all setup done');
+    </script>
+    <script src="audio-bridge.js"></script>
+    <script
+      src="https://pygame-web.github.io/cdn/0.9.3/pythons.js"
+      type="module"
+      id="site"
+      data-python="python3.12"
+      data-LINES="42"
+      data-COLUMNS="132"
+      data-os="vtx,gui"
+      async
+      defer
+    >
+      #<!--
+      # empty template - game is started via JS injection above
+      import sys
+      sys.path.append('/data/data/org.python/assets/site-packages')
+      # BEGIN BLOCK
+      #
+      # now this is the html part you can (and should) customize
+      # It is not mandatory : pygame-script when it reads the first line (also called
+      # shebang ) of above code create absolute minimal widget set
+      # required for running with default rules
+      #
+      # do not alter that comment block it is separating python code from html code
+      # =============================================================================
+      # -->
+    </script>
     <!-- Service Worker Registration -->
     <script>
       if ('serviceWorker' in navigator) {
@@ -525,6 +381,87 @@
         });
       }
     </script>
+  </head>
+  <body>
+    <div id="rotate-device"><div class="icon">↻</div><div>Rotate your device to landscape</div><div style="margin-top:0.5rem;font-size:13px;color:#6b7a8f;">This game is designed for landscape orientation.</div></div>
+    <div id="game-loading" role="status" aria-live="polite">
+      <div class="loader-title">Loading Kraken's Wake</div>
+      <div class="loader-spinner" aria-hidden="true"></div>
+      <div id="game-loading-detail">Starting game engine</div>
+      <div class="loader-note">First visit downloads ~12 MB. Repeat visits should be faster.</div>
+    </div>
+    <div id="game-wrap">
+    <a id="back-link" href="/play/" data-no-touch-control>← Back to Arcade</a>
+    <div id="controls-hint">TURN  •  THRUST  •  FIRE  •  PAUSE</div>
+    <div id="transfer" align=center>
+      <div class="emscripten" id="status">Downloading Python runtime...</div>
+      <div class="emscripten"><progress value="0" max="100" id="progress"></progress></div>
+    </div>
+    <canvas class="emscripten" id="canvas"
+      width="1px" height="1px"
+      oncontextmenu="event.preventDefault()" tabindex=1>
+    </canvas>
+    <canvas class="emscripten" id="canvas3d"
+      width="1280px" height="720px"
+      oncontextmenu="event.preventDefault()" tabindex=1 hidden>
+    </canvas>
+    <div id="infobox">Loading Kraken's Wake — first visit downloads the Python/Pygame runtime (~12 MB). Audio starts after your first click.</div>
+    <div id="pyconsole"><div id="terminal" tabIndex=1 align="left"></div></div>
+
+    <div class="touch-overlay" id="touch-overlay" data-controls="asteroids">
+      <div class="btn btn-arrow btn-left" data-dir="left">◀</div>
+      <div class="btn btn-arrow btn-right" data-dir="right">▶</div>
+      <div class="btn btn-action" data-dir="action">⏎</div>
+      <div class="btn btn-pause" data-dir="pause">❚❚</div>
+      <div class="btn btn-menu-up" data-dir="up">▲</div>
+      <div class="btn btn-menu-down" data-dir="down">▼</div>
+      <div class="btn btn-thrust" data-dir="thrust">THRUST</div>
+      <div class="btn btn-fire" data-dir="fire">FIRE</div>
+    </div>
+    </div>
+
+    <script>
+    function unlockAudioOnInteraction() {
+      var audio = window.PirateArcadeAudio;
+      if (audio && typeof audio.resume === 'function') {
+        audio.resume();
+      }
+      document.removeEventListener('touchstart', unlockAudioOnInteraction);
+      document.removeEventListener('click', unlockAudioOnInteraction);
+    }
+    document.addEventListener('touchstart', unlockAudioOnInteraction, { passive: true });
+    document.addEventListener('click', unlockAudioOnInteraction, { passive: true });
+
+    async function custom_onload(debug_hidden) {
+      console.log('custom_onload');
+      pyconsole.hidden = debug_hidden;
+      transfer.hidden = debug_hidden;
+      show_infobox();
+    }
+    function custom_prerun() { console.log('custom_prerun'); }
+    function custom_postrun() { console.log('custom_postrun'); }
+    function show_infobox() {
+      infobox.style.display = 'block';
+      var w = infobox.offsetWidth, h = infobox.offsetHeight;
+      infobox.style.left = ((window.innerWidth - w) / 2) + 'px';
+      infobox.style.top = ((window.innerHeight - h) / 2) + 'px';
+    }
+    var _isTouch = window.matchMedia && window.matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window;
+    if (!_isTouch) {
+      new MutationObserver(function() {
+        var c = document.getElementById('canvas');
+        if (c && c.style.visibility === 'visible' && document.activeElement !== c) {
+          c.focus();
+        }
+      }).observe(document.documentElement, { attributes: true, subtree: true, attributeFilter: ['style'] });
+    }
+    </script>
+
+    <link rel="stylesheet" href="/play/shared/debug-panel.css?v=mobile-v5">
+    <script src="/play/shared/pygame-input-bridge.js?v=mobile-v6"></script>
+    <script src="/play/shared/game-viewport.js?v=mobile-v6"></script>
+    <script src="/play/shared/mobile-controls.js?v=mobile-v6"></script>
+    <script src="/play/shared/debug-panel.js?v=mobile-v5"></script>
     <!--
       GAME: krakens-wake
       ARCHIVE: /play/krakens-wake/krakens-wake.tar.gz
