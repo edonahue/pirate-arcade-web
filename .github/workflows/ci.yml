@@ -94,7 +94,7 @@ jobs:
       - run: npm ci
       - run: npm run build
       - name: Install Playwright Chromium + WebKit
-        run: npx playwright install chromium webkit
+        run: npx playwright install --with-deps chromium webkit
       - name: Shell integrity tests (chromium)
         run: npx playwright test tests/game-shell-integrity.spec.ts --project=chromium-desktop --reporter=list
         timeout-minutes: 5
