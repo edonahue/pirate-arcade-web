@@ -228,7 +228,9 @@ function renderPythonBootCode(config) {
   );
   lines.push('        pg.display.set_caption("' + config.caption + '")');
   lines.push('        _w.PirateArcadeMetrics.mark("display-init-end")');
-  lines.push("        " + config.moduleImport);
+  lines.push(
+    "        from " + config.pythonModule + " import " + config.gameClass,
+  );
   lines.push("");
   lines.push("        class WebAudio:");
   lines.push("            def __init__(self):");
@@ -284,8 +286,8 @@ const CDN_PIN_COMMENT = `    <!--
       Always run the Playwright test suite after a version bump.
     -->`;
 
-// Debug panel is still at mobile-v5 (not yet bumped to ASSET_VERSION)
-const DEBUG_PANEL_VERSION = "mobile-v5";
+// Aligned with ASSET_VERSION to ensure cache-busting consistency
+const DEBUG_PANEL_VERSION = ASSET_VERSION;
 
 // ── Main render function ──────────────────────────────────────
 

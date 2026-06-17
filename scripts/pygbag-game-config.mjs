@@ -7,7 +7,7 @@ export const PYBAG_GAMES = [
   {
     id: "cannonball-clash",
     title: "Cannonball Clash",
-    moduleImport: "from games.pong.game import PongGame",
+    pythonModule: "games.pong.game",
     gameClass: "PongGame",
     caption: "Cannonball Clash",
     controlsHint: "Slide ship up/down  \u2022  START  \u2022  PAUSE",
@@ -21,12 +21,12 @@ export const PYBAG_GAMES = [
   {
     id: "treasure-cove",
     title: "Treasure Cove",
-    moduleImport: "from games.breakout.game import BreakoutGame",
+    pythonModule: "games.breakout.game",
     gameClass: "BreakoutGame",
     caption: "Treasure Cove",
     controlsHint: "Slide longboat left/right  \u2022  LAUNCH  \u2022  PAUSE",
     controlsMode: "breakout",
-    readyMessage: "Ready \u2014 tap START",
+    readyMessage: "Ready \u2014 tap LAUNCH",
     loadingText: "Installing touch controls\u2026",
     touchOverlay: "breakout",
     crossFileTimeout: 30000,
@@ -35,7 +35,7 @@ export const PYBAG_GAMES = [
   {
     id: "krakens-wake",
     title: "Kraken's Wake",
-    moduleImport: "from games.asteroids.game import AsteroidsGame",
+    pythonModule: "games.asteroids.game",
     gameClass: "AsteroidsGame",
     caption: "Kraken's Wake",
     controlsHint: "TURN  \u2022  THRUST  \u2022  FIRE  \u2022  PAUSE",

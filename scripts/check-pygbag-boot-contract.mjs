@@ -180,6 +180,53 @@ for (const config of PYBAG_GAMES) {
     if (orderOk) {
       ok(config.id + ": Python phase order correct");
     }
+
+    // ── Phase 2: Required Python boot structural checks ────────────
+
+    // 7. sys.path.insert(0, a) must be present (makes game package importable)
+    totalChecks++;
+    if (/sys\.path\.insert\(/.test(gameCodeJs)) {
+      ok(config.id + ": sys.path.insert present");
+    } else {
+      fail(
+        config.id +
+          ": missing sys.path.insert — game package won't be importable",
+      );
+    }
+
+    // 8. os.chdir(a) must be present (sets working directory for game assets)
+    totalChecks++;
+    if (/os\.chdir\(/.test(gameCodeJs)) {
+      ok(config.id + ": os.chdir present");
+    } else {
+      fail(config.id + ": missing os.chdir — game assets won't resolve");
+    }
+
+    // 9. Import line must appear after sys.path.insert and os.chdir
+    // Use `html` since gameCodeJs has JS-escaped strings
+    totalChecks++;
+    const importMatch = html.match(/'\s*from\s+\S+\s+import\s+\S+/);
+    const sysPathMatch = html.match(/sys\.path\.insert/);
+    const osChdirMatch = html.match(/os\.chdir/);
+    const importIdx = importMatch ? importMatch.index : -1;
+    const sysPathIdx = sysPathMatch ? sysPathMatch.index : -1;
+    const osChdirIdx = osChdirMatch ? osChdirMatch.index : -1;
+
+    if (importIdx === -1) {
+      fail(config.id + ": no import statement found in boot code");
+    } else if (sysPathIdx === -1 || osChdirIdx === -1) {
+      // Already reported above — skip duplicate
+      ok(config.id + ": import order (skipped — preconditions missing)");
+    } else if (importIdx > sysPathIdx && importIdx > osChdirIdx) {
+      ok(config.id + ": import follows sys.path.insert and os.chdir");
+    } else {
+      fail(
+        config.id +
+          ": import before sys.path.insert or os.chdir — game package may not resolve",
+      );
+    }
+
+    // ── End structural checks ─────────────────────────────────────
   } else {
     fail(config.id + ": could not extract gameCode");
   }

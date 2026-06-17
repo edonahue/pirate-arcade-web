@@ -4,6 +4,11 @@
  *
  * Dry-run by default. Use --apply to write files.
  * Usage: node scripts/generate-pygbag-shells.mjs [--apply]
+ *
+ * Features:
+ * - Dry-run with diff summary
+ * - Unchanged-file detection (skips write when content matches)
+ * - Warning header in generated output
  */
 
 import { readFileSync, writeFileSync, existsSync } from "fs";
@@ -18,27 +23,66 @@ const apply = process.argv.includes("--apply");
 
 let generated = 0;
 let skipped = 0;
+let changed = 0;
+
+function computeDiff(oldStr, newStr) {
+  if (oldStr === newStr) return "";
+  const oldLines = oldStr.split("\n");
+  const newLines = newStr.split("\n");
+  const maxLines = Math.max(oldLines.length, newLines.length);
+  let diff = "";
+  for (let i = 0; i < maxLines; i++) {
+    const o = oldLines[i];
+    const n = newLines[i];
+    if (o !== n) {
+      if (o !== undefined) diff += `- ${o}\n`;
+      if (n !== undefined) diff += `+ ${n}\n`;
+    }
+  }
+  return diff || "(no visible diff)";
+}
 
 for (const config of PYBAG_GAMES) {
   const indexPath = resolve(root, "public/play", config.id, "index.html");
+  const html = render(config);
 
   if (!apply) {
-    console.log(
-      `[dry-run] ${config.id} -> public/play/${config.id}/index.html`,
-    );
-    generated++;
+    const committed = existsSync(indexPath)
+      ? readFileSync(indexPath, "utf-8")
+      : "";
+    const isSame = committed === html;
+    if (isSame) {
+      console.log(`[dry-run] ${config.id}: UNCHANGED (matches committed file)`);
+      skipped++;
+    } else {
+      const diff = computeDiff(committed, html);
+      console.log(`[dry-run] ${config.id}: WOULD UPDATE`);
+      if (diff) {
+        console.log("  Diff:");
+        diff.split("\n").forEach((line) => console.log(`    ${line}`));
+      }
+      generated++;
+    }
     continue;
   }
 
-  const html = render(config);
+  const committed = existsSync(indexPath)
+    ? readFileSync(indexPath, "utf-8")
+    : "";
+  if (committed === html) {
+    console.log(`[apply]   ${config.id}: UNCHANGED (skipped)`);
+    skipped++;
+    continue;
+  }
+
   writeFileSync(indexPath, html, "utf-8");
-  console.log(`[apply]   ${config.id} -> public/play/${config.id}/index.html`);
-  generated++;
+  console.log(`[apply]   ${config.id}: UPDATED`);
+  changed++;
 }
 
 if (!apply) {
-  console.log(`\nDry run: ${generated} file(s) would be generated.`);
+  console.log(`\nDry run: ${generated} would update, ${skipped} unchanged.`);
   console.log("Use --apply to write files.");
 } else {
-  console.log(`\nApplied: ${generated} file(s) written.`);
+  console.log(`\nApplied: ${changed} updated, ${skipped} skipped (unchanged).`);
 }
