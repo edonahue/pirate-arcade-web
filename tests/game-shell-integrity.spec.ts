@@ -1,6 +1,9 @@
 import { test, expect, type Page } from "@playwright/test";
 import { readFileSync } from "fs";
-import { resolve } from "path";
+import { resolve, dirname } from "path";
+import { fileURLToPath } from "url";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 function loadPybagGames() {
   const gamesPath = resolve(__dirname, "../src/data/games.json");
