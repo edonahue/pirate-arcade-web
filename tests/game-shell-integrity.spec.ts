@@ -1,37 +1,7 @@
 import { test, expect, type Page } from "@playwright/test";
-import { readFileSync } from "fs";
-import { resolve, dirname } from "path";
-import { fileURLToPath } from "url";
+import { loadPybagGameDetails } from "./helpers/gameRegistry";
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-
-function loadPybagGames() {
-  const gamesPath = resolve(__dirname, "../src/data/games.json");
-  const games = JSON.parse(readFileSync(gamesPath, "utf-8"));
-  return games
-    .filter(
-      (g: any) => g.engine === "pygbag" && g.status === "browser-playable",
-    )
-    .map((g: any) => ({
-      id: g.id,
-      title: g.title,
-      path: g.browserUrl,
-      hintContains:
-        g.controlMode === "pong"
-          ? "slide"
-          : g.controlMode === "breakout"
-            ? "slide"
-            : "turn",
-      actionLabel:
-        g.controlMode === "pong"
-          ? "START"
-          : g.controlMode === "breakout"
-            ? "LAUNCH"
-            : "\u23ce",
-    }));
-}
-
-const PYBAG_GAMES = loadPybagGames();
+const PYBAG_GAMES = loadPybagGameDetails();
 
 const LEAKED_SIGNATURES = [
   "content.style.cssText",

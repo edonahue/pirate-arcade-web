@@ -1,5 +1,7 @@
 import { test, expect } from "@playwright/test";
 
+const MOBILE_PROJECTS = ["mobile-chrome", "mobile-safari"];
+
 test.describe("Mobile Navigation", () => {
   test.use({ viewport: { width: 932, height: 430 } });
 
@@ -12,7 +14,11 @@ test.describe("Mobile Navigation", () => {
     test.describe(game.name, () => {
       test("Back link is present and visible before runtime", async ({
         page,
-      }) => {
+      }, testInfo) => {
+        test.skip(
+          !MOBILE_PROJECTS.includes(testInfo.project.name),
+          `Mobile test skipped on ${testInfo.project.name}`,
+        );
         await page.goto(game.path, { waitUntil: "domcontentloaded" });
 
         const backLink = page.locator("#back-link");
@@ -22,7 +28,11 @@ test.describe("Mobile Navigation", () => {
 
       test("Back link is present after touch overlay activates", async ({
         page,
-      }) => {
+      }, testInfo) => {
+        test.skip(
+          !MOBILE_PROJECTS.includes(testInfo.project.name),
+          `Mobile test skipped on ${testInfo.project.name}`,
+        );
         await page.goto(game.path, { waitUntil: "domcontentloaded" });
 
         // Wait for the touch overlay to activate (static signal, no Pygbag needed)
@@ -40,7 +50,11 @@ test.describe("Mobile Navigation", () => {
 
       test("elementFromPoint at back-link center resolves to #back-link", async ({
         page,
-      }) => {
+      }, testInfo) => {
+        test.skip(
+          !MOBILE_PROJECTS.includes(testInfo.project.name),
+          `Mobile test skipped on ${testInfo.project.name}`,
+        );
         await page.goto(game.path, { waitUntil: "domcontentloaded" });
 
         const backLink = page.locator("#back-link");
@@ -71,7 +85,13 @@ test.describe("Mobile Navigation", () => {
         expect(topElement).toBe("back-link");
       });
 
-      test("tapping Back link navigates to /play/", async ({ page }) => {
+      test("tapping Back link navigates to /play/", async ({
+        page,
+      }, testInfo) => {
+        test.skip(
+          !MOBILE_PROJECTS.includes(testInfo.project.name),
+          `Mobile test skipped on ${testInfo.project.name}`,
+        );
         await page.goto(game.path, { waitUntil: "domcontentloaded" });
 
         const backLink = page.locator("#back-link");

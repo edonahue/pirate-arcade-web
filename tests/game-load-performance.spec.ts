@@ -7,9 +7,9 @@ import {
   type PerfSnapshot,
   type ResourceEntry,
   type PerfReport,
-  type RuntimeDiagnostics,
 } from "./helpers/performanceReport";
-import { createDiagnosticCollector } from "./helpers/runtimeDiagnostics";
+import type { RuntimeSnapshot } from "./helpers/diagnostics";
+import { createDiagnosticCollector } from "./helpers/diagnostics";
 
 const GAMES = loadPybagGames();
 
@@ -160,7 +160,7 @@ async function attachReport(
   gameId: string,
   label: string,
   report: PerfReport,
-  runtimeDiag: RuntimeDiagnostics,
+  runtimeDiag: RuntimeSnapshot,
 ): Promise<void> {
   const summary = {
     game: report.game,

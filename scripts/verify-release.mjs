@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { execSync } from "child_process";
+import { execSync, execFile } from "child_process";
 import { writeFileSync, existsSync, renameSync } from "fs";
 import { resolve } from "path";
 import { fileURLToPath } from "url";
@@ -417,6 +417,42 @@ function runCommand(check) {
   };
 }
 
+/** Run multiple independent checks in parallel. Returns results ordered by check list. */
+function runCommandsParallel(checks) {
+  const starts = checks.map(() => Date.now());
+  const promises = checks.map((check, i) => {
+    return new Promise((resolve) => {
+      const [cmd, ...args] = check.cmd.split(/\s+/);
+      const proc = execFile(cmd, args, { shell: "/bin/bash" }, (err) => {
+        const elapsedMs = Date.now() - starts[i];
+        let status = "passed";
+        let exitCode = 0;
+        let signal = null;
+        if (err) {
+          status = "failed";
+          exitCode = err.status || 1;
+          signal = err.signal || null;
+        }
+        resolve({
+          id: check.id,
+          name: check.name,
+          command: check.cmd,
+          status,
+          elapsedMs,
+          exitCode,
+          signal,
+          index: i,
+        });
+      });
+      proc.stdout.pipe(process.stdout);
+      proc.stderr.pipe(process.stderr);
+    });
+  });
+  return Promise.all(promises).then((unordered) =>
+    unordered.sort((a, b) => a.index - b.index).map(({ index: _, ...r }) => r),
+  );
+}
+
 // ── JSON report builder ──────────────────────────────────────────
 
 function buildReport(profileName, results, startedAt, skipped) {
@@ -532,7 +568,11 @@ async function main() {
   const results = [];
   const skipped = [];
 
-  for (const check of checks) {
+  const prereqChecks = checks.filter((c) => c.phase === "prereq");
+  const independentChecks = checks.filter((c) => c.phase !== "prereq");
+
+  // ── Prerequisites (sequential, fail-fast aware) ─────────────
+  for (const check of prereqChecks) {
     console.log(`  ▶ ${check.name}`);
     const result = runCommand(check);
     results.push(result);
@@ -543,11 +583,49 @@ async function main() {
         `    ❌ failed (${result.elapsedMs}ms, exit ${result.exitCode}${result.signal ? `, signal ${result.signal}` : ""})`,
       );
       if (!flags.continueOnFail) {
-        // Skip remaining
-        for (const rest of checks.slice(results.length)) {
+        for (const rest of [
+          ...prereqChecks.slice(results.length),
+          ...independentChecks,
+        ]) {
           skipped.push({ id: rest.id, name: rest.name });
         }
         break;
+      }
+    }
+  }
+
+  // ── Independent checks (parallel in --continue mode, sequential otherwise) ──
+  const prereqFailed = results.some((r) => r.status !== "passed");
+  if (independentChecks.length > 0 && !prereqFailed) {
+    const runParallel = flags.continueOnFail;
+    if (runParallel) {
+      console.log("");
+      const parallelResults = await runCommandsParallel(independentChecks);
+      for (const result of parallelResults) {
+        results.push(result);
+        const msg =
+          result.status === "passed"
+            ? `    ✅ (${result.elapsedMs}ms)`
+            : `    ❌ failed (${result.elapsedMs}ms, exit ${result.exitCode}${result.signal ? `, signal ${result.signal}` : ""})`;
+        console.log(`  ▶ ${result.name}\n${msg}`);
+      }
+    } else {
+      for (let i = 0; i < independentChecks.length; i++) {
+        const check = independentChecks[i];
+        console.log(`  ▶ ${check.name}`);
+        const result = runCommand(check);
+        results.push(result);
+        if (result.status === "passed") {
+          console.log(`    ✅ (${result.elapsedMs}ms)`);
+        } else {
+          console.error(
+            `    ❌ failed (${result.elapsedMs}ms, exit ${result.exitCode}${result.signal ? `, signal ${result.signal}` : ""})`,
+          );
+          for (const rest of independentChecks.slice(i + 1)) {
+            skipped.push({ id: rest.id, name: rest.name });
+          }
+          break;
+        }
       }
     }
   }

@@ -108,29 +108,62 @@ const scriptFiles = globSync("**/*.{mjs,js,ts,tsx,astro,cjs}", {
 
 const usedPackages = new Set();
 
+function extractPackageName(imported) {
+  if (
+    imported.startsWith(".") ||
+    imported.startsWith("/") ||
+    imported.startsWith("node:") ||
+    imported.startsWith("https:") ||
+    imported.startsWith("http:") ||
+    imported.startsWith("astro:")
+  )
+    return null;
+  const pkgName = imported.startsWith("@")
+    ? imported.split("/").slice(0, 2).join("/")
+    : imported.split("/")[0];
+  if (["vitest", "vi", "msw"].includes(pkgName)) return null;
+  if (!/^[a-zA-Z@]/.test(pkgName)) return null;
+  if (NODE_BUILTINS.has(pkgName)) return null;
+  return pkgName;
+}
+
 for (const file of scriptFiles) {
   const content = readFileSync(resolve(root, file), "utf-8");
-  const importMatches = content.matchAll(
-    /import\s+(?:.*?\s+from\s+)?['"]([^'"\s]+)['"]/g,
+
+  // Static import statements (including type-only imports)
+  const staticImports = content.matchAll(
+    /import\s+(?:type\s+)?(?:.*?\s+from\s+)?['"]([^'"\s]+)['"]/g,
   );
-  for (const match of importMatches) {
-    const imported = match[1];
-    if (
-      imported.startsWith(".") ||
-      imported.startsWith("/") ||
-      imported.startsWith("node:") ||
-      imported.startsWith("https:") ||
-      imported.startsWith("http:") ||
-      imported.startsWith("astro:")
-    )
-      continue;
-    const pkgName = imported.startsWith("@")
-      ? imported.split("/").slice(0, 2).join("/")
-      : imported.split("/")[0];
-    if (["vitest", "vi"].includes(pkgName)) continue;
-    if (!/^[a-zA-Z@]/.test(pkgName)) continue;
-    if (NODE_BUILTINS.has(pkgName)) continue;
-    usedPackages.add(pkgName);
+  for (const match of staticImports) {
+    const pkgName = extractPackageName(match[1]);
+    if (pkgName) usedPackages.add(pkgName);
+  }
+
+  // Dynamic import() expressions
+  const dynamicImports = content.matchAll(
+    /import\s*\(\s*['"]([^'"\s]+)['"]\s*\)/g,
+  );
+  for (const match of dynamicImports) {
+    const pkgName = extractPackageName(match[1]);
+    if (pkgName) usedPackages.add(pkgName);
+  }
+
+  // require() and require.resolve() calls
+  const requireCalls = content.matchAll(
+    /(?:require|require\.resolve)\s*\(\s*['"]([^'"\s]+)['"]\s*\)/g,
+  );
+  for (const match of requireCalls) {
+    const pkgName = extractPackageName(match[1]);
+    if (pkgName) usedPackages.add(pkgName);
+  }
+
+  // import.meta.resolve() calls
+  const metaResolve = content.matchAll(
+    /import\.meta\.resolve\s*\(\s*['"]([^'"\s]+)['"]\s*\)/g,
+  );
+  for (const match of metaResolve) {
+    const pkgName = extractPackageName(match[1]);
+    if (pkgName) usedPackages.add(pkgName);
   }
 }
 
@@ -172,12 +205,10 @@ for (const pkgName of allDeclared) {
 }
 
 // ── 4. Check config file references ──────────────────────────
-const configFiles = [
-  "playwright.config.ts",
-  "lighthouserc.cjs",
-  "astro.config.mjs",
-  "vitest.config.ts",
-];
+const configFiles = globSync("*.config.{ts,mjs,cjs,js}", {
+  cwd: root,
+  ignore: ["node_modules/**"],
+});
 for (const cfg of configFiles) {
   const cfgPath = resolve(root, cfg);
   if (!existsSync(cfgPath)) continue;

@@ -183,7 +183,13 @@ const MOBILE_PROJECTS = ["mobile-chrome", "mobile-safari"];
 
 for (const game of GAMES) {
   test.describe(`${game.name} - mobile input`, () => {
-    test("touch overlay is present and wired correctly", async ({ page }) => {
+    test("touch overlay is present and wired correctly", async ({
+      page,
+    }, testInfo) => {
+      test.skip(
+        !MOBILE_PROJECTS.includes(testInfo.project.name),
+        `Mobile test skipped on ${testInfo.project.name}`,
+      );
       await page.goto(game.path, { waitUntil: "domcontentloaded" });
       await waitForPygbagRuntime(page);
 

@@ -1,6 +1,12 @@
 /**
  * Browser game test helpers for Pirate Arcade Pygbag/WASM games.
  *
+ * Diagnostic functions (isHarmlessConsoleError, blockingErrors,
+ * startDiagnostics, snapshotDiagnostics, collectPageDiagnostics,
+ * attachDiagnostics) are defined here with legacy signatures.
+ * New diagnostic code should use createDiagnosticCollector from
+ * tests/helpers/diagnostics.ts instead.
+ *
  * These helpers exist to catch:
  *  - JavaScript console errors (EvalError, CSP violations, fetch failures)
  *  - Page errors and unhandled promise rejections
@@ -1179,13 +1185,11 @@ export async function topElementAtCenter(
   return page.evaluate((sel) => {
     const el = document.querySelector(sel);
     if (!el) return null;
-    const box = el.getBoundingClientRect();
-    const cx = box.left + box.width / 2;
-    const cy = box.top + box.height / 2;
+    const rect = el.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
     const top = document.elementFromPoint(cx, cy);
-    return top
-      ? `${top.tagName.toLowerCase()}#${top.id}.${top.className.split(" ").join(".")}`
-      : null;
+    return top ? top.tagName.toLowerCase() : null;
   }, selector);
 }
 
