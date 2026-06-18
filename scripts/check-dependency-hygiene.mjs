@@ -1,12 +1,13 @@
 #!/usr/bin/env node
 /**
- * Check that npm dependencies are correctly classified.
+ * Check that npm dependencies are correctly classified and that all
+ * imported packages are declared in package.json.
  *
- * This is a static Astro site - runtime dependencies should be empty.
- * All build/test/tooling packages must be in devDependencies.
+ * Uses evidence from source imports, test imports, config files,
+ * package-script executables, and package bin metadata.
  */
 
-import { readFileSync } from "fs";
+import { readFileSync, existsSync } from "fs";
 import { resolve, dirname } from "path";
 import { fileURLToPath } from "url";
 import { globSync } from "glob";
@@ -17,73 +18,11 @@ const root = resolve(__dirname, "..");
 const pkgPath = resolve(root, "package.json");
 const pkg = JSON.parse(readFileSync(pkgPath, "utf-8"));
 
-const deps = Object.keys(pkg.dependencies || {});
+const runtimeDeps = Object.keys(pkg.dependencies || {});
 const devDeps = Object.keys(pkg.devDependencies || {});
+const allDeclared = new Set([...runtimeDeps, ...devDeps]);
 
-// Allowed runtime dependencies - Phaser 3 for web-native browser games
-const ALLOWED_RUNTIME_DEPS = ["phaser"];
-
-// Allowed dev dependencies - explicit allowlist for maintainability
-const ALLOWED_DEV_DEPS = [
-  "@astrojs/check",
-  "@axe-core/playwright",
-  "@lhci/cli",
-  "@playwright/test",
-  "astro",
-  "jsdom",
-  "playwright",
-  "prettier",
-  "prettier-plugin-astro",
-  "typescript",
-  "vitest",
-  "lighthouse",
-  "playwright-core",
-  "puppeteer-core",
-  "chai",
-  "enquirer",
-  "inquirer",
-  "tar",
-  "sharp",
-  "glob",
-  "yaml-language-server",
-  "vscode-css-languageservice",
-  "vscode-html-languageservice",
-  "vscode-json-languageservice",
-  "vscode-languageserver",
-  "vscode-languageserver-protocol",
-  "vscode-languageserver-textdocument",
-  "vscode-languageserver-types",
-  "vscode-jsonrpc",
-  "vscode-nls",
-  "vscode-uri",
-  "volar-service-css",
-  "volar-service-emmet",
-  "volar-service-html",
-  "volar-service-prettier",
-  "volar-service-typescript",
-  "volar-service-typescript-twoslash-queries",
-  "volar-service-yaml",
-  "sass-formatter",
-  "emmet",
-  "jsonc-parser",
-  "request-light",
-  "typescript-auto-import-cache",
-  "muggle-string",
-  "typesafe-path",
-  "obug",
-  "fontace",
-  "fontkitten",
-  "s.color",
-  "suf-log",
-  "piccolore",
-  "tinyclip",
-  "fast-string-truncated-width",
-  "fast-string-width",
-  "fast-wrap-ansi",
-  "smol-toml",
-];
-
-// Node.js built-in modules (always available, no need to declare)
+// Node.js built-in modules (always available, never need to be declared)
 const NODE_BUILTINS = new Set([
   "fs",
   "path",
@@ -130,92 +69,52 @@ const NODE_BUILTINS = new Set([
   "sqlite3",
 ]);
 
+// Packages that cannot be detected via source imports or CLI use but are
+// intentionally declared because tooling requires them at a compatible
+// version (peer dep requirement, config plugin, etc.)
+const JUSTIFIED_DIRECT_DEV_DEPS = {
+  "@astrojs/check":
+    "Provides astro check / typecheck command (peer: typescript)",
+  "@playwright/test": "Test runner for browser tests (peer: playwright-core)",
+  astro: "Site framework (build, dev, preview)",
+  glob: "File globbing in scripts/check-*.mjs validators",
+  jsdom: "HTML structure validator (check-built-html-structure.mjs)",
+  playwright:
+    "Used directly by scripts/test-game.mjs, test-browser-prototype.mjs, capture-browser-game-screenshots.mjs",
+  prettier: "Code formatter",
+  "prettier-plugin-astro": "Astro file formatting",
+  sharp: "Screenshot image processing (capture-browser-game-screenshots.mjs)",
+  tar: "Archive packing/extraction (patch-browser-game-archives.mjs)",
+  typescript: "Language compiler and typechecker",
+  vitest: "Unit test runner",
+};
+
 let failures = 0;
 
-// 1. Check runtime dependencies are allowed (should be empty)
-const invalidRuntimeDeps = deps.filter(
-  (name) => !ALLOWED_RUNTIME_DEPS.includes(name),
-);
-if (invalidRuntimeDeps.length > 0) {
-  console.error(
-    `❌ Runtime dependencies not in allowlist (should be empty for static site):`,
-  );
-  for (const name of invalidRuntimeDeps) {
-    console.error(`   - ${name}`);
-  }
-  console.error(`\n   Move to devDependencies or remove.`);
-  failures += invalidRuntimeDeps.length;
-}
-
-// 2. Check dev dependencies are in allowlist
-const unlistedDevDeps = devDeps.filter(
-  (name) => !ALLOWED_DEV_DEPS.includes(name),
-);
-if (unlistedDevDeps.length > 0) {
-  console.error(
-    `⚠️  Dev dependencies not in allowlist (add to ALLOWED_DEV_DEPS if intentional):`,
-  );
-  for (const name of unlistedDevDeps) {
-    console.error(`   - ${name}`);
-  }
-  console.error(
-    `\n   Add to ALLOWED_DEV_DEPS in scripts/check-dependency-hygiene.mjs if intentional.`,
-  );
-  failures += unlistedDevDeps.length;
-}
-
-// 3. Check no package in both deps and devDeps
-const inBoth = deps.filter((name) => devDeps.includes(name));
+// ── 1. Check packages in both deps and devDeps ───────────────
+const inBoth = runtimeDeps.filter((name) => devDeps.includes(name));
 if (inBoth.length > 0) {
   console.error(`❌ Packages listed in both dependencies and devDependencies:`);
-  for (const name of inBoth) {
-    console.error(`   - ${name}`);
-  }
+  for (const name of inBoth) console.error(`   - ${name}`);
   failures += inBoth.length;
 }
 
-// 4. Check astro is present
-if (!deps.includes("astro") && !devDeps.includes("astro")) {
-  console.error(`❌ astro not found in dependencies or devDependencies`);
-  failures++;
-}
-
-// 5. Check sharp is accounted for (build-time image optimization)
-if (!deps.includes("sharp") && !devDeps.includes("sharp")) {
-  console.error(
-    `⚠️  sharp not found (used for build-time image optimization and screenshot capture)`,
-  );
-  // Not a failure, just a warning
-}
-
-// 6. Check that scripts don't import undeclared packages
-const scriptFiles = globSync("**/*.{mjs,js,ts,astro}", {
+// ── 2. Collect evidence of actual usage ──────────────────────
+// Read all source files (scripts, src, tests, config files)
+const scriptFiles = globSync("**/*.{mjs,js,ts,tsx,astro,cjs}", {
   cwd: root,
-  ignore: [
-    "node_modules/**",
-    "dist/**",
-    ".astro/**",
-    "**/*.snap.ts",
-    "**/*.spec.ts",
-    "**/*.test.ts",
-  ],
+  ignore: ["node_modules/**", "dist/**", ".astro/**", "**/*.snap.ts"],
 });
 
-const allDeclaredDeps = new Set([...deps, ...devDeps]);
-const importErrors = [];
-
-// Skip regex character class patterns like [^...]
-const isRegexCharClass = (str) => str.startsWith("\[") || str.startsWith("\[^");
+const usedPackages = new Set();
 
 for (const file of scriptFiles) {
   const content = readFileSync(resolve(root, file), "utf-8");
-  // Find import statements - improved regex to avoid regex syntax issues
   const importMatches = content.matchAll(
     /import\s+(?:.*?\s+from\s+)?['"]([^'"\s]+)['"]/g,
   );
   for (const match of importMatches) {
     const imported = match[1];
-    // Skip relative imports, Node built-ins, and protocol imports
     if (
       imported.startsWith(".") ||
       imported.startsWith("/") ||
@@ -223,54 +122,129 @@ for (const file of scriptFiles) {
       imported.startsWith("https:") ||
       imported.startsWith("http:") ||
       imported.startsWith("astro:")
-    ) {
+    )
       continue;
+    const pkgName = imported.startsWith("@")
+      ? imported.split("/").slice(0, 2).join("/")
+      : imported.split("/")[0];
+    if (["vitest", "vi"].includes(pkgName)) continue;
+    if (!/^[a-zA-Z@]/.test(pkgName)) continue;
+    if (NODE_BUILTINS.has(pkgName)) continue;
+    usedPackages.add(pkgName);
+  }
+}
+
+// ── 3. Check package-script executables (CLI commands) ───────
+const seenCLI = new Set();
+for (const [, cmd] of Object.entries(pkg.scripts)) {
+  const cmdStr = String(cmd);
+  const bins = cmdStr.match(/(?<![-\w])(\S+)\s/g);
+  if (bins) {
+    for (const bin of bins) {
+      const name = bin.trim();
+      if (name === "node" || name === "npm" || name === "npx" || name === "tsx")
+        continue;
+      if (name.includes("/") || name.includes(".")) continue;
+      if (name.length > 2) seenCLI.add(name);
     }
-    // Check if it's a Node built-in module
-    const pkgName = imported.split("/")[0];
-    if (NODE_BUILTINS.has(pkgName)) {
-      continue;
-    }
-    // Check if it's a declared dependency
-    if (!allDeclaredDeps.has(pkgName) && !pkgName.startsWith("@")) {
-      // Check for scoped packages
-      const scopedMatch = imported.match(/^(@[^/]+\/[^/]+)/);
-      if (scopedMatch) {
-        if (!allDeclaredDeps.has(scopedMatch[1])) {
-          importErrors.push(
-            `${file}: imports undeclared package "${scopedMatch[1]}"`,
-          );
+  }
+}
+
+for (const pkgName of allDeclared) {
+  if (usedPackages.has(pkgName)) continue;
+  // Check if any script uses this package's bin
+  const binPath = resolve(root, "node_modules", pkgName, "package.json");
+  if (existsSync(binPath)) {
+    const meta = JSON.parse(readFileSync(binPath, "utf-8"));
+    if (meta.bin) {
+      const binNames =
+        typeof meta.bin === "string"
+          ? [pkgName.replace(/^@[^/]+\//, "")]
+          : Object.keys(meta.bin);
+      for (const bin of binNames) {
+        if (seenCLI.has(bin)) {
+          usedPackages.add(pkgName);
+          break;
         }
-      } else if (!allDeclaredDeps.has(pkgName)) {
-        if (isRegexCharClass(pkgName)) continue;
-        importErrors.push(`${file}: imports undeclared package "${pkgName}"`);
       }
     }
   }
 }
 
-if (importErrors.length > 0) {
-  console.error(`❌ Scripts import undeclared packages:`);
-  for (const err of importErrors) {
-    console.error(`   - ${err}`);
+// ── 4. Check config file references ──────────────────────────
+const configFiles = [
+  "playwright.config.ts",
+  "lighthouserc.cjs",
+  "astro.config.mjs",
+  "vitest.config.ts",
+];
+for (const cfg of configFiles) {
+  const cfgPath = resolve(root, cfg);
+  if (!existsSync(cfgPath)) continue;
+  const content = readFileSync(cfgPath, "utf-8");
+  for (const pkgName of allDeclared) {
+    const importPattern = new RegExp(
+      `['"]${pkgName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}['"]`,
+    );
+    if (importPattern.test(content)) usedPackages.add(pkgName);
   }
-  failures += importErrors.length;
 }
 
+// ── 5. Verify declared packages are used ─────────────────────
+let unusedFound = false;
+for (const name of allDeclared) {
+  if (name === "phaser") continue; // intentional runtime dep
+  if (JUSTIFIED_DIRECT_DEV_DEPS[name]) continue;
+  if (usedPackages.has(name)) continue;
+
+  console.warn(
+    `⚠️  "${name}" is declared but no direct import or CLI use found.`,
+  );
+  unusedFound = true;
+}
+
+if (unusedFound) {
+  console.error(
+    "\n❌ One or more declared dependencies have no evidence of direct use.",
+  );
+  console.error(
+    "   Remove them or add to JUSTIFIED_DIRECT_DEV_DEPS with a reason.",
+  );
+  failures++;
+}
+
+// ── 6. Verify packages used directly are declared ────────────
+const undeclaredUsed = [];
+for (const name of usedPackages) {
+  if (name === "vi" || name === "vitest") continue;
+  if (!allDeclared.has(name)) {
+    undeclaredUsed.push(name);
+  }
+}
+if (undeclaredUsed.length > 0) {
+  console.error(`❌ Packages used directly but not declared in package.json:`);
+  for (const name of undeclaredUsed) {
+    console.error(`   - ${name}`);
+  }
+  failures += undeclaredUsed.length;
+}
+
+// ── 7. Verify runtime deps are minimal ───────────────────────
+if (runtimeDeps.length > 1) {
+  console.error(
+    `❌ Expected 1 runtime dep (phaser), found ${runtimeDeps.length}:`,
+  );
+  for (const name of runtimeDeps) console.error(`   - ${name}`);
+  failures += runtimeDeps.length - 1;
+}
+
+// ── Summary ──────────────────────────────────────────────────
 if (failures > 0) {
   console.error(`\n❌ Dependency hygiene check found ${failures} issue(s).`);
-  console.error(`\nRemediation:`);
-  console.error(
-    `  - Move accidental runtime deps to devDependencies: npm install --save-dev <pkg>`,
-  );
-  console.error(`  - Remove unused packages: npm uninstall <pkg>`);
-  console.error(
-    `  - Add new dev deps to ALLOWED_DEV_DEPS in scripts/check-dependency-hygiene.mjs`,
-  );
-  console.error(`  - Run: npm install && npm run format`);
   process.exit(1);
 } else {
   console.log("✅ Dependency hygiene check passed.");
-  console.log(`   Runtime deps: ${deps.length} (expected 0)`);
+  console.log(`   Runtime dep: ${runtimeDeps.length} (phaser)`);
   console.log(`   Dev deps: ${devDeps.length}`);
+  console.log("   All declared packages have evidence of direct use.");
 }
