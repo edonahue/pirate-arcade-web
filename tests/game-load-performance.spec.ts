@@ -5,299 +5,344 @@ import { fileURLToPath } from "url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-function loadPybagGames() {
+interface GameEntry {
+  id: string;
+  name: string;
+  path: string;
+}
+
+function loadPybagGames(): GameEntry[] {
   const gamesPath = resolve(__dirname, "../src/data/games.json");
   const games = JSON.parse(readFileSync(gamesPath, "utf-8"));
   return games
     .filter(
       (g: any) => g.engine === "pygbag" && g.status === "browser-playable",
     )
-    .map((g: any) => ({
-      id: g.id,
-      name: g.title,
-      path: g.browserUrl,
-    }));
+    .map((g: any) => ({ id: g.id, name: g.title, path: g.browserUrl }));
 }
 
 const GAMES = loadPybagGames();
 
-interface ResourceSummary {
-  wasm: { count: number; totalDuration: number };
-  archive: { count: number; totalDuration: number };
-  script: { count: number; totalDuration: number };
-  stylesheet: { count: number; totalDuration: number };
-  other: { count: number; totalDuration: number };
+interface PerfSnapshot {
+  schemaVersion: number;
+  marks: Record<string, number | undefined>;
+  durations: Record<string, number | undefined>;
+  flags: { activePlay: boolean; firstUserInput: boolean };
+  context: { url: string; serviceWorkerControlled: boolean };
 }
 
-interface PerfResult {
-  metrics: Record<string, number>;
-  resources: ResourceSummary;
-  bottlenecks: string[];
+interface ResourceEntry {
+  name: string;
+  duration: number;
+  initiatorType: string;
+  transferSize: number;
+  encodedBodySize: number;
 }
 
-async function collectPerfResult(page: any): Promise<PerfResult> {
-  const metrics = await page.evaluate(() => (window as any).__paBootMetrics);
-  const resources = await page.evaluate(() => {
-    const entries = performance.getEntriesByType("resource");
-    const summary: ResourceSummary = {
-      wasm: { count: 0, totalDuration: 0 },
-      archive: { count: 0, totalDuration: 0 },
-      script: { count: 0, totalDuration: 0 },
-      stylesheet: { count: 0, totalDuration: 0 },
-      other: { count: 0, totalDuration: 0 },
-    };
-    for (const e of entries) {
-      const name = (e as any).name || "";
-      const dur = (e as any).duration || 0;
-      if (name.includes(".wasm") || name.includes(".wasm?")) {
-        summary.wasm.count++;
-        summary.wasm.totalDuration += dur;
-      } else if (name.includes(".tar.gz") || name.includes(".tar.gz?")) {
-        summary.archive.count++;
-        summary.archive.totalDuration += dur;
-      } else if (
-        name.endsWith(".js") ||
-        name.includes(".js?") ||
-        (e as any).initiatorType === "script"
-      ) {
-        summary.script.count++;
-        summary.script.totalDuration += dur;
-      } else if (
-        name.endsWith(".css") ||
-        name.includes(".css?") ||
-        (e as any).initiatorType === "link"
-      ) {
-        summary.stylesheet.count++;
-        summary.stylesheet.totalDuration += dur;
-      } else {
-        summary.other.count++;
-        summary.other.totalDuration += dur;
-      }
-    }
-    return summary;
+interface TypeSummary {
+  count: number;
+  totalDuration: number;
+  totalSize: number;
+}
+
+interface PerfReport {
+  game: string;
+  label: string;
+  classification: string;
+  snapshot: PerfSnapshot | null;
+  resources: {
+    entries: ResourceEntry[];
+    byType: Record<string, TypeSummary>;
+    duplicateArchives: string[];
+  };
+  playable: boolean;
+}
+
+async function collectSnapshot(page: any): Promise<PerfSnapshot | null> {
+  return page.evaluate(() => {
+    const pm = (window as any).PirateArcadeMetrics;
+    if (!pm || typeof pm.snapshot !== "function") return null;
+    return pm.snapshot();
   });
-
-  const bottlenecks: string[] = [];
-  const totalResourceDuration =
-    resources.wasm.totalDuration +
-    resources.archive.totalDuration +
-    resources.script.totalDuration +
-    resources.stylesheet.totalDuration +
-    resources.other.totalDuration;
-
-  if (resources.wasm.totalDuration > 5000)
-    bottlenecks.push(
-      `WASM loading: ${(resources.wasm.totalDuration / 1000).toFixed(1)}s`,
-    );
-  if (resources.archive.totalDuration > 10000)
-    bottlenecks.push(
-      `Archive fetch: ${(resources.archive.totalDuration / 1000).toFixed(1)}s`,
-    );
-  if (resources.script.totalDuration > 3000)
-    bottlenecks.push(
-      `Script loading: ${(resources.script.totalDuration / 1000).toFixed(1)}s`,
-    );
-
-  if (metrics) {
-    const bootToReady = metrics["game-ready"] - metrics["boot-start"];
-    if (bootToReady > 30000)
-      bottlenecks.push(
-        `Total boot→game-ready: ${(bootToReady / 1000).toFixed(1)}s`,
-      );
-
-    const extractDuration =
-      metrics["archive-extract-end"] - metrics["archive-extract-start"];
-    if (extractDuration > 10000)
-      bottlenecks.push(
-        `Archive extraction: ${(extractDuration / 1000).toFixed(1)}s`,
-      );
-  }
-
-  return { metrics, resources, bottlenecks };
 }
 
-function logAndAttach(
+async function collectResources(page: any): Promise<ResourceEntry[]> {
+  return page.evaluate(() => {
+    return performance.getEntriesByType("resource").map((e: any) => ({
+      name: e.name,
+      duration: e.duration,
+      initiatorType: e.initiatorType,
+      transferSize: e.transferSize,
+      encodedBodySize: e.encodedBodySize,
+    }));
+  });
+}
+
+function detectDuplicateArchives(resources: ResourceEntry[]): string[] {
+  const archiveUrls = resources
+    .filter((r) => r.name.includes(".tar.gz"))
+    .map((r) => r.name.split("?")[0]);
+  const seen = new Set<string>();
+  const dupes: string[] = [];
+  for (const url of archiveUrls) {
+    if (seen.has(url)) dupes.push(url);
+    seen.add(url);
+  }
+  return dupes;
+}
+
+function classifyResources(
+  entries: ResourceEntry[],
+): Record<string, TypeSummary> {
+  const byType: Record<string, TypeSummary> = {};
+  for (const e of entries) {
+    let type = "other";
+    if (e.name.includes(".wasm")) type = "wasm";
+    else if (e.name.includes(".tar.gz")) type = "archive";
+    else if (e.name.endsWith(".js") || e.initiatorType === "script")
+      type = "script";
+    else if (e.name.endsWith(".css") || e.initiatorType === "link")
+      type = "stylesheet";
+    if (!byType[type])
+      byType[type] = { count: 0, totalDuration: 0, totalSize: 0 };
+    byType[type].count++;
+    byType[type].totalDuration += e.duration;
+    byType[type].totalSize += e.transferSize;
+  }
+  return byType;
+}
+
+function classifyLoadType(navType: string, swControlled: boolean): string {
+  if (navType === "reload" || navType === "back_forward") {
+    return swControlled
+      ? "service-worker-controlled-reload"
+      : "browser-cache-reload";
+  }
+  return swControlled ? "service-worker-controlled-navigate" : "fresh-context";
+}
+
+async function performPrimary(page: any): Promise<boolean> {
+  return page.evaluate(() => {
+    const actions = (window as any).PirateArcadeActions;
+    if (!actions || typeof actions.performPrimary !== "function") return false;
+    actions.performPrimary();
+    return true;
+  });
+}
+
+async function waitForMilestone(
+  page: any,
+  milestone: string,
+  timeoutMs: number,
+): Promise<boolean> {
+  try {
+    await page.waitForFunction(
+      (m: string) => {
+        const pm = (window as any).PirateArcadeMetrics;
+        return (
+          pm &&
+          typeof pm.snapshot === "function" &&
+          pm.snapshot().marks[m] !== undefined
+        );
+      },
+      milestone,
+      { timeout: timeoutMs },
+    );
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function waitForLoaderHidden(
+  page: any,
+  timeoutMs: number,
+): Promise<boolean> {
+  try {
+    await page.waitForFunction(
+      () => {
+        const overlay = document.getElementById("game-loading");
+        return !overlay || overlay.classList.contains("hidden");
+      },
+      { timeout: timeoutMs },
+    );
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function logReport(
   testInfo: any,
-  gameName: string,
+  gameId: string,
   label: string,
-  result: PerfResult,
+  report: PerfReport,
 ) {
   const summary = {
-    game: gameName,
+    game: report.game,
     label,
-    resourceBreakdown: result.resources,
-    bottlenecks:
-      result.bottlenecks.length > 0 ? result.bottlenecks : "none identified",
-    totalResourceDuration:
-      result.resources.wasm.totalDuration +
-      result.resources.archive.totalDuration +
-      result.resources.script.totalDuration +
-      result.resources.stylesheet.totalDuration +
-      result.resources.other.totalDuration,
+    classification: report.classification,
+    milestones: {
+      "page-script-start": report.snapshot?.marks["page-script-start"],
+      "game-ready": report.snapshot?.marks["game-ready"],
+      "loader-hidden": report.snapshot?.marks["loader-hidden"],
+      "active-play": report.snapshot?.marks["active-play"],
+      "first-user-input": report.snapshot?.marks["first-user-input"],
+    },
+    durations: report.snapshot?.durations,
+    flags: report.snapshot?.flags,
+    resources: {
+      byType: report.resources.byType,
+      duplicateArchives: report.resources.duplicateArchives,
+    },
+    playable: report.playable,
   };
-  console.log(`${gameName} (${label}):`, JSON.stringify(summary, null, 2));
-  testInfo.attach(`perf-${gameName}-${label}`, {
+  console.log(
+    `${gameId} (${label}/${report.classification}):`,
+    JSON.stringify(summary, null, 2),
+  );
+  testInfo.attach(`perf-${gameId}-${label}`, {
     body: JSON.stringify(summary, null, 2),
     contentType: "application/json",
   });
 }
 
-function deriveMetrics(metrics: Record<string, number>, bootStartKey: string) {
-  if (!metrics) return {};
-  const pageStart = metrics["page-script-start"] || 0;
-  const bootStart = metrics[bootStartKey] || 0;
-  const gameReady = metrics["game-ready"] || 0;
-  const loaderHidden = metrics["loader-hidden"] || 0;
-  return {
-    "page→python-ready": metrics["python-ready"] - pageStart,
-    "page→game-ready": gameReady - pageStart,
-    "boot→game-ready": gameReady - bootStart,
-    "pygame-install":
-      metrics["pygame-install-end"] - metrics["pygame-install-start"],
-    "archive-fetch":
-      metrics["archive-fetch-end"] - metrics["archive-fetch-start"],
-    "archive-extract":
-      metrics["archive-extract-end"] - metrics["archive-extract-start"],
-    "display-init": metrics["display-init-end"] - metrics["display-init-start"],
-    "game-ready→loader-hidden": loaderHidden - gameReady,
-  };
-}
-
 for (const game of GAMES) {
-  test.describe(`${game.name} load performance`, () => {
-    test("cold load — collect metrics, resources, and identify bottlenecks", async ({
+  test.describe(`${game.name} playable-readiness performance`, () => {
+    test("cold load — truthy playable-readiness telemetry", async ({
       page,
     }, testInfo) => {
       await page.goto(game.path, { waitUntil: "domcontentloaded" });
 
-      await page.waitForFunction(
-        () => {
-          const m = (window as any).__paBootMetrics;
-          return m !== undefined && m["game-ready"] !== undefined;
-        },
-        { timeout: 120000 },
+      const loaderHidden = await waitForLoaderHidden(page, 120000);
+      expect(loaderHidden).toBe(true);
+
+      const started = await performPrimary(page);
+      expect(started).toBe(true);
+
+      const activePlayReached = await waitForMilestone(
+        page,
+        "active-play",
+        30000,
       );
 
-      await page.waitForFunction(
-        () => {
-          const overlay = document.getElementById("game-loading");
-          return !overlay || overlay.classList.contains("hidden");
+      await waitForMilestone(page, "first-user-input", 5000);
+
+      const snapshot = await collectSnapshot(page);
+      expect(snapshot).not.toBeNull();
+      expect(snapshot!.schemaVersion).toBe(1);
+      expect(snapshot!.flags.activePlay).toBe(true);
+      expect(activePlayReached).toBe(true);
+
+      const resources = await collectResources(page);
+
+      const navEntry = await page.evaluate(() => {
+        const entries = performance.getEntriesByType("navigation");
+        return entries.length > 0 ? (entries[0] as any).type : "unknown";
+      });
+      const swControlled = snapshot!.context.serviceWorkerControlled;
+      const classification = classifyLoadType(navEntry, swControlled);
+
+      const dupes = detectDuplicateArchives(resources);
+
+      const resourceByType = classifyResources(resources);
+      const report: PerfReport = {
+        game: game.id,
+        label: "cold",
+        classification,
+        snapshot,
+        resources: {
+          entries: resources,
+          byType: resourceByType,
+          duplicateArchives: dupes,
         },
-        { timeout: 120000 },
-      );
+        playable: snapshot!.flags.activePlay,
+      };
 
-      const result = await collectPerfResult(page);
+      logReport(testInfo, game.id, "cold", report);
 
-      // Expect all essential metrics
-      expect(result.metrics).toHaveProperty("page-script-start");
-      expect(result.metrics).toHaveProperty("python-ready");
-      expect(result.metrics).toHaveProperty("boot-start");
-      expect(result.metrics).toHaveProperty("pygame-install-start");
-      expect(result.metrics).toHaveProperty("pygame-install-end");
-      expect(result.metrics).toHaveProperty("archive-fetch-start");
-      expect(result.metrics).toHaveProperty("archive-fetch-end");
-      expect(result.metrics).toHaveProperty("archive-extract-start");
-      expect(result.metrics).toHaveProperty("archive-extract-end");
-      expect(result.metrics).toHaveProperty("display-init-start");
-      expect(result.metrics).toHaveProperty("display-init-end");
-      expect(result.metrics).toHaveProperty("input-bridge-installed");
-      expect(result.metrics).toHaveProperty("game-ready");
-      expect(result.metrics).toHaveProperty("loader-hidden");
-      // playable flag is set after game starts (phase !== loading/menu);
-      // cold load test stops at loader-hidden, so playable may be false
+      expect(report.resources.duplicateArchives).toHaveLength(0);
 
-      const derived = deriveMetrics(result.metrics, "boot-start");
-
-      logAndAttach(testInfo, game.id, "cold", result);
-      testInfo.attach(`derived-metrics-${game.id}-cold`, {
-        body: JSON.stringify(derived, null, 2),
-        contentType: "application/json",
+      const hasError = await page.evaluate(() => {
+        const loading = document.getElementById("game-loading");
+        return loading ? loading.classList.contains("game-error") : false;
       });
+      expect(hasError).toBe(false);
 
-      // Resource breakdown assertions
-      expect(result.resources.archive.count).toBeGreaterThanOrEqual(1);
-      expect(result.resources.script.count).toBeGreaterThanOrEqual(1);
-
-      // No critical errors
-      const hasRuntimeError = await page.evaluate(() => {
-        const w = window as any;
-        return (
-          !!w.PirateArcadeLoading &&
-          document
-            .getElementById("game-loading")
-            ?.classList.contains("game-error")
-        );
+      const canvasSized = await page.evaluate(() => {
+        const c = document.getElementById("canvas");
+        return c
+          ? (c as HTMLCanvasElement).width > 100 &&
+              (c as HTMLCanvasElement).height > 100
+          : false;
       });
-      expect(hasRuntimeError).toBe(false);
-
-      // Warn on bottlenecks but don't fail (CI environment may be slow)
-      if (result.bottlenecks.length > 0) {
-        console.warn(
-          `⚠️  ${game.name} cold-load bottlenecks:\n  - ${result.bottlenecks.join("\n  - ")}`,
-        );
-      }
+      expect(canvasSized).toBe(true);
     });
 
-    test("warm reload — resources should be cached by SW", async ({
+    test("warm reload — service-worker-cached metrics", async ({
       page,
     }, testInfo) => {
       await page.goto(game.path, { waitUntil: "domcontentloaded" });
+      await waitForLoaderHidden(page, 120000);
 
-      // Wait for initial game-ready
-      await page.waitForFunction(
-        () => {
-          const m = (window as any).__paBootMetrics;
-          return m !== undefined && m["game-ready"] !== undefined;
-        },
-        { timeout: 120000 },
-      );
-
-      await page.waitForFunction(
-        () => {
-          const overlay = document.getElementById("game-loading");
-          return !overlay || overlay.classList.contains("hidden");
-        },
-        { timeout: 120000 },
-      );
-
-      // Reload to simulate repeat visit (SW cache should serve resources)
       await page.reload({ waitUntil: "domcontentloaded" });
 
-      await page.waitForFunction(
-        () => {
-          const m = (window as any).__paBootMetrics;
-          return m !== undefined && m["game-ready"] !== undefined;
-        },
-        { timeout: 120000 },
+      const loaderHidden = await waitForLoaderHidden(page, 120000);
+      expect(loaderHidden).toBe(true);
+
+      const started = await performPrimary(page);
+      expect(started).toBe(true);
+
+      const activePlayReached = await waitForMilestone(
+        page,
+        "active-play",
+        30000,
       );
 
-      await page.waitForFunction(
-        () => {
-          const overlay = document.getElementById("game-loading");
-          return !overlay || overlay.classList.contains("hidden");
-        },
-        { timeout: 120000 },
-      );
+      const snapshot = await collectSnapshot(page);
+      expect(snapshot).not.toBeNull();
 
-      const result = await collectPerfResult(page);
-      logAndAttach(testInfo, game.id, "warm", result);
+      const resources = await collectResources(page);
 
-      // Warm load should be faster overall
-      const bootToReady =
-        result.metrics["game-ready"] - result.metrics["boot-start"];
-      console.log(`${game.name} warm boot→ready: ${bootToReady}ms`);
-
-      // Check for errors
-      const hasRuntimeError = await page.evaluate(() => {
-        const w = window as any;
-        return (
-          !!w.PirateArcadeLoading &&
-          document
-            .getElementById("game-loading")
-            ?.classList.contains("game-error")
-        );
+      const navEntry = await page.evaluate(() => {
+        const entries = performance.getEntriesByType("navigation");
+        return entries.length > 0 ? (entries[0] as any).type : "unknown";
       });
-      expect(hasRuntimeError).toBe(false);
+      const swControlled = snapshot!.context.serviceWorkerControlled;
+      const classification = classifyLoadType(navEntry, swControlled);
+
+      const dupes = detectDuplicateArchives(resources);
+      const resourceByType = classifyResources(resources);
+
+      const report: PerfReport = {
+        game: game.id,
+        label: "warm",
+        classification,
+        snapshot,
+        resources: {
+          entries: resources,
+          byType: resourceByType,
+          duplicateArchives: dupes,
+        },
+        playable: activePlayReached,
+      };
+
+      logReport(testInfo, game.id, "warm", report);
+
+      expect(report.resources.duplicateArchives).toHaveLength(0);
+
+      const hasError = await page.evaluate(() => {
+        const loading = document.getElementById("game-loading");
+        return loading ? loading.classList.contains("game-error") : false;
+      });
+      expect(hasError).toBe(false);
+
+      if (swControlled) {
+        const archiveSize = resourceByType["archive"]?.totalSize || 0;
+        console.log(
+          `${game.id} warm archive total transfer: ${archiveSize} bytes (0 = from cache)`,
+        );
+      }
     });
   });
 }

@@ -83,7 +83,7 @@ npm run test:game-shell-integrity
 # Intercepts Pygbag runtime — tests static loading shell only
 npm run test:e2e -- tests/game-shell-integrity.spec.ts
 
-# Game loading performance (measures cold-start phase timings)
+# Game loading performance (measures playable-readiness telemetry milestones)
 npm run test:game-performance
 
 # Game loading performance in headed mode (watch the boot)
@@ -172,7 +172,7 @@ tests/
   browser-games.spec.ts         # Health/smoke (~18 tests)
   game-input-desktop.spec.ts    # Desktop keyboard/mouse (~12 tests)
   game-input-mobile.spec.ts     # Mobile touch/orientation (~15 tests)
-  game-load-performance.spec.ts # Cold/warm load metrics, resource breakdown, playable flag
+  game-load-performance.spec.ts # Cold/warm load metrics, milestone snapshots, resource breakdown, SW classification, duplicate detection
   game-theming.spec.ts          # Visual theming: ship/longboat source markers, archive parity,
                                 #   paddle color diversity, pixel rendering, Kraken's Wake CI skip
   game-prewarm.spec.ts          # Prewarm data attributes + WARM_CACHE + single-installer + dedup
