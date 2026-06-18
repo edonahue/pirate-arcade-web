@@ -27,13 +27,15 @@ import {
   dispatchTouchSequence,
   expectTouchOverlayWired,
   expectRotateDeviceOverlayPresent,
+  installDialogCapture,
+  dialogWasCalled,
+} from "./helpers/browserGame";
+import {
   attachDiagnostics,
   blockingErrors,
   startDiagnostics,
   snapshotDiagnostics,
-  installDialogCapture,
-  dialogWasCalled,
-} from "./helpers/browserGame";
+} from "./helpers/diagnostics";
 
 interface TouchTest {
   desc: string;

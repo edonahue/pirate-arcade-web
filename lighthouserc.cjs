@@ -7,6 +7,8 @@ module.exports = {
         "http://localhost:4321/",
         "http://localhost:4321/play/",
         "http://localhost:4321/play/cannonball-clash/",
+        "http://localhost:4321/play/treasure-cove/",
+        "http://localhost:4321/play/krakens-wake/",
         "http://localhost:4321/play/race-to-treasure-island/",
         "http://localhost:4321/games/cannonball-clash/",
         "http://localhost:4321/about/",

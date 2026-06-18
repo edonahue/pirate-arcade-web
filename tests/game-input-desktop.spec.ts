@@ -20,17 +20,19 @@
 
 import { test, expect } from "./helpers/browserGame";
 import {
-  collectPageDiagnostics,
   waitForPygbagRuntime,
   unlockAndFocusGame,
   sendKeysAndWaitForResponse,
   expectCanvasHasRenderedPixels,
-  attachDiagnostics,
-  blockingErrors,
   installDialogCapture,
   dialogWasCalled,
   getCanvasPixelSample,
 } from "./helpers/browserGame";
+import {
+  collectPageDiagnostics,
+  attachDiagnostics,
+  blockingErrors,
+} from "./helpers/diagnostics";
 
 interface GameSpec {
   id: string;

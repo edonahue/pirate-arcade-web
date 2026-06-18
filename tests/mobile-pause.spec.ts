@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { loadPybagGameDetails } from "./helpers/gameRegistry";
 
 interface PirateArcadeInput {
   tap(key: string, holdMs?: number): void;
@@ -15,11 +16,10 @@ declare global {
   }
 }
 
-const GAMES = [
-  { id: "cannonball-clash", path: "/play/cannonball-clash/" },
-  { id: "treasure-cove", path: "/play/treasure-cove/" },
-  { id: "krakens-wake", path: "/play/krakens-wake/" },
-];
+const GAMES = loadPybagGameDetails().map((g) => ({
+  id: g.id,
+  path: g.path,
+}));
 
 test.describe("mobile pause button", () => {
   for (const game of GAMES) {

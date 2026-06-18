@@ -114,7 +114,7 @@
       "name": "Game shells (/play/*/)",
       "severity": "warning"
     },
-    "path": "^/play/(cannonball-clash|race-to-treasure-island)/",
+    "path": "^/play/(cannonball-clash|treasure-cove|krakens-wake|race-to-treasure-island)/",
     "resourceSizes": [
       {
         "resourceType": "total",

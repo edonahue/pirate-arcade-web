@@ -7,11 +7,13 @@ import {
   readPirateInputDebug,
   readGameState,
   expectGamePhase,
+} from "./helpers/browserGame";
+import {
   startDiagnostics,
   snapshotDiagnostics,
   attachDiagnostics,
   blockingErrors,
-} from "./helpers/browserGame";
+} from "./helpers/diagnostics";
 
 const IPAD_PROJECT = "ipad-landscape";
 const PYGAR_TIMEOUT = 180000;

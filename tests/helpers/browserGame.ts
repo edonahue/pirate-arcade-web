@@ -1,12 +1,6 @@
 /**
  * Browser game test helpers for Pirate Arcade Pygbag/WASM games.
  *
- * Diagnostic functions (isHarmlessConsoleError, blockingErrors,
- * startDiagnostics, snapshotDiagnostics, collectPageDiagnostics,
- * attachDiagnostics) are defined here with legacy signatures.
- * New diagnostic code should use createDiagnosticCollector from
- * tests/helpers/diagnostics.ts instead.
- *
  * These helpers exist to catch:
  *  - JavaScript console errors (EvalError, CSP violations, fetch failures)
  *  - Page errors and unhandled promise rejections
@@ -18,6 +12,10 @@
  *
  * They intentionally do NOT depend on exact scores or exact animation
  * frames. Tests should remain stable across small game tweaks.
+ *
+ * For diagnostics collection (errors, requests, CSP, etc.), use
+ * tests/helpers/diagnostics.ts (createDiagnosticCollector, startDiagnostics,
+ * snapshotDiagnostics, collectPageDiagnostics, blockingErrors, attachDiagnostics).
  */
 
 import { test, expect, type Page, type TestInfo } from "@playwright/test";
@@ -46,58 +44,6 @@ export interface PageDiagnostics {
   transferHidden: boolean;
   url: string;
   userAgent: string;
-}
-
-const HARMLESS_ERROR_PATTERNS: RegExp[] = [
-  /wasm/i,
-  /WebAssembly/i,
-  /emscripten/i,
-  /Emscripten/i,
-  /unreachable/i,
-  /SourceMap/i,
-  /source map/i,
-  /favicon/i,
-  /Failed to load resource/i,
-  /BrowserFS/i,
-  /MEDIA/i,
-];
-
-const GAME_ASSET_REGEX = /\.(wasm|so|tar\.gz|py|js|css)(\?|$)/i;
-
-export function isHarmlessConsoleError(text: string): boolean {
-  // Blocking patterns take priority — if the error matches a known
-  // blocking pattern (e.g. "Could not load dynamic lib: ...emscripten.so"
-  // contains both "Could not load dynamic lib" and "emscripten"), it
-  // is NOT harmless even if it also contains harmless keywords.
-  if (BLOCKING_PATTERNS.some((re) => re.test(text))) return false;
-  return HARMLESS_ERROR_PATTERNS.some((re) => re.test(text));
-}
-
-/**
- * Attach listeners for console, pageerror, requestfailed, and 4xx/5xx
- * responses on game-critical assets. Returns a fresh diagnostics object
- * that gets populated as events arrive.
- *
- * The returned object is a snapshot of all collected diagnostics up to
- * the time of awaiting `collectPageDiagnostics`. Use this *after* the
- * page has had time to settle (e.g. after `waitForPygbagRuntime`).
- */
-/**
- * Collect a snapshot of diagnostics for the page.
- *
- * Attaches listeners, waits briefly for events to flush, reads DOM
- * state, then detaches listeners. Backward-compatible wrapper around
- * `startDiagnostics` + `snapshotDiagnostics`.
- *
- * @deprecated Prefer `startDiagnostics(page)` before navigation and
- *   `snapshotDiagnostics(page, diag)` after the page settles, to
- *   ensure no events during page load are missed.
- */
-export async function collectPageDiagnostics(
-  page: Page,
-): Promise<PageDiagnostics> {
-  const diag = startDiagnostics(page);
-  return snapshotDiagnostics(page, diag);
 }
 
 /**
@@ -305,44 +251,6 @@ export async function expectRotateDeviceOverlayPresent(
 }
 
 /**
- * Attach the diagnostics payload to the test report so failures
- * include the full event capture. Also includes a derived summary
- * with hints about what went wrong.
- */
-export function attachDiagnostics(
-  testInfo: TestInfo,
-  diagnostics: PageDiagnostics,
-): void {
-  const gameAssetFailures = diagnostics.failedRequests.filter((f) =>
-    GAME_ASSET_REGEX.test(f.url),
-  );
-  const gameAssetBadResponses = diagnostics.badResponses.filter((b) =>
-    GAME_ASSET_REGEX.test(b.url),
-  );
-
-  const summary = {
-    canvasSize: `${diagnostics.canvasWidth}x${diagnostics.canvasHeight}`,
-    canvasVisible: diagnostics.canvasVisible,
-    transferHidden: diagnostics.transferHidden,
-    consoleErrorCount: diagnostics.consoleErrors.length,
-    pageErrorCount: diagnostics.pageErrors.length,
-    gameAssetFailures: gameAssetFailures.length,
-    gameAssetBadResponses: gameAssetBadResponses.length,
-    finalInfoboxText: diagnostics.finalInfoboxText.slice(0, 200),
-  };
-
-  testInfo.attach("diagnostics-summary", {
-    body: JSON.stringify(summary, null, 2),
-    contentType: "application/json",
-  });
-
-  testInfo.attach("diagnostics-full", {
-    body: JSON.stringify(diagnostics, null, 2),
-    contentType: "application/json",
-  });
-}
-
-/**
  * Start collecting diagnostics on a page. Attaches listeners for console
  * errors/warnings, page errors, failed requests, and bad responses.
  *
@@ -352,6 +260,8 @@ export function attachDiagnostics(
  * Returns a mutable PageDiagnostics object that live-updates as events
  * arrive. After the page has settled, call `snapshotDiagnostics(page, diag)`
  * to finalize, detach listeners, and read DOM state.
+ *
+ * @deprecated Use tests/helpers/diagnostics.ts startDiagnostics instead
  */
 export function startDiagnostics(page: Page): PageDiagnostics {
   const diag: PageDiagnostics = {
@@ -460,7 +370,7 @@ export async function snapshotDiagnostics(
   });
 
   return {
-    consoleErrors: diag.consoleErrors.filter((e) => !isHarmlessConsoleError(e)),
+    consoleErrors: diag.consoleErrors,
     consoleWarnings: diag.consoleWarnings,
     pageErrors: diag.pageErrors,
     failedRequests: diag.failedRequests,
@@ -473,31 +383,6 @@ export async function snapshotDiagnostics(
     url: page.url(),
     userAgent: await page.evaluate(() => navigator.userAgent),
   };
-}
-
-/**
- * Assert that the diagnostics contain no blocking errors. Errors are
- * classified as blocking if they match the high-severity patterns
- * defined inline (EvalError, CSP, TypeError, etc.).
- */
-const BLOCKING_PATTERNS: RegExp[] = [
-  /EvalError/i,
-  /Refused to evaluate a string as JavaScript/i,
-  /Content Security Policy/i,
-  /Could not load dynamic lib/i,
-  /Failed to fetch/i,
-  /TypeError/i,
-  /ReferenceError/i,
-  /SyntaxError/i,
-  /Unhandled promise rejection/i,
-];
-
-export function blockingErrors(diagnostics: PageDiagnostics): string[] {
-  const all = [
-    ...diagnostics.consoleErrors,
-    ...diagnostics.pageErrors.map((e) => `PageError: ${e}`),
-  ];
-  return all.filter((e) => BLOCKING_PATTERNS.some((p) => p.test(e)));
 }
 
 /**

@@ -4,7 +4,7 @@ import {
   snapshotDiagnostics,
   blockingErrors,
   attachDiagnostics,
-} from "./helpers/browserGame";
+} from "./helpers/diagnostics";
 
 interface WebNativeGameSpec {
   id: string;

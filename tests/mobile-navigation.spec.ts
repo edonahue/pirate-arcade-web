@@ -1,14 +1,15 @@
 import { test, expect } from "@playwright/test";
+import { loadPybagGameDetails } from "./helpers/gameRegistry";
 
 const MOBILE_PROJECTS = ["mobile-chrome", "mobile-safari"];
 
 test.describe("Mobile Navigation", () => {
   test.use({ viewport: { width: 932, height: 430 } });
 
-  const GAMES = [
-    { name: "Cannonball Clash", path: "/play/cannonball-clash/" },
-    { name: "Treasure Cove", path: "/play/treasure-cove/" },
-  ];
+  const GAMES = loadPybagGameDetails().map((g) => ({
+    name: g.name,
+    path: g.path,
+  }));
 
   for (const game of GAMES) {
     test.describe(game.name, () => {

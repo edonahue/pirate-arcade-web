@@ -21,15 +21,17 @@
 
 import { test, expect } from "./helpers/browserGame";
 import {
-  collectPageDiagnostics,
   waitForPygbagRuntime,
   unlockAndStartGame,
   expectCanvasHasRenderedPixels,
   expectTouchOverlayWired,
   expectRotateDeviceOverlayPresent,
+} from "./helpers/browserGame";
+import {
+  collectPageDiagnostics,
   attachDiagnostics,
   blockingErrors,
-} from "./helpers/browserGame";
+} from "./helpers/diagnostics";
 import {
   loadPybagControlDetails,
   type PygbagControlDetail,

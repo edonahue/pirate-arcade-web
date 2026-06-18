@@ -27,19 +27,22 @@
 
 import { test, expect } from "./helpers/browserGame";
 import {
-  startDiagnostics,
-  snapshotDiagnostics,
   waitForPygbagRuntime,
-  blockingErrors,
-  attachDiagnostics,
   installDialogCapture,
   dialogWasCalled,
 } from "./helpers/browserGame";
+import {
+  startDiagnostics,
+  snapshotDiagnostics,
+  blockingErrors,
+  attachDiagnostics,
+} from "./helpers/diagnostics";
+import { loadPybagGameDetails } from "./helpers/gameRegistry";
 
-const GAMES = [
-  { name: "Cannonball Clash", path: "/play/cannonball-clash/" },
-  { name: "Treasure Cove", path: "/play/treasure-cove/" },
-];
+const GAMES = loadPybagGameDetails().map((g) => ({
+  name: g.name,
+  path: g.path,
+}));
 
 // iPhone 16 Pro Max landscape: 932x430 effective pixels.
 // Playwright's emulated iOS viewport uses CSS pixel dimensions.
