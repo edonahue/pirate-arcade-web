@@ -17,6 +17,16 @@ export const PYBAG_GAMES = [
     touchOverlay: "pong",
     crossFileTimeout: 30000,
     hasHighscoresShim: false,
+    desktopKeys: ["ArrowUp", "ArrowDown", "Space", "Enter", "Escape"],
+    actionKey: "Enter",
+    dragAxis: "y",
+    directionalKeys: {
+      up: ["ArrowUp", "w"],
+      down: ["ArrowDown", "s"],
+    },
+    hintText: "Slide ship up or down",
+    keyboardHelp:
+      "ArrowUp / W — move up \u2022 ArrowDown / S — move down \u2022 Space / Escape — pause \u2022 Enter — confirm",
   },
   {
     id: "treasure-cove",
@@ -31,6 +41,16 @@ export const PYBAG_GAMES = [
     touchOverlay: "breakout",
     crossFileTimeout: 30000,
     hasHighscoresShim: false,
+    desktopKeys: ["ArrowLeft", "ArrowRight", "Space", "Enter", "Escape"],
+    actionKey: "Space",
+    dragAxis: "x",
+    directionalKeys: {
+      left: ["ArrowLeft", "a"],
+      right: ["ArrowRight", "d"],
+    },
+    hintText: "Slide longboat left or right",
+    keyboardHelp:
+      "ArrowLeft / A — move left \u2022 ArrowRight / D — move right \u2022 Space — launch ball \u2022 Escape — pause \u2022 Enter — confirm",
   },
   {
     id: "krakens-wake",
@@ -45,6 +65,26 @@ export const PYBAG_GAMES = [
     touchOverlay: "asteroids",
     crossFileTimeout: 10000,
     hasHighscoresShim: true,
+    desktopKeys: [
+      "ArrowUp",
+      "ArrowDown",
+      "ArrowLeft",
+      "ArrowRight",
+      "Space",
+      "Enter",
+      "Escape",
+    ],
+    actionKey: "Space",
+    dragAxis: "x",
+    directionalKeys: {
+      left: ["ArrowLeft", "a"],
+      right: ["ArrowRight", "d"],
+      thrust: ["ArrowUp", "w"],
+      brake: ["ArrowDown", "s"],
+    },
+    hintText: "Turn, thrust, and fire",
+    keyboardHelp:
+      "ArrowLeft / A — turn left \u2022 ArrowRight / D — turn right \u2022 ArrowUp / W — thrust \u2022 Space — fire \u2022 Escape / P — pause \u2022 Enter — confirm",
   },
 ];
 

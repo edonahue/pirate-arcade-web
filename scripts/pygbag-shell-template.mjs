@@ -492,7 +492,14 @@ ${bootCode
       <div id="game-loading-detail">Starting game engine</div>
       <div class="loader-note">First visit downloads ~12 MB. Repeat visits should be faster.</div>
     </div>
-    <div id="game-wrap">
+    <div id="game-wrap"
+      data-control-mode="${config.controlsMode}"
+      data-control-action-key="${config.actionKey}"
+      data-control-drag-axis="${config.dragAxis}"
+      data-control-desktop-keys="${config.desktopKeys.join(",")}"
+      data-control-directional-keys='${JSON.stringify(config.directionalKeys)}'
+      data-control-hint="${config.hintText}"
+      data-control-keyboard-help="${config.keyboardHelp}">
     <a id="back-link" href="/play/" data-no-touch-control>\u2190 Back to Arcade</a>
     <div id="controls-hint">${config.controlsHint}</div>
     <div id="transfer" align=center>

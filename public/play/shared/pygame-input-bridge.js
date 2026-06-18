@@ -1,12 +1,13 @@
 (function () {
 
   // ── Debug log ──────────────────────────────────────────────
+  // Small ring buffer in normal mode; ?debug expands to 1000.
+  var DEBUG_RING_SIZE = /[?&]debug\b/.test(window.location.search) ? 1000 : 100;
   var debugLog = { events: [], bridgeCalls: [], domEvents: [] };
 
   function logArr(arr, entry) {
     arr.push(entry);
-    // keep last 1000 entries per array
-    if (arr.length > 1000) arr.shift();
+    if (arr.length > DEBUG_RING_SIZE) arr.shift();
   }
 
   function logEvent(tag, data) {
@@ -290,7 +291,7 @@
   //   refresh()           → one-shot poll
 
   var _gameState = null;
-  var _gameStateSubs = [];
+  var _gameStateSubs = new Set();
   var _gameStateTimer = null;
   var _gameStatePolling = false;
   var _bridgeMeta = {
@@ -349,12 +350,12 @@
   var PirateArcadeGameState = {
     getState: function () { return _gameState; },
     subscribe: function (cb) {
-      _gameStateSubs.push(cb);
-      if (_gameStateSubs.length > 20) _gameStateSubs.shift();
-      return function () {
-        var idx = _gameStateSubs.indexOf(cb);
-        if (idx >= 0) _gameStateSubs.splice(idx, 1);
-      };
+      if (_gameStateSubs.size >= 20) {
+        console.warn('PirateArcadeGameState: subscriber limit reached (20)');
+        return function () {};
+      }
+      _gameStateSubs.add(cb);
+      return function () { _gameStateSubs.delete(cb); };
     },
     startPolling: function (intervalMs) {
       if (_gameStatePolling) return;
@@ -379,9 +380,9 @@
       if (!parsed) return;
       if (JSON.stringify(parsed) !== JSON.stringify(_gameState)) {
         _gameState = parsed;
-        for (var i = 0; i < _gameStateSubs.length; i++) {
-          try { _gameStateSubs[i](_gameState); } catch (e) {}
-        }
+        _gameStateSubs.forEach(function (cb) {
+          try { cb(_gameState); } catch (e) {}
+        });
       }
     },
     getMeta: function () {

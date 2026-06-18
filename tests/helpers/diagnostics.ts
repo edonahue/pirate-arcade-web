@@ -1,6 +1,6 @@
 /**
  * Authoritative diagnostic collector for game-load tests.
- * Replaces browserGame.ts diagnostic functions and runtimeDiagnostics.ts.
+ * Replaces browserGame.ts diagnostic functions.
  *
  * Design:
  * - Ring buffers for all captures (most recent N, bounded)
@@ -26,7 +26,8 @@ const MAX_OBSERVATIONS = 100;
 export interface BootMetricsSnapshot {
   schemaVersion: number;
   marks: Record<string, number>;
-  durations: Record<string, number | boolean>;
+  /** Durations are strictly finite numbers — no booleans or other types */
+  durations: Record<string, number>;
   flags: { activePlay: boolean; firstUserInput: boolean };
   context: { url: string; serviceWorkerControlled: boolean };
 }
@@ -36,7 +37,7 @@ export interface PirateArcadeMetrics {
   mark(name: string): void;
   markOnce(name: string): number | undefined;
   measure(name: string, startMark: string, endMark: string): number | undefined;
-  get(): Record<string, number | boolean>;
+  get(): Record<string, number>;
   clear(): void;
   getMarks(): Record<string, number>;
   snapshot(): BootMetricsSnapshot;
@@ -459,139 +460,6 @@ export function createDiagnosticCollector(): DiagnosticCollector {
 }
 
 // ── Legacy compatibility ───────────────────────────────────────
-
-/**
- * Start collecting diagnostics on a page.
- * @deprecated Use createDiagnosticCollector().start() instead.
- */
-export function startDiagnostics(page: Page): PageDiagnostics {
-  const diag: PageDiagnostics = {
-    consoleErrors: [],
-    consoleWarnings: [],
-    pageErrors: [],
-    failedRequests: [],
-    badResponses: [],
-    observations: [],
-    finalInfoboxText: "",
-    canvasWidth: 0,
-    canvasHeight: 0,
-    canvasVisible: false,
-    transferHidden: false,
-    url: "",
-    userAgent: "",
-  };
-
-  const consoleHandler = (msg: { type(): string; text(): string }) => {
-    if (msg.type() === "error")
-      pushRing(diag.consoleErrors, MAX_CONSOLE, msg.text());
-    else if (msg.type() === "warning")
-      pushRing(diag.consoleWarnings, MAX_CONSOLE, msg.text());
-  };
-  const pageErrorHandler = (err: Error) =>
-    pushRing(diag.pageErrors, MAX_ERRORS, err.message);
-  const requestFailedHandler = (req: {
-    url(): string;
-    failure(): { errorText: string } | null;
-  }) => {
-    const failure = req.failure();
-    pushRing(diag.failedRequests, MAX_FAILED, {
-      url: req.url(),
-      failureText: failure?.errorText || "unknown",
-    });
-  };
-  const responseHandler = (resp: {
-    url(): string;
-    status(): number;
-    statusText(): string;
-  }) => {
-    const status = resp.status();
-    if (status >= 400) {
-      pushRing(diag.badResponses, MAX_BAD_RESPONSES, {
-        url: resp.url(),
-        status,
-        statusText: resp.statusText(),
-      });
-    }
-  };
-
-  page.on("console", consoleHandler);
-  page.on("pageerror", pageErrorHandler);
-  page.on("requestfailed", requestFailedHandler);
-  page.on("response", responseHandler);
-
-  (page as any).__diag_handlers = {
-    consoleHandler,
-    pageErrorHandler,
-    requestFailedHandler,
-    responseHandler,
-  };
-
-  return diag;
-}
-
-/**
- * @deprecated Use createDiagnosticCollector().snapshot() + collector.stop() instead.
- */
-export async function snapshotDiagnostics(
-  page: Page,
-  diag: PageDiagnostics,
-): Promise<PageDiagnostics> {
-  const handlers = (page as any).__diag_handlers;
-  if (handlers) {
-    page.off("console", handlers.consoleHandler);
-    page.off("pageerror", handlers.pageErrorHandler);
-    page.off("requestfailed", handlers.requestFailedHandler);
-    page.off("response", handlers.responseHandler);
-    delete (page as any).__diag_handlers;
-  }
-
-  await page.waitForTimeout(500);
-
-  const dom = await page.evaluate(() => {
-    const ib = document.getElementById("infobox") as HTMLElement | null;
-    const c = document.getElementById("canvas") as HTMLCanvasElement | null;
-    const tr = document.getElementById("transfer") as HTMLElement | null;
-    const cs = c ? window.getComputedStyle(c) : null;
-    return {
-      infoboxText: ib?.textContent?.trim() || "",
-      canvasWidth: c?.width || 0,
-      canvasHeight: c?.height || 0,
-      canvasVisible: !!(
-        c &&
-        cs &&
-        cs.visibility === "visible" &&
-        cs.display !== "none"
-      ),
-      transferHidden: !!tr?.hidden,
-    };
-  });
-
-  return {
-    consoleErrors: diag.consoleErrors.filter((e) => !isHarmlessConsoleError(e)),
-    consoleWarnings: diag.consoleWarnings,
-    pageErrors: diag.pageErrors,
-    failedRequests: diag.failedRequests,
-    badResponses: diag.badResponses,
-    observations: [],
-    finalInfoboxText: dom.infoboxText,
-    canvasWidth: dom.canvasWidth,
-    canvasHeight: dom.canvasHeight,
-    canvasVisible: dom.canvasVisible,
-    transferHidden: dom.transferHidden,
-    url: page.url(),
-    userAgent: await page.evaluate(() => navigator.userAgent),
-  };
-}
-
-/**
- * @deprecated Use createDiagnosticCollector() with proper start/stop lifecycle.
- */
-export async function collectPageDiagnostics(
-  page: Page,
-): Promise<PageDiagnostics> {
-  const diag = startDiagnostics(page);
-  return snapshotDiagnostics(page, diag);
-}
 
 /**
  * Attach diagnostics payload to test report.

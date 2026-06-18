@@ -360,7 +360,14 @@
       <div id="game-loading-detail">Starting game engine</div>
       <div class="loader-note">First visit downloads ~12 MB. Repeat visits should be faster.</div>
     </div>
-    <div id="game-wrap">
+    <div id="game-wrap"
+      data-control-mode="asteroids"
+      data-control-action-key="Space"
+      data-control-drag-axis="x"
+      data-control-desktop-keys="ArrowUp,ArrowDown,ArrowLeft,ArrowRight,Space,Enter,Escape"
+      data-control-directional-keys='{"left":["ArrowLeft","a"],"right":["ArrowRight","d"],"thrust":["ArrowUp","w"],"brake":["ArrowDown","s"]}'
+      data-control-hint="Turn, thrust, and fire"
+      data-control-keyboard-help="ArrowLeft / A — turn left • ArrowRight / D — turn right • ArrowUp / W — thrust • Space — fire • Escape / P — pause • Enter — confirm">
     <a id="back-link" href="/play/" data-no-touch-control>← Back to Arcade</a>
     <div id="controls-hint">TURN  •  THRUST  •  FIRE  •  PAUSE</div>
     <div id="transfer" align=center>

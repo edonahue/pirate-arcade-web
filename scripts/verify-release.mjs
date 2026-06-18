@@ -417,39 +417,52 @@ function runCommand(check) {
   };
 }
 
-/** Run multiple independent checks in parallel. Returns results ordered by check list. */
+/** Run multiple independent checks with bounded concurrency (3 at a time). */
 function runCommandsParallel(checks) {
-  const starts = checks.map(() => Date.now());
-  const promises = checks.map((check, i) => {
-    return new Promise((resolve) => {
-      const [cmd, ...args] = check.cmd.split(/\s+/);
-      const proc = execFile(cmd, args, { shell: "/bin/bash" }, (err) => {
-        const elapsedMs = Date.now() - starts[i];
-        let status = "passed";
-        let exitCode = 0;
-        let signal = null;
-        if (err) {
-          status = "failed";
-          exitCode = err.status || 1;
-          signal = err.signal || null;
-        }
-        resolve({
-          id: check.id,
-          name: check.name,
-          command: check.cmd,
-          status,
-          elapsedMs,
-          exitCode,
-          signal,
-          index: i,
-        });
+  const CONCURRENCY = 3;
+  const results = [];
+  let nextIndex = 0;
+
+  function startOne(resolve) {
+    const i = nextIndex++;
+    const check = checks[i];
+    if (!check) return resolve();
+    const [cmd, ...args] = check.cmd.split(/\s+/);
+    const startMs = Date.now();
+    const proc = execFile(cmd, args, { shell: "/bin/bash" }, (err) => {
+      const elapsedMs = Date.now() - startMs;
+      let status = "passed";
+      let exitCode = 0;
+      let signal = null;
+      if (err) {
+        status = "failed";
+        exitCode = err.status || 1;
+        signal = err.signal || null;
+      }
+      results.push({
+        id: check.id,
+        name: check.name,
+        command: check.cmd,
+        status,
+        elapsedMs,
+        exitCode,
+        signal,
+        index: i,
       });
-      proc.stdout.pipe(process.stdout);
-      proc.stderr.pipe(process.stderr);
+      startOne(resolve);
     });
-  });
-  return Promise.all(promises).then((unordered) =>
-    unordered.sort((a, b) => a.index - b.index).map(({ index: _, ...r }) => r),
+    proc.stdout.pipe(process.stdout);
+    proc.stderr.pipe(process.stderr);
+  }
+
+  return new Promise((resolve) => {
+    var started = 0;
+    while (started < CONCURRENCY && started < checks.length) {
+      started++;
+      startOne(resolve);
+    }
+  }).then(() =>
+    results.sort((a, b) => a.index - b.index).map(({ index: _, ...r }) => r),
   );
 }
 

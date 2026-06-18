@@ -65,77 +65,86 @@ export function loadPybagGameDetails(): PygbagGameDetail[] {
     }));
 }
 
-/** Per-game control data for Pygbag browser games, keyed by controlMode */
-const PYBAG_CONTROL_MAP: Record<
-  string,
-  {
-    desktopKeys: string[];
-    actionKey: string;
-    dragAxis: "x" | "y";
-    directionalKeys: Record<string, string[]>;
+// Per-control-mode metadata. Derived from (and must stay in sync with)
+// the authoritative production config in scripts/pygbag-game-config.mjs.
+function controlConfigForMode(mode: string): {
+  desktopKeys: string[];
+  actionKey: string;
+  dragAxis: "x" | "y";
+  directionalKeys: Record<string, string[]>;
+} {
+  switch (mode) {
+    case "breakout":
+      return {
+        desktopKeys: ["ArrowLeft", "ArrowRight", "Space", "Enter", "Escape"],
+        actionKey: "Space",
+        dragAxis: "x",
+        directionalKeys: {
+          left: ["ArrowLeft", "a"],
+          right: ["ArrowRight", "d"],
+        },
+      };
+    case "asteroids":
+      return {
+        desktopKeys: [
+          "ArrowUp",
+          "ArrowDown",
+          "ArrowLeft",
+          "ArrowRight",
+          "Space",
+          "Enter",
+          "Escape",
+        ],
+        actionKey: "Space",
+        dragAxis: "x",
+        directionalKeys: {
+          left: ["ArrowLeft", "a"],
+          right: ["ArrowRight", "d"],
+          thrust: ["ArrowUp", "w"],
+          brake: ["ArrowDown", "s"],
+        },
+      };
+    default:
+      return {
+        desktopKeys: ["ArrowUp", "ArrowDown", "Space", "Enter", "Escape"],
+        actionKey: "Enter",
+        dragAxis: "y",
+        directionalKeys: {
+          up: ["ArrowUp", "w"],
+          down: ["ArrowDown", "s"],
+        },
+      };
   }
-> = {
-  pong: {
-    desktopKeys: ["ArrowUp", "ArrowDown", "Space", "Enter", "Escape"],
-    actionKey: "Enter",
-    dragAxis: "y",
-    directionalKeys: {
-      up: ["ArrowUp", "w"],
-      down: ["ArrowDown", "s"],
-    },
-  },
-  breakout: {
-    desktopKeys: ["ArrowLeft", "ArrowRight", "Space", "Enter", "Escape"],
-    actionKey: "Space",
-    dragAxis: "x",
-    directionalKeys: {
-      left: ["ArrowLeft", "a"],
-      right: ["ArrowRight", "d"],
-    },
-  },
-  asteroids: {
-    desktopKeys: [
-      "ArrowUp",
-      "ArrowDown",
-      "ArrowLeft",
-      "ArrowRight",
-      "Space",
-      "Enter",
-      "Escape",
-    ],
-    actionKey: "Space",
-    dragAxis: "x",
-    directionalKeys: {
-      left: ["ArrowLeft", "a"],
-      right: ["ArrowRight", "d"],
-      thrust: ["ArrowUp", "w"],
-      brake: ["ArrowDown", "s"],
-    },
-  },
-};
+}
+
+function hintTextForMode(mode: string): string {
+  return mode === "pong"
+    ? "Slide ship up or down"
+    : mode === "breakout"
+      ? "Slide longboat left or right"
+      : "Turn, thrust, and fire";
+}
+
+function keyboardHelpForMode(mode: string): string {
+  return mode === "pong"
+    ? "ArrowUp / W — move up • ArrowDown / S — move down • Space / Escape — pause • Enter — confirm"
+    : mode === "breakout"
+      ? "ArrowLeft / A — move left • ArrowRight / D — move right • Space — launch ball • Escape — pause • Enter — confirm"
+      : "ArrowLeft / A — turn left • ArrowRight / D — turn right • ArrowUp / W — thrust • Space — fire • Escape / P — pause • Enter — confirm";
+}
 
 /** Load Pygbag games with full control metadata */
 export function loadPybagControlDetails(): PygbagControlDetail[] {
   return loadPybagGameDetails().map((g) => {
-    const ctrl = PYBAG_CONTROL_MAP[g.controlMode] ?? PYBAG_CONTROL_MAP.pong;
+    const ctrl = controlConfigForMode(g.controlMode);
     return {
       ...g,
       desktopKeys: ctrl.desktopKeys,
       actionKey: ctrl.actionKey,
       dragAxis: ctrl.dragAxis,
       directionalKeys: ctrl.directionalKeys,
-      hintText:
-        g.controlMode === "pong"
-          ? "Slide ship up or down"
-          : g.controlMode === "breakout"
-            ? "Slide longboat left or right"
-            : "Turn, thrust, and fire",
-      keyboardHelp:
-        g.controlMode === "pong"
-          ? "ArrowUp / W — move up • ArrowDown / S — move down • Space / Escape — pause • Enter — confirm"
-          : g.controlMode === "breakout"
-            ? "ArrowLeft / A — move left • ArrowRight / D — move right • Space — launch ball • Escape — pause • Enter — confirm"
-            : "ArrowLeft / A — turn left • ArrowRight / D — turn right • ArrowUp / W — thrust • Space — fire • Escape / P — pause • Enter — confirm",
+      hintText: hintTextForMode(g.controlMode),
+      keyboardHelp: keyboardHelpForMode(g.controlMode),
     };
   });
 }

@@ -343,7 +343,14 @@
       <div id="game-loading-detail">Starting game engine</div>
       <div class="loader-note">First visit downloads ~12 MB. Repeat visits should be faster.</div>
     </div>
-    <div id="game-wrap">
+    <div id="game-wrap"
+      data-control-mode="breakout"
+      data-control-action-key="Space"
+      data-control-drag-axis="x"
+      data-control-desktop-keys="ArrowLeft,ArrowRight,Space,Enter,Escape"
+      data-control-directional-keys='{"left":["ArrowLeft","a"],"right":["ArrowRight","d"]}'
+      data-control-hint="Slide longboat left or right"
+      data-control-keyboard-help="ArrowLeft / A — move left • ArrowRight / D — move right • Space — launch ball • Escape — pause • Enter — confirm">
     <a id="back-link" href="/play/" data-no-touch-control>← Back to Arcade</a>
     <div id="controls-hint">Slide longboat left/right  •  LAUNCH  •  PAUSE</div>
     <div id="transfer" align=center>
