@@ -116,7 +116,7 @@ Template generates `from ${pythonModule} import ${gameClass}` at runtime.
 - Stable error state: once `error()` called, `set()`/`ready()` are no-ops
 - Idempotent: double-setup guard, double-error guard
 - Body-attachment verification for lazy element lookups
-- Sets `__paBootMetrics.playable` after `ready()` + game state confirms running phase
+- `ready()` only handles loader-hidden state; playability is tracked separately (see Playable-readiness telemetry)
 
 ### Asset version consistency (Phase 4)
 
@@ -132,9 +132,22 @@ Template generates `from ${pythonModule} import ${gameClass}` at runtime.
 
 ### Playable-readiness telemetry (Checkpoint 2)
 
-- `__paBootMetrics["playable"]` boolean flag set after loader hidden + game phase ≠ loading/menu
-- Performance test (`game-load-performance.spec.ts`) asserts `playable === true`
-- Test game lists derived from `games.json` (no hardcoding)
+Three truthful milestones with distinct semantics:
+
+- **`game-ready`**: Python boot completed; game object exists; menu may still show.
+- **`loader-hidden`**: Loading overlay gone; game can be viewed/interacted; menu may show.
+- **`active-play`**: Game-state bridge (`PirateArcadeGameState`) confirms real gameplay phase
+  (`phase === 'playing'`). Marked ONCE via `markOnce()`.
+- **`first-user-input`**: First meaningful keyboard/touch input accepted by Python bridge.
+  Marked ONCE on successful bridge call (keyDown with ok=true, or setTouchTarget with active=true).
+
+`playable` flag is kept as a compatibility convenience — derived from `active-play` having occurred.
+Performance test (`game-load-performance.spec.ts`) asserts `flags.activePlay === true`.
+Test game lists derived from `games.json` (no hardcoding).
+
+Game-state observer lives in `pygame-input-bridge.js`: single 500ms polling owner, subscribes
+to `PirateArcadeGameState.subscribe()`, stops on `pagehide`. `ready()` in pygbag-loading.js no
+longer determines whether gameplay has begun — owns only loader-hidden state.
 
 ## Validation auto-discovery
 

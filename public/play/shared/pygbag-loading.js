@@ -107,16 +107,6 @@
         if (window.PirateArcadeMetrics) {
           window.PirateArcadeMetrics.mark("loader-hidden");
           window.PirateArcadeMetrics.computeDurations();
-          // Mark playable if game state indicates the game is running
-          // (not loading/menu). Check via input bridge if available.
-          setTimeout(function () {
-            var gs = window.PirateArcadeGameState
-              ? window.PirateArcadeGameState.getState()
-              : null;
-            if (gs && gs.phase && gs.phase !== "loading" && gs.phase !== "menu") {
-              window.PirateArcadeMetrics.markPlayable();
-            }
-          }, 0);
         }
       }
     },

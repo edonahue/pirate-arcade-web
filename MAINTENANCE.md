@@ -57,11 +57,23 @@ phases), including structural invariants:
 
 ### Playable-readiness telemetry
 
-`__paBootMetrics["playable"]` flag is set to `true` when the loading
-overlay is hidden (`ready()` called) AND the game state (via
-`PirateArcadeGameState`) confirms the game is running (phase is not
-"loading" or "menu"). The performance test (`game-load-performance.spec.ts`)
-asserts `playable === true` for all Pygbag games.
+Three truthful milestones with distinct semantics:
+
+- **`game-ready`**: Python boot completed; game object exists; menu may still show.
+- **`loader-hidden`**: Loading overlay gone; game can be viewed/interacted; menu may show.
+- **`active-play`**: Game-state bridge (`PirateArcadeGameState`) confirms real gameplay phase
+  (`phase === 'playing'`). Marked ONCE via `markOnce()`.
+- **`first-user-input`**: First meaningful keyboard/touch input accepted by Python bridge.
+  Marked ONCE on successful bridge call (keyDown with ok=true, or setTouchTarget with active=true).
+
+`playable` is a compatibility convenience flag derived from `active-play` having occurred.
+The performance test (`game-load-performance.spec.ts`) asserts `flags.activePlay === true`
+(not the `playable` boolean directly). Milestones are timestamped via `PirateArcadeMetrics.markOnce()`.
+
+Game-state observer lives in `pygame-input-bridge.js`: single 500ms polling owner,
+subscribes to `PirateArcadeGameState.subscribe()`, stops on `pagehide`. `ready()` in
+pygbag-loading.js owns only loader-hidden state — it does not determine whether
+gameplay has begun.
 
 ### Static integrity
 

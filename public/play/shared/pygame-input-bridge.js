@@ -105,6 +105,14 @@
   var _pendingTaps = {};
   var _lastReleaseReason = null;
   var _releaseCount = 0;
+  var _firstInputMarked = false;
+
+  function markFirstInputIfNeeded() {
+    if (!_firstInputMarked && window.PirateArcadeMetrics) {
+      _firstInputMarked = true;
+      window.PirateArcadeMetrics.markFirstUserInput();
+    }
+  }
 
   // ── Public API ──────────────────────────────────────────────
   var PirateArcadeInput = {
@@ -115,6 +123,7 @@
       focusCanvas();
       var ok = callPythonKeyBridge(keyName, true);
       logBridgeCall(keyName, true, ok);
+      if (ok) markFirstInputIfNeeded();
       if (!ok) logEvent('bridgeMiss', { key: keyName });
       dispatchFallbackKeyEvent(keyName, 'keydown');
     },
@@ -213,6 +222,7 @@
         safeAxis + ', ' + safeValue + ', ' + safeActive + ')';
       try {
         window.python.PyRun_SimpleString(code);
+        if (active) markFirstInputIfNeeded();
         return true;
       } catch (err) {
         console.warn('PirateArcadeInput touch target bridge failed', err);
@@ -384,6 +394,59 @@
   };
 
   window.PirateArcadeGameState = PirateArcadeGameState;
+
+  // ── Game-state observer for active-play milestone ────────────
+  // Starts polling once, observes phase transitions, marks active-play
+  // when game enters a verified active gameplay phase.
+  (function () {
+    var _observerStarted = false;
+    var _activePlayMarked = false;
+    var _pageHiding = false;
+
+    // Game-specific active phase identifiers (audited from all three games)
+    // Cannonball Clash: 'playing'
+    // Treasure Cove: 'playing'
+    // Kraken's Wake: 'playing'
+    var ACTIVE_PHASES = ['playing'];
+
+    function isActivePhase(phase) {
+      return phase && ACTIVE_PHASES.indexOf(phase) !== -1;
+    }
+
+    function startObserver() {
+      if (_observerStarted) return;
+      _observerStarted = true;
+
+      // Subscribe to game-state changes
+      var unsubscribe = PirateArcadeGameState.subscribe(function (state) {
+        if (_pageHiding) return;
+        if (!_activePlayMarked && state && isActivePhase(state.phase)) {
+          _activePlayMarked = true;
+          if (window.PirateArcadeMetrics) {
+            window.PirateArcadeMetrics.markActivePlay();
+          }
+          // Keep polling for other subscribers but don't re-mark
+        }
+      });
+
+      // Start polling at default 500ms interval
+      PirateArcadeGameState.startPolling();
+
+      // Stop on pagehide
+      window.addEventListener('pagehide', function () {
+        _pageHiding = true;
+        PirateArcadeGameState.stopPolling();
+        unsubscribe();
+      });
+    }
+
+    // Start observer when DOM is ready (scripts load in <head>)
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', startObserver);
+    } else {
+      startObserver();
+    }
+  })();
 
   // ── Per-game action semantics ────────────────────────────────
   // Dispatches the correct primary key for each game based on its

@@ -45,16 +45,6 @@ const PYTHON_BOOT_PHASES = [
   "game-ready",
 ];
 
-// Phases emitted from shared JS (pygame-input-bridge.js)
-const BRIDGE_BOOT_PHASES = ["loader-hidden"];
-
-// The full ordered contract
-const FULL_BOOT_CONTRACT = [
-  ...JS_BOOT_PHASES,
-  ...PYTHON_BOOT_PHASES,
-  ...BRIDGE_BOOT_PHASES,
-];
-
 // ── Validator ─────────────────────────────────────────────────
 
 let failures = 0;
@@ -66,43 +56,6 @@ function fail(msg) {
 
 function ok(msg) {
   console.log("  [PASS] " + msg);
-}
-
-function validatePhaseOrder(phases, html, gameId, context) {
-  let lastIdx = -1;
-  for (const phase of phases) {
-    // Build patterns for all three quote styles used in current shells
-    const patterns = [
-      new RegExp('mark\\("' + phase + '"\\)', "g"),
-      new RegExp("mark\\('" + phase + "'\\)", "g"),
-      new RegExp('mark\\(\"' + phase + '"\\)', "g"),
-      new RegExp("mark\\('" + phase + "'\\)", "g"),
-    ];
-
-    const idx =
-      html.search(patterns[0]) !== -1
-        ? html.search(patterns[0])
-        : html.search(patterns[1]);
-
-    if (idx === -1) {
-      fail(gameId + " [" + context + ']: missing phase "' + phase + '"');
-      continue;
-    }
-
-    if (idx < lastIdx) {
-      fail(
-        gameId +
-          " [" +
-          context +
-          ']: phase "' +
-          phase +
-          '" appears out of order (after "' +
-          phases[phases.indexOf(phase) - 1] +
-          '")',
-      );
-    }
-    lastIdx = idx;
-  }
 }
 
 // ── Main ──────────────────────────────────────────────────────
@@ -203,8 +156,7 @@ for (const config of PYBAG_GAMES) {
     }
 
     // 9. Import line must appear after sys.path.insert and os.chdir
-    // Use `html` since gameCodeJs has JS-escaped strings
-    totalChecks++;
+    // Only runs when both preconditions exist (already checked above)
     const importMatch = html.match(/'\s*from\s+\S+\s+import\s+\S+/);
     const sysPathMatch = html.match(/sys\.path\.insert/);
     const osChdirMatch = html.match(/os\.chdir/);
@@ -212,17 +164,34 @@ for (const config of PYBAG_GAMES) {
     const sysPathIdx = sysPathMatch ? sysPathMatch.index : -1;
     const osChdirIdx = osChdirMatch ? osChdirMatch.index : -1;
 
-    if (importIdx === -1) {
-      fail(config.id + ": no import statement found in boot code");
-    } else if (sysPathIdx === -1 || osChdirIdx === -1) {
-      // Already reported above — skip duplicate
-      ok(config.id + ": import order (skipped — preconditions missing)");
-    } else if (importIdx > sysPathIdx && importIdx > osChdirIdx) {
-      ok(config.id + ": import follows sys.path.insert and os.chdir");
+    if (sysPathIdx !== -1 && osChdirIdx !== -1) {
+      totalChecks++;
+      if (
+        importIdx !== -1 &&
+        importIdx > sysPathIdx &&
+        importIdx > osChdirIdx
+      ) {
+        ok(config.id + ": import follows sys.path.insert and os.chdir");
+      } else {
+        fail(
+          config.id +
+            ": import before sys.path.insert or os.chdir — game package may not resolve",
+        );
+      }
+    }
+
+    // 10. Validate exact pythonModule and gameClass from config
+    totalChecks++;
+    const expectedImport =
+      "from " + config.pythonModule + " import " + config.gameClass;
+    if (html.includes(expectedImport)) {
+      ok(config.id + ': import "' + expectedImport + '" matches config');
     } else {
       fail(
         config.id +
-          ": import before sys.path.insert or os.chdir — game package may not resolve",
+          ': expected import "' +
+          expectedImport +
+          '" not found in shell',
       );
     }
 
