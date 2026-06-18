@@ -1,12 +1,20 @@
 #!/usr/bin/env node
 /**
  * Release gate verification script.
- * Runs a curated subset of validation commands in order.
+ * Runs curated validation profiles in order.
  *
  * Usage:
- *   node scripts/verify-release.mjs              # full gate (default)
- *   node scripts/verify-release.mjs --fast       # fast gate only
- *   node scripts/verify-release.mjs --continue   # continue after failures
+ *   node scripts/verify-release.mjs                   # full gate (default)
+ *   node scripts/verify-release.mjs --fast            # fast gate
+ *   node scripts/verify-release.mjs --list            # print plan and exit
+ *   node scripts/verify-release.mjs --continue        # continue after failures
+ *   node scripts/verify-release.mjs --profile=post-build  # post-build checks only
+ *
+ * Profiles:
+ *   fast          — complete local fast gate (includes build prereq)
+ *   full          — complete local full gate (includes all fast checks)
+ *   post-build    — deterministic checks that need dist/ (no format/typecheck/build)
+ *   prerequisites — format, typecheck, build only
  */
 
 import { execSync } from "child_process";
@@ -38,10 +46,17 @@ const FAST_GATE = [
   { name: "Repository docs", cmd: "npm run test:docs" },
   { name: "Race ship assets", cmd: "npm run test:race-ship-assets" },
   { name: "Screenshot assets", cmd: "npm run test:screenshot-assets" },
-  {
-    name: "Performance budgets",
-    cmd: "npm run test:performance-budgets",
-  },
+  { name: "Performance budgets", cmd: "npm run test:performance-budgets" },
+];
+
+const POST_BUILD_CHECKS = FAST_GATE.filter(
+  (c) => !["Format check", "Typecheck", "Build"].includes(c.name),
+);
+
+const PREREQUISITES = [
+  { name: "Format check", cmd: "npm run format:check" },
+  { name: "Typecheck", cmd: "npm run typecheck" },
+  { name: "Build", cmd: "npm run build" },
 ];
 
 const FULL_GATE = [
@@ -70,30 +85,68 @@ const FULL_GATE = [
   { name: "Lighthouse CI", cmd: "npm run test:lhci", slow: true },
 ];
 
+const PROFILES = {
+  fast: FAST_GATE,
+  full: FULL_GATE,
+  "post-build": POST_BUILD_CHECKS,
+  prerequisites: PREREQUISITES,
+};
+
 function runCommand(name, cmd, continueOnFail) {
   const start = Date.now();
   try {
     execSync(cmd, { stdio: "inherit", encoding: "utf-8", shell: "/bin/bash" });
-    const elapsed = ((Date.now() - start) / 1000).toFixed(1);
-    console.log(`\n✅ ${name} passed (${elapsed}s)`);
-    return { name, passed: true, elapsed };
+    const elapsedMs = Date.now() - start;
+    return { name, command: cmd, status: "passed", elapsedMs, exitCode: 0 };
   } catch (err) {
-    const elapsed = ((Date.now() - start) / 1000).toFixed(1);
-    console.log(`\n❌ ${name} failed (${elapsed}s)`);
-    if (!continueOnFail) {
-      process.exit(1);
-    }
-    return { name, passed: false, elapsed };
+    const elapsedMs = Date.now() - start;
+    const exitCode = err.status || 1;
+    return { name, command: cmd, status: "failed", elapsedMs, exitCode };
   }
 }
 
 async function main() {
   const args = process.argv.slice(2);
-  const fastOnly = args.includes("--fast");
   const continueOnFail = args.includes("--continue");
-  const gate = fastOnly ? FAST_GATE : FULL_GATE;
-  const mode = fastOnly ? "FAST" : "FULL";
+  const listOnly = args.includes("--list");
 
+  // Determine profile
+  let profileName = "fast";
+  const profileArg = args.find((a) => a.startsWith("--profile="));
+  if (args.includes("--full")) {
+    profileName = "full";
+  } else if (profileArg) {
+    profileName = profileArg.split("=")[1];
+  }
+
+  const gate = PROFILES[profileName];
+  if (!gate) {
+    console.error(
+      `Unknown profile "${profileName}". Valid: ${Object.keys(PROFILES).join(", ")}`,
+    );
+    process.exit(1);
+  }
+
+  if (listOnly) {
+    console.log(
+      JSON.stringify(
+        {
+          schemaVersion: 1,
+          profile: profileName,
+          checks: gate.map((c) => ({
+            name: c.name,
+            command: c.cmd,
+            slow: !!c.slow,
+          })),
+        },
+        null,
+        2,
+      ),
+    );
+    process.exit(0);
+  }
+
+  const mode = profileName.toUpperCase();
   console.log(`\n🚀 Starting ${mode} release gate...`);
   console.log(`   ${gate.length} checks\n`);
 
@@ -105,19 +158,46 @@ async function main() {
     results.push(result);
   }
 
-  const totalElapsed = ((Date.now() - startAll) / 1000).toFixed(1);
-  const passed = results.filter((r) => r.passed).length;
-  const failed = results.filter((r) => !r.passed).length;
+  const totalElapsedMs = Date.now() - startAll;
+  const passed = results.filter((r) => r.status === "passed").length;
+  const failed = results.filter((r) => r.status !== "passed").length;
+
+  // Slowest check summary
+  const sorted = [...results].sort((a, b) => b.elapsedMs - a.elapsedMs);
+  const slowestLine =
+    sorted.length > 0
+      ? `   Slowest: ${sorted[0].name} (${sorted[0].elapsedMs}ms)`
+      : "";
 
   console.log(`\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
-  console.log(`📊 ${mode} gate complete in ${totalElapsed}s`);
+  console.log(`📊 ${mode} gate complete in ${totalElapsedMs}ms`);
   console.log(`   ✅ Passed: ${passed}`);
   console.log(`   ❌ Failed: ${failed}`);
+  if (slowestLine) console.log(slowestLine);
+
+  // Machine-readable JSON output to stderr (doesn't mix with user output)
+  const report = {
+    schemaVersion: 1,
+    profile: profileName,
+    startedAt: new Date(startAll).toISOString(),
+    elapsedMs: totalElapsedMs,
+    checks: results.map((r) => ({
+      name: r.name,
+      command: r.command,
+      status: r.status,
+      elapsedMs: r.elapsedMs,
+      exitCode: r.exitCode,
+    })),
+    passed,
+    failed,
+    total: results.length,
+  };
+  console.log("\n" + JSON.stringify(report));
 
   if (failed > 0) {
-    console.log(`\nFailed checks:`);
-    for (const r of results.filter((r) => !r.passed)) {
-      console.log(`   - ${r.name}`);
+    console.error(`\nFailed checks:`);
+    for (const r of results.filter((r) => r.status !== "passed")) {
+      console.error(`   - ${r.name}`);
     }
     process.exit(1);
   } else {

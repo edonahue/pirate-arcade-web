@@ -291,17 +291,18 @@ Grouped by dependency type (dev vs production for npm). Labels: `dependencies`.
 
 ## CI pipeline
 
-`.github/workflows/ci.yml` has three workflows:
+`.github/workflows/ci.yml` has four jobs:
 
-| Job            | Steps                                        | Duration |
-| -------------- | -------------------------------------------- | -------- |
-| `verify`       | format:check, typecheck, build               | ~2 min   |
-| `playwright`   | Browser games + desktop input (chromium)     | ~10 min  |
-| `release-gate` | All fast-gate script checks (non-Playwright) | ~2 min   |
+| Job          | Steps                                                                   | Duration |
+| ------------ | ----------------------------------------------------------------------- | -------- |
+| `verify`     | Full fast release gate (format, typecheck, build, 24 post-build checks) | ~1 min   |
+| `playwright` | Browser games + desktop input (chromium)                                | ~10 min  |
+| `shell-test` | Cross-browser shell integrity (chromium, WebKit, iPad)                  | ~3 min   |
+| `lighthouse` | Lighthouse CI smoke/baseline audit                                      | ~2 min   |
 
-The `release-gate` job mirrors `npm run verify:release:fast` (minus
-steps already in `verify`). If a new fast check is added to
-`verify-release.mjs`, add it to the `release-gate` job too.
+The `verify` job runs the complete fast gate via `npm run verify:release:fast`.
+All downstream jobs (`playwright`, `shell-test`, `lighthouse`) also build from
+source (the ~3s build time makes artifact reuse offer negligible savings).
 
 ## Archive management
 
