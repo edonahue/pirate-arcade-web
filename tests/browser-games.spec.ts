@@ -30,42 +30,12 @@ import {
   attachDiagnostics,
   blockingErrors,
 } from "./helpers/browserGame";
+import {
+  loadPybagControlDetails,
+  type PygbagControlDetail,
+} from "./helpers/gameRegistry";
 
-interface GameSpec {
-  id: string;
-  name: string;
-  path: string;
-  desktopKeys: string[];
-}
-
-const GAMES: GameSpec[] = [
-  {
-    id: "cannonball-clash",
-    name: "Cannonball Clash",
-    path: "/play/cannonball-clash/",
-    desktopKeys: ["ArrowUp", "ArrowDown", "Space", "Enter", "Escape"],
-  },
-  {
-    id: "treasure-cove",
-    name: "Treasure Cove",
-    path: "/play/treasure-cove/",
-    desktopKeys: ["ArrowLeft", "ArrowRight", "Space", "Enter", "Escape"],
-  },
-  {
-    id: "krakens-wake",
-    name: "Kraken's Wake",
-    path: "/play/krakens-wake/",
-    desktopKeys: [
-      "ArrowUp",
-      "ArrowDown",
-      "ArrowLeft",
-      "ArrowRight",
-      "Space",
-      "Enter",
-      "Escape",
-    ],
-  },
-];
+const GAMES: PygbagControlDetail[] = loadPybagControlDetails();
 
 // Restrict the heavy WASM startup tests to desktop projects. Mobile
 // emulations work, but they're slow and noisy. We still do the cheap

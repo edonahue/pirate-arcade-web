@@ -1,6 +1,15 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { readFileSync } from "fs";
 import { resolve } from "path";
+import type { PirateArcadeMetrics } from "../helpers/diagnostics";
+
+function getMetrics(): PirateArcadeMetrics {
+  const m = (window as any).PirateArcadeMetrics as
+    | PirateArcadeMetrics
+    | undefined;
+  if (!m) throw new Error("PirateArcadeMetrics not loaded");
+  return m;
+}
 
 function loadMetrics(): void {
   const code = readFileSync(
@@ -19,8 +28,7 @@ describe("game-boot-metrics", () => {
 
   it("exposes PirateArcadeMetrics with expected methods", () => {
     loadMetrics();
-    const m = (window as any).PirateArcadeMetrics;
-    expect(m).toBeTruthy();
+    const m = getMetrics();
     expect(typeof m.mark).toBe("function");
     expect(typeof m.measure).toBe("function");
     expect(typeof m.get).toBe("function");
@@ -31,22 +39,20 @@ describe("game-boot-metrics", () => {
 
   it("mark records a metric", () => {
     loadMetrics();
-    const m = (window as any).PirateArcadeMetrics;
-    m.mark("test-start");
-    const marks = m.getMarks();
+    getMetrics().mark("test-start");
+    const marks = getMetrics().getMarks();
     expect(marks["test-start"]).toBeGreaterThan(0);
   });
 
   it("mark updates __paBootMetrics", () => {
     loadMetrics();
-    const m = (window as any).PirateArcadeMetrics;
-    m.mark("my-mark");
+    getMetrics().mark("my-mark");
     expect((window as any).__paBootMetrics["my-mark"]).toBeGreaterThan(0);
   });
 
   it("measure computes difference between two marks", () => {
     loadMetrics();
-    const m = (window as any).PirateArcadeMetrics;
+    const m = getMetrics();
     m.mark("start");
     m.mark("end");
     const dur = m.measure("total", "start", "end");
@@ -57,7 +63,7 @@ describe("game-boot-metrics", () => {
 
   it("measure returns undefined when a mark is missing", () => {
     loadMetrics();
-    const m = (window as any).PirateArcadeMetrics;
+    const m = getMetrics();
     m.mark("a");
     const dur = m.measure("a-to-b", "a", "b");
     expect(dur).toBeUndefined();
@@ -65,7 +71,7 @@ describe("game-boot-metrics", () => {
 
   it("clear resets all metrics", () => {
     loadMetrics();
-    const m = (window as any).PirateArcadeMetrics;
+    const m = getMetrics();
     m.mark("test");
     m.clear();
     expect(m.get()).toEqual({});
@@ -74,7 +80,7 @@ describe("game-boot-metrics", () => {
 
   it("computeDurations calculates standard durations from available marks", () => {
     loadMetrics();
-    const m = (window as any).PirateArcadeMetrics;
+    const m = getMetrics();
     m.mark("page-script-start");
     m.mark("python-ready");
     m.mark("pygame-install-start");
@@ -100,7 +106,7 @@ describe("game-boot-metrics", () => {
 
   it("computeDurations only computes for marks that exist", () => {
     loadMetrics();
-    const m = (window as any).PirateArcadeMetrics;
+    const m = getMetrics();
     m.mark("page-script-start");
     m.mark("game-ready");
     m.mark("loader-hidden");
@@ -113,7 +119,7 @@ describe("game-boot-metrics", () => {
 
   it("marks page-script-start on load", () => {
     loadMetrics();
-    const marks = (window as any).PirateArcadeMetrics.getMarks();
+    const marks = getMetrics().getMarks();
     expect(marks["page-script-start"]).toBeGreaterThan(0);
   });
 });

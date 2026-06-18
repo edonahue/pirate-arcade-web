@@ -22,6 +22,58 @@ const MAX_OBSERVATIONS = 100;
 
 // ── Types ────────────────────────────────────────────────────────
 
+/** Schema-versioned snapshot from window.PirateArcadeMetrics.snapshot() */
+export interface BootMetricsSnapshot {
+  schemaVersion: number;
+  marks: Record<string, number>;
+  durations: Record<string, number | boolean>;
+  flags: { activePlay: boolean; firstUserInput: boolean };
+  context: { url: string; serviceWorkerControlled: boolean };
+}
+
+/** Typed interface for window.PirateArcadeMetrics */
+export interface PirateArcadeMetrics {
+  mark(name: string): void;
+  markOnce(name: string): number | undefined;
+  measure(name: string, startMark: string, endMark: string): number | undefined;
+  get(): Record<string, number | boolean>;
+  clear(): void;
+  getMarks(): Record<string, number>;
+  snapshot(): BootMetricsSnapshot;
+  computeDurations(): void;
+  markPlayable(): void;
+  isPlayable(): boolean;
+  markActivePlay(): void;
+  markFirstUserInput(): void;
+}
+
+/** Typed interface for window.PirateArcadeGameState */
+export interface PirateArcadeGameState {
+  refresh(): void;
+  getState(): Record<string, unknown>;
+  subscribe(cb: (state: Record<string, unknown>) => void): void;
+}
+
+/** Retrieve typed PirateArcadeMetrics snapshot from a page */
+export async function getBootMetrics(
+  page: Page,
+): Promise<BootMetricsSnapshot | null> {
+  return page.evaluate(() => {
+    const pm = (window as any).PirateArcadeMetrics as
+      | PirateArcadeMetrics
+      | undefined;
+    if (!pm || typeof pm.snapshot !== "function") return null;
+    return pm.snapshot();
+  });
+}
+
+/** Check if PirateArcadeMetrics is available on the page */
+export async function hasBootMetrics(page: Page): Promise<boolean> {
+  return page.evaluate(() => {
+    return typeof (window as any).PirateArcadeMetrics?.snapshot === "function";
+  });
+}
+
 export interface FailedRequest {
   url: string;
   failureText: string;
@@ -87,7 +139,7 @@ export interface RuntimeSnapshot {
   loadingState: string;
   gameState: Record<string, unknown> | null;
   gameStateMeta: Record<string, unknown> | null;
-  metrics: Record<string, unknown> | null;
+  metrics: BootMetricsSnapshot | Record<string, unknown> | null;
   observations: RequestObservation[];
   consoleErrors: string[];
   consoleWarnings: string[];
@@ -332,13 +384,7 @@ export function createDiagnosticCollector(): DiagnosticCollector {
         canvasSize,
         infoText,
       ] = await Promise.all([
-        p
-          .evaluate(() => {
-            const pm = (window as any).PirateArcadeMetrics;
-            if (!pm || typeof pm.snapshot !== "function") return null;
-            return pm.snapshot() as Record<string, unknown>;
-          })
-          .catch(() => null),
+        getBootMetrics(p).catch(() => null),
         p
           .evaluate(() => {
             const entries = performance.getEntriesByType("navigation");
@@ -356,11 +402,13 @@ export function createDiagnosticCollector(): DiagnosticCollector {
           .catch(() => "unknown" as string),
         p
           .evaluate(() => {
-            const gs = (window as any).PirateArcadeGameState;
+            const gs = (window as any).PirateArcadeGameState as
+              | PirateArcadeGameState
+              | undefined;
             if (!gs) return null;
             return {
               state: gs.getState ? gs.getState() : null,
-              meta: gs.getMeta ? gs.getMeta() : null,
+              meta: (gs as any).getMeta ? (gs as any).getMeta() : null,
             };
           })
           .catch(() => null),

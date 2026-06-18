@@ -9,16 +9,15 @@ import {
   type PerfReport,
 } from "./helpers/performanceReport";
 import type { RuntimeSnapshot } from "./helpers/diagnostics";
-import { createDiagnosticCollector } from "./helpers/diagnostics";
+import {
+  createDiagnosticCollector,
+  getBootMetrics,
+} from "./helpers/diagnostics";
 
 const GAMES = loadPybagGames();
 
 async function collectSnapshot(page: Page): Promise<PerfSnapshot | null> {
-  return page.evaluate(() => {
-    const pm = (window as any).PirateArcadeMetrics;
-    if (!pm || typeof pm.snapshot !== "function") return null;
-    return pm.snapshot() as PerfSnapshot;
-  });
+  return getBootMetrics(page) as Promise<PerfSnapshot | null>;
 }
 
 async function collectResourceEntries(page: Page): Promise<ResourceEntry[]> {
@@ -42,8 +41,10 @@ async function collectResourceEntries(page: Page): Promise<ResourceEntry[]> {
 
 async function performPrimaryAction(page: Page): Promise<boolean> {
   return page.evaluate(() => {
-    const actions = (window as any).PirateArcadeActions;
-    if (!actions || typeof actions.performPrimary !== "function") return false;
+    const actions = (window as any).PirateArcadeActions as
+      | { performPrimary: () => void }
+      | undefined;
+    if (!actions?.performPrimary) return false;
     actions.performPrimary();
     return true;
   });
@@ -57,12 +58,12 @@ async function waitForMilestone(
   try {
     await page.waitForFunction(
       (m: string) => {
-        const pm = (window as any).PirateArcadeMetrics;
-        return (
-          pm &&
-          typeof pm.snapshot === "function" &&
-          pm.snapshot().marks[m] !== undefined
-        );
+        const pm = (window as any).PirateArcadeMetrics as
+          | {
+              snapshot: () => { marks: Record<string, number> };
+            }
+          | undefined;
+        return pm?.snapshot?.().marks?.[m] !== undefined;
       },
       milestone,
       { timeout: timeoutMs },
@@ -71,9 +72,11 @@ async function waitForMilestone(
     const url = page.url();
     let snapshot: string | null = null;
     try {
-      const s = await page.evaluate(() => {
-        const pm = (window as any).PirateArcadeMetrics;
-        if (!pm || typeof pm.snapshot !== "function") return null;
+      const s = await page.evaluate(async () => {
+        const pm = (window as any).PirateArcadeMetrics as
+          | { snapshot: () => unknown }
+          | undefined;
+        if (!pm?.snapshot) return null;
         return JSON.stringify(pm.snapshot(), null, 2);
       });
       snapshot = s;
@@ -115,9 +118,11 @@ async function waitForLoaderHidden(
     const url = page.url();
     let snapshot: string | null = null;
     try {
-      const s = await page.evaluate(() => {
-        const pm = (window as any).PirateArcadeMetrics;
-        if (!pm || typeof pm.snapshot !== "function") return null;
+      const s = await page.evaluate(async () => {
+        const pm = (window as any).PirateArcadeMetrics as
+          | { snapshot: () => unknown }
+          | undefined;
+        if (!pm?.snapshot) return null;
         return JSON.stringify(pm.snapshot(), null, 2);
       });
       snapshot = s;

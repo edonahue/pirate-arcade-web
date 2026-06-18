@@ -350,6 +350,7 @@
     getState: function () { return _gameState; },
     subscribe: function (cb) {
       _gameStateSubs.push(cb);
+      if (_gameStateSubs.length > 20) _gameStateSubs.shift();
       return function () {
         var idx = _gameStateSubs.indexOf(cb);
         if (idx >= 0) _gameStateSubs.splice(idx, 1);
