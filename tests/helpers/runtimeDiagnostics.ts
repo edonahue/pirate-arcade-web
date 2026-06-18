@@ -4,10 +4,31 @@ import type { PerfSnapshot, RuntimeDiagnostics } from "./performanceReport";
 const MAX_CONSOLE = 50;
 const MAX_ERRORS = 20;
 const MAX_REQUESTS = 50;
+const MAX_OBSERVATIONS = 100;
+
+export interface RequestObservation {
+  requestUrl: string;
+  resourceType: string;
+  method: string;
+  scenarioId: string | null;
+  redirectChain: string[];
+  responseUrl: string;
+  responseStatus: number | null;
+  servedFromWorker: boolean | null;
+  failure: string | null;
+  timestamp: number;
+}
+
+function pushRing<T>(arr: T[], max: number, item: T): void {
+  if (arr.length >= max) arr.shift();
+  arr.push(item);
+}
 
 export interface DiagnosticCollector {
   start(page: Page): void;
+  beginScenario(name: string): void;
   snapshot(testInfo: TestInfo): Promise<RuntimeDiagnostics>;
+  stop(): void;
 }
 
 export function createDiagnosticCollector(): DiagnosticCollector {
@@ -32,14 +53,19 @@ export function createDiagnosticCollector(): DiagnosticCollector {
     timestamp: number;
   }> = [];
   const redirectCounts = new Map<string, number>();
+  const observations: RequestObservation[] = [];
 
   let currentPage: Page | null = null;
   let swAtStart: boolean | null = null;
   let handlersAttached = false;
+  let currentScenario: string | null = null;
+
+  // Tracing redirect chains
+  const redirectMap = new Map<string, string[]>();
+  const seenBefore = new Set<string>();
 
   function onConsole(msg: { type: () => string; text: () => string }) {
-    if (consoleEntries.length >= MAX_CONSOLE) return;
-    consoleEntries.push({
+    pushRing(consoleEntries, MAX_CONSOLE, {
       level: msg.type(),
       text: msg.text().slice(0, 500),
       timestamp: Date.now(),
@@ -47,18 +73,37 @@ export function createDiagnosticCollector(): DiagnosticCollector {
   }
 
   function onPageError(err: Error) {
-    if (pageErrors.length >= MAX_ERRORS) return;
-    pageErrors.push({
+    pushRing(pageErrors, MAX_ERRORS, {
       message: err.message.slice(0, 500),
       stack: err.stack?.slice(0, 500),
       timestamp: Date.now(),
     });
   }
 
+  function onRequest(request: Request) {
+    const url = request.url();
+    if (!url.includes(".tar.gz")) return;
+    redirectMap.set(
+      url,
+      request.redirectedFrom()?.url() ? [request.redirectedFrom()!.url()] : [],
+    );
+  }
+
   function onRequestFailed(request: Request) {
-    if (failedRequests.length >= MAX_REQUESTS) return;
-    failedRequests.push({
+    pushRing(failedRequests, MAX_REQUESTS, {
       url: request.url().slice(0, 500),
+      failure: request.failure()?.errorText ?? null,
+      timestamp: Date.now(),
+    });
+    pushRing(observations, MAX_OBSERVATIONS, {
+      requestUrl: request.url().slice(0, 500),
+      resourceType: request.resourceType(),
+      method: request.method(),
+      scenarioId: currentScenario,
+      redirectChain: redirectMap.get(request.url()) || [],
+      responseUrl: request.url().slice(0, 500),
+      responseStatus: null,
+      servedFromWorker: null,
       failure: request.failure()?.errorText ?? null,
       timestamp: Date.now(),
     });
@@ -66,15 +111,62 @@ export function createDiagnosticCollector(): DiagnosticCollector {
 
   function onResponse(response: Response) {
     const url = response.url();
-    if (!url.includes(".tar.gz")) return;
-    if (archiveRequests.length >= MAX_REQUESTS) return;
-    archiveRequests.push({
-      url: url.slice(0, 500),
-      status: response.status(),
+    const request = response.request();
+
+    if (url.includes(".tar.gz")) {
+      pushRing(archiveRequests, MAX_REQUESTS, {
+        url: url.slice(0, 500),
+        status: response.status(),
+        timestamp: Date.now(),
+      });
+      const canonical = url.split("?")[0];
+      redirectCounts.set(canonical, (redirectCounts.get(canonical) || 0) + 1);
+    }
+
+    // Only observe game-related requests (Pygbag archives, HTML, shared scripts)
+    if (!url.includes(".tar.gz") && !url.includes("/play/")) return;
+
+    const redirectChain = redirectMap.get(url) || [];
+
+    // Determine if response was served via worker
+    let servedFromWorker: boolean | null = null;
+    const headers = response.headers();
+    if ("x-service-worker" in headers) {
+      servedFromWorker = true;
+    } else if ("cf-cache-status" in headers) {
+      servedFromWorker = null; // Cloudflare cache — ambiguous
+    } else {
+      servedFromWorker = false;
+    }
+
+    pushRing(observations, MAX_OBSERVATIONS, {
+      requestUrl: request.url().slice(0, 500),
+      resourceType: request.resourceType(),
+      method: request.method(),
+      scenarioId: currentScenario,
+      redirectChain,
+      responseUrl: url.slice(0, 500),
+      responseStatus: response.status(),
+      servedFromWorker,
+      failure: null,
       timestamp: Date.now(),
     });
-    const canonical = url.split("?")[0];
-    redirectCounts.set(canonical, (redirectCounts.get(canonical) || 0) + 1);
+  }
+
+  function attachHandlers(page: Page) {
+    page.on("console", onConsole);
+    page.on("pageerror", onPageError);
+    page.on("request", onRequest);
+    page.on("requestfailed", onRequestFailed);
+    page.on("response", onResponse);
+  }
+
+  function detachHandlers(page: Page) {
+    page.off("console", onConsole);
+    page.off("pageerror", onPageError);
+    page.off("request", onRequest);
+    page.off("requestfailed", onRequestFailed);
+    page.off("response", onResponse);
   }
 
   return {
@@ -83,17 +175,26 @@ export function createDiagnosticCollector(): DiagnosticCollector {
       handlersAttached = true;
       currentPage = page;
 
-      // Capture SW status at start
+      // Capture SW status at start (best-effort async)
       page
         .evaluate(() => !!navigator.serviceWorker?.controller)
         .then((controlled) => {
           swAtStart = controlled;
         });
 
-      page.on("console", onConsole);
-      page.on("pageerror", onPageError);
-      page.on("requestfailed", onRequestFailed);
-      page.on("response", onResponse);
+      attachHandlers(page);
+    },
+
+    beginScenario(name: string) {
+      currentScenario = name;
+    },
+
+    stop() {
+      if (currentPage && handlersAttached) {
+        detachHandlers(currentPage);
+        handlersAttached = false;
+      }
+      currentPage = null;
     },
 
     async snapshot(testInfo: TestInfo): Promise<RuntimeDiagnostics> {
@@ -128,6 +229,7 @@ export function createDiagnosticCollector(): DiagnosticCollector {
               (e) => e.level === "warning",
             ).length,
           },
+          observations,
         };
       }
 
@@ -199,6 +301,7 @@ export function createDiagnosticCollector(): DiagnosticCollector {
             (e) => e.level === "warning",
           ).length,
         },
+        observations,
       };
     },
   };

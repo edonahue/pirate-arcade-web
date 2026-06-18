@@ -60,6 +60,19 @@ export interface NetworkSummary {
   duplicateStatus: DuplicateStatus;
 }
 
+export interface RequestObservation {
+  requestUrl: string;
+  resourceType: string;
+  method: string;
+  scenarioId: string | null;
+  redirectChain: string[];
+  responseUrl: string;
+  responseStatus: number | null;
+  servedFromWorker: boolean | null;
+  failure: string | null;
+  timestamp: number;
+}
+
 export interface RuntimeDiagnostics {
   schemaVersion: number;
   url: string;
@@ -85,6 +98,7 @@ export interface RuntimeDiagnostics {
     consoleErrorCount: number;
     consoleWarningCount: number;
   };
+  observations?: RequestObservation[];
 }
 
 export interface PerfReport {
@@ -203,7 +217,7 @@ export function detectDuplicateArchives(
 
 export function buildArchiveEvidence(
   resourceEntries: ResourceEntry[],
-  observedRequests: Array<{ url: string; status: number | null }>,
+  observedRequests: RequestObservation[],
   redirectSummaries: Array<{ url: string; redirectCount: number }>,
 ): NetworkSummary {
   const archiveTimings = resourceEntries.filter((r) =>
@@ -223,18 +237,18 @@ export function buildArchiveEvidence(
     byUrl.set(entry.name, existing);
   }
 
-  for (const req of observedRequests) {
-    if (!req.url.includes(".tar.gz")) continue;
-    const existing = byUrl.get(req.url) || {
-      url: req.url,
+  for (const obs of observedRequests) {
+    if (!obs.requestUrl.includes(".tar.gz")) continue;
+    const existing = byUrl.get(obs.requestUrl) || {
+      url: obs.requestUrl,
       status: null,
-      wasObserved: false,
+      wasObserved: true,
       resourceTimingCount: 0,
       redirectCount: 0,
     };
-    existing.status = req.status;
+    existing.status = obs.responseStatus;
     existing.wasObserved = true;
-    byUrl.set(req.url, existing);
+    byUrl.set(obs.requestUrl, existing);
   }
 
   for (const redir of redirectSummaries) {
@@ -244,10 +258,30 @@ export function buildArchiveEvidence(
 
   const requests = Array.from(byUrl.values());
 
-  // Conservative duplicate: multiple _network_ requests for same exact URL
-  const uniqueUrls = new Set(archiveTimings.map((r) => r.name));
-  const duplicateStatus: DuplicateStatus =
-    uniqueUrls.size < archiveTimings.length ? "true" : "false";
+  // Conservative duplicate: check observations for multiple successful
+  // non-redirect network responses for same exact versioned URL
+  const archiveObservations = observedRequests.filter(
+    (o) =>
+      o.requestUrl.includes(".tar.gz") &&
+      o.responseStatus !== null &&
+      o.responseStatus < 400 &&
+      o.redirectChain.length === 0,
+  );
+  const seen = new Set<string>();
+  let hasDuplicate = false;
+  for (const o of archiveObservations) {
+    if (seen.has(o.requestUrl)) {
+      hasDuplicate = true;
+      break;
+    }
+    seen.add(o.requestUrl);
+  }
+
+  const duplicateStatus: DuplicateStatus = hasDuplicate
+    ? "true"
+    : requests.length > 0 && archiveObservations.length > 0
+      ? "false"
+      : "unknown";
 
   return { requests, duplicateStatus };
 }

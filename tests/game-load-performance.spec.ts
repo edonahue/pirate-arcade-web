@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page, type TestInfo } from "@playwright/test";
 import { loadPybagGames } from "./helpers/gameRegistry";
 import {
   classifyLoadType,
@@ -7,35 +7,40 @@ import {
   type PerfSnapshot,
   type ResourceEntry,
   type PerfReport,
-  type LoadClassification,
+  type RuntimeDiagnostics,
 } from "./helpers/performanceReport";
 import { createDiagnosticCollector } from "./helpers/runtimeDiagnostics";
 
 const GAMES = loadPybagGames();
 
-async function collectSnapshot(page: any): Promise<PerfSnapshot | null> {
+async function collectSnapshot(page: Page): Promise<PerfSnapshot | null> {
   return page.evaluate(() => {
     const pm = (window as any).PirateArcadeMetrics;
     if (!pm || typeof pm.snapshot !== "function") return null;
-    return pm.snapshot();
+    return pm.snapshot() as PerfSnapshot;
   });
 }
 
-async function collectResourceEntries(page: any): Promise<ResourceEntry[]> {
+async function collectResourceEntries(page: Page): Promise<ResourceEntry[]> {
   return page.evaluate(() => {
-    return performance.getEntriesByType("resource").map((e: any) => ({
-      name: e.name,
-      duration: e.duration,
-      initiatorType: e.initiatorType,
-      transferSize: e.transferSize,
-      encodedBodySize: e.encodedBodySize,
-      decodedBodySize: e.decodedBodySize,
-      nextHopProtocol: e.nextHopProtocol || "",
-    }));
+    return performance
+      .getEntriesByType("resource")
+      .map((e: PerformanceEntry) => {
+        const r = e as PerformanceResourceTiming;
+        return {
+          name: r.name,
+          duration: r.duration,
+          initiatorType: r.initiatorType,
+          transferSize: r.transferSize,
+          encodedBodySize: r.encodedBodySize,
+          decodedBodySize: r.decodedBodySize,
+          nextHopProtocol: r.nextHopProtocol || "",
+        };
+      });
   });
 }
 
-async function performPrimaryAction(page: any): Promise<boolean> {
+async function performPrimaryAction(page: Page): Promise<boolean> {
   return page.evaluate(() => {
     const actions = (window as any).PirateArcadeActions;
     if (!actions || typeof actions.performPrimary !== "function") return false;
@@ -45,52 +50,102 @@ async function performPrimaryAction(page: any): Promise<boolean> {
 }
 
 async function waitForMilestone(
-  page: any,
+  page: Page,
   milestone: string,
   timeoutMs: number,
 ): Promise<void> {
-  await page.waitForFunction(
-    (m: string) => {
-      const pm = (window as any).PirateArcadeMetrics;
-      return (
-        pm &&
-        typeof pm.snapshot === "function" &&
-        pm.snapshot().marks[m] !== undefined
-      );
-    },
-    milestone,
-    { timeout: timeoutMs },
-  );
+  try {
+    await page.waitForFunction(
+      (m: string) => {
+        const pm = (window as any).PirateArcadeMetrics;
+        return (
+          pm &&
+          typeof pm.snapshot === "function" &&
+          pm.snapshot().marks[m] !== undefined
+        );
+      },
+      milestone,
+      { timeout: timeoutMs },
+    );
+  } catch (err) {
+    const url = page.url();
+    let snapshot: string | null = null;
+    try {
+      const s = await page.evaluate(() => {
+        const pm = (window as any).PirateArcadeMetrics;
+        if (!pm || typeof pm.snapshot !== "function") return null;
+        return JSON.stringify(pm.snapshot(), null, 2);
+      });
+      snapshot = s;
+    } catch {
+      snapshot = "(failed to capture)";
+    }
+    let loadingState = "unknown";
+    try {
+      loadingState = await page.evaluate(() => {
+        const el = document.getElementById("game-loading");
+        if (!el) return "missing";
+        if (el.classList.contains("game-error")) return "error";
+        if (el.classList.contains("hidden")) return "hidden";
+        return "visible";
+      });
+    } catch {}
+    throw new Error(
+      `waitForMilestone("${milestone}") timed out after ${timeoutMs}ms\n` +
+        `URL: ${url}\nLoading state: ${loadingState}\n` +
+        `Latest metrics snapshot:\n${snapshot}`,
+    );
+  }
 }
 
 async function waitForLoaderHidden(
-  page: any,
+  page: Page,
   timeoutMs: number,
 ): Promise<void> {
-  await page.waitForFunction(
-    () => {
-      const overlay = document.getElementById("game-loading");
-      return !overlay || overlay.classList.contains("hidden");
-    },
-    { timeout: timeoutMs },
-  );
+  try {
+    await page.waitForFunction(
+      () => {
+        const overlay = document.getElementById("game-loading");
+        return !overlay || overlay.classList.contains("hidden");
+      },
+      undefined,
+      { timeout: timeoutMs },
+    );
+  } catch (err) {
+    const url = page.url();
+    let snapshot: string | null = null;
+    try {
+      const s = await page.evaluate(() => {
+        const pm = (window as any).PirateArcadeMetrics;
+        if (!pm || typeof pm.snapshot !== "function") return null;
+        return JSON.stringify(pm.snapshot(), null, 2);
+      });
+      snapshot = s;
+    } catch {
+      snapshot = "(failed to capture)";
+    }
+    throw new Error(
+      `waitForLoaderHidden timed out after ${timeoutMs}ms\n` +
+        `URL: ${url}\nLatest metrics snapshot:\n${snapshot}`,
+    );
+  }
 }
 
-async function getNavigationType(page: any): Promise<string> {
+async function getNavigationType(page: Page): Promise<string> {
   return page.evaluate(() => {
     const entries = performance.getEntriesByType("navigation");
     return entries.length > 0 ? (entries[0] as any).type : "unknown";
   });
 }
 
-async function checkNoGameError(page: any): Promise<boolean> {
+async function checkNoGameError(page: Page): Promise<boolean> {
   return page.evaluate(() => {
     const loading = document.getElementById("game-loading");
     return loading ? !loading.classList.contains("game-error") : true;
   });
 }
 
-async function checkCanvasSized(page: any): Promise<boolean> {
+async function checkCanvasSized(page: Page): Promise<boolean> {
   return page.evaluate(() => {
     const c = document.getElementById("canvas");
     return c
@@ -100,41 +155,13 @@ async function checkCanvasSized(page: any): Promise<boolean> {
   });
 }
 
-function buildPlayableReport(
-  game: string,
-  label: string,
-  classification: LoadClassification,
-  snapshot: PerfSnapshot | null,
-  resourceEntries: ResourceEntry[],
-  observedRequests: Array<{ url: string; status: number | null }>,
-  redirectSummaries: Array<{ url: string; redirectCount: number }>,
-): PerfReport {
-  const resourceByType = summarizeResources(resourceEntries);
-  const network = buildArchiveEvidence(
-    resourceEntries,
-    observedRequests,
-    redirectSummaries,
-  );
-  return {
-    game,
-    label,
-    classification,
-    snapshot,
-    resources: {
-      entries: resourceEntries,
-      byType: resourceByType,
-    },
-    network,
-    playable: snapshot?.flags.activePlay ?? false,
-  };
-}
-
-function attachReport(
-  testInfo: any,
+async function attachReport(
+  testInfo: TestInfo,
   gameId: string,
   label: string,
   report: PerfReport,
-) {
+  runtimeDiag: RuntimeDiagnostics,
+): Promise<void> {
   const summary = {
     game: report.game,
     label,
@@ -158,11 +185,14 @@ function attachReport(
     playable: report.playable,
   };
   console.log(
-    `${gameId} (${label}/${report.classification}):`,
-    JSON.stringify(summary, null, 2),
+    `${gameId} (${label}/${report.classification}): activePlay=${report.playable}`,
   );
-  testInfo.attach(`perf-${gameId}-${label}`, {
+  await testInfo.attach(`perf-${gameId}-${label}`, {
     body: JSON.stringify(summary, null, 2),
+    contentType: "application/json",
+  });
+  await testInfo.attach(`diagnostics-${gameId}-${label}`, {
+    body: JSON.stringify(runtimeDiag, null, 2),
     contentType: "application/json",
   });
 }
@@ -180,18 +210,13 @@ for (const game of GAMES) {
       expect(started).toBe(true);
 
       await waitForMilestone(page, "active-play", 30000);
-
-      try {
-        await waitForMilestone(page, "first-user-input", 5000);
-      } catch {
-        // first-user-input is informational — may not fire if bridge
-        // unavailable at the moment of the first primary action
-      }
+      await waitForMilestone(page, "first-user-input", 5000);
 
       const snapshot = await collectSnapshot(page);
       expect(snapshot).not.toBeNull();
       expect(snapshot!.schemaVersion).toBe(1);
       expect(snapshot!.flags.activePlay).toBe(true);
+      expect(snapshot!.flags.firstUserInput).toBe(true);
 
       const resourceEntries = await collectResourceEntries(page);
       const navType = await getNavigationType(page);
@@ -199,36 +224,37 @@ for (const game of GAMES) {
       const classification = classifyLoadType(navType, swControlled);
       const hasNoError = await checkNoGameError(page);
       const canvasOk = await checkCanvasSized(page);
+
       const runtimeDiag = await diag.snapshot(testInfo);
 
-      const observedRequests =
-        runtimeDiag.network.archiveRequestCount > 0
-          ? [{ url: game.path, status: 200 }]
-          : [];
-
-      const report = buildPlayableReport(
-        game.id,
-        "first-navigation",
+      const report: PerfReport = {
+        game: game.id,
+        label: "first-navigation",
         classification,
         snapshot,
-        resourceEntries,
-        observedRequests,
-        [],
+        resources: {
+          entries: resourceEntries,
+          byType: summarizeResources(resourceEntries),
+        },
+        network: buildArchiveEvidence(
+          resourceEntries,
+          runtimeDiag.observations || [],
+          [],
+        ),
+        playable: true,
+      };
+
+      await attachReport(
+        testInfo,
+        game.id,
+        "first-navigation",
+        report,
+        runtimeDiag,
       );
 
-      attachReport(testInfo, game.id, "first-navigation", report);
-      testInfo.attach(`diagnostics-${game.id}-first-navigation`, {
-        body: JSON.stringify(runtimeDiag, null, 2),
-        contentType: "application/json",
-      });
-
-      // Critical assertions
       expect(classification).toBe("fresh-context");
       expect(hasNoError).toBe(true);
       expect(canvasOk).toBe(true);
-
-      // Assert active-play was reached
-      expect(report.playable).toBe(true);
     });
 
     test("reload navigation", async ({ page }, testInfo) => {
@@ -238,31 +264,23 @@ for (const game of GAMES) {
       // First load to activate service worker
       await page.goto(game.path, { waitUntil: "domcontentloaded" });
       await waitForLoaderHidden(page, 120000);
-      await performPrimaryAction(page);
-      try {
-        await waitForMilestone(page, "active-play", 30000);
-      } catch {
-        /* ok */
-      }
 
-      // Reload for the measured scenario
+      // Begin a new scenario for the reload measurement
+      diag.beginScenario("reload");
+
       await page.reload({ waitUntil: "domcontentloaded" });
-
       await waitForLoaderHidden(page, 120000);
 
       const started = await performPrimaryAction(page);
       expect(started).toBe(true);
 
       await waitForMilestone(page, "active-play", 30000);
-
-      try {
-        await waitForMilestone(page, "first-user-input", 5000);
-      } catch {
-        /* informational */
-      }
+      await waitForMilestone(page, "first-user-input", 5000);
 
       const snapshot = await collectSnapshot(page);
       expect(snapshot).not.toBeNull();
+      expect(snapshot!.flags.activePlay).toBe(true);
+      expect(snapshot!.flags.firstUserInput).toBe(true);
 
       const resourceEntries = await collectResourceEntries(page);
       const navType = await getNavigationType(page);
@@ -270,38 +288,36 @@ for (const game of GAMES) {
       const classification = classifyLoadType(navType, swControlled);
       const hasNoError = await checkNoGameError(page);
       const canvasOk = await checkCanvasSized(page);
+
       const runtimeDiag = await diag.snapshot(testInfo);
 
-      const report = buildPlayableReport(
-        game.id,
-        "reload-navigation",
+      const report: PerfReport = {
+        game: game.id,
+        label: "reload-navigation",
         classification,
         snapshot,
-        resourceEntries,
-        [],
-        [],
+        resources: {
+          entries: resourceEntries,
+          byType: summarizeResources(resourceEntries),
+        },
+        network: buildArchiveEvidence(
+          resourceEntries,
+          runtimeDiag.observations || [],
+          [],
+        ),
+        playable: true,
+      };
+
+      await attachReport(
+        testInfo,
+        game.id,
+        "reload-navigation",
+        report,
+        runtimeDiag,
       );
 
-      attachReport(testInfo, game.id, "reload-navigation", report);
-      testInfo.attach(`diagnostics-${game.id}-reload-navigation`, {
-        body: JSON.stringify(runtimeDiag, null, 2),
-        contentType: "application/json",
-      });
-
-      // Critical assertions — same contract as first navigation
       expect(hasNoError).toBe(true);
       expect(canvasOk).toBe(true);
-      expect(report.playable).toBe(true);
-
-      // Log transfer characteristics (informational)
-      const archiveByType = report.resources.byType["archive"];
-      if (archiveByType) {
-        console.log(
-          `${game.id} reload archive: ${archiveByType.count} entries, ` +
-            `${archiveByType.totalTransferSize} bytes transfer, ` +
-            `${archiveByType.totalEncodedSize} bytes encoded`,
-        );
-      }
     });
   });
 }
