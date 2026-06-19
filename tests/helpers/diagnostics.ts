@@ -125,7 +125,11 @@ export interface DiagnosticCollector {
   /** Take a snapshot of current page state + captured events. */
   snapshot(testInfo: TestInfo): Promise<RuntimeSnapshot>;
   /** Attach snapshot to test report and detach listeners. */
-  attach(testInfo: TestInfo, scenarioName: string): Promise<void>;
+  attach(
+    testInfo: TestInfo,
+    scenarioName: string,
+    snapshot?: RuntimeSnapshot,
+  ): Promise<void>;
   /** Detach listeners and release page reference. */
   stop(): void;
 }
@@ -239,12 +243,13 @@ export function createDiagnosticCollector(): DiagnosticCollector {
   function onRequest(request: Request) {
     const url = request.url();
     if (url.includes(".tar.gz") || url.includes("/play/")) {
-      redirectMap.set(
-        url,
-        request.redirectedFrom()?.url()
-          ? [request.redirectedFrom()!.url()]
-          : [],
-      );
+      const chain: string[] = [];
+      let current = request.redirectedFrom();
+      while (current) {
+        chain.unshift(current.url());
+        current = current.redirectedFrom();
+      }
+      redirectMap.set(url, chain);
     }
   }
 
@@ -350,13 +355,14 @@ export function createDiagnosticCollector(): DiagnosticCollector {
     },
 
     beginScenario(name: string) {
-      // Clear scenario-scoped ring buffers
       clearRing(consoleErrors);
       clearRing(consoleWarnings);
       clearRing(pageErrors);
       clearRing(failedRequests);
       clearRing(badResponses);
       clearRing(observations);
+      redirectMap.clear();
+      swAtEnd = null;
       currentScenario = name;
     },
 
@@ -477,11 +483,15 @@ export function createDiagnosticCollector(): DiagnosticCollector {
       };
     },
 
-    async attach(testInfo: TestInfo, scenarioName: string): Promise<void> {
-      const snap = await this.snapshot(testInfo);
+    async attach(
+      testInfo: TestInfo,
+      scenarioName: string,
+      existingSnapshot?: RuntimeSnapshot,
+    ): Promise<void> {
+      const snap = existingSnapshot ?? (await this.snapshot(testInfo));
       const summary = {
         scenario: scenarioName,
-        canvasSize: `${snap.metrics ? "n/a" : "n/a"}`, // metrics not directly in snapshot
+        canvasSize: "see-full-diagnostics",
         loadingState: snap.loadingState,
         consoleErrorCount: snap.consoleErrors.length,
         pageErrorCount: snap.pageErrors.length,

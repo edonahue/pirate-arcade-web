@@ -186,9 +186,10 @@ Lighthouse runs in GitHub Actions as a smoke and baseline audit:
 - Stable Chrome is installed explicitly via `browser-actions/setup-chrome`
 - Reports are uploaded as workflow artifacts (`.lighthouseci/`, retained 7 days)
 - Category and timing assertions are currently **warning-level** (minScore 0.5)
-- `budget.json` provides warning-only route diagnostics via `budgetsFile`
 - The workflow fails when: Chrome cannot run, Lighthouse collection crashes, assertion execution crashes, or configuration is syntactically invalid
 - The workflow does **not** currently fail for ordinary performance-score warnings
+- `budget.json` was **removed** — it was never connected to `lighthouserc.cjs`
+  (the `budgetsFile` key was absent from the assertion config)
 
 Future calibration work:
 
@@ -323,26 +324,18 @@ same across all browser games. Currently `"mobile-v8"`.
 
 ## Performance budgets
 
-Two systems enforce budgets:
-
 ### Asset-size budgets (`scripts/check-performance-budgets.mjs`)
 
 - Total CSS size < 50 KB (gzipped).
 - Total JS size < 500 KB (gzipped, includes Phaser).
 - Total HTML size < 100 KB (gzipped per page).
 - Total image size < 3 MB (raw).
+- Budgets are computed **recursively** from `dist/` (all subdirectories scanned).
+- Supports `--json-output` flag for CI consumption.
+- Budget-checking functions are exported for **unit testing** (16 tests in `tests/unit/check-performance-budgets.test.ts`).
 - Runs from `dist/` after build.
 
-### Lighthouse budgets (`budget.json` + `lighthouserc.cjs`)
-
-- **Static pages** (/, /about/, /source/, /credits/, /games/\*/):
-  FCP ≤ 1.5s, LCP ≤ 2.5s, TBT ≤ 50ms, CLS ≤ 0.1, Performance ≥ 90.
-- **Game listing** (/play/):
-  FCP ≤ 1.8s, LCP ≤ 3.0s, TBT ≤ 100ms, CLS ≤ 0.1.
-- **Game shells** (/play/cannonball-clash/, /play/race-to-treasure-island/):
-  FCP ≤ 2.0s, LCP ≤ 4.0s, TBT ≤ 200ms, CLS ≤ 0.1.
-
-Run manually: `npm run test:lhci` (requires built `dist/`).
+Lighthouse route budgets (`budget.json`) have been **removed** — the file was never loaded by `lighthouserc.cjs`. Asset-size budgets are the sole budget enforcement mechanism.
 
 ## New browser game architecture & checklist
 

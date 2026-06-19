@@ -11,255 +11,260 @@ const CHECKS = {
   format: {
     name: "Format check",
     cmd: "npm run format:check",
-    phase: "prereq",
-    slow: false,
+    cmdParts: ["npm", "run", "format:check"],
+    group: "prereq",
   },
   typecheck: {
     name: "Typecheck",
     cmd: "npm run typecheck",
-    phase: "prereq",
-    slow: false,
+    cmdParts: ["npm", "run", "typecheck"],
+    group: "prereq",
   },
-  build: { name: "Build", cmd: "npm run build", phase: "prereq", slow: false },
+  build: {
+    name: "Build",
+    cmd: "npm run build",
+    cmdParts: ["npm", "run", "build"],
+    group: "prereq",
+  },
   "seo-audit": {
     name: "SEO audit",
     cmd: "npm run seo:audit",
-    phase: "static",
-    slow: false,
+    cmdParts: ["npm", "run", "seo:audit"],
+    group: "static",
   },
   "copy-tone": {
     name: "Copy tone",
     cmd: "npm run test:copy-tone",
-    phase: "static",
-    slow: false,
+    cmdParts: ["npm", "run", "test:copy-tone"],
+    group: "static",
   },
   "css-tokens": {
     name: "CSS tokens",
     cmd: "npm run test:css-tokens",
-    phase: "static",
-    slow: false,
+    cmdParts: ["npm", "run", "test:css-tokens"],
+    group: "static",
   },
   contrast: {
     name: "Visual contrast",
     cmd: "npm run test:visual-contrast",
-    phase: "static",
-    slow: false,
+    cmdParts: ["npm", "run", "test:visual-contrast"],
+    group: "static",
   },
   dependency: {
     name: "Dependency hygiene",
     cmd: "npm run check:dependency-hygiene",
-    phase: "static",
-    slow: false,
+    cmdParts: ["npm", "run", "check:dependency-hygiene"],
+    group: "static",
   },
   headers: {
     name: "Cloudflare headers",
     cmd: "npm run test:check-headers",
-    phase: "static",
-    slow: false,
+    cmdParts: ["npm", "run", "test:check-headers"],
+    group: "static",
   },
   shells: {
     name: "Browser game shells",
     cmd: "npm run test:browser-game-shells",
-    phase: "static",
-    slow: false,
+    cmdParts: ["npm", "run", "test:browser-game-shells"],
+    group: "static",
   },
   "shell-int": {
     name: "Game shell integrity",
     cmd: "npm run test:game-shell-integrity",
-    phase: "static",
-    slow: false,
+    cmdParts: ["npm", "run", "test:game-shell-integrity"],
+    group: "static",
   },
   sw: {
     name: "Service worker",
     cmd: "npm run test:service-worker",
-    phase: "static",
-    slow: false,
+    cmdParts: ["npm", "run", "test:service-worker"],
+    group: "static",
   },
   cachever: {
     name: "Cache versioning",
     cmd: "npm run test:cache-versioning",
-    phase: "static",
-    slow: false,
+    cmdParts: ["npm", "run", "test:cache-versioning"],
+    group: "static",
   },
   boot: {
     name: "Pygbag boot contract",
     cmd: "npm run test:pygbag-boot-contract",
-    phase: "static",
-    slow: false,
+    cmdParts: ["npm", "run", "test:pygbag-boot-contract"],
+    group: "static",
   },
   drift: {
     name: "Pygbag shell drift",
     cmd: "npm run test:pygbag-shell-drift",
-    phase: "static",
-    slow: false,
+    cmdParts: ["npm", "run", "test:pygbag-shell-drift"],
+    group: "static",
   },
   versions: {
     name: "Game versions",
     cmd: "npm run test:game-versions",
-    phase: "static",
-    slow: false,
+    cmdParts: ["npm", "run", "test:game-versions"],
+    group: "static",
   },
   htmlstruct: {
     name: "HTML structure",
     cmd: "npm run test:html-structure",
-    phase: "static",
-    slow: false,
+    cmdParts: ["npm", "run", "test:html-structure"],
+    group: "static",
   },
   archivepar: {
     name: "Archive parity",
     cmd: "npm run test:archive-parity",
-    phase: "static",
-    slow: false,
+    cmdParts: ["npm", "run", "test:archive-parity"],
+    group: "static",
   },
   archaudit: {
     name: "Audit game archives",
     cmd: "npm run audit:game-archives",
-    phase: "static",
-    slow: false,
+    cmdParts: ["npm", "run", "audit:game-archives"],
+    group: "static",
   },
   links: {
     name: "Site links",
     cmd: "npm run test:site-links",
-    phase: "static",
-    slow: false,
+    cmdParts: ["npm", "run", "test:site-links"],
+    group: "static",
   },
   pdart: {
     name: "Public domain art",
     cmd: "npm run test:public-domain-art",
-    phase: "static",
-    slow: false,
+    cmdParts: ["npm", "run", "test:public-domain-art"],
+    group: "static",
   },
   themingsrc: {
     name: "Game theming source",
     cmd: "npm run test:game-theming-source",
-    phase: "static",
-    slow: false,
+    cmdParts: ["npm", "run", "test:game-theming-source"],
+    group: "static",
   },
   registry: {
     name: "Game registry",
     cmd: "npm run test:game-registry",
-    phase: "static",
-    slow: false,
+    cmdParts: ["npm", "run", "test:game-registry"],
+    group: "static",
   },
   docs: {
     name: "Repository docs",
     cmd: "npm run test:docs",
-    phase: "static",
-    slow: false,
+    cmdParts: ["npm", "run", "test:docs"],
+    group: "static",
   },
   ships: {
     name: "Race ship assets",
     cmd: "npm run test:race-ship-assets",
-    phase: "static",
-    slow: false,
+    cmdParts: ["npm", "run", "test:race-ship-assets"],
+    group: "static",
   },
   screenshots: {
     name: "Screenshot assets",
     cmd: "npm run test:screenshot-assets",
-    phase: "static",
-    slow: false,
+    cmdParts: ["npm", "run", "test:screenshot-assets"],
+    group: "static",
   },
   budgets: {
     name: "Performance budgets",
     cmd: "npm run test:performance-budgets",
-    phase: "static",
-    slow: false,
+    cmdParts: ["npm", "run", "test:performance-budgets"],
+    group: "static",
   },
   sitetheme: {
     name: "Site theme",
     cmd: "npm run test:site-theme",
-    phase: "full",
-    slow: false,
+    cmdParts: ["npm", "run", "test:site-theme"],
+    group: "browser",
   },
   sitecontent: {
     name: "Site game content",
     cmd: "npm run test:site-game-content",
-    phase: "full",
-    slow: false,
+    cmdParts: ["npm", "run", "test:site-game-content"],
+    group: "browser",
   },
   a11y: {
     name: "Accessibility",
     cmd: "npm run test:a11y",
-    phase: "full",
-    slow: false,
+    cmdParts: ["npm", "run", "test:a11y"],
+    group: "browser",
   },
   mobilelayout: {
     name: "Mobile layout",
     cmd: "npm run test:mobile-layout",
-    phase: "full",
-    slow: false,
+    cmdParts: ["npm", "run", "test:mobile-layout"],
+    group: "browser",
   },
   mobilepause: {
     name: "Mobile pause",
     cmd: "npm run test:mobile-pause",
-    phase: "full",
-    slow: false,
+    cmdParts: ["npm", "run", "test:mobile-pause"],
+    group: "browser",
   },
   mobileinput: {
     name: "Mobile input",
     cmd: "npm run test:mobile-input",
-    phase: "full",
-    slow: false,
+    cmdParts: ["npm", "run", "test:mobile-input"],
+    group: "browser",
   },
   mobilenav: {
     name: "Mobile navigation",
     cmd: "npm run test:mobile-navigation",
-    phase: "full",
-    slow: false,
+    cmdParts: ["npm", "run", "test:mobile-navigation"],
+    group: "browser",
   },
   mobilereg: {
     name: "Mobile regression",
     cmd: "npm run test:mobile-regression",
-    phase: "full",
-    slow: false,
+    cmdParts: ["npm", "run", "test:mobile-regression"],
+    group: "browser",
   },
   ipadlayout: {
     name: "iPad layout",
     cmd: "npm run test:ipad-layout",
-    phase: "full",
-    slow: false,
+    cmdParts: ["npm", "run", "test:ipad-layout"],
+    group: "browser",
   },
   ipadcontrols: {
     name: "iPad controls",
     cmd: "npm run test:ipad-controls",
-    phase: "full",
-    slow: false,
+    cmdParts: ["npm", "run", "test:ipad-controls"],
+    group: "browser",
   },
   browsergames: {
     name: "Browser games (chromium)",
     cmd: "npm run test:browser-games:chromium",
-    phase: "full",
-    slow: false,
+    cmdParts: ["npm", "run", "test:browser-games:chromium"],
+    group: "browser",
   },
   webnativegames: {
     name: "Web-native games (chromium)",
     cmd: "npm run test:web-native-games:chromium",
-    phase: "full",
-    slow: false,
+    cmdParts: ["npm", "run", "test:web-native-games:chromium"],
+    group: "browser",
   },
   gametheme: {
     name: "Game theming (visual)",
     cmd: "npm run test:game-theming",
-    phase: "full",
-    slow: false,
+    cmdParts: ["npm", "run", "test:game-theming"],
+    group: "browser",
   },
   prewarm: {
     name: "Game prewarm",
     cmd: "npm run test:game-prewarm",
-    phase: "full",
-    slow: false,
+    cmdParts: ["npm", "run", "test:game-prewarm"],
+    group: "browser",
   },
   captainslog: {
     name: "Captain's Log",
     cmd: "npm run test:captains-log",
-    phase: "full",
-    slow: false,
+    cmdParts: ["npm", "run", "test:captains-log"],
+    group: "browser",
   },
   lhci: {
     name: "Lighthouse CI",
     cmd: "npm run test:lhci",
-    phase: "full",
-    slow: true,
+    cmdParts: ["npm", "run", "test:lhci"],
+    group: "lighthouse",
   },
 };
 
@@ -331,7 +336,7 @@ const PROFILES = {
 // ── Pure: argument parsing ────────────────────────────────────────
 
 export function parseArgs(argv) {
-  const flags = { list: false, continueOnFail: false };
+  const flags = { list: false, continueOnFail: false, json: false };
   let explicitProfile = null;
   let jsonOutputPath = null;
   const errors = [];
@@ -341,6 +346,8 @@ export function parseArgs(argv) {
       flags.list = true;
     } else if (arg === "--continue") {
       flags.continueOnFail = true;
+    } else if (arg === "--json") {
+      flags.json = true;
     } else if (arg === "--fast") {
       setProfile("fast");
     } else if (arg === "--full") {
@@ -389,7 +396,7 @@ export function resolveProfile(profileName) {
 
 // ── Command execution ────────────────────────────────────────────
 
-function runCommand(check) {
+export function runCommand(check) {
   const start = Date.now();
   let status = "passed";
   let exitCode = 0;
@@ -417,67 +424,246 @@ function runCommand(check) {
   };
 }
 
-/** Run multiple independent checks with bounded concurrency (3 at a time). */
-function runCommandsParallel(checks) {
-  const CONCURRENCY = 3;
+export async function runCommandAsync(check) {
+  return new Promise((resolve) => {
+    const startMs = Date.now();
+    const cmdParts = check.cmdParts || check.cmd.split(/\s+/);
+    const proc = execFile(
+      cmdParts[0],
+      cmdParts.slice(1),
+      { shell: "/bin/bash" },
+      (err) => {
+        const elapsedMs = Date.now() - startMs;
+        let status = "passed";
+        let exitCode = 0;
+        let signal = null;
+        if (err) {
+          status = "failed";
+          exitCode = err.status || 1;
+          signal = err.signal || null;
+        }
+        resolve({
+          id: check.id,
+          name: check.name,
+          command: check.cmd,
+          status,
+          elapsedMs,
+          exitCode,
+          signal,
+        });
+      },
+    );
+    proc.stdout?.pipe(process.stdout);
+    proc.stderr?.pipe(process.stderr);
+  });
+}
+
+/**
+ * Run checks in a bounded worker pool.
+ * Every worker claims the next index via claimNextIndex, ensuring
+ * no index is processed twice and the function resolves only after
+ * every started check completes.
+ *
+ * @param {Array} checks
+ * @param {number} concurrency
+ * @param {function} [runCheckAsyncFn] - injectable async run function
+ */
+export async function runChecksParallel(
+  checks,
+  concurrency = 3,
+  runCheckAsyncFn,
+) {
+  if (checks.length === 0) return [];
   const results = [];
   let nextIndex = 0;
+  const runFn = runCheckAsyncFn || runCommandAsync;
 
-  function startOne(resolve) {
-    const i = nextIndex++;
-    const check = checks[i];
-    if (!check) return resolve();
-    const [cmd, ...args] = check.cmd.split(/\s+/);
-    const startMs = Date.now();
-    const proc = execFile(cmd, args, { shell: "/bin/bash" }, (err) => {
-      const elapsedMs = Date.now() - startMs;
-      let status = "passed";
-      let exitCode = 0;
-      let signal = null;
-      if (err) {
-        status = "failed";
-        exitCode = err.status || 1;
-        signal = err.signal || null;
-      }
-      results.push({
-        id: check.id,
-        name: check.name,
-        command: check.cmd,
-        status,
-        elapsedMs,
-        exitCode,
-        signal,
-        index: i,
-      });
-      startOne(resolve);
-    });
-    proc.stdout.pipe(process.stdout);
-    proc.stderr.pipe(process.stderr);
+  function claimNextIndex() {
+    const i = nextIndex;
+    if (i >= checks.length) return null;
+    nextIndex = i + 1;
+    return i;
   }
 
-  return new Promise((resolve) => {
-    var started = 0;
-    while (started < CONCURRENCY && started < checks.length) {
-      started++;
-      startOne(resolve);
+  async function worker() {
+    while (true) {
+      const index = claimNextIndex();
+      if (index === null) return;
+      results[index] = await runFn(checks[index]);
     }
-  }).then(() =>
-    results.sort((a, b) => a.index - b.index).map(({ index: _, ...r }) => r),
-  );
+  }
+
+  const workerCount = Math.min(concurrency, checks.length);
+  await Promise.all(Array.from({ length: workerCount }, () => worker()));
+
+  return results;
+}
+
+// ── Orchestrator ──────────────────────────────────────────────────
+
+/**
+ * Run a collection of checks respecting execution-class safety.
+ *
+ * In fail-fast mode, any failure within a group skips the rest of that
+ * group and all later groups.
+ * In --continue mode, every check runs regardless of failures, but
+ * execution-class safety (static parallel, browser sequential, etc.)
+ * is still enforced.
+ *
+ * @param {object} options
+ * @param {Array} options.checks - check objects with .group
+ * @param {boolean} options.continueOnFail - continue after failures
+ * @param {function} [options.runCheck] - injectable run function (for testing)
+ * @param {function} [options.runCheckAsync] - injectable async run function (for testing)
+ * @returns {{ results: Array, skipped: Array }}
+ */
+export async function runChecksByGroup({
+  checks,
+  continueOnFail,
+  runCheck: runCheckSync,
+  runCheckAsync: runCheckAsyncFn,
+}) {
+  const results = [];
+  const skipped = [];
+  const runSync = runCheckSync || runCommand;
+  const runAsync = runCheckAsyncFn || runCommandAsync;
+
+  const groups = ["prereq", "static", "browser", "lighthouse", "isolated"];
+  const groupOrder = {};
+  groups.forEach((g, i) => {
+    groupOrder[g] = i;
+  });
+
+  const byGroup = {};
+  for (const check of checks) {
+    const g = check.group || "static";
+    if (!byGroup[g]) byGroup[g] = [];
+    byGroup[g].push(check);
+  }
+
+  function skipFromGroup(groupName, startIdx) {
+    const group = byGroup[groupName] || [];
+    for (let j = startIdx; j < group.length; j++) {
+      skipped.push({
+        id: group[j].id,
+        name: group[j].name,
+        reason: "fail-fast",
+      });
+    }
+    const gIdx = groupOrder[groupName];
+    for (let g = gIdx + 1; g < groups.length; g++) {
+      const laterGroup = byGroup[groups[g]];
+      if (laterGroup) {
+        for (const c of laterGroup) {
+          skipped.push({ id: c.id, name: c.name, reason: "fail-fast" });
+        }
+      }
+    }
+  }
+
+  function shouldKeepGoing() {
+    return continueOnFail || skipped.length === 0;
+  }
+
+  // ── Prerequisites (sequential) ──
+  const prereqGroup = byGroup["prereq"] || [];
+  for (let i = 0; i < prereqGroup.length; i++) {
+    const check = prereqGroup[i];
+    const result = runSync(check);
+    results.push(result);
+    if (result.status !== "passed") {
+      if (!continueOnFail) {
+        skipFromGroup("prereq", i + 1);
+        return { results, skipped };
+      }
+    }
+  }
+
+  const anyPrereqFailed = results
+    .slice(0, prereqGroup.length)
+    .some((r) => r.status !== "passed");
+
+  // If --continue is off and a prereq failed, we already returned.
+  // If --continue is on, proceed regardless.
+
+  // ── Static checks (parallel in --continue, sequential in fail-fast) ──
+  const staticGroup = byGroup["static"] || [];
+  if (staticGroup.length > 0) {
+    if (continueOnFail) {
+      const parallelResults = await runChecksParallel(staticGroup, 3, runAsync);
+      for (const result of parallelResults) {
+        results.push(result);
+      }
+    } else {
+      for (let i = 0; i < staticGroup.length; i++) {
+        const check = staticGroup[i];
+        const result = runSync(check);
+        results.push(result);
+        if (result.status !== "passed") {
+          skipFromGroup("static", i + 1);
+          return { results, skipped };
+        }
+      }
+    }
+  }
+
+  // ── Browser checks (sequential — they start preview servers) ──
+  const browserGroup = byGroup["browser"] || [];
+  for (let i = 0; i < browserGroup.length; i++) {
+    const check = browserGroup[i];
+    const result = runSync(check);
+    results.push(result);
+    if (result.status !== "passed" && !continueOnFail) {
+      skipFromGroup("browser", i + 1);
+      return { results, skipped };
+    }
+  }
+
+  // ── Isolated checks (sequential, exclusive) ──
+  const isolatedGroup = byGroup["isolated"] || [];
+  for (let i = 0; i < isolatedGroup.length; i++) {
+    const check = isolatedGroup[i];
+    const result = runSync(check);
+    results.push(result);
+    if (result.status !== "passed" && !continueOnFail) {
+      skipFromGroup("isolated", i + 1);
+      return { results, skipped };
+    }
+  }
+
+  // ── Lighthouse (alone, last) ──
+  const lighthouseGroup = byGroup["lighthouse"] || [];
+  for (let i = 0; i < lighthouseGroup.length; i++) {
+    const check = lighthouseGroup[i];
+    const result = runSync(check);
+    results.push(result);
+    if (result.status !== "passed" && !continueOnFail) {
+      skipFromGroup("lighthouse", i + 1);
+      return { results, skipped };
+    }
+  }
+
+  return { results, skipped };
 }
 
 // ── JSON report builder ──────────────────────────────────────────
 
-function buildReport(profileName, results, startedAt, skipped) {
+export function buildReport(profileName, results, startedAt, skipped) {
   const passed = results.filter((r) => r.status === "passed").length;
   const failed = results.filter((r) => r.status !== "passed").length;
   const sorted = [...results].sort((a, b) => b.elapsedMs - a.elapsedMs);
   return {
-    schemaVersion: 2,
+    schemaVersion: 3,
     profile: profileName,
     startedAt: startedAt.toISOString(),
     finishedAt: new Date().toISOString(),
     elapsedMs: Date.now() - startedAt.getTime(),
+    summary: {
+      passed,
+      failed,
+      skipped: skipped ? skipped.length : 0,
+      total: results.length + (skipped ? skipped.length : 0),
+    },
     checks: results.map((r) => ({
       id: r.id,
       name: r.name,
@@ -487,15 +673,11 @@ function buildReport(profileName, results, startedAt, skipped) {
       exitCode: r.exitCode,
       signal: r.signal || undefined,
     })),
-    skipped: skipped.map((s) => ({
+    skippedChecks: (skipped || []).map((s) => ({
       id: s.id,
       name: s.name,
-      reason: "fail-fast",
+      reason: s.reason || "fail-fast",
     })),
-    passed,
-    failed,
-    skipped: skipped.length,
-    total: results.length + skipped.length,
     slowest:
       sorted.length > 0
         ? sorted
@@ -508,7 +690,6 @@ function buildReport(profileName, results, startedAt, skipped) {
 function writeJsonAtomic(filePath, data) {
   const tmp = filePath + ".tmp." + process.pid;
   writeFileSync(tmp, JSON.stringify(data, null, 2) + "\n", "utf-8");
-  // Atomic rename (POSIX guarantee; best-effort on Windows)
   try {
     if (existsSync(filePath)) {
       renameSync(filePath, filePath + ".bak." + process.pid);
@@ -543,14 +724,13 @@ async function main() {
     console.log(
       JSON.stringify(
         {
-          schemaVersion: 2,
+          schemaVersion: 3,
           profile: profileName,
           checks: checks.map((c) => ({
             id: c.id,
             name: c.name,
             command: c.cmd,
-            phase: c.phase,
-            slow: c.slow,
+            group: c.group,
           })),
         },
         null,
@@ -565,97 +745,54 @@ async function main() {
   function onSignal(sig) {
     if (shuttingDown) return;
     shuttingDown = true;
-    console.error(`\n⚠️  Interrupted by ${sig}`);
+    console.error(`\n\u26a0\ufe0f  Interrupted by ${sig}`);
     process.exit(128 + (sig === "SIGINT" ? 2 : sig === "SIGTERM" ? 15 : 1));
   }
   process.on("SIGINT", () => onSignal("SIGINT"));
   process.on("SIGTERM", () => onSignal("SIGTERM"));
 
   const mode = profileName.toUpperCase();
-  console.log(`\n🚀 Starting ${mode} release gate (${checks.length} checks)`);
+  console.log(
+    `\n\u{1F680} Starting ${mode} release gate (${checks.length} checks)`,
+  );
   console.log(
     `   Mode: ${flags.continueOnFail ? "continue on failure" : "fail-fast (default)"}\n`,
   );
 
   const startedAt = new Date();
-  const results = [];
-  const skipped = [];
 
-  const prereqChecks = checks.filter((c) => c.phase === "prereq");
-  const independentChecks = checks.filter((c) => c.phase !== "prereq");
-
-  // ── Prerequisites (sequential, fail-fast aware) ─────────────
-  for (const check of prereqChecks) {
-    console.log(`  ▶ ${check.name}`);
-    const result = runCommand(check);
-    results.push(result);
-    if (result.status === "passed") {
-      console.log(`    ✅ (${result.elapsedMs}ms)`);
-    } else {
-      console.error(
-        `    ❌ failed (${result.elapsedMs}ms, exit ${result.exitCode}${result.signal ? `, signal ${result.signal}` : ""})`,
-      );
-      if (!flags.continueOnFail) {
-        for (const rest of [
-          ...prereqChecks.slice(results.length),
-          ...independentChecks,
-        ]) {
-          skipped.push({ id: rest.id, name: rest.name });
-        }
-        break;
-      }
-    }
-  }
-
-  // ── Independent checks (parallel in --continue mode, sequential otherwise) ──
-  const prereqFailed = results.some((r) => r.status !== "passed");
-  if (independentChecks.length > 0 && !prereqFailed) {
-    const runParallel = flags.continueOnFail;
-    if (runParallel) {
-      console.log("");
-      const parallelResults = await runCommandsParallel(independentChecks);
-      for (const result of parallelResults) {
-        results.push(result);
-        const msg =
-          result.status === "passed"
-            ? `    ✅ (${result.elapsedMs}ms)`
-            : `    ❌ failed (${result.elapsedMs}ms, exit ${result.exitCode}${result.signal ? `, signal ${result.signal}` : ""})`;
-        console.log(`  ▶ ${result.name}\n${msg}`);
-      }
-    } else {
-      for (let i = 0; i < independentChecks.length; i++) {
-        const check = independentChecks[i];
-        console.log(`  ▶ ${check.name}`);
-        const result = runCommand(check);
-        results.push(result);
-        if (result.status === "passed") {
-          console.log(`    ✅ (${result.elapsedMs}ms)`);
-        } else {
-          console.error(
-            `    ❌ failed (${result.elapsedMs}ms, exit ${result.exitCode}${result.signal ? `, signal ${result.signal}` : ""})`,
-          );
-          for (const rest of independentChecks.slice(i + 1)) {
-            skipped.push({ id: rest.id, name: rest.name });
-          }
-          break;
-        }
-      }
-    }
-  }
+  const { results, skipped } = await runChecksByGroup({
+    checks,
+    continueOnFail: flags.continueOnFail,
+  });
 
   const report = buildReport(profileName, results, startedAt, skipped);
 
-  // Human summary
-  const totalPassed = report.passed;
-  const totalFailed = report.failed;
-  const totalSkipped = skipped.length;
-  const totalCheck = report.total;
+  // Human output
+  for (const r of results) {
+    const idx = checks.findIndex((c) => c.id === r.id);
+    const check = checks[idx];
+    if (check) {
+      console.log(`  \u25b6 ${check.name}`);
+      const msg =
+        r.status === "passed"
+          ? `    \u2705 (${r.elapsedMs}ms)`
+          : `    \u274c failed (${r.elapsedMs}ms, exit ${r.exitCode}${r.signal ? `, signal ${r.signal}` : ""})`;
+      console.log(msg);
+    }
+  }
 
-  console.log(`\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
-  console.log(`📊 ${mode} gate complete in ${report.elapsedMs}ms`);
-  console.log(`   ✅ Passed: ${totalPassed}`);
-  if (totalFailed > 0) console.log(`   ❌ Failed: ${totalFailed}`);
-  if (totalSkipped > 0) console.log(`   ⏭  Skipped: ${totalSkipped}`);
+  // Summary
+  const totalPassed = report.summary.passed;
+  const totalFailed = report.summary.failed;
+  const totalSkipped = report.summary.skipped;
+  const totalCheck = report.summary.total;
+
+  console.log(`\n\u2501`.repeat(46));
+  console.log(`\u{1F4CA} ${mode} gate complete in ${report.elapsedMs}ms`);
+  console.log(`   \u2705 Passed: ${totalPassed}`);
+  if (totalFailed > 0) console.log(`   \u274c Failed: ${totalFailed}`);
+  if (totalSkipped > 0) console.log(`   \u23ed  Skipped: ${totalSkipped}`);
   console.log(`   Total: ${totalCheck}`);
   if (report.slowest.length > 0) {
     console.log(`   Slowest:`);
@@ -663,7 +800,7 @@ async function main() {
       console.log(`     ${s.name} (${s.elapsedMs}ms)`);
   }
 
-  if (totalFailed > 0 && report.checks.find((c) => c.status !== "passed")) {
+  if (totalFailed > 0) {
     console.error(`\nFailed checks:`);
     for (const c of report.checks) {
       if (c.status !== "passed") console.error(`   [${c.id}] ${c.name}`);
@@ -674,16 +811,20 @@ async function main() {
   if (jsonOutputPath) {
     const resolvedPath = resolve(jsonOutputPath);
     writeJsonAtomic(resolvedPath, report);
-    console.log(`\n📄 JSON report written to ${resolvedPath}`);
+    console.log(`\n\u{1F4C4} JSON report written to ${resolvedPath}`);
   }
 
-  // Also always emit JSON to stdout as second line (last line) for tooling
-  console.log("\n" + JSON.stringify(report));
+  if (flags.json) {
+    console.log(JSON.stringify(report));
+  } else if (!jsonOutputPath) {
+    // Always emit compact JSON as last line for tooling (unless --json was used to suppress it)
+    console.log("\n" + JSON.stringify(report));
+  }
 
   process.exit(totalFailed > 0 ? 1 : 0);
 }
 
-// Guard: only run main when this is the entry point (not when imported for testing)
+// Guard: only run main when this is the entry point
 const thisFile = fileURLToPath(import.meta.url);
 const isEntry =
   process.argv[1] &&

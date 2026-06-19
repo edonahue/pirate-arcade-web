@@ -9,7 +9,6 @@
   var debugTouch = window.location.search.includes('debugTouch=1');
   if (debugTouch) {
     console.log('[mobile-controls] Debug mode enabled');
-    // Inject debug styles
     var style = document.createElement('style');
     style.textContent = `
       .debug-touch-outline {
@@ -30,29 +29,31 @@
   var dragActive = {};
   var dragStarted = false;
 
-  // Per-game control mode
+  // Read controls metadata from game-wrap
+  var gameWrap = document.getElementById('game-wrap');
+  var directionalKeys = {};
+  var dragAxis = 'x';
   var controlMode = '';
-  var node = overlay;
-  while (node) {
-    if (node.dataset && node.dataset.controls) {
-      controlMode = node.dataset.controls;
-      break;
+  if (gameWrap) {
+    try {
+      directionalKeys = JSON.parse(gameWrap.getAttribute('data-control-directional-keys') || '{}');
+    } catch (e) {
+      directionalKeys = {};
     }
-    node = node.parentNode;
+    dragAxis = gameWrap.getAttribute('data-control-drag-axis') || 'x';
+    controlMode = gameWrap.getAttribute('data-control-mode') || '';
   }
-  var isPong = controlMode === 'pong';
-  var isBreakout = controlMode === 'breakout';
-  var isAsteroids = controlMode === 'asteroids';
 
-  // Key mappings for fallback nudge buttons
-  var DIR_KEYS = {
-    left: isPong ? ['ArrowUp', 'w'] : isBreakout ? ['ArrowLeft', 'a'] : ['ArrowLeft', 'a'],
-    right: isPong ? ['ArrowDown', 's'] : isBreakout ? ['ArrowRight', 'd'] : ['ArrowRight', 'd'],
-    up: ['ArrowUp', 'w'],
-    down: ['ArrowDown', 's'],
-    thrust: ['ArrowUp', 'w'],
-    fire: ['Space'],
-  };
+  // Map button data-dir to logical direction name based on control mode.
+  // Pong uses left/right nudge buttons for up/down movement (vertical paddle).
+  function dirToLogical(dataDir) {
+    if (controlMode === 'pong') {
+      if (dataDir === 'left') return 'up';
+      if (dataDir === 'right') return 'down';
+    }
+    // breakout, asteroids, and default: left→left, right→right, up→up, down→down
+    return dataDir;
+  }
 
   var input = window.PirateArcadeInput;
 
@@ -61,12 +62,6 @@
   }
   function release(k) {
     if (input) { input.keyUp(k); }
-  }
-
-  function pressAndRelease(k) {
-    if (input) {
-      input.tap(k, 220);
-    }
   }
 
   // Debug helper: show outline around element
@@ -91,8 +86,7 @@
       labelEl.style.top = (rect.top - 20) + 'px';
       document.body.appendChild(labelEl);
       
-      // Clean up after short delay
-      setTimeout(() => {
+      setTimeout(function () {
         labelEl.remove();
         el.classList.remove('debug-touch-outline');
       }, 1500);
@@ -133,7 +127,6 @@
   function updateDragTarget(e) {
     var coords = getCanvasGameCoords(e.clientX, e.clientY);
     if (!coords) return;
-    var dragAxis = dragActive.axis;
     if (dragAxis === 'y') {
       if (input) input.setTouchTarget('y', coords.y, true);
     } else if (dragAxis === 'x') {
@@ -161,17 +154,15 @@
     e.preventDefault();
     btn.classList.add('pressed');
     try { btn.setPointerCapture(e.pointerId); } catch (e) {}
-    if (d === 'left' || d === 'right') {
-      held[e.pointerId] = { keys: DIR_KEYS[d] };
-      held[e.pointerId].keys.forEach(hold);
-    } else if (d === 'up' || d === 'down') {
-      held[e.pointerId] = { keys: DIR_KEYS[d] };
+    if (d === 'left' || d === 'right' || d === 'up' || d === 'down') {
+      var logical = dirToLogical(d);
+      held[e.pointerId] = { keys: directionalKeys[logical] || ['Arrow' + logical.charAt(0).toUpperCase() + logical.slice(1)] };
       held[e.pointerId].keys.forEach(hold);
     } else if (d === 'thrust') {
-      held[e.pointerId] = { keys: DIR_KEYS.thrust };
+      held[e.pointerId] = { keys: directionalKeys.thrust || ['ArrowUp', 'w'] };
       held[e.pointerId].keys.forEach(hold);
     } else if (d === 'fire') {
-      held[e.pointerId] = { keys: DIR_KEYS.fire };
+      held[e.pointerId] = { keys: directionalKeys.fire || ['Space'] };
       held[e.pointerId].keys.forEach(hold);
     } else if (d === 'action') {
       document.body.classList.add('game-started');
@@ -189,7 +180,6 @@
   }
 
   function handleDown(e) {
-    // Skip if target is an excluded control (e.g., Back link)
     var target = e.target;
     while (target) {
       if (target.hasAttribute && target.hasAttribute('data-no-touch-control')) {
@@ -197,17 +187,14 @@
           console.log('[mobile-controls] Back link click allowed');
           debugOutline(target, '#ff0', 'Back-link');
         }
-        return; // Let browser handle natively (navigation)
+        return;
       }
       target = target.parentNode;
     }
 
-    // First check: did the user touch a button? (e.target is reliable
-    // when the button has higher z-index than the drag zone)
     var btn = buttonFor(e.target);
     if (btn && handleButton(btn, e)) return;
 
-    // Second check: fallback to elementFromPoint for drag zones
     var el = document.elementFromPoint(e.clientX, e.clientY);
     if (!el) return;
 
@@ -230,7 +217,6 @@
   }
 
   function handleUp(e) {
-    // Skip if target is an excluded control (e.g., Back link)
     var target = e.target;
     while (target) {
       if (target.hasAttribute && target.hasAttribute('data-no-touch-control')) {
@@ -238,7 +224,7 @@
           console.log('[mobile-controls] Back link click allowed');
           debugOutline(target, '#ff0', 'Back-link');
         }
-        return; // Let browser handle natively
+        return;
       }
       target = target.parentNode;
     }
@@ -247,7 +233,6 @@
       clearDragTarget();
       if (debugTouch) {
         console.log('[mobile-controls] Drag target cleared');
-        // Could outline the drag zone here but it's already released
       }
     }
     var entry = held[e.pointerId];
@@ -267,7 +252,6 @@
   }
 
   function handleMove(e) {
-    // Skip if target is an excluded control (e.g., Back link)
     var target = e.target;
     while (target) {
       if (target.hasAttribute && target.hasAttribute('data-no-touch-control')) {
@@ -275,7 +259,7 @@
           console.log('[mobile-controls] Back link area touched - ignored');
           debugOutline(target, '#ff0', 'Back-link area');
         }
-        return; // Let browser handle natively
+        return;
       }
       target = target.parentNode;
     }
@@ -283,7 +267,6 @@
     if (dragActive.pointerId === e.pointerId) {
       e.preventDefault();
       if (debugTouch) {
-        // Outline would be distracting during drag, so just log
         console.log('[mobile-controls] Dragging...');
       }
       updateDragTarget(e);
@@ -295,11 +278,10 @@
   }
 
   function handleCancel(e) {
-    // Skip if target is an excluded control (e.g., Back link)
     var target = e.target;
     while (target) {
       if (target.hasAttribute && target.hasAttribute('data-no-touch-control')) {
-        return; // Let browser handle natively
+        return;
       }
       target = target.parentNode;
     }
@@ -324,9 +306,6 @@
   overlay.classList.add('active');
 
   // ── Release-all: reset all input state ──────────────────────
-  // PirateArcadeInput.releaseAll() handles logical key release via
-  // Python bridge + DOM fallback. This function only clears local
-  // pointer metadata and visual state — no duplicate key dispatch.
   function mobileReleaseAll(reason) {
     if (window.PirateArcadeInput && window.PirateArcadeInput.releaseAll) {
       window.PirateArcadeInput.releaseAll(reason || 'unknown');

@@ -43,8 +43,8 @@
 
 ### CI-001: Lighthouse route budgets are enforced
 
-- **Status**: **FALSE** — budget.json is NOT loaded by lighthouserc.cjs
-- **Evidence**: LHR shows `budgets: false`. No `budgetsFile` key in lighthouserc.cjs.
+- **Status**: **RESOLVED** — budget.json was **removed** (never connected to lighthouserc.cjs)
+- **Evidence**: LHR shows `budgets: false`. No `budgetsFile` key in lighthouserc.cjs. The file was deleted as dead config.
 
 ### CI-002: Lighthouse runs in CI
 
@@ -91,11 +91,11 @@
 
 ## Confirmed Findings
 
-### P1: budget.json is inert (LH-1)
+### P1: budget.json was inert, now removed (LH-1)
 
 LHR confirms `budgets: false`. No `budgetsFile` in lighthouserc.cjs.
 
-- **Fix**: Add `budgetsFile: "budget.json"` to lighthouserc.cjs assert section
+- **Resolution**: budget.json was **removed from the repository** — dead config that was never connected. Asset-size budgets remain via `check-performance-budgets.mjs`.
 
 ### P1: Performance assertions use warning severity — regressions don't fail (LH-3)
 
@@ -245,17 +245,17 @@ Both mutations were caught precisely — the test suite is well-targeted.
 
 ### Summary of Repairs Applied
 
-| Finding                                                            | Status | Verification Command                                                                        |
-| ------------------------------------------------------------------ | ------ | ------------------------------------------------------------------------------------------- | ----- |
-| budget.json was inert                                              | Fixed  | `npm run test:lhci`                                                                         |
-| Performance assertions were warnings                               | Fixed  | `npm run verify:release:fast`                                                               |
-| Lighthouse was absent from CI                                      | Fixed  | Check `.github/workflows/ci.yml`                                                            |
-| Inert LHCI audits existed                                          | Fixed  | `npm run verify:release:fast`                                                               |
-| Build-log and 404 accessibility coverage was missing               | Fixed  | `npx playwright test tests/a11y.spec.ts --project=chromium-desktop -g "build-log            | 404"` |
-| Light-theme accessibility coverage was missing                     | Fixed  | `npx playwright test tests/a11y.spec.ts --project=chromium-desktop -g "light"`              |
-| WARM_CACHE payload was not deterministically tested                | Fixed  | `npx playwright test tests/game-prewarm.spec.ts --project=chromium-desktop -g "WARM_CACHE"` |
-| Captain's Log clear behavior had non-user-facing fallback coverage | Fixed  | `npx playwright test tests/captains-log.spec.ts --project=chromium-desktop -g "clear"`      |
-| Single-installer test overstated its assertion                     | Fixed  | `npx playwright test tests/game-prewarm.spec.ts --project=chromium-desktop -g "installer"`  |
+| Finding                                                            | Status  | Verification Command                                                                        |
+| ------------------------------------------------------------------ | ------- | ------------------------------------------------------------------------------------------- | ----- |
+| budget.json was inert, now removed from repo                       | Removed | `rm budget.json` (dead config, never loaded)                                                |
+| Performance assertions were warnings                               | Fixed   | `npm run verify:release:fast`                                                               |
+| Lighthouse was absent from CI                                      | Fixed   | Check `.github/workflows/ci.yml`                                                            |
+| Inert LHCI audits existed                                          | Fixed   | `npm run verify:release:fast`                                                               |
+| Build-log and 404 accessibility coverage was missing               | Fixed   | `npx playwright test tests/a11y.spec.ts --project=chromium-desktop -g "build-log            | 404"` |
+| Light-theme accessibility coverage was missing                     | Fixed   | `npx playwright test tests/a11y.spec.ts --project=chromium-desktop -g "light"`              |
+| WARM_CACHE payload was not deterministically tested                | Fixed   | `npx playwright test tests/game-prewarm.spec.ts --project=chromium-desktop -g "WARM_CACHE"` |
+| Captain's Log clear behavior had non-user-facing fallback coverage | Fixed   | `npx playwright test tests/captains-log.spec.ts --project=chromium-desktop -g "clear"`      |
+| Single-installer test overstated its assertion                     | Fixed   | `npx playwright test tests/game-prewarm.spec.ts --project=chromium-desktop -g "installer"`  |
 
 ### Remaining Open Diagnostic Items
 
@@ -360,7 +360,7 @@ CI does NOT run: a11y, site-theme, site-game-content, any mobile/ipad suite, gam
 | ------------ | ------------- | ------------- | ------------- | -------------- |
 | All 6 routes | warn (0.9)    | error (0.95)  | No            | Shell only     |
 
-All routes use identical assertions. budget.json is never loaded.
+All routes use identical assertions. budget.json was removed (never loaded).
 
 ---
 
@@ -426,16 +426,15 @@ _(none yet — diagnostic run)_
 ### Current status of meaningful quality thresholds: OPEN
 
 - All category/timing assertions are currently **warning-level** (minScore 0.5)
-- `budget.json` is connected via `budgetsFile` but reports **warnings only**
+- `budget.json` was **removed** (never connected to `lighthouserc.cjs`)
 - Current thresholds are CI smoke/baseline calibration values
 - They verify Lighthouse executes and produces reports
 - They do NOT represent final performance quality targets
 
-### Route-specific failure calibration: OPEN
+### Route-specific failure calibration: OPEN (superseded)
 
-- `budget.json` provides warning-only route diagnostics via `budgetsFile`
-- Route-specific budgets in `budget.json` currently report warnings only
-- Calibration from multiple CI artifacts needed before promoting to failures
+- `budget.json` was **removed** — route budgets were never loaded by `lighthouserc.cjs`
+- Asset-size budgets remain enforced via `check-performance-budgets.mjs`
 - Pygbag shell scores must be kept separate from playable-readiness metrics
 
 ### Pygbag playable-readiness measurement: OPEN

@@ -1,9 +1,12 @@
 #!/usr/bin/env node
 /**
- * Performance budget checks.
- * Ensures asset sizes and page weights stay within reasonable limits.
+ * Performance budget checks — static file-size budgets.
  * All sizes are GZIPPED (using zlib.gzipSync) to reflect real-world
  * transfer sizes over the wire with compression enabled.
+ *
+ * Usage:
+ *   node scripts/check-performance-budgets.mjs          # human-readable output
+ *   node scripts/check-performance-budgets.mjs --json-output  # JSON to stdout
  */
 
 import { readFileSync, statSync, readdirSync } from "fs";
@@ -13,62 +16,58 @@ import { gzipSync } from "zlib";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-const root = dirname(__dirname);
+export const root = dirname(__dirname);
 
-const BUDGETS = {
-  // Public images (raw PNGs — these are already compressed)
+export const BUDGETS = {
   "public/images/art": { maxTotalKB: 1500, maxSingleKB: 600 },
   "public/images": { maxTotalKB: 3000, maxSingleKB: 2000, exclude: ["art"] },
-
-  // Game archives (already .tar.gz — already compressed)
   "public/play": { maxTotalKB: 200, maxSingleKB: 100 },
-
-  // Built HTML pages (gzipped)
   dist: { maxHtmlKB: 100 },
-
-  // JS/CSS bundles (gzipped) — Phaser adds ~350KB gzipped
   "dist/assets": { maxJsKB: 500, maxCssKB: 50 },
 };
 
-let allPassed = true;
-
-function getGzippedSizeKB(filePath) {
+/**
+ * @param {string} filePath
+ * @returns {number} size in KB (gzipped)
+ */
+export function getGzippedSizeKB(filePath) {
   try {
     const content = readFileSync(filePath);
     const gzipped = gzipSync(content);
     return gzipped.length / 1024;
   } catch {
-    // Fallback to raw size if gzip fails
     return statSync(filePath).size / 1024;
   }
 }
 
-function checkDirectory(dirPath, budget) {
-  if (
-    !budget.maxTotalKB &&
-    !budget.maxSingleKB &&
-    !budget.maxHtmlKB &&
-    !budget.maxJsKB &&
-    !budget.maxCssKB
-  ) {
-    return;
-  }
-
+/**
+ * Recursively check a directory against a budget.
+ * Accumulates subdirectory totals into parent totals.
+ *
+ * @param {string} dirPath
+ * @param {Record<string, number|string[]>} budget
+ * @returns {{ totalKB: number, maxSingleKB: number, errors: string[] }}
+ */
+export function checkDirectory(dirPath, budget) {
   let totalKB = 0;
   let maxSingleKB = 0;
+  const errors = [];
+  const exclude = budget.exclude || [];
 
   try {
     const entries = readdirSync(dirPath, { withFileTypes: true });
     for (const entry of entries) {
       const fullPath = join(dirPath, entry.name);
       if (entry.isDirectory()) {
-        if (budget.exclude && budget.exclude.includes(entry.name)) continue;
-        checkDirectory(fullPath, budget);
+        if (exclude.includes(entry.name)) continue;
+        const sub = checkDirectory(fullPath, budget);
+        totalKB += sub.totalKB;
+        if (sub.maxSingleKB > maxSingleKB) maxSingleKB = sub.maxSingleKB;
+        errors.push(...sub.errors);
         continue;
       }
 
       const ext = extname(entry.name).toLowerCase();
-      // Use gzipped size for text-based assets, raw size for already-compressed files
       const isTextAsset = [
         ".html",
         ".js",
@@ -86,69 +85,111 @@ function checkDirectory(dirPath, budget) {
       totalKB += sizeKB;
       maxSingleKB = Math.max(maxSingleKB, sizeKB);
 
-      // Check single file limits (applies to raw size for non-text, gzipped for text)
       if (budget.maxSingleKB && sizeKB > budget.maxSingleKB) {
-        console.log(
-          `  ❌ ${fullPath}: ${sizeKB.toFixed(1)}KB ${isTextAsset ? "(gzipped)" : "(raw)"} exceeds single file limit of ${budget.maxSingleKB}KB`,
+        errors.push(
+          `${fullPath}: ${sizeKB.toFixed(1)}KB ${isTextAsset ? "(gzipped)" : "(raw)"} exceeds single file limit of ${budget.maxSingleKB}KB`,
         );
-        allPassed = false;
       }
 
-      // Check HTML size (gzipped)
       if (ext === ".html" && budget.maxHtmlKB && sizeKB > budget.maxHtmlKB) {
-        console.log(
-          `  ❌ ${fullPath}: ${sizeKB.toFixed(1)}KB (gzipped) exceeds HTML limit of ${budget.maxHtmlKB}KB`,
+        errors.push(
+          `${fullPath}: ${sizeKB.toFixed(1)}KB (gzipped) exceeds HTML limit of ${budget.maxHtmlKB}KB`,
         );
-        allPassed = false;
       }
 
-      // Check JS size (gzipped)
       if (ext === ".js" && budget.maxJsKB && sizeKB > budget.maxJsKB) {
-        console.log(
-          `  ❌ ${fullPath}: ${sizeKB.toFixed(1)}KB (gzipped) exceeds JS limit of ${budget.maxJsKB}KB`,
+        errors.push(
+          `${fullPath}: ${sizeKB.toFixed(1)}KB (gzipped) exceeds JS limit of ${budget.maxJsKB}KB`,
         );
-        allPassed = false;
       }
 
-      // Check CSS size (gzipped)
       if (ext === ".css" && budget.maxCssKB && sizeKB > budget.maxCssKB) {
-        console.log(
-          `  ❌ ${fullPath}: ${sizeKB.toFixed(1)}KB (gzipped) exceeds CSS limit of ${budget.maxCssKB}KB`,
+        errors.push(
+          `${fullPath}: ${sizeKB.toFixed(1)}KB (gzipped) exceeds CSS limit of ${budget.maxCssKB}KB`,
         );
-        allPassed = false;
       }
     }
 
     if (budget.maxTotalKB && totalKB > budget.maxTotalKB) {
-      console.log(
-        `  ❌ ${dirPath}: total ${totalKB.toFixed(1)}KB exceeds limit of ${budget.maxTotalKB}KB`,
-      );
-      allPassed = false;
-    } else if (totalKB > 0) {
-      console.log(
-        `  ✅ ${dirPath}: ${totalKB.toFixed(1)}KB total (limit: ${budget.maxTotalKB || "N/A"}KB)`,
+      errors.push(
+        `${dirPath}: total ${totalKB.toFixed(1)}KB exceeds limit of ${budget.maxTotalKB}KB`,
       );
     }
-  } catch (err) {
-    // Directory might not exist yet (e.g., dist before build)
-    // That's OK for this check
+  } catch {
+    // Directory might not exist — OK
   }
+
+  return { totalKB, maxSingleKB, errors };
 }
 
-console.log("📏 Checking performance budgets (gzipped for text assets)...\n");
+/**
+ * @param {Record<string, Record<string, number|string[]>>} [budgets]
+ * @param {string} [rootDir]
+ * @returns {{ passed: boolean, results: Array<{ dir: string, totalKB: number, maxSingleKB: number, passed: boolean, errors: string[] }>, timestamp: string }}
+ */
+export function runBudgets(budgets, rootDir) {
+  const dirBudgets = budgets || BUDGETS;
+  const base = rootDir || root;
+  const results = [];
+  let overallPassed = true;
 
-for (const [dir, budget] of Object.entries(BUDGETS)) {
-  const fullPath = join(root, dir);
-  console.log(`\n📂 ${dir}`);
-  checkDirectory(fullPath, budget);
+  for (const [dir, budget] of Object.entries(dirBudgets)) {
+    const fullPath = join(base, dir);
+    const { totalKB, maxSingleKB, errors } = checkDirectory(fullPath, budget);
+    const passed = errors.length === 0;
+    if (!passed) overallPassed = false;
+    results.push({ dir, totalKB, maxSingleKB, passed, errors });
+  }
+
+  return {
+    passed: overallPassed,
+    results,
+    timestamp: new Date().toISOString(),
+  };
 }
 
-console.log("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+/**
+ * @param {{ passed: boolean, results: Array<{ dir: string, totalKB: number, maxSingleKB: number, passed: boolean, errors: string[] }> }} results
+ * @returns {string}
+ */
+export function formatResults(results) {
+  const lines = [];
+  lines.push("\u{1F4CF} Performance Budget Results\n");
+  for (const r of results.results) {
+    const status = r.passed ? "\u2705" : "\u274C";
+    lines.push(
+      `${status} ${r.dir}: ${r.totalKB.toFixed(1)}KB total, ${r.maxSingleKB.toFixed(1)}KB max single`,
+    );
+    for (const e of r.errors) {
+      lines.push(`  \u274C ${e}`);
+    }
+  }
+  lines.push("");
+  lines.push(
+    results.passed
+      ? "\u2705 All performance budget checks passed!"
+      : "\u274C Some performance budget checks failed!",
+  );
+  return lines.join("\n");
+}
 
-if (allPassed) {
-  console.log("✅ All performance budget checks passed!");
-  process.exit(0);
-} else {
-  console.log("❌ Some performance budget checks failed!");
-  process.exit(1);
+// ── CLI entry ────────────────────────────────────────────────
+
+function main() {
+  const args = process.argv.slice(2);
+  const jsonOutput = args.includes("--json-output");
+
+  const results = runBudgets();
+
+  if (jsonOutput) {
+    process.stdout.write(JSON.stringify(results, null, 2) + "\n");
+  } else {
+    process.stdout.write(formatResults(results) + "\n");
+  }
+
+  process.exit(results.passed ? 0 : 1);
+}
+
+if (process.argv[1] && process.argv[1] === __filename) {
+  main();
 }

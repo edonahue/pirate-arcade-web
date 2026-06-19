@@ -157,7 +157,7 @@ are the latest Pygbag game features on the existing three ports.
 - [ ] **Full accessibility audit** — screen reader, color blindness, motion sensitivity beyond axe-core
 - [x] **Lighthouse CI execution** — hosted runs, Chrome stable, artifact upload
 - [ ] **Meaningful CI threshold calibration** — inspect multiple CI artifacts, establish medians/percentiles, ratchet one category at a time
-- [ ] **Route-specific hard budgets** — promote budget.json warnings to failures after calibration
+- [x] **budget.json removed** — dead LHCI budget config, never connected in `lighthouserc.cjs`; asset-size budgets remain via `check-performance-budgets.mjs`
 - [x] **Pygbag playable-readiness measurement** — truthful milestones (game-ready, loader-hidden, active-play, first-user-input) via PirateArcadeMetrics.markOnce(); game-state observer in pygame-input-bridge.js
 - [ ] **CRT scanline user-facing toggle** in site settings
 - [ ] **Phaser 4 compatibility spike** — evaluate migration effort, requires focused spike (deferred from Dependabot)

@@ -156,7 +156,7 @@ for (const game of GAMES) {
       await waitForPygbagRuntime(page);
 
       // Click + send keys (handles autoplay / audio unlock)
-      await unlockAndStartGame(page, game.desktopKeys);
+      await unlockAndStartGame(page, game.desktopKeys, game.actionKey);
 
       // Give the game a moment to render after input
       await page.waitForTimeout(1000);
@@ -177,7 +177,7 @@ for (const game of GAMES) {
       collector.start(page);
       await page.goto(game.path, { waitUntil: "domcontentloaded" });
       await waitForPygbagRuntime(page);
-      await unlockAndStartGame(page, game.desktopKeys);
+      await unlockAndStartGame(page, game.desktopKeys, game.actionKey);
       await page.waitForTimeout(1000);
 
       const snapshot = await collector.snapshot(testInfo);
@@ -243,7 +243,7 @@ for (const game of GAMES) {
       collector.start(page);
       await page.goto(game.path, { waitUntil: "domcontentloaded" });
       await waitForPygbagRuntime(page);
-      await unlockAndStartGame(page, game.desktopKeys);
+      await unlockAndStartGame(page, game.desktopKeys, game.actionKey);
       await page.waitForTimeout(500);
 
       // Simulate tab being backgrounded then foregrounded

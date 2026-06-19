@@ -135,30 +135,249 @@ export async function waitForPygbagRuntime(page: Page): Promise<void> {
 }
 
 /**
- * Click the page to satisfy browser autoplay/audio policies, then
- * press Enter/Space to start the game from the menu, then send a
- * short gameplay sequence.
+ * Perform the configured primary action to start the game from its menu.
+ * Reads the action key from production metadata (PirateArcadeActions)
+ * or falls back to the game's configured actionKey, using exactly one key.
+ */
+export async function performConfiguredPrimaryAction(
+  page: Page,
+  actionKey: string,
+): Promise<void> {
+  await page.waitForFunction(
+    () => {
+      return !!(window as any).PirateArcadeActions?.performPrimary;
+    },
+    undefined,
+    { timeout: 15000 },
+  );
+  await page.evaluate((key: string) => {
+    const actions = (window as any).PirateArcadeActions;
+    if (actions?.performPrimary) {
+      actions.performPrimary();
+    } else if ((window as any).PirateArcadeInput?.tap) {
+      (window as any).PirateArcadeInput.tap(key, 220);
+    } else {
+      // Fallback: dispatch keyboard event directly
+      document.dispatchEvent(
+        new KeyboardEvent("keydown", { key, bubbles: true }),
+      );
+      setTimeout(
+        () =>
+          document.dispatchEvent(
+            new KeyboardEvent("keyup", { key, bubbles: true }),
+          ),
+        200,
+      );
+    }
+  }, actionKey);
+  await page.waitForTimeout(500);
+}
+
+/**
+ * Capture a baseline of input evidence before sending gameplay keys.
+ * Returns game-state snapshot, input bridge count, and canvas digest.
+ */
+export async function captureResponseBaseline(page: Page): Promise<{
+  gameState: ArcadeGameState | null;
+  bridgeCount: number;
+  canvasDigest: string;
+}> {
+  const gameState = await readGameState(page);
+  const debug = await readPirateInputDebug(page);
+  const bridgeCount = debug.bridgeCalls.length;
+  const canvasDigest = await page.evaluate(() => {
+    const c = document.getElementById("canvas") as HTMLCanvasElement | null;
+    if (!c) return "";
+    const ctx = c.getContext("2d");
+    if (!ctx) return "";
+    try {
+      const w = Math.min(c.width, 40);
+      const h = Math.min(c.height, 40);
+      if (w < 4 || h < 4) return "";
+      const img = ctx.getImageData(0, 0, w, h);
+      let hash = 0;
+      for (let i = 0; i < img.data.length; i += 16) {
+        hash = ((hash << 5) - hash + img.data[i]) | 0;
+      }
+      return String(hash);
+    } catch {
+      return "";
+    }
+  });
+  return { gameState, bridgeCount, canvasDigest };
+}
+
+/**
+ * Check whether input produced a response by comparing baseline to current state.
+ * Returns the signal type that proved the response, or null if no response detected.
+ */
+export async function checkInputResponse(
+  page: Page,
+  baseline: {
+    gameState: ArcadeGameState | null;
+    bridgeCount: number;
+    canvasDigest: string;
+  },
+): Promise<{
+  responded: boolean;
+  signal: string | null;
+  before: unknown;
+  after: unknown;
+}> {
+  // Check 1: Game-state bridge change (most reliable)
+  const state = await readGameState(page);
+  if (state && baseline.gameState) {
+    const stateStr = JSON.stringify(state);
+    const beforeStr = JSON.stringify(baseline.gameState);
+    if (stateStr !== beforeStr) {
+      return {
+        responded: true,
+        signal: "game-state",
+        before: baseline.gameState,
+        after: state,
+      };
+    }
+  }
+
+  // Check 2: Input bridge event count increase
+  const debug = await readPirateInputDebug(page);
+  const bridgeCount = debug.bridgeCalls.length;
+  if (bridgeCount > baseline.bridgeCount) {
+    return {
+      responded: true,
+      signal: "bridge-count",
+      before: baseline.bridgeCount,
+      after: bridgeCount,
+    };
+  }
+
+  // Check 3: Canvas digest change
+  const digest = await page.evaluate(() => {
+    const c = document.getElementById("canvas") as HTMLCanvasElement | null;
+    if (!c) return "";
+    const ctx = c.getContext("2d");
+    if (!ctx) return "";
+    try {
+      const w = Math.min(c.width, 40);
+      const h = Math.min(c.height, 40);
+      if (w < 4 || h < 4) return "";
+      const img = ctx.getImageData(0, 0, w, h);
+      let hash = 0;
+      for (let i = 0; i < img.data.length; i += 16) {
+        hash = ((hash << 5) - hash + img.data[i]) | 0;
+      }
+      return String(hash);
+    } catch {
+      return "";
+    }
+  });
+  if (digest && baseline.canvasDigest && digest !== baseline.canvasDigest) {
+    return {
+      responded: true,
+      signal: "canvas-digest",
+      before: baseline.canvasDigest,
+      after: digest,
+    };
+  }
+
+  return { responded: false, signal: null, before: null, after: null };
+}
+
+/**
+ * Send gameplay keys and wait for a genuine response.
+ * Captures before/after evidence.
  *
- * The gameplay sequence is intentionally not score-dependent: it
- * just confirms that input is reaching the game. We do NOT assert
- * on ball position, score changes, or animation frames.
+ * @returns evidence of the response, or throws on timeout
+ */
+export async function sendKeysAndRequireResponse(
+  page: Page,
+  keys: string[],
+  waitMs: number = 2000,
+): Promise<{
+  responded: boolean;
+  signal: string | null;
+  before: unknown;
+  after: unknown;
+  attemptedKeys: string[];
+}> {
+  await page.locator("canvas#canvas").click({ position: { x: 10, y: 10 } });
+  await page.locator("canvas#canvas").focus();
+  await page.waitForTimeout(100);
+
+  const baseline = await captureResponseBaseline(page);
+
+  for (const key of keys) {
+    await page.keyboard.press(key);
+    await page.waitForTimeout(50);
+  }
+
+  await page.waitForTimeout(Math.min(waitMs, 500));
+
+  try {
+    await page.waitForFunction(
+      (bl: {
+        gameState: ArcadeGameState | null;
+        bridgeCount: number;
+        canvasDigest: string;
+      }) => {
+        const c = document.getElementById("canvas") as HTMLCanvasElement | null;
+        if (!c) return false;
+        const ctx = c.getContext("2d");
+        if (!ctx) return false;
+        const w = Math.min(c.width, 40);
+        const h = Math.min(c.height, 40);
+        if (w < 4 || h < 4) return false;
+        const img = ctx.getImageData(0, 0, w, h);
+        let hash = 0;
+        for (let i = 0; i < img.data.length; i += 16) {
+          hash = ((hash << 5) - hash + img.data[i]) | 0;
+        }
+        const digest = String(hash);
+        if (digest !== bl.canvasDigest) return true;
+        const br = (window as any).__paInputDebug?.bridgeCalls?.length || 0;
+        if (br > bl.bridgeCount) return true;
+        const gs = (window as any).PirateArcadeGameState?.getState?.();
+        if (gs && JSON.stringify(gs) !== JSON.stringify(bl.gameState))
+          return true;
+        return false;
+      },
+      baseline,
+      { timeout: waitMs },
+    );
+    const evidence = await checkInputResponse(page, baseline);
+    return { ...evidence, attemptedKeys: keys };
+  } catch {
+    const finalState = await readGameState(page);
+    const debug = await readPirateInputDebug(page);
+    return {
+      responded: false,
+      signal: null,
+      before: baseline,
+      after: { gameState: finalState, bridgeCount: debug.bridgeCalls.length },
+      attemptedKeys: keys,
+    };
+  }
+}
+
+/**
+ * Click the page to satisfy browser autoplay/audio policies, then
+ * send a short gameplay sequence using the configured primary action
+ * and gameplay keys.
+ *
+ * The gameplay sequence is intentionally not score-dependent.
  */
 export async function unlockAndStartGame(
   page: Page,
   desktopKeys: string[],
+  actionKey: string = "Enter",
 ): Promise<void> {
   // Click the canvas to satisfy user-gesture / audio unlock
   await page.locator("canvas#canvas").click({ position: { x: 10, y: 10 } });
-  // Make sure the canvas is focused so keyboard events route there
   await page.locator("canvas#canvas").focus();
   await page.waitForTimeout(300);
 
-  // Press Enter to start from menu
-  await page.keyboard.press("Enter");
-  await page.waitForTimeout(500);
-  // Sometimes games also start on Space
-  await page.keyboard.press("Space");
-  await page.waitForTimeout(500);
+  // Use the configured primary action to start from menu
+  await performConfiguredPrimaryAction(page, actionKey);
 
   // Now send the configured gameplay sequence
   for (const key of desktopKeys) {
@@ -274,6 +493,7 @@ export async function waitForGameStateChange(
           return false;
         }
       },
+      undefined,
       { timeout: timeoutMs },
     )
     .then(() => true)

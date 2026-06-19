@@ -277,8 +277,11 @@ downloads hit CDN rate limits and can be flaky. The total runtime is
 ### `tests/game-input-mobile.spec.ts` (mobile input)
 
 - **Touch overlay is present and wired correctly**: every game has
-  the `#touch-overlay` with the four expected buttons
-  (`btn-left`, `btn-right`, `btn-action`, `btn-pause`).
+  the `#touch-overlay` with directional buttons, action button, and
+  pause button.
+- **Directional keys and drag axis read from `#game-wrap` metadata**:
+  `mobile-controls.js` now reads `data-dir-keys` and `data-drag-axis`
+  from `#game-wrap` attributes instead of a hardcoded `DIR_KEYS` map.
 - **Touch button taps do not cause JS errors**: each touch scenario
   (left arrow, right arrow, action, pause) is dispatched, and
   diagnostics after each one are clean.
@@ -289,9 +292,9 @@ downloads hit CDN rate limits and can be flaky. The total runtime is
 - **Orientation lock overlay is present and CSS-controlled**: both
   `#rotate-device` and `#game-wrap` exist; in emulated landscape
   the overlay is hidden and the game is visible.
-- **Asteroids-mode (Kraken's Wake)**: dedicated sub-describe for
-  `data-controls="asteroids"`. Verifies the touch overlay reports
-  the asteroids mode and the thrust/fire buttons exist.
+- **Game-mode-specific controls**: controls mode is read from
+  `#game-wrap` metadata attributes (not a hardcoded `isAsteroids`
+  check). Pong mode uses `dirToLogical()` for directional mapping.
 
 ### `tests/a11y.spec.ts` (accessibility)
 
@@ -352,8 +355,9 @@ The shared helpers cover three categories:
 
 - `waitForGameStateChange(page, timeoutMs)` — polls the canvas and
   reports whether the pixel sample is non-trivial.
-- `sendKeysAndWaitForResponse(page, keys, waitMs)` — clicks the
-  canvas, focuses, presses each key, then waits for a state change.
+- `sendKeysAndRequireResponse(page, keys, waitMs, options?)` — clicks the
+  canvas, focuses, presses each key, waits for a state change, and asserts
+  the game responded (pixel diff check).
 - `unlockAndFocusGame(page)` — single click + focus + brief wait
   (browser autoplay policies).
 - `dispatchTouchSequence(page, touchPoints, holdMs, options?)` — dispatches
@@ -568,7 +572,7 @@ that game.
 - `/play/race-to-treasure-island/` (Phaser game shell)
 - `/games/cannonball-clash/` (game detail page)
 
-Route budgets are defined in `budget.json` and connected via `lighthouserc.cjs` `budgetsFile` as **warning-only diagnostics**.
+The `budget.json` route budgets file has been **removed** — it was never loaded by `lighthouserc.cjs` and the `budgetsFile` key was absent from the config. Asset-size budgets are now checked exclusively by `check-performance-budgets.mjs`.
 
 Current CI behavior:
 
@@ -576,11 +580,12 @@ Current CI behavior:
 - `CHROME_PATH: /usr/bin/google-chrome` explicitly set
 - Separate `lhci collect` and `lhci assert` steps
 - Category/timing assertions are **warning-level** (minScore 0.5)
-- `budget.json` route budgets report warnings only
 - Reports uploaded as workflow artifacts (`.lighthouseci/`, 7-day retention)
 - Desktop preset, 2 runs per URL. Requires built `dist/`.
 
 This is a **smoke/baseline check** — Lighthouse execution and report generation are release-critical; current quality thresholds are intentionally permissive pending CI artifact calibration. Stronger thresholds will be calibrated from stored CI artifacts.
+
+> `budget.json` was removed — it was never loaded by `lighthouserc.cjs`. Route-specific resource-size limits are now enforced exclusively by `check-performance-budgets.mjs`.
 
 ## When to add a new test
 
