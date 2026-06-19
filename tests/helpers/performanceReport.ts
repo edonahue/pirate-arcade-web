@@ -10,7 +10,21 @@ export interface PerfSnapshot {
   marks: Record<string, number | undefined>;
   durations: Record<string, number | undefined>;
   flags: { activePlay: boolean; firstUserInput: boolean };
-  context: { url: string; serviceWorkerControlled: boolean };
+  context: {
+    url: string;
+    serviceWorkerControlled: boolean;
+    bootStage?: string;
+    failedStage?: string | null;
+    firstFramePresented?: boolean;
+    archiveUrl?: string | null;
+    archiveByteLength?: number | null;
+    runtimeScriptUrl?: string | null;
+    longTaskSummary?: {
+      count: number;
+      totalDuration: number;
+      maxDuration: number;
+    };
+  };
 }
 
 export interface ResourceEntry {

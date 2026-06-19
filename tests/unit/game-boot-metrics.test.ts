@@ -262,9 +262,142 @@ describe("game-boot-metrics", () => {
     expect(flat.flags.activePlay).toBe(true);
   });
 
-  it("snapshot schema version is 2", () => {
+  it("snapshot schema version is 3", () => {
     loadMetrics();
     const m = getMetrics();
-    expect(m.snapshot().schemaVersion).toBe(2);
+    expect(m.snapshot().schemaVersion).toBe(3);
+  });
+
+  // ── Boot stage tests ─────────────────────────────────────────
+
+  it("setBootStage updates bootStage in context", () => {
+    loadMetrics();
+    const m = getMetrics();
+    m.setBootStage("display-init");
+    expect(m.snapshot().context.bootStage).toBe("display-init");
+    expect(m.getBootStage()).toBe("display-init");
+  });
+
+  it("setFailedStage records failed stage", () => {
+    loadMetrics();
+    const m = getMetrics();
+    m.setFailedStage("archive-fetch", "HTTP 404");
+    expect(m.snapshot().context.failedStage).toBe("archive-fetch");
+    expect(m.getFailedStage()).toBe("archive-fetch");
+  });
+
+  it("firstFramePresented marks first-frame-presented once", () => {
+    loadMetrics();
+    const m = getMetrics();
+    expect(m.hasFirstFrame()).toBe(false);
+    m.markFirstFramePresented();
+    expect(m.hasFirstFrame()).toBe(true);
+    expect(m.snapshot().context.firstFramePresented).toBe(true);
+    expect(m.snapshot().marks["first-frame-presented"]).toBeGreaterThan(0);
+  });
+
+  it("markFirstFramePresented is idempotent", () => {
+    loadMetrics();
+    const m = getMetrics();
+    m.markFirstFramePresented();
+    const first = m.snapshot().marks["first-frame-presented"];
+    m.markFirstFramePresented();
+    expect(m.snapshot().marks["first-frame-presented"]).toBe(first);
+  });
+
+  it("setArchiveUrl sets archiveUrl in context", () => {
+    loadMetrics();
+    const m = getMetrics();
+    m.setArchiveUrl("/play/test/test.tar.gz?v=1");
+    expect(m.snapshot().context.archiveUrl).toBe("/play/test/test.tar.gz?v=1");
+  });
+
+  it("setRuntimeScriptUrl sets runtimeScriptUrl in context", () => {
+    loadMetrics();
+    const m = getMetrics();
+    m.setRuntimeScriptUrl("https://cdn.example.com/pythons.js");
+    expect(m.snapshot().context.runtimeScriptUrl).toBe(
+      "https://cdn.example.com/pythons.js",
+    );
+  });
+
+  it("setArchiveByteLength records archive size", () => {
+    loadMetrics();
+    const m = getMetrics();
+    m.setArchiveByteLength(123456);
+    expect(m.snapshot().context.archiveByteLength).toBe(123456);
+  });
+
+  it("clear resets boot stage and failure stage", () => {
+    loadMetrics();
+    const m = getMetrics();
+    m.setBootStage("game-ready");
+    m.setFailedStage("archive-fetch", "error");
+    m.markFirstFramePresented();
+    m.clear();
+    expect(m.getBootStage()).toBe("bootstrap");
+    expect(m.getFailedStage()).toBeNull();
+    expect(m.hasFirstFrame()).toBe(false);
+  });
+
+  // ── Derived duration tests ───────────────────────────────────
+
+  it("computeDurations measures game-ready-to-first-frame", () => {
+    loadMetrics();
+    const m = getMetrics();
+    m.mark("game-ready");
+    m.markFirstFramePresented();
+    m.computeDurations();
+    const durs = m.get();
+    expect(durs["game-ready-to-first-frame"]).toBeGreaterThanOrEqual(0);
+  });
+
+  it("computeDurations measures game-module-import-duration", () => {
+    loadMetrics();
+    const m = getMetrics();
+    m.mark("game-module-import-start");
+    m.mark("game-module-import-end");
+    m.computeDurations();
+    const durs = m.get();
+    expect(durs["game-module-import-duration"]).toBeGreaterThanOrEqual(0);
+  });
+
+  it("computeDurations measures game-constructor-duration", () => {
+    loadMetrics();
+    const m = getMetrics();
+    m.mark("game-constructor-start");
+    m.mark("game-constructor-end");
+    m.computeDurations();
+    const durs = m.get();
+    expect(durs["game-constructor-duration"]).toBeGreaterThanOrEqual(0);
+  });
+
+  it("computeDurations measures dependency-overlap-duration", () => {
+    loadMetrics();
+    const m = getMetrics();
+    m.mark("boot-start");
+    m.mark("dependencies-ready");
+    m.computeDurations();
+    const durs = m.get();
+    expect(durs["dependency-overlap-duration"]).toBeGreaterThanOrEqual(0);
+  });
+
+  it("computeDurations computes runtime-script-duration when both marks exist", () => {
+    loadMetrics();
+    const m = getMetrics();
+    m.mark("runtime-script-requested");
+    m.mark("runtime-script-loaded");
+    m.computeDurations();
+    const durs = m.get();
+    expect(durs["runtime-script-duration"]).toBeGreaterThanOrEqual(0);
+  });
+
+  it("computeDurations does not create runtime-script-duration when marks are missing", () => {
+    loadMetrics();
+    const m = getMetrics();
+    m.mark("runtime-script-requested");
+    m.computeDurations();
+    const durs = m.get();
+    expect(durs["runtime-script-duration"]).toBeUndefined();
   });
 });

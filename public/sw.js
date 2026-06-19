@@ -1,9 +1,8 @@
 // Pirate Arcade Service Worker
 // Cache same-origin assets for faster repeat visits.
 // Version bump when behavior changes.
-// v5: install only lightweight shell/shared assets (no game archives),
-//     versioned assets cache-first, WARM_CACHE cache-aware + dedup,
-//     network-first HTML, stale-while-revalidate JS/CSS.
+// v6: fix install result counting, exact origin check, warm dedup,
+//     awaited cache writes, versioned cache-key consistency.
 //
 // NOTE: This is a CLASSIC service worker (not module). The CACHE_VERSION
 // constant is populated by scripts/apply-game-asset-versions.mjs when
@@ -12,9 +11,10 @@
 const CACHE_VERSION = "pirate-arcade-games-v12";
 const CACHE_NAME = CACHE_VERSION;
 
-// List of lightweight shell/shared assets to cache on install.
+// Lightweight shell/shared assets to cache on install.
 // Game archives are ~12 MB each and downloaded on demand via
 // cache-first (versioned URLs) during warming / gameplay.
+// Only assets loaded WITHOUT a version query param are listed here.
 const ASSETS_TO_CACHE = [
   "/play/cannonball-clash/",
   "/play/treasure-cove/",
@@ -34,11 +34,7 @@ self.addEventListener("install", (event) => {
     (async () => {
       const cache = await caches.open(CACHE_NAME);
       const results = await Promise.allSettled(
-        ASSETS_TO_CACHE.map((url) =>
-          cache.add(url).catch((err) => {
-            console.warn(`[SW] Failed to cache ${url}:`, err);
-          }),
-        ),
+        ASSETS_TO_CACHE.map((url) => cache.add(url)),
       );
       const failed = results.filter((r) => r.status === "rejected").length;
       if (failed > 0) {
@@ -99,12 +95,22 @@ self.addEventListener("message", (event) => {
           results.push({ url: raw, status: "failed", error: "invalid URL" });
           continue;
         }
-        // Reject cross-origin URLs
-        if (!normalized.startsWith(self.location.origin)) {
+        // Reject cross-origin URLs using exact origin comparison
+        try {
+          const parsed = new URL(normalized);
+          if (parsed.origin !== self.location.origin) {
+            results.push({
+              url: raw,
+              status: "failed",
+              error: "cross-origin rejected",
+            });
+            continue;
+          }
+        } catch {
           results.push({
             url: raw,
             status: "failed",
-            error: "cross-origin rejected",
+            error: "invalid URL",
           });
           continue;
         }
@@ -122,39 +128,56 @@ self.addEventListener("message", (event) => {
         } catch {
           // cache.match failure is non-fatal; fall through to fetch
         }
-        // Deduplicate concurrent in-flight requests for the same URL
+        // Deduplicate concurrent in-flight requests for the same URL.
+        // If a fetch is already in flight, await its original promise.
         if (_warmInFlight[normalized]) {
-          results.push({
-            url: normalized,
-            status: "deduplicated",
-          });
-          continue;
-        }
-        // Fetch and cache
-        _warmInFlight[normalized] = true;
-        try {
-          const response = await fetch(normalized);
-          if (response.status === 200) {
-            await cache.put(normalized, response.clone());
+          try {
+            var original = await _warmInFlight[normalized];
             results.push({
               url: normalized,
-              status: "fetched",
-              httpStatus: response.status,
+              status: "deduplicated",
+              httpStatus: original.httpStatus,
             });
-          } else {
+          } catch (err) {
             results.push({
               url: normalized,
-              status: "failed",
-              httpStatus: response.status,
-              error: "non-200 response",
+              status: "deduplicated-failed",
+              error: err.message || "original fetch failed",
             });
           }
-        } catch (err) {
-          results.push({
-            url: normalized,
-            status: "failed",
-            error: err.message,
-          });
+          continue;
+        }
+        // Fetch and cache — store the actual promise for dedup
+        var fetchPromise = (async () => {
+          try {
+            const response = await fetch(normalized);
+            if (response.status === 200) {
+              await cache.put(normalized, response.clone());
+              return {
+                url: normalized,
+                status: "fetched",
+                httpStatus: response.status,
+              };
+            } else {
+              return {
+                url: normalized,
+                status: "failed",
+                httpStatus: response.status,
+                error: "non-200 response",
+              };
+            }
+          } catch (err) {
+            return {
+              url: normalized,
+              status: "failed",
+              error: err.message,
+            };
+          }
+        })();
+        _warmInFlight[normalized] = fetchPromise;
+        try {
+          const result = await fetchPromise;
+          results.push(result);
         } finally {
           delete _warmInFlight[normalized];
         }
@@ -169,22 +192,13 @@ self.addEventListener("message", (event) => {
 
 // Helper: network-first with cache fallback
 function networkFirst(event) {
-  return fetch(event.request)
-    .then((res) => {
-      if (res && res.status === 200) {
-        const clone = res.clone();
-        caches
-          .open(CACHE_NAME)
-          .then((cache) => cache.put(event.request, clone));
-      }
-      return res;
-    })
-    .catch(() =>
-      caches.match(event.request).then((fallback) => {
-        if (fallback) return fallback;
-        return new Response("Offline", { status: 503 });
-      }),
-    );
+  return fetch(event.request).then((res) => {
+    if (res && res.status === 200) {
+      const clone = res.clone();
+      caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+    }
+    return res;
+  });
 }
 
 // Helper: cache-first with fetch fallback (for versioned assets)
@@ -205,11 +219,14 @@ function cacheFirst(event) {
 
 // Fetch strategy
 self.addEventListener("fetch", (event) => {
-  if (!event.request.url.startsWith(self.location.origin)) {
+  try {
+    var url = new URL(event.request.url);
+    if (url.origin !== self.location.origin) {
+      return;
+    }
+  } catch {
     return;
   }
-
-  const url = new URL(event.request.url);
 
   // Cache-first for versioned assets (has ?v= query) — includes
   // game archives which always carry a version query parameter.

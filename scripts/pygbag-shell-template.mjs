@@ -66,37 +66,60 @@ function renderPythonBootCode(config) {
   lines.push(
     "        # Pre-install pygame wheel from CDN and fetch archive in parallel",
   );
-  lines.push('        _w.PirateArcadeMetrics.mark("pygame-install-start")');
-  lines.push('        _w.PirateArcadeMetrics.mark("archive-fetch-start")');
   lines.push(
     '        _w.PirateArcadeLoading.set("Installing Pygame and downloading game package\u2026")',
   );
   lines.push("        import aio.pep0723");
+  // Use canonical archive URL from origin, not location.href (fixes query/fragment issues)
   lines.push(
-    '        url = _w.location.href + "' +
+    '        url = _w.location.origin + "/play/' +
+      config.id +
+      "/" +
       config.id +
       ".tar.gz?v=" +
       ASSET_VERSION +
       '"',
   );
+  lines.push("        _w.PirateArcadeMetrics.setArchiveUrl(url)");
+  lines.push("");
+  lines.push("        async def install_pygame():");
+  lines.push('            _w.PirateArcadeMetrics.mark("pygame-install-start")');
+  lines.push(
+    '            _w.PirateArcadeMetrics.setBootStage("pygame-install")',
+  );
+  lines.push('            await aio.pep0723.pip_install("pygame")');
+  lines.push('            _w.PirateArcadeMetrics.mark("pygame-install-end")');
+  lines.push("");
   lines.push("        async def fetch_archive():");
+  lines.push('            _w.PirateArcadeMetrics.mark("archive-fetch-start")');
+  lines.push(
+    '            _w.PirateArcadeMetrics.setBootStage("archive-fetch")',
+  );
   lines.push('            async with platform.fopen(url, "rb") as f:');
-  lines.push("                return f.read()");
+  lines.push("                data = f.read()");
+  lines.push('            _w.PirateArcadeMetrics.mark("archive-fetch-end")');
+  lines.push(
+    "            _w.PirateArcadeMetrics.setArchiveByteLength(len(data))",
+  );
+  lines.push("            return data");
+  lines.push("");
   lines.push("        archive_task = asyncio.create_task(fetch_archive())");
-  lines.push('        await aio.pep0723.pip_install("pygame")');
-  lines.push("        data = await archive_task");
-  lines.push('        _w.PirateArcadeMetrics.mark("pygame-install-end")');
-  lines.push('        _w.PirateArcadeMetrics.mark("archive-fetch-end")');
+  lines.push("        pygame_task = asyncio.create_task(install_pygame())");
+  lines.push("        await archive_task");
+  lines.push("        await pygame_task");
+  lines.push('        _w.PirateArcadeMetrics.mark("dependencies-ready")');
   lines.push("");
   lines.push('        _w.PirateArcadeMetrics.mark("archive-extract-start")');
   lines.push(
     '        _w.PirateArcadeLoading.set("Extracting game files\u2026")',
   );
+  lines.push('        _w.PirateArcadeMetrics.setBootStage("archive-extract")');
   lines.push('        d = "/tmp/game_extract"');
   lines.push("        os.makedirs(d, exist_ok=True)");
   lines.push("        tarfile.open(fileobj=io.BytesIO(data)).extractall(d)");
   lines.push('        _w.PirateArcadeMetrics.mark("archive-extract-end")');
   lines.push("");
+  lines.push('        _w.PirateArcadeMetrics.setBootStage("path-setup")');
   lines.push('        a = os.path.join(d, "assets")');
   lines.push("        sys.path.insert(0, a)");
   lines.push("        os.chdir(a)");
@@ -134,6 +157,7 @@ function renderPythonBootCode(config) {
     lines.push("");
   }
 
+  lines.push('        _w.PirateArcadeMetrics.setBootStage("pygame-import")');
   lines.push("        import pygame as pg");
   lines.push("        pg.display.init()");
   lines.push("        pg.font.init()");
@@ -218,6 +242,7 @@ function renderPythonBootCode(config) {
   lines.push("");
   lines.push('        _w.PirateArcadeMetrics.mark("input-bridge-installed")');
   lines.push("");
+  lines.push('        _w.PirateArcadeMetrics.setBootStage("display-init")');
   lines.push('        _w.PirateArcadeMetrics.mark("display-init-start")');
   lines.push(
     '        _w.PirateArcadeLoading.set("Initializing display\u2026")',
@@ -228,9 +253,15 @@ function renderPythonBootCode(config) {
   );
   lines.push('        pg.display.set_caption("' + config.caption + '")');
   lines.push('        _w.PirateArcadeMetrics.mark("display-init-end")');
+  lines.push("");
+  lines.push(
+    '        _w.PirateArcadeMetrics.setBootStage("game-module-import")',
+  );
+  lines.push('        _w.PirateArcadeMetrics.mark("game-module-import-start")');
   lines.push(
     "        from " + config.pythonModule + " import " + config.gameClass,
   );
+  lines.push('        _w.PirateArcadeMetrics.mark("game-module-import-end")');
   lines.push("");
   lines.push("        class WebAudio:");
   lines.push("            def __init__(self):");
@@ -250,25 +281,60 @@ function renderPythonBootCode(config) {
   lines.push("            def load(self, *a, **kw):");
   lines.push("                pass");
   lines.push("");
-  lines.push('        _w.PirateArcadeMetrics.mark("game-object-created")');
-  lines.push(
-    '        _w.PirateArcadeLoading.set("' + config.loadingText + '")',
-  );
+  lines.push('        _w.PirateArcadeMetrics.setBootStage("game-constructor")');
+  lines.push('        _w.PirateArcadeMetrics.mark("game-constructor-start")');
   lines.push("        game = " + config.gameClass + "(s, WebAudio())");
+  lines.push('        _w.PirateArcadeMetrics.mark("game-constructor-end")');
+  lines.push('        _w.PirateArcadeMetrics.setBootStage("game-ready")');
   lines.push('        _w.PirateArcadeMetrics.mark("game-ready")');
   lines.push("        _w.PirateArcadeMetrics.computeDurations()");
+  lines.push("");
   lines.push(
-    '        _w.PirateArcadeLoading.ready("' + config.readyMessage + '")',
+    "        # Wrap pg.display.flip and pg.display.update to detect first frame",
+  );
+  lines.push("        _first_frame_done = []");
+  lines.push("        _display_flip_orig = pg.display.flip");
+  lines.push("        _display_update_orig = pg.display.update");
+  lines.push("");
+  lines.push("        def _on_first_frame():");
+  lines.push("            if _first_frame_done:");
+  lines.push("                return");
+  lines.push("            _first_frame_done.append(True)");
+  lines.push(
+    '            _w.PirateArcadeMetrics.mark("first-frame-presented")',
+  );
+  lines.push("            _w.PirateArcadeMetrics.computeDurations()");
+  lines.push(
+    '            _w.PirateArcadeLoading.ready("' + config.readyMessage + '")',
   );
   lines.push(
-    '        _w.infobox.innerText = "' +
-      config.title +
-      ' loaded! Audio starts after your first click."',
+    '            _w.infobox.innerText = "' + config.title + ' loaded!"',
   );
+  lines.push("");
+  lines.push("        def _pa_flip(*args, **kw):");
+  lines.push("            r = _display_flip_orig(*args, **kw)");
+  lines.push("            _on_first_frame()");
+  lines.push("            return r");
+  lines.push("");
+  lines.push("        def _pa_update(*args, **kw):");
+  lines.push("            r = _display_update_orig(*args, **kw)");
+  lines.push("            _on_first_frame()");
+  lines.push("            return r");
+  lines.push("");
+  lines.push("        pg.display.flip = _pa_flip");
+  lines.push("        pg.display.update = _pa_update");
+  lines.push("");
+  lines.push('        _w.PirateArcadeMetrics.setBootStage("first-frame")');
   lines.push("        await game.run()");
   lines.push("    except Exception as e:");
   lines.push("        sys.print_exception(e)");
   lines.push("        msg = str(e) if str(e) else type(e).__name__");
+  lines.push(
+    "        stage = _w.PirateArcadeMetrics.getBootStage() if _w.PirateArcadeMetrics else 'unknown'",
+  );
+  lines.push(
+    "        _w.PirateArcadeMetrics.setFailedStage(stage, msg) if _w.PirateArcadeMetrics else None",
+  );
   lines.push('        _w.PirateArcadeLoading.error("Error: " + msg)');
   lines.push("");
   lines.push("asyncio.ensure_future(boot())");
@@ -312,8 +378,8 @@ export function render(config) {
     <!-- Resource hints for performance -->
     <link rel="preconnect" href="https://pygame-web.github.io">
     <link rel="dns-prefetch" href="https://pygame-web.github.io">
-    <link rel="modulepreload" href="https://pygame-web.github.io/cdn/0.9.3/pythons.js">
-    <link rel="preload" href="${archiveUrl(config.id)}" as="fetch">
+    <link rel="modulepreload" href="https://pygame-web.github.io/cdn/0.9.3/pythons.js" crossorigin="anonymous">
+    <link rel="preload" href="${archiveUrl(config.id)}" as="fetch" crossorigin="anonymous">
     <script src="/play/shared/game-boot-metrics.js"></script>
     <script src="/play/shared/pygbag-loading.js?v=${ASSET_VERSION}"></script>
     <style>
@@ -372,9 +438,12 @@ ${CDN_PIN_COMMENT}
       (function() {
         var _origFetch = window.fetch.bind(window);
         var done = false;
-        var check = setInterval(function() {
+        var _crossFileAttempts = 0;
+        var _crossFileTimer = null;
+        var check = function() {
           if ((typeof FS !== 'undefined' || typeof window.FS !== 'undefined') && typeof window.cross_file === 'function' && !done) {
-            clearInterval(check); done = true;
+            done = true;
+            clearInterval(_crossFileTimer);
             var fs = typeof FS !== 'undefined' ? FS : window.FS;
             window.cross_file = function*(url, store, flags) {
               console.log('cross_file.patched', url);
@@ -397,8 +466,20 @@ ${CDN_PIN_COMMENT}
               yield store;
             };
           }
-        }, 10);
-        setTimeout(function() { clearInterval(check); }, ${config.crossFileTimeout});
+          _crossFileAttempts++;
+          if (_crossFileAttempts > ${Math.floor(parseInt(config.crossFileTimeout) / 100)}) {
+            clearInterval(_crossFileTimer);
+            if (window.PirateArcadeMetrics) window.PirateArcadeMetrics.setFailedStage('cross-file-timeout', 'cross_file not ready after ' + (_crossFileAttempts * 100) + 'ms');
+            console.warn('cross_file replacement timed out');
+          }
+        };
+        _crossFileTimer = setInterval(check, 100);
+
+        function _clearTimers() {
+          if (_crossFileTimer) { clearInterval(_crossFileTimer); _crossFileTimer = null; }
+          if (_pyReadyTimer) { clearInterval(_pyReadyTimer); _pyReadyTimer = null; }
+        }
+        window.addEventListener('pagehide', _clearTimers);
       })();
 
       (function() {
@@ -410,18 +491,35 @@ ${CDN_PIN_COMMENT}
       })();
 
       console.log('INLINE_SCRIPT: cross_file replacement done');
-      if (window.PirateArcadeMetrics) window.PirateArcadeMetrics.mark('cross-file-replaced');
+      if (window.PirateArcadeMetrics) {
+        window.PirateArcadeMetrics.mark('cross-file-replaced');
+      }
 
       console.log('INJECT_SCRIPT: setting up poll');
-      if (window.PirateArcadeMetrics) window.PirateArcadeMetrics.mark('pythons-js-requested');
+      if (window.PirateArcadeMetrics) {
+        window.PirateArcadeMetrics.setBootStage('runtime-script-requested');
+        window.PirateArcadeMetrics.mark('pythons-js-requested');
+        var runtimeScript = document.getElementById('site');
+        if (runtimeScript && runtimeScript.src) {
+          window.PirateArcadeMetrics.setRuntimeScriptUrl(runtimeScript.src);
+        }
+      }
       (function() {
-        var pyReady = setInterval(function() {
+        var _pyReadyAttempts = 0;
+        var _pyReadyTimer = null;
+        var _pyReadyDone = false;
+        var checkPyReady = function() {
           if (typeof window.python === 'object' && window.python !== null && typeof window.python.PyRun_SimpleString === 'function') {
-            clearInterval(pyReady);
-            console.log('JS_INJECT: python ready, injecting startup code');
-            if (window.PirateArcadeMetrics) window.PirateArcadeMetrics.mark('python-ready');
+            if (!_pyReadyDone) {
+              _pyReadyDone = true;
+              clearInterval(_pyReadyTimer);
+              console.log('JS_INJECT: python ready, injecting startup code');
+              if (window.PirateArcadeMetrics) {
+                window.PirateArcadeMetrics.setBootStage('python-ready');
+                window.PirateArcadeMetrics.mark('python-ready');
+              }
 
-            var gameCode = [
+              var gameCode = [
 ${bootCode
   .split("\n")
   .map(function (line) {
@@ -430,13 +528,26 @@ ${bootCode
     return "              '" + escaped + "',";
   })
   .join("\n")}
-            ].join('\\n');
-            window.python.FS.writeFile('/tmp/game.py', gameCode);
-            window.python.script.blocks[0] = 'import sys;exec(open("/tmp/game.py").read())';
-            console.log('JS_INJECT: wrote /tmp/game.py and set blocks[0]');
+              ].join('\\n');
+              window.python.FS.writeFile('/tmp/game.py', gameCode);
+              window.python.script.blocks[0] = 'import sys;exec(open("/tmp/game.py").read())';
+              console.log('JS_INJECT: wrote /tmp/game.py and set blocks[0]');
+            }
+            return;
           }
-        }, 100);
-        setTimeout(function() { clearInterval(pyReady); }, 120000);
+          _pyReadyAttempts++;
+          if (_pyReadyAttempts > 1200) {
+            clearInterval(_pyReadyTimer);
+            if (window.PirateArcadeMetrics) window.PirateArcadeMetrics.setFailedStage('python-ready-timeout', 'Python not ready after ' + (_pyReadyAttempts * 100) + 'ms');
+            console.warn('Python readiness polling timed out');
+          }
+        };
+        _pyReadyTimer = setInterval(checkPyReady, 100);
+
+        function _clearTimers() {
+          if (_pyReadyTimer) { clearInterval(_pyReadyTimer); _pyReadyTimer = null; }
+        }
+        window.addEventListener('pagehide', _clearTimers);
       })();
 
       console.log('INLINE_SCRIPT: all setup done');

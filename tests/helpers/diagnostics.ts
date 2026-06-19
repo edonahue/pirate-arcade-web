@@ -29,7 +29,21 @@ export interface BootMetricsSnapshot {
   marks: Record<string, number>;
   durations: Record<string, number>;
   flags: { activePlay: boolean; firstUserInput: boolean };
-  context: { url: string; serviceWorkerControlled: boolean };
+  context: {
+    url: string;
+    serviceWorkerControlled: boolean;
+    bootStage: string;
+    failedStage: string | null;
+    firstFramePresented: boolean;
+    archiveUrl: string | null;
+    archiveByteLength: number | null;
+    runtimeScriptUrl: string | null;
+    longTaskSummary: {
+      count: number;
+      totalDuration: number;
+      maxDuration: number;
+    };
+  };
 }
 
 /** Typed interface for window.PirateArcadeMetrics */
@@ -46,6 +60,15 @@ export interface PirateArcadeMetrics {
   isPlayable(): boolean;
   markActivePlay(): void;
   markFirstUserInput(): void;
+  setBootStage(stage: string): void;
+  getBootStage(): string;
+  setFailedStage(stage: string, errorMessage?: string): void;
+  getFailedStage(): string | null;
+  markFirstFramePresented(): void;
+  hasFirstFrame(): boolean;
+  setArchiveUrl(url: string): void;
+  setArchiveByteLength(bytes: number): void;
+  setRuntimeScriptUrl(url: string): void;
 }
 
 /** Typed interface for window.PirateArcadeGameState */

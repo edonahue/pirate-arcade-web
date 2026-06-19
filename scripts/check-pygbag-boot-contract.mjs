@@ -33,15 +33,19 @@ const JS_BOOT_PHASES = [
 const PYTHON_BOOT_PHASES = [
   "boot-start",
   "pygame-install-start",
-  "archive-fetch-start",
   "pygame-install-end",
+  "archive-fetch-start",
   "archive-fetch-end",
+  "dependencies-ready",
   "archive-extract-start",
   "archive-extract-end",
   "input-bridge-installed",
   "display-init-start",
   "display-init-end",
-  "game-object-created",
+  "game-module-import-start",
+  "game-module-import-end",
+  "game-constructor-start",
+  "game-constructor-end",
   "game-ready",
 ];
 
