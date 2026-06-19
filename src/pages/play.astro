@@ -341,30 +341,32 @@ const getArchiveUrl = (gameId: string, engine: string) => {
         if (state.timeout) clearTimeout(state.timeout);
         state.timeout = setTimeout(function () {
           var urls = [pageUrl];
-          if (!state.prefetchedUrls.has(pageUrl)) {
-            var link = document.createElement("link");
-            link.rel = "prefetch";
-            link.href = pageUrl;
-            document.head.appendChild(link);
-            state.prefetchedUrls.add(pageUrl);
-          }
-          if (archiveUrl && !state.prefetchedUrls.has(archiveUrl)) {
-            var link = document.createElement("link");
-            link.rel = "prefetch";
-            link.href = archiveUrl;
-            link.as = "fetch";
-            document.head.appendChild(link);
-            state.prefetchedUrls.add(archiveUrl);
-            urls.push(archiveUrl);
-          }
-          if (
-            "serviceWorker" in navigator &&
-            navigator.serviceWorker.controller
-          ) {
+          // One warming owner per URL: if a SW controller is present,
+          // use WARM_CACHE (no DOM prefetch). Otherwise use DOM prefetch.
+          var hasController =
+            "serviceWorker" in navigator && navigator.serviceWorker.controller;
+          if (hasController) {
+            if (archiveUrl) urls.push(archiveUrl);
             navigator.serviceWorker.controller.postMessage({
               type: "WARM_CACHE",
               urls: urls,
             });
+          } else {
+            if (!state.prefetchedUrls.has(pageUrl)) {
+              var link = document.createElement("link");
+              link.rel = "prefetch";
+              link.href = pageUrl;
+              document.head.appendChild(link);
+              state.prefetchedUrls.add(pageUrl);
+            }
+            if (archiveUrl && !state.prefetchedUrls.has(archiveUrl)) {
+              var link = document.createElement("link");
+              link.rel = "prefetch";
+              link.href = archiveUrl;
+              link.as = "fetch";
+              document.head.appendChild(link);
+              state.prefetchedUrls.add(archiveUrl);
+            }
           }
         }, 150);
       }

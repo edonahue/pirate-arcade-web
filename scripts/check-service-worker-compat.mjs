@@ -117,8 +117,11 @@ if (swCode.includes("WARM_CACHE")) {
   if (!swCode.includes("response.status === 200")) {
     fail("WARM_CACHE must only cache HTTP 200 responses");
   }
-  if (!swCode.includes('cache: "no-store"')) {
-    fail("WARM_CACHE must fetch with { cache: 'no-store' }");
+  if (!swCode.includes("cache.match(")) {
+    fail("WARM_CACHE must check cache.match() before fetching");
+  }
+  if (!swCode.includes('"deduplicated"')) {
+    fail("WARM_CACHE must deduplicate concurrent requests");
   }
 }
 
@@ -145,14 +148,18 @@ if (assetsSectionStart !== -1 && assetsSectionEnd !== -1) {
     const archivePath = `/play/${game.id}/${game.id}.tar.gz`;
     const hasRoute = assetsSection.includes(route);
     const hasArchive = assetsSection.includes(archivePath);
-    if (hasRoute && hasArchive) {
-      console.log(`  [PASS] ASSETS_TO_CACHE includes ${game.id} fully`);
+    if (hasRoute && !hasArchive) {
+      console.log(
+        `  [PASS] ASSETS_TO_CACHE includes ${game.id} shell but not archive`,
+      );
     } else {
       if (!hasRoute) {
         fail(`ASSETS_TO_CACHE missing directory entry: ${route}`);
       }
-      if (!hasArchive) {
-        fail(`ASSETS_TO_CACHE missing archive entry: ${archivePath}`);
+      if (hasArchive) {
+        fail(
+          `ASSETS_TO_CACHE must not contain archive entry: ${archivePath} (archives are on-demand via cache-first)`,
+        );
       }
     }
   }

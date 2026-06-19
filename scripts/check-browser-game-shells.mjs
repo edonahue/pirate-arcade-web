@@ -328,10 +328,14 @@ for (const game of pygbagGames) {
     fail(`SW missing cache entry for ${route}`);
   }
 
-  if (swContent.includes(archivePath)) {
-    ok(`SW caches ${archivePath}`);
+  if (!swContent.includes(archivePath)) {
+    ok(
+      `SW does NOT cache ${archivePath} in install (on-demand via cache-first)`,
+    );
   } else {
-    fail(`SW missing cache entry for ${archivePath}`);
+    fail(
+      `SW should NOT cache ${archivePath} in ASSETS_TO_CACHE (on-demand via cache-first)`,
+    );
   }
 }
 

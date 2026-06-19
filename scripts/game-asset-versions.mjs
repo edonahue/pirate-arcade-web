@@ -2,7 +2,7 @@
 // Update this value when making changes that require cache invalidation
 
 export const ASSET_VERSION = "mobile-v8";
-export const CACHE_VERSION = "pirate-arcade-games-v11";
+export const CACHE_VERSION = "pirate-arcade-games-v12";
 
 // Derived values for convenience
 export const GAME_ASSET_VERSION = ASSET_VERSION;

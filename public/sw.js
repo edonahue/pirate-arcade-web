@@ -1,20 +1,20 @@
 // Pirate Arcade Service Worker
 // Cache same-origin assets for faster repeat visits.
 // Version bump when behavior changes.
-// v4: robust install (no single-asset failure kills whole SW),
-//     network-first HTML, stale-while-revalidate JS/CSS,
-//     cache-first archives, debug signal for tests.
+// v5: install only lightweight shell/shared assets (no game archives),
+//     versioned assets cache-first, WARM_CACHE cache-aware + dedup,
+//     network-first HTML, stale-while-revalidate JS/CSS.
 //
 // NOTE: This is a CLASSIC service worker (not module). The CACHE_VERSION
 // constant is populated by scripts/apply-game-asset-versions.mjs when
 // versions change. Do NOT add top-level import statements.
 
-const CACHE_VERSION = "pirate-arcade-games-v11";
+const CACHE_VERSION = "pirate-arcade-games-v12";
 const CACHE_NAME = CACHE_VERSION;
 
-// List of assets to cache - only confirmed browser-playable games.
-// Missing assets are added with individual try/catch so one failure
-// does not prevent the rest from being cached.
+// List of lightweight shell/shared assets to cache on install.
+// Game archives are ~12 MB each and downloaded on demand via
+// cache-first (versioned URLs) during warming / gameplay.
 const ASSETS_TO_CACHE = [
   "/play/cannonball-clash/",
   "/play/treasure-cove/",
@@ -24,9 +24,6 @@ const ASSETS_TO_CACHE = [
   "/play/shared/mobile-controls.js",
   "/play/shared/mobile-controls.css",
   "/play/shared/audio-bridge.js",
-  "/play/cannonball-clash/cannonball-clash.tar.gz",
-  "/play/treasure-cove/treasure-cove.tar.gz",
-  "/play/krakens-wake/krakens-wake.tar.gz",
   "/favicon.svg",
 ];
 
@@ -79,8 +76,12 @@ self.addEventListener("activate", (event) => {
 });
 
 // WARM_CACHE handling at top-level scope (not nested inside activate).
+// Cache-aware: checks cache first, fetches only on miss.
+// Deduplicates concurrent requests for the same URL via in-flight map.
 // Accepts same-origin URLs only, normalizes relative paths, caches
 // successful 200 responses, and posts a result message back to the client.
+var _warmInFlight = {};
+
 self.addEventListener("message", (event) => {
   if (!event.data || event.data.type !== "WARM_CACHE") return;
   const urls = event.data.urls || [];
@@ -93,35 +94,69 @@ self.addEventListener("message", (event) => {
       for (const raw of urls) {
         let normalized;
         try {
-          // Normalize relative URLs against origin
           normalized = new URL(raw, self.location.origin).href;
         } catch {
-          results.push({ url: raw, ok: false, reason: "invalid URL" });
+          results.push({ url: raw, status: "failed", error: "invalid URL" });
           continue;
         }
         // Reject cross-origin URLs
         if (!normalized.startsWith(self.location.origin)) {
           results.push({
             url: raw,
-            ok: false,
-            reason: "cross-origin rejected",
+            status: "failed",
+            error: "cross-origin rejected",
           });
           continue;
         }
+        // Check cache first (cache hit)
         try {
-          const response = await fetch(normalized, { cache: "no-store" });
+          const cached = await cache.match(normalized);
+          if (cached && cached.status === 200) {
+            results.push({
+              url: normalized,
+              status: "hit",
+              httpStatus: cached.status,
+            });
+            continue;
+          }
+        } catch {
+          // cache.match failure is non-fatal; fall through to fetch
+        }
+        // Deduplicate concurrent in-flight requests for the same URL
+        if (_warmInFlight[normalized]) {
+          results.push({
+            url: normalized,
+            status: "deduplicated",
+          });
+          continue;
+        }
+        // Fetch and cache
+        _warmInFlight[normalized] = true;
+        try {
+          const response = await fetch(normalized);
           if (response.status === 200) {
             await cache.put(normalized, response.clone());
-            results.push({ url: normalized, ok: true });
+            results.push({
+              url: normalized,
+              status: "fetched",
+              httpStatus: response.status,
+            });
           } else {
             results.push({
               url: normalized,
-              ok: false,
-              reason: `HTTP ${response.status}`,
+              status: "failed",
+              httpStatus: response.status,
+              error: "non-200 response",
             });
           }
         } catch (err) {
-          results.push({ url: normalized, ok: false, reason: err.message });
+          results.push({
+            url: normalized,
+            status: "failed",
+            error: err.message,
+          });
+        } finally {
+          delete _warmInFlight[normalized];
         }
       }
       // Post result back to the client so tests can verify
@@ -176,7 +211,14 @@ self.addEventListener("fetch", (event) => {
 
   const url = new URL(event.request.url);
 
-  // Network-first for game archives — always get latest after deploy
+  // Cache-first for versioned assets (has ?v= query) — includes
+  // game archives which always carry a version query parameter.
+  if (url.search.includes("v=")) {
+    event.respondWith(cacheFirst(event));
+    return;
+  }
+
+  // Network-first for game archives (unversioned fallback)
   if (url.pathname.endsWith(".tar.gz")) {
     event.respondWith(networkFirst(event));
     return;
@@ -205,12 +247,6 @@ self.addEventListener("fetch", (event) => {
     url.pathname.endsWith(".html")
   ) {
     event.respondWith(networkFirst(event));
-    return;
-  }
-
-  // Cache-first for versioned assets (has ?v= query)
-  if (url.search.includes("v=")) {
-    event.respondWith(cacheFirst(event));
     return;
   }
 
