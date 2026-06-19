@@ -3,11 +3,9 @@
 ## Metadata
 
 - Starting HEAD: `29cabc8827dec41512f408449db7a7a82842d826`
-- Current HEAD: `196a9f921d5f97c6436ddf390cab1cba3360eb3d`
-- Working-tree state: clean (+ .gitignore change for .lighthouseci/, + docs/diagnostics/ directory)
-- Current checkpoint: diagnostic repair follow-up
-- Last completed checkpoint: repair baseline HEAD: `196a9f921d5f97c6436ddf390cab1cba3360eb3d`
-- Next action: Phase 6 — validation
+- Current HEAD: `fb2f1b6c72ab6d82bd879fd65f9a435f75bac475`
+- Working-tree state: clean
+- Current checkpoint: checkpoint 1 — runtime diagnostics and safari lifecycle
 
 ## Tool versions
 

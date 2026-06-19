@@ -191,12 +191,9 @@ test.describe("Game Prewarm", () => {
     expect(prefetched).toBe(true);
   });
 
-  test("WARM_CACHE payload includes page and versioned archive URLs (Pygbag)", async ({
-    page,
-  }) => {
-    // Mock service worker controller for deterministic testing
+  /** Installs a mock SW controller that captures WARM_CACHE messages. */
+  async function mockServiceWorkerController(page: any) {
     await page.addInitScript(() => {
-      // Create a mock service worker controller
       const mockController = {
         postMessage: (msg: any) => {
           if (msg.type === "WARM_CACHE") {
@@ -206,14 +203,18 @@ test.describe("Game Prewarm", () => {
           }
         },
       };
-      // Use Object.defineProperty to properly mock navigator.serviceWorker
       Object.defineProperty(navigator, "serviceWorker", {
         value: { controller: mockController },
         writable: true,
         configurable: true,
       });
     });
+  }
 
+  test("WARM_CACHE payload includes page and versioned archive URLs (Pygbag)", async ({
+    page,
+  }) => {
+    await mockServiceWorkerController(page);
     await page.goto("/play/");
 
     // Trigger prewarm on a browser-playable CTA (Cannonball Clash - Pygbag)
@@ -258,25 +259,7 @@ test.describe("Game Prewarm", () => {
   });
 
   test("WARM_CACHE payload includes page only (Phaser)", async ({ page }) => {
-    // Mock service worker controller for deterministic testing
-    await page.addInitScript(() => {
-      const mockController = {
-        postMessage: (msg: any) => {
-          if (msg.type === "WARM_CACHE") {
-            (window as any).__paWarmCacheMessages =
-              (window as any).__paWarmCacheMessages || [];
-            (window as any).__paWarmCacheMessages.push(msg);
-          }
-        },
-      };
-      // Use Object.defineProperty to properly mock navigator.serviceWorker
-      Object.defineProperty(navigator, "serviceWorker", {
-        value: { controller: mockController },
-        writable: true,
-        configurable: true,
-      });
-    });
-
+    await mockServiceWorkerController(page);
     await page.goto("/play/");
 
     // Trigger prewarm on a browser-playable CTA (Race to Treasure Island - Phaser)

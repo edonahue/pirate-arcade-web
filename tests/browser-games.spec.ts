@@ -181,9 +181,8 @@ for (const game of GAMES) {
       await page.waitForTimeout(1000);
 
       const snapshot = await collector.snapshot(testInfo);
-      await collector.attach(testInfo, "startup");
+      await collector.attach(testInfo, "startup", snapshot);
 
-      // Filter to *blocking* errors only
       const blocking = blockingErrors(snapshot);
       if (blocking.length > 0) {
         throw new Error(
@@ -192,9 +191,9 @@ for (const game of GAMES) {
       }
       expect(blocking).toEqual([]);
 
-      // Game-critical asset failures
+      // Game-critical asset failures (failedRequests is string[])
       const gameAssetFailures = snapshot.failedRequests.filter((f) =>
-        /\.(wasm|so|tar\.gz)(\?|$)/i.test(f.url),
+        /\.(wasm|so|tar\.gz)(\?|$)/i.test(f),
       );
       const gameAssetBadResponses = snapshot.badResponses.filter((b) =>
         /\.(wasm|so|tar\.gz)(\?|$)/i.test(b.url),
@@ -221,12 +220,12 @@ for (const game of GAMES) {
       await waitForPygbagRuntime(page);
 
       // Reload and confirm we get back to a usable state
-      collector.beginScenario("reload");
+      collector.beginScenario(page, "reload");
       await page.reload({ waitUntil: "domcontentloaded" });
       await waitForPygbagRuntime(page);
 
       const snapshot = await collector.snapshot(testInfo);
-      await collector.attach(testInfo, "reload");
+      await collector.attach(testInfo, "reload", snapshot);
       const blocking = blockingErrors(snapshot);
       expect(blocking).toEqual([]);
     });
@@ -253,7 +252,7 @@ for (const game of GAMES) {
       await page.waitForTimeout(500);
 
       const snapshot = await collector.snapshot(testInfo);
-      await collector.attach(testInfo, "blur-refocus");
+      await collector.attach(testInfo, "blur-refocus", snapshot);
       const blocking = blockingErrors(snapshot);
       expect(blocking).toEqual([]);
     });
@@ -295,7 +294,7 @@ test.describe("Cross-game checks", () => {
       await page.waitForTimeout(1000);
 
       const snapshot = await collector.snapshot(testInfo);
-      await collector.attach(testInfo, "startup");
+      await collector.attach(testInfo, "startup", snapshot);
 
       // No console errors, no failed requests, no 4xx/5xx on
       // game-critical assets. (The runtime test above already

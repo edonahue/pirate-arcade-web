@@ -59,6 +59,13 @@ const GAMES: GameSpec[] = [
     actionKey: "Space",
     testSequence: ["ArrowLeft", "ArrowRight"],
   },
+  {
+    id: "krakens-wake",
+    name: "Kraken's Wake",
+    path: "/play/krakens-wake/",
+    actionKey: "Space",
+    testSequence: ["ArrowUp", "Space"],
+  },
 ];
 
 const DESKTOP_PROJECTS = [
@@ -80,16 +87,14 @@ for (const game of GAMES) {
       await page.goto(game.path, { waitUntil: "domcontentloaded" });
       await waitForPygbagRuntime(page);
 
-      // Focus + click to satisfy user-gesture / audio unlock
       await unlockAndFocusGame(page);
 
       const collector = createDiagnosticCollector();
       collector.start(page);
 
-      // Start the game using the configured primary action (exactly one key)
       await performConfiguredPrimaryAction(page, game.actionKey);
 
-      // Send gameplay keys and require genuine before/after evidence
+      // Throws on failure (sendKeysAndRequireResponse)
       const evidence = await sendKeysAndRequireResponse(
         page,
         game.testSequence,
@@ -97,18 +102,26 @@ for (const game of GAMES) {
       );
 
       const snapshot = await collector.snapshot(testInfo);
-      await collector.attach(testInfo, "input-test");
+      await collector.attach(testInfo, "input-test", snapshot);
+      const blocking = blockingErrors(snapshot);
+      expect(blocking).toEqual([]);
 
-      if (!evidence.responded) {
-        throw new Error(
-          `No input response detected for ${game.name} on ${testInfo.project.name}. ` +
-            `Attempted keys: [${game.testSequence.join(", ")}]. ` +
-            `Baseline: ${JSON.stringify(evidence.before)}. ` +
-            `After: ${JSON.stringify(evidence.after)}.`,
-        );
+      // Attach pixel evidence for diagnostics
+      const sample = await getCanvasPixelSample(page, 40, 40);
+      if (sample) {
+        let nonZero = 0;
+        for (let i = 3; i < sample.data.length; i += 4) {
+          if (sample.data[i] > 0) nonZero++;
+        }
+        await testInfo.attach(`post-input-pixels-${game.id}`, {
+          body: JSON.stringify({
+            nonZeroPixels: nonZero,
+            sampledPixels: sample.width * sample.height,
+            signal: evidence.signal,
+          }),
+          contentType: "application/json",
+        });
       }
-
-      expect(evidence.responded).toBe(true);
     });
 
     test("mouse click properly focuses canvas and enables keyboard", async ({
@@ -138,7 +151,7 @@ for (const game of GAMES) {
       await performConfiguredPrimaryAction(page, game.actionKey);
 
       const snapshot = await collector.snapshot(testInfo);
-      await collector.attach(testInfo, "focus-test");
+      await collector.attach(testInfo, "focus-test", snapshot);
       const blocking = blockingErrors(snapshot);
       expect(blocking).toEqual([]);
     });
@@ -194,7 +207,7 @@ for (const game of GAMES) {
       await page.waitForTimeout(500);
 
       const snapshot = await collector.snapshot(testInfo);
-      await collector.attach(testInfo, "rapid-input");
+      await collector.attach(testInfo, "rapid-input", snapshot);
       const blocking = blockingErrors(snapshot);
       expect(blocking).toEqual([]);
     });
@@ -221,74 +234,9 @@ for (const game of GAMES) {
       await page.waitForTimeout(300);
 
       const snapshot = await collector.snapshot(testInfo);
-      await collector.attach(testInfo, "escape-pause");
+      await collector.attach(testInfo, "escape-pause", snapshot);
       const blocking = blockingErrors(snapshot);
       expect(blocking).toEqual([]);
-    });
-
-    test("canvas pixels differ before and after input", async ({
-      page,
-    }, testInfo) => {
-      test.skip(
-        !DESKTOP_PROJECTS.includes(testInfo.project.name),
-        `Pixel-diff test skipped on ${testInfo.project.name}`,
-      );
-
-      const collector = createDiagnosticCollector();
-      collector.start(page);
-
-      await page.goto(game.path, { waitUntil: "domcontentloaded" });
-      await waitForPygbagRuntime(page);
-      await unlockAndFocusGame(page);
-
-      // Start game
-      await performConfiguredPrimaryAction(page, game.actionKey);
-
-      // Send gameplay and require genuine before/after evidence
-      const evidence = await sendKeysAndRequireResponse(
-        page,
-        game.testSequence,
-        3000,
-      );
-
-      const snapshot = await collector.snapshot(testInfo);
-      await collector.attach(testInfo, "pixel-diff");
-
-      if (!evidence.responded) {
-        testInfo.annotations.push({
-          type: "warn",
-          description:
-            `Canvas did not visibly change after input on ${testInfo.project.name} ` +
-            `— game may be frozen or not responding to keyboard. ` +
-            `Signal: ${evidence.signal}`,
-        });
-      } else {
-        await testInfo.attach(`input-response-${game.id}`, {
-          body: JSON.stringify({
-            signal: evidence.signal,
-            before: evidence.before,
-            after: evidence.after,
-          }),
-          contentType: "application/json",
-        });
-      }
-
-      const sample = await getCanvasPixelSample(page, 40, 40);
-      if (sample) {
-        let nonZero = 0;
-        for (let i = 3; i < sample.data.length; i += 4) {
-          if (sample.data[i] > 0) nonZero++;
-        }
-        await testInfo.attach(`post-input-pixels-${game.id}`, {
-          body: JSON.stringify({
-            nonZeroPixels: nonZero,
-            sampledPixels: sample.width * sample.height,
-            responded: evidence.responded,
-            signal: evidence.signal,
-          }),
-          contentType: "application/json",
-        });
-      }
     });
   });
 }

@@ -249,7 +249,7 @@ for (const game of GAMES) {
         ).toEqual([]);
       }
 
-      await collector.attach(testInfo, "touch-taps");
+      await collector.captureAndAttach(testInfo, "touch-taps");
     });
 
     test("no JavaScript dialogs during mobile gameplay", async ({
@@ -287,7 +287,7 @@ for (const game of GAMES) {
         }
       }
 
-      await collector.attach(testInfo, "dialog-check");
+      await collector.captureAndAttach(testInfo, "dialog-check");
 
       const dlgCalled = await dialogWasCalled(page);
       expect(dlgCalled).toBe(false);
@@ -327,7 +327,7 @@ for (const game of GAMES) {
       await page.waitForTimeout(500);
 
       const snapshot = await collector.snapshot(testInfo);
-      await collector.attach(testInfo, "rapid-tap");
+      await collector.attach(testInfo, "rapid-tap", snapshot);
       const blocking = blockingErrors(snapshot);
       expect(blocking).toEqual([]);
     });
@@ -461,6 +461,6 @@ test.describe(`${ASTEROIDS_GAME.name} - mobile input`, () => {
       ).toEqual([]);
     }
 
-    await collector.attach(testInfo, "asteroids-tap");
+    await collector.captureAndAttach(testInfo, "asteroids-tap");
   });
 });

@@ -271,7 +271,7 @@ for (const game of GAMES) {
       await waitForLoaderHidden(page, 120000);
 
       // Begin a new scenario for the reload measurement
-      diag.beginScenario("reload");
+      diag.beginScenario(page, "reload");
 
       await page.reload({ waitUntil: "domcontentloaded" });
       await waitForLoaderHidden(page, 120000);

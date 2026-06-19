@@ -207,6 +207,252 @@ describe("pygame-input-bridge", () => {
     });
   });
 
+  describe("PirateArcadeGameState observer lifecycle", () => {
+    beforeEach(() => {
+      document.body.innerHTML = "";
+      delete (window as any).PirateArcadeGameState;
+      delete (window as any).__paSuccessBridgeCalls;
+      delete (window as any).__paInputDebug;
+      delete (window as any).PirateArcadeInput;
+    });
+
+    it("starts polling when #pa-game-state is absent", () => {
+      loadBridge();
+      const gs = (window as any).PirateArcadeGameState;
+      expect(gs).toBeTruthy();
+      const meta = gs.getMeta();
+      expect(meta.observerType).toBe("polling");
+      expect(meta.observerConnected).toBe(false);
+    });
+
+    it("attaches MutationObserver when #pa-game-state element exists", () => {
+      const el = document.createElement("div");
+      el.id = "pa-game-state";
+      el.textContent = '{"phase":"loading"}';
+      document.body.appendChild(el);
+
+      loadBridge();
+      const gs = (window as any).PirateArcadeGameState;
+      const meta = gs.getMeta();
+      expect(meta.observerType).toBe("mutation");
+      expect(meta.observerConnected).toBe(true);
+    });
+
+    it("reflects state changes via MutationObserver", async () => {
+      const el = document.createElement("div");
+      el.id = "pa-game-state";
+      el.textContent = '{"phase":"menu","score":0}';
+      document.body.appendChild(el);
+
+      loadBridge();
+      const gs = (window as any).PirateArcadeGameState;
+      expect(gs.getState()).toBeNull();
+
+      // Simulate Python writing to the element
+      el.textContent = '{"phase":"playing","score":5}';
+      el.dispatchEvent(new Event("DOMSubtreeModified"));
+
+      // Wait for debounce (50ms) + flush
+      await new Promise((r) => setTimeout(r, 100));
+      expect(gs.getState()).toBeTruthy();
+      expect(gs.getState().phase).toBe("playing");
+      expect(gs.getState().score).toBe(5);
+    });
+
+    it("subscribes and notifies on state change", async () => {
+      const el = document.createElement("div");
+      el.id = "pa-game-state";
+      el.textContent = '{"phase":"menu"}';
+      document.body.appendChild(el);
+
+      loadBridge();
+      const gs = (window as any).PirateArcadeGameState;
+
+      const received: any[] = [];
+      gs.subscribe((state: any) => received.push(state));
+
+      el.textContent = '{"phase":"playing"}';
+      el.dispatchEvent(new Event("DOMSubtreeModified"));
+
+      await new Promise((r) => setTimeout(r, 100));
+      expect(received.length).toBe(1);
+      expect(received[0].phase).toBe("playing");
+    });
+
+    it("unsubscribe stops receiving notifications", async () => {
+      const el = document.createElement("div");
+      el.id = "pa-game-state";
+      el.textContent = '{"phase":"menu"}';
+      document.body.appendChild(el);
+
+      loadBridge();
+      const gs = (window as any).PirateArcadeGameState;
+
+      const received: any[] = [];
+      const unsub = gs.subscribe((state: any) => received.push(state));
+      unsub();
+
+      el.textContent = '{"phase":"playing"}';
+      el.dispatchEvent(new Event("DOMSubtreeModified"));
+
+      await new Promise((r) => setTimeout(r, 100));
+      expect(received.length).toBe(0);
+    });
+
+    it("upgrades from polling to MutationObserver when element appears", () => {
+      loadBridge();
+      const gs = (window as any).PirateArcadeGameState;
+      let meta = gs.getMeta();
+      expect(meta.observerType).toBe("polling");
+
+      const el = document.createElement("div");
+      el.id = "pa-game-state";
+      el.textContent = '{"phase":"ready"}';
+      document.body.appendChild(el);
+
+      // Trigger polling cycle manually
+      gs.refresh();
+
+      // After refresh, the polling cycle should detect the element
+      meta = gs.getMeta();
+      expect(meta.stale).toBe(false);
+    });
+
+    it("recovers observer on pageshow after BFCache restore", () => {
+      const el = document.createElement("div");
+      el.id = "pa-game-state";
+      el.textContent = '{"phase":"menu"}';
+      document.body.appendChild(el);
+
+      loadBridge();
+      const gs = (window as any).PirateArcadeGameState;
+      let meta = gs.getMeta();
+      expect(meta.observerType).toBe("mutation");
+      expect(meta.observerConnected).toBe(true);
+
+      // Simulate BFCache invalidation: disconnect and restore
+      const event = new Event("pageshow");
+      Object.defineProperty(event, "persisted", {
+        value: true,
+        configurable: true,
+      });
+      window.dispatchEvent(event);
+
+      meta = gs.getMeta();
+      expect(meta.observerConnected).toBe(true);
+      expect(meta.bfcacheRestores).toBeGreaterThanOrEqual(1);
+    });
+
+    it("getMeta exposes all debug fields", () => {
+      const el = document.createElement("div");
+      el.id = "pa-game-state";
+      el.textContent = '{"phase":"menu"}';
+      document.body.appendChild(el);
+
+      loadBridge();
+      const gs = (window as any).PirateArcadeGameState;
+      const meta = gs.getMeta();
+
+      expect(meta).toHaveProperty("source");
+      expect(meta).toHaveProperty("lastUpdatedAt");
+      expect(meta).toHaveProperty("parseErrorCount");
+      expect(meta).toHaveProperty("stale");
+      expect(meta).toHaveProperty("observerType");
+      expect(meta).toHaveProperty("observerConnected");
+      expect(meta).toHaveProperty("bfcacheRestores");
+      expect(meta).toHaveProperty("mutationCount");
+      expect(meta).toHaveProperty("pollCycles");
+    });
+  });
+
+  describe("monotonic bridge counters", () => {
+    beforeEach(() => {
+      document.body.innerHTML =
+        '<div id="canvas"><canvas id="canvas"></canvas></div>';
+      delete (window as any).PirateArcadeInput;
+      delete (window as any).__paInputDebug;
+      delete (window as any).__paSuccessBridgeCalls;
+      delete (window as any).PirateArcadeGameState;
+      loadBridge();
+    });
+
+    it("starts at 0", () => {
+      expect((window as any).__paSuccessBridgeCalls).toBe(0);
+      const state = (window as any).PirateArcadeInput.getState();
+      expect(state.successfulBridgeCalls).toBe(0);
+    });
+
+    it("increments on each keyDown (bridge miss does not count)", () => {
+      const input = (window as any).PirateArcadeInput;
+      // Without python bridge, calls will be "misses" — no increment
+      input.keyDown("ArrowUp");
+      expect((window as any).__paSuccessBridgeCalls).toBe(0);
+
+      // With mock python bridge, calls should increment
+      (window as any).python = {
+        PyRun_SimpleString: () => {},
+      };
+      input.keyDown("Space");
+      expect((window as any).__paSuccessBridgeCalls).toBe(1);
+
+      input.keyDown("Enter");
+      expect((window as any).__paSuccessBridgeCalls).toBe(2);
+    });
+
+    it("is monotonic and survives clearDebug", () => {
+      (window as any).python = {
+        PyRun_SimpleString: () => {},
+      };
+      const input = (window as any).PirateArcadeInput;
+
+      input.keyDown("a");
+      input.keyDown("d");
+      expect((window as any).__paSuccessBridgeCalls).toBe(2);
+
+      const state = input.getState();
+      expect(state.successfulBridgeCalls).toBe(2);
+
+      input.clearDebug();
+      // Ring buffers are cleared but monotonic counter persists
+      expect((window as any).__paInputDebug.bridgeCalls.length).toBe(0);
+      expect((window as any).__paSuccessBridgeCalls).toBe(2);
+
+      const state2 = input.getState();
+      expect(state2.successfulBridgeCalls).toBe(2);
+
+      input.keyDown("w");
+      expect((window as any).__paSuccessBridgeCalls).toBe(3);
+    });
+
+    it("tracks successful keyUp too", () => {
+      (window as any).python = {
+        PyRun_SimpleString: () => {},
+      };
+      const input = (window as any).PirateArcadeInput;
+
+      input.keyDown("Space");
+      expect((window as any).__paSuccessBridgeCalls).toBe(1);
+
+      input.keyUp("Space");
+      expect((window as any).__paSuccessBridgeCalls).toBe(2);
+    });
+
+    it("matches getState().successfulBridgeCalls", () => {
+      (window as any).python = {
+        PyRun_SimpleString: () => {},
+      };
+      const input = (window as any).PirateArcadeInput;
+
+      input.keyDown("ArrowLeft");
+      input.keyDown("ArrowRight");
+
+      const direct = (window as any).__paSuccessBridgeCalls;
+      const fromState = input.getState().successfulBridgeCalls;
+      expect(direct).toBe(fromState);
+      expect(direct).toBe(2);
+    });
+  });
+
   describe("key normalization (unit)", () => {
     // Extract the normalizeKey logic for direct testing
     function normalizeKey(k: string): string {

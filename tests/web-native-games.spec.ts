@@ -180,7 +180,7 @@ for (const game of GAMES) {
       collector.start(page);
 
       const snapshot = await collector.snapshot(testInfo);
-      await collector.attach(testInfo, "scenario");
+      await collector.attach(testInfo, "scenario", snapshot);
       const blocking = blockingErrors(snapshot);
       expect(blocking).toEqual([]);
     });
@@ -220,7 +220,7 @@ for (const game of GAMES) {
       expect(dims.h).toBeGreaterThan(100);
 
       const snapshot = await collector.snapshot(testInfo);
-      await collector.attach(testInfo, "scenario");
+      await collector.attach(testInfo, "scenario", snapshot);
       const blocking = blockingErrors(snapshot);
       expect(blocking).toEqual([]);
     });
@@ -244,7 +244,7 @@ for (const game of GAMES) {
       await page.waitForTimeout(500);
 
       const snapshot = await collector.snapshot(testInfo);
-      await collector.attach(testInfo, "scenario");
+      await collector.attach(testInfo, "scenario", snapshot);
       const blocking = blockingErrors(snapshot);
       expect(blocking).toEqual([]);
     });
@@ -261,12 +261,12 @@ for (const game of GAMES) {
       await page.goto(game.path, { waitUntil: "domcontentloaded" });
       await waitForPhaserReady(page);
 
-      collector.beginScenario("reload");
+      collector.beginScenario(page, "reload");
       await page.reload({ waitUntil: "domcontentloaded" });
       await waitForPhaserReady(page);
 
       const snapshot = await collector.snapshot(testInfo);
-      await collector.attach(testInfo, "reload");
+      await collector.attach(testInfo, "reload", snapshot);
       const blocking = blockingErrors(snapshot);
       expect(blocking).toEqual([]);
     });
@@ -291,7 +291,7 @@ for (const game of GAMES) {
       await page.waitForTimeout(500);
 
       const snapshot = await collector.snapshot(testInfo);
-      await collector.attach(testInfo, "blur-refocus");
+      await collector.attach(testInfo, "blur-refocus", snapshot);
       const blocking = blockingErrors(snapshot);
       expect(blocking).toEqual([]);
     });

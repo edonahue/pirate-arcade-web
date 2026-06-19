@@ -105,7 +105,7 @@ test.describe("iPad Safari Playability", () => {
       expect(hasPixels).toBe(true);
 
       const snapshot = await collector.snapshot(testInfo);
-      await collector.attach(testInfo, "scenario");
+      await collector.attach(testInfo, "scenario", snapshot);
       expect(blockingErrors(snapshot)).toEqual([]);
     });
 
@@ -137,7 +137,7 @@ test.describe("iPad Safari Playability", () => {
       expect(afterPixels).toBe(true);
 
       const snapshot = await collector.snapshot(testInfo);
-      await collector.attach(testInfo, "scenario");
+      await collector.attach(testInfo, "scenario", snapshot);
       expect(blockingErrors(snapshot)).toEqual([]);
     });
 
@@ -160,7 +160,7 @@ test.describe("iPad Safari Playability", () => {
       ).toBe(true);
 
       const snapshot = await collector.snapshot(testInfo);
-      await collector.attach(testInfo, "scenario");
+      await collector.attach(testInfo, "scenario", snapshot);
       expect(blockingErrors(snapshot)).toEqual([]);
     });
   });
@@ -202,7 +202,7 @@ test.describe("iPad Safari Playability", () => {
       expect(hasPixels).toBe(true);
 
       const snapshot = await collector.snapshot(testInfo);
-      await collector.attach(testInfo, "scenario");
+      await collector.attach(testInfo, "scenario", snapshot);
       expect(blockingErrors(snapshot)).toEqual([]);
     });
 
@@ -235,7 +235,7 @@ test.describe("iPad Safari Playability", () => {
       expect(afterPixels).toBe(true);
 
       const snapshot = await collector.snapshot(testInfo);
-      await collector.attach(testInfo, "scenario");
+      await collector.attach(testInfo, "scenario", snapshot);
       expect(blockingErrors(snapshot)).toEqual([]);
     });
 
@@ -258,7 +258,7 @@ test.describe("iPad Safari Playability", () => {
       ).toBe(true);
 
       const snapshot = await collector.snapshot(testInfo);
-      await collector.attach(testInfo, "scenario");
+      await collector.attach(testInfo, "scenario", snapshot);
       expect(blockingErrors(snapshot)).toEqual([]);
     });
   });
@@ -305,7 +305,7 @@ test.describe("iPad Safari Playability", () => {
       expect(hasPixels).toBe(true);
 
       const snapshot = await collector.snapshot(testInfo);
-      await collector.attach(testInfo, "scenario");
+      await collector.attach(testInfo, "scenario", snapshot);
       expect(blockingErrors(snapshot)).toEqual([]);
     });
 
@@ -337,7 +337,7 @@ test.describe("iPad Safari Playability", () => {
       ).toBe(true);
 
       const snapshot = await collector.snapshot(testInfo);
-      await collector.attach(testInfo, "scenario");
+      await collector.attach(testInfo, "scenario", snapshot);
       expect(blockingErrors(snapshot)).toEqual([]);
     });
   });
@@ -371,7 +371,7 @@ test.describe("iPad Safari Playability", () => {
         expect(state?.score).toBe(0);
 
         const snapshot = await collector.snapshot(testInfo);
-        await collector.attach(testInfo, "scenario");
+        await collector.attach(testInfo, "scenario", snapshot);
         expect(blockingErrors(snapshot)).toEqual([]);
       });
 
@@ -418,7 +418,7 @@ test.describe("iPad Safari Playability", () => {
         expect(diff).toBeGreaterThan(10);
 
         const snapshot = await collector.snapshot(testInfo);
-        await collector.attach(testInfo, "scenario");
+        await collector.attach(testInfo, "scenario", snapshot);
         expect(blockingErrors(snapshot)).toEqual([]);
       });
     });
@@ -446,7 +446,7 @@ test.describe("iPad Safari Playability", () => {
         expect(state?.score).toBe(0);
 
         const snapshot = await collector.snapshot(testInfo);
-        await collector.attach(testInfo, "scenario");
+        await collector.attach(testInfo, "scenario", snapshot);
         expect(blockingErrors(snapshot)).toEqual([]);
       });
 
@@ -495,7 +495,7 @@ test.describe("iPad Safari Playability", () => {
         expect(diff).toBeGreaterThan(10);
 
         const snapshot = await collector.snapshot(testInfo);
-        await collector.attach(testInfo, "scenario");
+        await collector.attach(testInfo, "scenario", snapshot);
         expect(blockingErrors(snapshot)).toEqual([]);
       });
     });
@@ -524,7 +524,7 @@ test.describe("iPad Safari Playability", () => {
         expect(state?.score).toBe(0);
 
         const snapshot = await collector.snapshot(testInfo);
-        await collector.attach(testInfo, "scenario");
+        await collector.attach(testInfo, "scenario", snapshot);
         expect(blockingErrors(snapshot)).toEqual([]);
       });
     });
@@ -584,7 +584,7 @@ test.describe("iPad Safari Playability", () => {
       expect(state.paused).toBe(false);
 
       const snapshot = await collector.snapshot(testInfo);
-      await collector.attach(testInfo, "scenario");
+      await collector.attach(testInfo, "scenario", snapshot);
       expect(blockingErrors(snapshot)).toEqual([]);
     });
 
@@ -607,7 +607,7 @@ test.describe("iPad Safari Playability", () => {
       expect(state.paused).toBe(true);
 
       const snapshot = await collector.snapshot(testInfo);
-      await collector.attach(testInfo, "scenario");
+      await collector.attach(testInfo, "scenario", snapshot);
       expect(blockingErrors(snapshot)).toEqual([]);
     });
 
@@ -640,7 +640,7 @@ test.describe("iPad Safari Playability", () => {
       expect(typeof state.result).toBe("string");
 
       const snapshot = await collector.snapshot(testInfo);
-      await collector.attach(testInfo, "scenario");
+      await collector.attach(testInfo, "scenario", snapshot);
       expect(blockingErrors(snapshot)).toEqual([]);
     });
   });

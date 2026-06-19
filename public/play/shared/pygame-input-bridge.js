@@ -5,6 +5,9 @@
   var DEBUG_RING_SIZE = /[?&]debug\b/.test(window.location.search) ? 1000 : 100;
   var debugLog = { events: [], bridgeCalls: [], domEvents: [] };
 
+  // Monotonic counter for total successful bridge calls (never resets).
+  var _successfulBridgeCalls = 0;
+
   function logArr(arr, entry) {
     arr.push(entry);
     if (arr.length > DEBUG_RING_SIZE) arr.shift();
@@ -63,6 +66,7 @@
       safeKey + ', ' + down + ')';
     try {
       window.python.PyRun_SimpleString(code);
+      _successfulBridgeCalls++;
       return true;
     } catch (err) {
       console.warn('PirateArcadeInput: bridge call failed', err);
@@ -161,7 +165,6 @@
       _lastReleaseReason = r;
       _releaseCount++;
       logEvent('releaseAll', { reason: r, releaseCount: _releaseCount });
-      // Cancel all pending tap timers to prevent delayed duplicate key-ups
       for (var pt in _pendingTaps) {
         if (_pendingTaps.hasOwnProperty(pt)) {
           clearTimeout(_pendingTaps[pt]);
@@ -180,8 +183,6 @@
       }
       _heldKeys = {};
       this.clearTouchTarget();
-      // Diagnostics history is preserved for post-failure analysis.
-      // Call clearDebug() explicitly only from tests or debug UI.
     },
 
     getState: function () {
@@ -201,6 +202,7 @@
         releaseReason: _lastReleaseReason,
         releaseCount: _releaseCount,
         lastReleaseReason: _lastReleaseReason,
+        successfulBridgeCalls: _successfulBridgeCalls,
       };
     },
 
@@ -273,20 +275,21 @@
 
   window.PirateArcadeInput = PirateArcadeInput;
   window.__paInputDebug = debugLog;
-
-  // PirateArcadeLoading is now defined in pygbag-loading.js
-  // (loaded before this script in the shell <head>).
+  Object.defineProperty(window, '__paSuccessBridgeCalls', {
+    get: function () { return _successfulBridgeCalls; },
+    configurable: true,
+    enumerable: true,
+  });
 
   // ── Shared game-state contract ──────────────────────────────
-  // Reads Python-side __pa_game_state_json (set each frame by each
-  // game's _update) via PyRun_SimpleString + FS.  Polling is cheap
-  // enough for button-label updates and lifecycle management; tests
-  // can also read the file directly.
+  // MutationObserver-first observation of the #pa-game-state element
+  // with bounded polling as fallback.  BFCache pageshow restores
+  // observation after Safari/Chrome page-cache restore.
   //
   // PirateArcadeGameState:
   //   getState()          → last polled state or null
   //   subscribe(cb)       → returns unsubscribe function
-  //   startPolling(ms)    → begin polling at interval (default 500)
+  //   startPolling(ms)    → begin polling (bounded to MAX_POLL_INTERVAL)
   //   stopPolling()       → stop polling
   //   refresh()           → one-shot poll
 
@@ -299,14 +302,28 @@
     lastUpdatedAt: null,
     parseErrorCount: 0,
     stale: true,
+    observerType: 'none',
+    observerConnected: false,
+    bfcacheRestores: 0,
+    mutationCount: 0,
+    pollCycles: 0,
   };
+  var _stateObserver = null;
+  var _observerTarget = null;
+  var _bfcacheRestoreCount = 0;
+
+  var POLL_INTERVAL = 500;
+  var MAX_POLL_INTERVAL = 2000;
+  var DEBOUNCE_MS = 50;
 
   function _readGameState() {
     // Fast path: JS-set state (web-native games like Race can set
     // window.__pa_game_state_json directly)
     if (typeof window.__pa_game_state_json === 'string') {
       try {
-        _bridgeMeta = { source: 'window.__pa_game_state_json', lastUpdatedAt: Date.now(), parseErrorCount: 0, stale: false };
+        _bridgeMeta.source = 'window.__pa_game_state_json';
+        _bridgeMeta.lastUpdatedAt = Date.now();
+        _bridgeMeta.stale = false;
         return JSON.parse(window.__pa_game_state_json);
       } catch (e) {
         _bridgeMeta.parseErrorCount++;
@@ -318,7 +335,9 @@
     var bridgeEl = document.getElementById('pa-game-state');
     if (bridgeEl && bridgeEl.textContent) {
       try {
-        _bridgeMeta = { source: 'dom#pa-game-state', lastUpdatedAt: Date.now(), parseErrorCount: 0, stale: false };
+        _bridgeMeta.source = 'dom#pa-game-state';
+        _bridgeMeta.lastUpdatedAt = Date.now();
+        _bridgeMeta.stale = false;
         return JSON.parse(bridgeEl.textContent);
       } catch (e) {
         _bridgeMeta.parseErrorCount++;
@@ -338,13 +357,108 @@
         ')'
       );
       var raw = window.python.FS.readFile('/tmp/_pa_game_state.json', { encoding: 'utf8' });
-      _bridgeMeta = { source: 'python-file-fallback', lastUpdatedAt: Date.now(), parseErrorCount: 0, stale: false };
+      _bridgeMeta.source = 'python-file-fallback';
+      _bridgeMeta.lastUpdatedAt = Date.now();
+      _bridgeMeta.stale = false;
       return JSON.parse(raw);
     } catch (e) {
       _bridgeMeta.parseErrorCount++;
       _bridgeMeta.stale = true;
       return null;
     }
+  }
+
+  function _notifySubscribers() {
+    _gameStateSubs.forEach(function (cb) {
+      try { cb(_gameState); } catch (e) {}
+    });
+  }
+
+  function _refreshAndNotify() {
+    var parsed = _readGameState();
+    if (!parsed) return;
+    if (JSON.stringify(parsed) !== JSON.stringify(_gameState)) {
+      _gameState = parsed;
+      _notifySubscribers();
+    }
+  }
+
+  // ── MutationObserver ────────────────────────────────────────
+
+  function _startMutationObserver() {
+    _stopMutationObserver();
+    var el = document.getElementById('pa-game-state');
+    if (!el) {
+      _bridgeMeta.observerType = 'polling';
+      _bridgeMeta.observerConnected = false;
+      _bridgeMeta.stale = true;
+      return false;
+    }
+    _observerTarget = el;
+    var debounceTimer = null;
+    _stateObserver = new MutationObserver(function () {
+      _bridgeMeta.mutationCount++;
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(function () {
+        _refreshAndNotify();
+      }, DEBOUNCE_MS);
+    });
+    _stateObserver.observe(el, {
+      childList: true,
+      subtree: true,
+      characterData: true,
+    });
+    _bridgeMeta.observerType = 'mutation';
+    _bridgeMeta.observerConnected = true;
+    _bridgeMeta.stale = false;
+    return true;
+  }
+
+  function _stopMutationObserver() {
+    if (_stateObserver) {
+      _stateObserver.disconnect();
+      _stateObserver = null;
+    }
+    _observerTarget = null;
+    _bridgeMeta.observerConnected = false;
+  }
+
+  // ── Bounded polling (fallback) ─────────────────────────────
+
+  function _pollingCycle() {
+    if (!_gameStatePolling) return;
+    _bridgeMeta.pollCycles++;
+
+    // Upgrade to MutationObserver if #pa-game-state element appears
+    if (!_stateObserver) {
+      var upgraded = _startMutationObserver();
+      if (upgraded) {
+        _gameStatePolling = false;
+        if (_gameStateTimer) {
+          clearTimeout(_gameStateTimer);
+          _gameStateTimer = null;
+        }
+        _refreshAndNotify();
+        return;
+      }
+    }
+
+    _refreshAndNotify();
+    _gameStateTimer = setTimeout(_pollingCycle, POLL_INTERVAL);
+  }
+
+  function _restoreObservation() {
+    _bfcacheRestoreCount++;
+    _bridgeMeta.bfcacheRestores = _bfcacheRestoreCount;
+    logEvent('bfcacheRestore', { count: _bfcacheRestoreCount });
+
+    PirateArcadeGameState.stopPolling();
+    _stateObserver = null;
+    _observerTarget = null;
+    if (!_startMutationObserver()) {
+      PirateArcadeGameState.startPolling();
+    }
+    _refreshAndNotify();
   }
 
   var PirateArcadeGameState = {
@@ -359,14 +473,10 @@
     },
     startPolling: function (intervalMs) {
       if (_gameStatePolling) return;
+      if (_bridgeMeta.observerType === 'mutation' && _bridgeMeta.observerConnected) return;
       _gameStatePolling = true;
-      intervalMs = intervalMs || 500;
-      function poll() {
-        if (!_gameStatePolling) return;
-        PirateArcadeGameState.refresh();
-        _gameStateTimer = setTimeout(poll, intervalMs);
-      }
-      poll();
+      if (intervalMs != null) POLL_INTERVAL = Math.min(intervalMs, MAX_POLL_INTERVAL);
+      _pollingCycle();
     },
     stopPolling: function () {
       _gameStatePolling = false;
@@ -376,14 +486,7 @@
       }
     },
     refresh: function () {
-      var parsed = _readGameState();
-      if (!parsed) return;
-      if (JSON.stringify(parsed) !== JSON.stringify(_gameState)) {
-        _gameState = parsed;
-        _gameStateSubs.forEach(function (cb) {
-          try { cb(_gameState); } catch (e) {}
-        });
-      }
+      _refreshAndNotify();
     },
     getMeta: function () {
       return {
@@ -391,24 +494,47 @@
         lastUpdatedAt: _bridgeMeta.lastUpdatedAt,
         parseErrorCount: _bridgeMeta.parseErrorCount,
         stale: _bridgeMeta.stale,
+        observerType: _bridgeMeta.observerType,
+        observerConnected: _bridgeMeta.observerConnected,
+        bfcacheRestores: _bridgeMeta.bfcacheRestores,
+        mutationCount: _bridgeMeta.mutationCount,
+        pollCycles: _bridgeMeta.pollCycles,
       };
     },
   };
 
   window.PirateArcadeGameState = PirateArcadeGameState;
 
+  // ── Initialisation ──────────────────────────────────────────
+  // Try MutationObserver first; fall back to bounded polling.
+  // Listen for pageshow to restore observation after BFCache.
+  (function () {
+    function init() {
+      var mo = _startMutationObserver();
+      if (!mo) {
+        PirateArcadeGameState.startPolling();
+      }
+
+      window.addEventListener('pageshow', function (event) {
+        if (event.persisted) {
+          _restoreObservation();
+        }
+      });
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', init);
+    } else {
+      init();
+    }
+  })();
+
   // ── Game-state observer for active-play milestone ────────────
-  // Starts polling once, observes phase transitions, marks active-play
-  // when game enters a verified active gameplay phase.
   (function () {
     var _observerStarted = false;
     var _activePlayMarked = false;
     var _pageHiding = false;
 
-    // Game-specific active phase identifiers (audited from all three games)
-    // Cannonball Clash: 'playing'
-    // Treasure Cove: 'playing'
-    // Kraken's Wake: 'playing'
     var ACTIVE_PHASES = ['playing'];
 
     function isActivePhase(phase) {
@@ -419,7 +545,6 @@
       if (_observerStarted) return;
       _observerStarted = true;
 
-      // Subscribe to game-state changes
       var unsubscribe = PirateArcadeGameState.subscribe(function (state) {
         if (_pageHiding) return;
         if (!_activePlayMarked && state && isActivePhase(state.phase)) {
@@ -427,22 +552,25 @@
           if (window.PirateArcadeMetrics) {
             window.PirateArcadeMetrics.markActivePlay();
           }
-          // Keep polling for other subscribers but don't re-mark
         }
       });
 
-      // Start polling at default 500ms interval
-      PirateArcadeGameState.startPolling();
-
-      // Stop on pagehide
       window.addEventListener('pagehide', function () {
         _pageHiding = true;
         PirateArcadeGameState.stopPolling();
         unsubscribe();
       });
+
+      // Re-subscribe after BFCache restore (pagehide + pageshow cycle)
+      window.addEventListener('pageshow', function (event) {
+        if (event.persisted) {
+          _pageHiding = false;
+          _observerStarted = false;
+          startObserver();
+        }
+      });
     }
 
-    // Start observer when DOM is ready (scripts load in <head>)
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', startObserver);
     } else {
@@ -451,11 +579,6 @@
   })();
 
   // ── Per-game action semantics ────────────────────────────────
-  // Dispatches the correct primary key for each game based on its
-  // control mode and current game phase.  One tap = one key — no
-  // Enter+Space double dispatch.
-  // ── Control metadata from generated shell ────────────────────
-  // Reads authoritative per-game values from #game-wrap data attributes.
   function getControlMeta(name, fallback) {
     var wrap = document.getElementById('game-wrap');
     if (wrap && wrap.dataset && wrap.dataset[name] !== undefined) {

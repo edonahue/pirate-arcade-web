@@ -14,8 +14,7 @@
  * frames. Tests should remain stable across small game tweaks.
  *
  * For diagnostics collection (errors, requests, CSP, etc.), use
- * tests/helpers/diagnostics.ts (createDiagnosticCollector, startDiagnostics,
- * snapshotDiagnostics, collectPageDiagnostics, blockingErrors, attachDiagnostics).
+ * tests/helpers/diagnostics.ts (createDiagnosticCollector, blockingErrors).
  */
 
 import { test, expect, type Page } from "@playwright/test";
@@ -183,8 +182,9 @@ export async function captureResponseBaseline(page: Page): Promise<{
   canvasDigest: string;
 }> {
   const gameState = await readGameState(page);
-  const debug = await readPirateInputDebug(page);
-  const bridgeCount = debug.bridgeCalls.length;
+  const bridgeCount = await page.evaluate(
+    () => (window as any).__paSuccessBridgeCalls ?? 0,
+  );
   const canvasDigest = await page.evaluate(() => {
     const c = document.getElementById("canvas") as HTMLCanvasElement | null;
     if (!c) return "";
@@ -239,9 +239,10 @@ export async function checkInputResponse(
     }
   }
 
-  // Check 2: Input bridge event count increase
-  const debug = await readPirateInputDebug(page);
-  const bridgeCount = debug.bridgeCalls.length;
+  // Check 2: Input bridge event count increase (monotonic counter)
+  const bridgeCount = await page.evaluate(
+    () => (window as any).__paSuccessBridgeCalls ?? 0,
+  );
   if (bridgeCount > baseline.bridgeCount) {
     return {
       responded: true,
@@ -285,9 +286,9 @@ export async function checkInputResponse(
 
 /**
  * Send gameplay keys and wait for a genuine response.
- * Captures before/after evidence.
+ * Captures before/after evidence. Throws on timeout/failure.
  *
- * @returns evidence of the response, or throws on timeout
+ * @returns evidence of the response
  */
 export async function sendKeysAndRequireResponse(
   page: Page,
@@ -334,7 +335,7 @@ export async function sendKeysAndRequireResponse(
         }
         const digest = String(hash);
         if (digest !== bl.canvasDigest) return true;
-        const br = (window as any).__paInputDebug?.bridgeCalls?.length || 0;
+        const br = (window as any).__paSuccessBridgeCalls ?? 0;
         if (br > bl.bridgeCount) return true;
         const gs = (window as any).PirateArcadeGameState?.getState?.();
         if (gs && JSON.stringify(gs) !== JSON.stringify(bl.gameState))
@@ -348,14 +349,15 @@ export async function sendKeysAndRequireResponse(
     return { ...evidence, attemptedKeys: keys };
   } catch {
     const finalState = await readGameState(page);
-    const debug = await readPirateInputDebug(page);
-    return {
-      responded: false,
-      signal: null,
-      before: baseline,
-      after: { gameState: finalState, bridgeCount: debug.bridgeCalls.length },
-      attemptedKeys: keys,
-    };
+    const bridgeCount = await page.evaluate(
+      () => (window as any).__paSuccessBridgeCalls ?? 0,
+    );
+    throw new Error(
+      `sendKeysAndRequireResponse: no game response detected after ${waitMs}ms ` +
+        `for keys [${keys.join(", ")}]. ` +
+        `Baseline bridge count: ${baseline.bridgeCount}, final: ${bridgeCount}. ` +
+        `Game state: ${JSON.stringify(finalState)}`,
+    );
   }
 }
 
@@ -1146,6 +1148,90 @@ export async function topElementAtCenter(
     const top = document.elementFromPoint(cx, cy);
     return top ? top.tagName.toLowerCase() : null;
   }, selector);
+}
+
+/**
+ * Send gameplay keys and observe the response (non-throwing).
+ * Annotates warnings via console.warn on failure instead of throwing.
+ *
+ * @returns evidence of the response (responded may be false)
+ */
+export async function sendKeysAndObserveResponse(
+  page: Page,
+  keys: string[],
+  waitMs: number = 2000,
+): Promise<{
+  responded: boolean;
+  signal: string | null;
+  before: unknown;
+  after: unknown;
+  attemptedKeys: string[];
+}> {
+  await page.locator("canvas#canvas").click({ position: { x: 10, y: 10 } });
+  await page.locator("canvas#canvas").focus();
+  await page.waitForTimeout(100);
+
+  const baseline = await captureResponseBaseline(page);
+
+  for (const key of keys) {
+    await page.keyboard.press(key);
+    await page.waitForTimeout(50);
+  }
+
+  await page.waitForTimeout(Math.min(waitMs, 500));
+
+  try {
+    await page.waitForFunction(
+      (bl: {
+        gameState: ArcadeGameState | null;
+        bridgeCount: number;
+        canvasDigest: string;
+      }) => {
+        const c = document.getElementById("canvas") as HTMLCanvasElement | null;
+        if (!c) return false;
+        const ctx = c.getContext("2d");
+        if (!ctx) return false;
+        const w = Math.min(c.width, 40);
+        const h = Math.min(c.height, 40);
+        if (w < 4 || h < 4) return false;
+        const img = ctx.getImageData(0, 0, w, h);
+        let hash = 0;
+        for (let i = 0; i < img.data.length; i += 16) {
+          hash = ((hash << 5) - hash + img.data[i]) | 0;
+        }
+        const digest = String(hash);
+        if (digest !== bl.canvasDigest) return true;
+        const br = (window as any).__paSuccessBridgeCalls ?? 0;
+        if (br > bl.bridgeCount) return true;
+        const gs = (window as any).PirateArcadeGameState?.getState?.();
+        if (gs && JSON.stringify(gs) !== JSON.stringify(bl.gameState))
+          return true;
+        return false;
+      },
+      baseline,
+      { timeout: waitMs },
+    );
+    const evidence = await checkInputResponse(page, baseline);
+    return { ...evidence, attemptedKeys: keys };
+  } catch {
+    const finalState = await readGameState(page);
+    const bridgeCount = await page.evaluate(
+      () => (window as any).__paSuccessBridgeCalls ?? 0,
+    );
+    console.warn(
+      `sendKeysAndObserveResponse: no game response detected after ${waitMs}ms ` +
+        `for keys [${keys.join(", ")}]. ` +
+        `Baseline bridge count: ${baseline.bridgeCount}, final: ${bridgeCount}. ` +
+        `Game state: ${JSON.stringify(finalState)}`,
+    );
+    return {
+      responded: false,
+      signal: null,
+      before: baseline,
+      after: { gameState: finalState, bridgeCount },
+      attemptedKeys: keys,
+    };
+  }
 }
 
 export { test, expect };

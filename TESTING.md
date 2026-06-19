@@ -322,24 +322,28 @@ The shared helpers cover three categories:
 
 ### Diagnostics collection
 
-- `startDiagnostics(page)` — attaches listeners for `console`,
-  `pageerror`, `requestfailed`, and `response`; returns a mutable
-  `PageDiagnostics` object that live-updates as events arrive.
-  **Call before `page.goto()`** to capture CSP/EvalError violations
-  that fire during page load.
-- `snapshotDiagnostics(page, diag)` — finalizes a diagnostics object
-  started by `startDiagnostics`. Detaches listeners, reads DOM state
-  (infobox, canvas dimensions, etc.), and returns the populated
-  snapshot. Call after the page has settled.
-- `collectPageDiagnostics(page)` — **deprecated.** Wrapper around
-  `startDiagnostics` + `snapshotDiagnostics` that attaches listeners
-  after the page has already loaded. Prefer the explicit pair for
-  tests that need to catch startup errors.
-- `attachDiagnostics(testInfo, diagnostics)` — attaches both a
-  human-readable summary and the full payload to the Playwright
-  report, so failure triage has the full event capture.
-- `blockingErrors(diagnostics)` — filters diagnostics to high-severity
+Uses `createDiagnosticCollector()` from `tests/helpers/diagnostics.ts`.
+Schema-versioned runtime snapshots (v3) with scenario partitioning,
+request observation, redirect-chain traversal, and service-worker tracking.
+
+- `createDiagnosticCollector()` — returns a `DiagnosticCollector` with
+  event listeners for console, pageerror, request, requestfailed, and
+  response. Call `.start(page)` before `page.goto()`.
+- `collector.beginScenario(page, name)` — async. Clears ring buffers,
+  recaptures SW state, and starts a named scenario for reload tests.
+- `collector.snapshot(testInfo)` — captures current page state (canvas,
+  loading, game-state, metrics, observations, errors). Returns a
+  `RuntimeSnapshot` (schema v3) with scenario metadata, UA, document
+  visibility, canvas visibility, infobox text, and failed request URLs.
+- `collector.attach(testInfo, name, snapshot?, options?)` — attaches
+  summary + full JSON to the test report. Accepts optional pre-existing
+  snapshot (avoids double-capture). `options.stop` detaches listeners.
+- `collector.captureAndAttach(testInfo, name)` — shortcut: snapshot +
+  attach in one call (use when snapshot is not needed for assertions).
+- `blockingErrors(snapshot)` — filters snapshot errors to high-severity
   patterns (EvalError, CSP, TypeError, etc.).
+- Failed requests in snapshot are `string[]` (URLs) — not full objects.
+- Service-worker state is `boolean | null` (null = unknown, never false).
 
 ### Runtime detection
 
@@ -351,13 +355,17 @@ The shared helpers cover three categories:
   canvas, whichever is smaller) pixel sample and asserts >50
   non-transparent pixels.
 
-### Input verification (second-pass additions)
+### Input verification
 
 - `waitForGameStateChange(page, timeoutMs)` — polls the canvas and
   reports whether the pixel sample is non-trivial.
-- `sendKeysAndRequireResponse(page, keys, waitMs, options?)` — clicks the
-  canvas, focuses, presses each key, waits for a state change, and asserts
-  the game responded (pixel diff check).
+- `sendKeysAndRequireResponse(page, keys, waitMs)` — clicks the
+  canvas, focuses, presses each key, waits for a state change, and **throws**
+  on timeout (game did not respond). Returns before/after evidence. Uses
+  the monotonic `__paSuccessBridgeCalls` counter (not ring-buffer length).
+- `sendKeysAndObserveResponse(page, keys, waitMs)` — same semantics but
+  logs a warning on failure instead of throwing. Returns the same evidence
+  shape with `responded: false` on timeout.
 - `unlockAndFocusGame(page)` — single click + focus + brief wait
   (browser autoplay policies).
 - `dispatchTouchSequence(page, touchPoints, holdMs, options?)` — dispatches

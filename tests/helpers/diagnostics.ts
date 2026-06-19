@@ -1,13 +1,13 @@
 /**
  * Authoritative diagnostic collector for game-load tests.
- * Replaces browserGame.ts diagnostic functions.
  *
  * Design:
- * - Ring buffers for all captures (most recent N, bounded)
+ * - Schema-versioned runtime snapshots (v3 — scenario, canvas, user-agent, visibility)
  * - Scenario partitioning via beginScenario() for reload tests
- * - Real request observations with redirect chains
- * - Service-worker visibility tracking
- * - Clean start()/stop() lifecycle with proper listener management
+ * - Real request observations with redirect chain traversal
+ * - Service-worker visibility tracking (unknown/null, never false)
+ * - Monotonic collector lifetime vs scenario-scoped ring buffers
+ * - Explicit snapshot reuse: snapshot() for assertions, attach() for reports
  */
 
 import type { Page, TestInfo, Request, Response } from "@playwright/test";
@@ -19,6 +19,7 @@ const MAX_ERRORS = 20;
 const MAX_FAILED = 20;
 const MAX_BAD_RESPONSES = 20;
 const MAX_OBSERVATIONS = 100;
+const MAX_REDIRECT_CHAIN_DEPTH = 20;
 
 // ── Types ────────────────────────────────────────────────────────
 
@@ -26,7 +27,6 @@ const MAX_OBSERVATIONS = 100;
 export interface BootMetricsSnapshot {
   schemaVersion: number;
   marks: Record<string, number>;
-  /** Durations are strictly finite numbers — no booleans or other types */
   durations: Record<string, number>;
   flags: { activePlay: boolean; firstUserInput: boolean };
   context: { url: string; serviceWorkerControlled: boolean };
@@ -52,7 +52,7 @@ export interface PirateArcadeMetrics {
 export interface PirateArcadeGameState {
   refresh(): void;
   getState(): Record<string, unknown>;
-  subscribe(cb: (state: Record<string, unknown>) => void): void;
+  subscribe(cb: (state: Record<string, unknown>) => void): () => void;
 }
 
 /** Retrieve typed PirateArcadeMetrics snapshot from a page */
@@ -88,22 +88,6 @@ export interface BadResponse {
   timestamp?: number;
 }
 
-export interface PageDiagnostics {
-  consoleErrors: string[];
-  consoleWarnings: string[];
-  pageErrors: string[];
-  failedRequests: FailedRequest[];
-  badResponses: BadResponse[];
-  observations: RequestObservation[];
-  finalInfoboxText: string;
-  canvasWidth: number;
-  canvasHeight: number;
-  canvasVisible: boolean;
-  transferHidden: boolean;
-  url: string;
-  userAgent: string;
-}
-
 export interface RequestObservation {
   requestUrl: string;
   resourceType: string;
@@ -118,40 +102,65 @@ export interface RequestObservation {
 }
 
 export interface DiagnosticCollector {
-  /** Attach listeners. Call before page.goto(). */
+  /** Attach event listeners. Call before page.goto(). */
   start(page: Page): void;
-  /** Begin a new named scenario (resets scenario-scoped ring buffers). */
-  beginScenario(name: string): void;
+  /** Begin a new named scenario — clears scenario-scoped state. Async to recapture SW state. */
+  beginScenario(page: Page, name: string): Promise<void>;
   /** Take a snapshot of current page state + captured events. */
   snapshot(testInfo: TestInfo): Promise<RuntimeSnapshot>;
-  /** Attach snapshot to test report and detach listeners. */
+  /** Attach a snapshot to the test report. Accepts optional pre-existing snapshot. */
   attach(
     testInfo: TestInfo,
     scenarioName: string,
     snapshot?: RuntimeSnapshot,
+    options?: { stop?: boolean },
   ): Promise<void>;
+  /** Shortcut: capture + attach in one call. */
+  captureAndAttach(testInfo: TestInfo, scenarioName: string): Promise<void>;
   /** Detach listeners and release page reference. */
   stop(): void;
 }
 
 export interface RuntimeSnapshot {
   schemaVersion: number;
+  scenario: {
+    name: string;
+    startedAt: string;
+    capturedAt: string;
+    elapsedMs: number;
+  };
   url: string;
   project: string;
+  userAgent: string;
+  documentVisibility: string;
   navigation: {
     type: string;
     serviceWorkerAtStart: boolean | null;
     serviceWorkerAtEnd: boolean | null;
   };
-  loadingState: string;
-  gameState: Record<string, unknown> | null;
-  gameStateMeta: Record<string, unknown> | null;
-  metrics: BootMetricsSnapshot | Record<string, unknown> | null;
+  loading: {
+    state: string;
+    text: string;
+    infoboxText: string;
+  };
+  canvas: {
+    present: boolean;
+    intrinsicWidth: number;
+    intrinsicHeight: number;
+    cssWidth: number;
+    cssHeight: number;
+    display: string;
+    visibility: string;
+    visible: boolean;
+  };
+  gameState: unknown;
+  gameStateMeta: unknown;
+  metrics: BootMetricsSnapshot | null;
   observations: RequestObservation[];
   consoleErrors: string[];
   consoleWarnings: string[];
   pageErrors: string[];
-  failedRequests: FailedRequest[];
+  failedRequests: string[];
   badResponses: BadResponse[];
 }
 
@@ -199,7 +208,7 @@ export function blockingErrors(diag: {
   return all.filter((e) => BLOCKING_PATTERNS.some((p) => p.test(e)));
 }
 
-// ── Ring buffer push helper ────────────────────────────────────
+// ── Ring buffer helpers ────────────────────────────────────────
 
 function pushRing<T>(arr: T[], max: number, item: T): void {
   if (arr.length >= max) arr.shift();
@@ -208,6 +217,24 @@ function pushRing<T>(arr: T[], max: number, item: T): void {
 
 function clearRing<T>(arr: T[]): void {
   arr.length = 0;
+}
+
+// ── Redirect chain traversal ───────────────────────────────────
+
+function captureRedirectChain(request: Request): string[] {
+  const chain: string[] = [];
+  const seen = new Set<string>();
+  let current = request.redirectedFrom();
+  let depth = 0;
+  while (current && depth < MAX_REDIRECT_CHAIN_DEPTH) {
+    const url = current.url();
+    if (seen.has(url)) break; // cycle detection
+    seen.add(url);
+    chain.unshift(url);
+    current = current.redirectedFrom();
+    depth++;
+  }
+  return chain;
 }
 
 // ── Diagnostic collector factory ────────────────────────────────
@@ -225,9 +252,7 @@ export function createDiagnosticCollector(): DiagnosticCollector {
   let swAtEnd: boolean | null = null;
   let handlersAttached = false;
   let currentScenario: string | null = null;
-
-  // Tracing redirect chains
-  const redirectMap = new Map<string, string[]>();
+  let scenarioStartedAt: number | null = null;
 
   function onConsole(msg: { type: () => string; text: () => string }) {
     if (msg.type() === "error")
@@ -243,19 +268,17 @@ export function createDiagnosticCollector(): DiagnosticCollector {
   function onRequest(request: Request) {
     const url = request.url();
     if (url.includes(".tar.gz") || url.includes("/play/")) {
-      const chain: string[] = [];
-      let current = request.redirectedFrom();
-      while (current) {
-        chain.unshift(current.url());
-        current = current.redirectedFrom();
-      }
-      redirectMap.set(url, chain);
+      const chain = captureRedirectChain(request);
+      const finalUrl = request.url();
+      // Store under the final URL so onResponse/onRequestFailed can retrieve it
+      (request as any).__paRedirectChain = chain;
     }
   }
 
   function onRequestFailed(request: Request) {
     const url = request.url();
     const failure = request.failure()?.errorText ?? null;
+    const chain = (request as any).__paRedirectChain || [];
     pushRing(failedRequests, MAX_FAILED, {
       url: url.slice(0, 500),
       failureText: failure || "unknown",
@@ -266,7 +289,7 @@ export function createDiagnosticCollector(): DiagnosticCollector {
       resourceType: request.resourceType(),
       method: request.method(),
       scenarioId: currentScenario,
-      redirectChain: redirectMap.get(url) || [],
+      redirectChain: chain,
       responseUrl: url.slice(0, 500),
       responseStatus: null,
       servedFromWorker: null,
@@ -279,7 +302,6 @@ export function createDiagnosticCollector(): DiagnosticCollector {
     const url = response.url();
     const request = response.request();
 
-    // Track bad responses
     const status = response.status();
     if (status >= 400) {
       pushRing(badResponses, MAX_BAD_RESPONSES, {
@@ -290,28 +312,22 @@ export function createDiagnosticCollector(): DiagnosticCollector {
       });
     }
 
-    // Only observe game-related requests
     if (!url.includes(".tar.gz") && !url.includes("/play/")) return;
 
-    const redirectChain = redirectMap.get(url) || [];
+    const chain = (request as any).__paRedirectChain || [];
 
     let servedFromWorker: boolean | null = null;
     const headers = Object.fromEntries(Object.entries(response.headers()));
     if ("x-service-worker" in headers) {
       servedFromWorker = true;
-    } else if ("cf-cache-status" in headers) {
-      // Cannot determine worker provenance from Cloudflare headers alone
-      servedFromWorker = null;
     }
-    // Default: null/unknown when Playwright cannot determine provenance
-    // Only true with positive evidence, false only with reliable negative evidence
 
     pushRing(observations, MAX_OBSERVATIONS, {
       requestUrl: request.url().slice(0, 500),
       resourceType: request.resourceType(),
       method: request.method(),
       scenarioId: currentScenario,
-      redirectChain,
+      redirectChain: chain,
       responseUrl: url.slice(0, 500),
       responseStatus: status,
       servedFromWorker,
@@ -336,6 +352,105 @@ export function createDiagnosticCollector(): DiagnosticCollector {
     page.off("response", onResponse);
   }
 
+  /** Build the page-evaluated portion of a snapshot. */
+  async function collectPageState(page: Page) {
+    return Promise.all([
+      getBootMetrics(page).catch(() => null),
+      page
+        .evaluate(() => {
+          const entries = performance.getEntriesByType("navigation");
+          return entries.length > 0 ? (entries[0] as any).type : "unknown";
+        })
+        .catch(() => "unknown" as string),
+      page
+        .evaluate(() => {
+          const el = document.getElementById("game-loading");
+          if (!el) return { state: "missing", text: "" };
+          return {
+            state: el.classList.contains("game-error")
+              ? "error"
+              : el.classList.contains("hidden")
+                ? "hidden"
+                : "visible",
+            text: el.textContent?.trim() || "",
+          };
+        })
+        .catch(() => ({ state: "unknown" as string, text: "" })),
+      page
+        .evaluate(() => {
+          const gs = (window as any).PirateArcadeGameState as
+            | PirateArcadeGameState
+            | undefined;
+          if (!gs) return null;
+          return {
+            state: gs.getState ? gs.getState() : null,
+            meta: (gs as any).getMeta ? (gs as any).getMeta() : null,
+          };
+        })
+        .catch(() => null),
+      page
+        .evaluate(() => {
+          const sw = navigator.serviceWorker?.controller;
+          return sw ? true : sw === null ? false : null;
+        })
+        .catch(() => null),
+      page.evaluate(() => navigator.userAgent).catch(() => "unknown"),
+      page
+        .evaluate(() => {
+          const c = document.getElementById(
+            "canvas",
+          ) as HTMLCanvasElement | null;
+          if (!c) {
+            return {
+              present: false,
+              intrinsicWidth: 0,
+              intrinsicHeight: 0,
+              cssWidth: 0,
+              cssHeight: 0,
+              display: "none",
+              visibility: "hidden",
+              visible: false,
+            };
+          }
+          const rect = c.getBoundingClientRect();
+          const style = window.getComputedStyle(c);
+          return {
+            present: true,
+            intrinsicWidth: c.width,
+            intrinsicHeight: c.height,
+            cssWidth: Math.round(rect.width),
+            cssHeight: Math.round(rect.height),
+            display: style.display,
+            visibility: style.visibility,
+            visible:
+              style.display !== "none" &&
+              style.visibility !== "hidden" &&
+              rect.width > 0 &&
+              rect.height > 0,
+          };
+        })
+        .catch(() => ({
+          present: false,
+          intrinsicWidth: 0,
+          intrinsicHeight: 0,
+          cssWidth: 0,
+          cssHeight: 0,
+          display: "unknown",
+          visibility: "unknown",
+          visible: false,
+        })),
+      page
+        .evaluate(() => {
+          const ib = document.getElementById("infobox") as HTMLElement | null;
+          return ib?.textContent?.trim() || "";
+        })
+        .catch(() => ""),
+      page
+        .evaluate(() => document.visibilityState)
+        .catch(() => "unknown" as string),
+    ]);
+  }
+
   return {
     start(page: Page) {
       if (handlersAttached) return;
@@ -343,7 +458,10 @@ export function createDiagnosticCollector(): DiagnosticCollector {
       currentPage = page;
 
       page
-        .evaluate(() => !!navigator.serviceWorker?.controller)
+        .evaluate(() => {
+          const sw = navigator.serviceWorker?.controller;
+          return sw ? true : sw === null ? false : null;
+        })
         .then((controlled) => {
           swAtStart = controlled;
         })
@@ -354,16 +472,28 @@ export function createDiagnosticCollector(): DiagnosticCollector {
       attachHandlers(page);
     },
 
-    beginScenario(name: string) {
+    async beginScenario(page: Page, name: string) {
       clearRing(consoleErrors);
       clearRing(consoleWarnings);
       clearRing(pageErrors);
       clearRing(failedRequests);
       clearRing(badResponses);
       clearRing(observations);
-      redirectMap.clear();
       swAtEnd = null;
       currentScenario = name;
+      scenarioStartedAt = Date.now();
+
+      if (page && !page.isClosed()) {
+        try {
+          const sw = await page.evaluate(() => {
+            const ctrl = navigator.serviceWorker?.controller;
+            return ctrl ? true : ctrl === null ? false : null;
+          });
+          swAtStart = sw;
+        } catch {
+          swAtStart = null;
+        }
+      }
     },
 
     stop() {
@@ -376,17 +506,41 @@ export function createDiagnosticCollector(): DiagnosticCollector {
 
     async snapshot(testInfo: TestInfo): Promise<RuntimeSnapshot> {
       const p = currentPage;
+      const capturedAt = Date.now();
+      const elapsedMs =
+        scenarioStartedAt != null ? capturedAt - scenarioStartedAt : 0;
+
       if (!p) {
         return {
-          schemaVersion: 2,
+          schemaVersion: 3,
+          scenario: {
+            name: currentScenario || "unknown",
+            startedAt: scenarioStartedAt
+              ? new Date(scenarioStartedAt).toISOString()
+              : "",
+            capturedAt: new Date(capturedAt).toISOString(),
+            elapsedMs,
+          },
           url: "unknown",
           project: testInfo.project.name,
+          userAgent: "unknown",
+          documentVisibility: "unknown",
           navigation: {
             type: "unknown",
             serviceWorkerAtStart: swAtStart,
             serviceWorkerAtEnd: null,
           },
-          loadingState: "unknown",
+          loading: { state: "unknown", text: "", infoboxText: "" },
+          canvas: {
+            present: false,
+            intrinsicWidth: 0,
+            intrinsicHeight: 0,
+            cssWidth: 0,
+            cssHeight: 0,
+            display: "unknown",
+            visibility: "unknown",
+            visible: false,
+          },
           gameState: null,
           gameStateMeta: null,
           metrics: null,
@@ -396,7 +550,7 @@ export function createDiagnosticCollector(): DiagnosticCollector {
           ),
           consoleWarnings: [...consoleWarnings],
           pageErrors: [...pageErrors],
-          failedRequests: [...failedRequests],
+          failedRequests: failedRequests.map((f) => f.url),
           badResponses: [...badResponses],
         };
       }
@@ -404,81 +558,50 @@ export function createDiagnosticCollector(): DiagnosticCollector {
       const [
         metrics,
         navType,
-        loadingState,
-        gameState,
+        loadingInfo,
+        gameStateResult,
         swAtEndResult,
         uaResult,
-        canvasSize,
+        canvasInfo,
         infoText,
-      ] = await Promise.all([
-        getBootMetrics(p).catch(() => null),
-        p
-          .evaluate(() => {
-            const entries = performance.getEntriesByType("navigation");
-            return entries.length > 0 ? (entries[0] as any).type : "unknown";
-          })
-          .catch(() => "unknown" as string),
-        p
-          .evaluate(() => {
-            const el = document.getElementById("game-loading");
-            if (!el) return "missing";
-            if (el.classList.contains("game-error")) return "error";
-            if (el.classList.contains("hidden")) return "hidden";
-            return "visible";
-          })
-          .catch(() => "unknown" as string),
-        p
-          .evaluate(() => {
-            const gs = (window as any).PirateArcadeGameState as
-              | PirateArcadeGameState
-              | undefined;
-            if (!gs) return null;
-            return {
-              state: gs.getState ? gs.getState() : null,
-              meta: (gs as any).getMeta ? (gs as any).getMeta() : null,
-            };
-          })
-          .catch(() => null),
-        p
-          .evaluate(() => !!navigator.serviceWorker?.controller)
-          .catch(() => false),
-        p.evaluate(() => navigator.userAgent).catch(() => "unknown"),
-        p
-          .evaluate(() => {
-            const c = document.getElementById(
-              "canvas",
-            ) as HTMLCanvasElement | null;
-            return c ? { w: c.width, h: c.height } : { w: 0, h: 0 };
-          })
-          .catch(() => ({ w: 0, h: 0 })),
-        p
-          .evaluate(() => {
-            const ib = document.getElementById("infobox") as HTMLElement | null;
-            return ib?.textContent?.trim() || "";
-          })
-          .catch(() => ""),
-      ]);
+        visibilityState,
+      ] = await collectPageState(p);
 
       swAtEnd = swAtEndResult;
 
       return {
-        schemaVersion: 2,
+        schemaVersion: 3,
+        scenario: {
+          name: currentScenario || "unknown",
+          startedAt: scenarioStartedAt
+            ? new Date(scenarioStartedAt).toISOString()
+            : "",
+          capturedAt: new Date(capturedAt).toISOString(),
+          elapsedMs,
+        },
         url: p.url(),
         project: testInfo.project.name,
+        userAgent: uaResult as string,
+        documentVisibility: visibilityState as string,
         navigation: {
-          type: navType,
+          type: navType as string,
           serviceWorkerAtStart: swAtStart,
           serviceWorkerAtEnd: swAtEnd,
         },
-        loadingState,
-        gameState: (gameState as any)?.state ?? null,
-        gameStateMeta: (gameState as any)?.meta ?? null,
+        loading: {
+          state: (loadingInfo as any).state,
+          text: (loadingInfo as any).text,
+          infoboxText: infoText as string,
+        },
+        canvas: canvasInfo as RuntimeSnapshot["canvas"],
+        gameState: (gameStateResult as any)?.state ?? null,
+        gameStateMeta: (gameStateResult as any)?.meta ?? null,
         metrics,
         observations: [...observations],
         consoleErrors: consoleErrors.filter((e) => !isHarmlessConsoleError(e)),
         consoleWarnings: [...consoleWarnings],
         pageErrors: [...pageErrors],
-        failedRequests: [...failedRequests],
+        failedRequests: failedRequests.map((f) => f.url),
         badResponses: [...badResponses],
       };
     },
@@ -487,12 +610,18 @@ export function createDiagnosticCollector(): DiagnosticCollector {
       testInfo: TestInfo,
       scenarioName: string,
       existingSnapshot?: RuntimeSnapshot,
+      options?: { stop?: boolean },
     ): Promise<void> {
       const snap = existingSnapshot ?? (await this.snapshot(testInfo));
       const summary = {
         scenario: scenarioName,
-        canvasSize: "see-full-diagnostics",
-        loadingState: snap.loadingState,
+        elapsedMs: snap.scenario.elapsedMs,
+        canvasPresent: snap.canvas.present,
+        canvasSize: snap.canvas.visible
+          ? `${snap.canvas.cssWidth}x${snap.canvas.cssHeight}`
+          : "hidden",
+        loadingState: snap.loading.state,
+        loadingText: snap.loading.text.slice(0, 100),
         consoleErrorCount: snap.consoleErrors.length,
         pageErrorCount: snap.pageErrors.length,
         failedRequestCount: snap.failedRequests.length,
@@ -508,7 +637,17 @@ export function createDiagnosticCollector(): DiagnosticCollector {
         body: JSON.stringify(snap, null, 2),
         contentType: "application/json",
       });
-      this.stop();
+      if (options?.stop) {
+        this.stop();
+      }
+    },
+
+    async captureAndAttach(
+      testInfo: TestInfo,
+      scenarioName: string,
+    ): Promise<void> {
+      const snap = await this.snapshot(testInfo);
+      await this.attach(testInfo, scenarioName, snap);
     },
   };
 }

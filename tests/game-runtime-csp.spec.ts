@@ -7,7 +7,7 @@
  * iPhone 16 Pro Max Safari due to Cloudflare Pages CSP header merging.
  *
  * Key differences from the existing mobile tests:
- *  - Uses `startDiagnostics(page)` BEFORE `page.goto()` so CSP/EvalError
+ *  - Uses `createDiagnosticCollector().start(page)` BEFORE `page.goto()` so CSP/EvalError
  *    violations that fire during page load are captured.
  *  - Uses a landscape viewport matching iPhone 16 Pro Max dimensions.
  *  - Waits for Pygbag runtime startup (with timeout) and catches CSP
