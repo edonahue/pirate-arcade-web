@@ -20,6 +20,7 @@
   var flags = { activePlay: false, firstUserInput: false };
   var markOnceRecorded = {};
   var bootMetrics = {}; // flat mirror
+  var _ownedNames = {}; // performance.mark/measure names created by PA
 
   function writeFlat(name, value) {
     bootMetrics[name] = value;
@@ -41,6 +42,7 @@
       writeFlat(name, now);
       try {
         performance.mark(name);
+        _ownedNames[name] = true;
       } catch (e) {
         /* ignore */
       }
@@ -64,6 +66,7 @@
         writeFlat(name, result);
         try {
           performance.measure(name, startMark, endMark);
+          _ownedNames[name] = true;
         } catch (e) {
           /* ignore */
         }
@@ -84,8 +87,13 @@
       bootMetrics = {};
       window.__paBootMetrics = bootMetrics;
       try {
-        performance.clearMarks();
-        performance.clearMeasures();
+        for (var n in _ownedNames) {
+          if (_ownedNames.hasOwnProperty(n)) {
+            performance.clearMarks(n);
+            performance.clearMeasures(n);
+          }
+        }
+        _ownedNames = {};
       } catch (e) {
         /* ignore */
       }

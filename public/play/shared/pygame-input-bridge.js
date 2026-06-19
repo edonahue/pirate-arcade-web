@@ -454,14 +454,19 @@
   // Dispatches the correct primary key for each game based on its
   // control mode and current game phase.  One tap = one key — no
   // Enter+Space double dispatch.
+  // ── Control metadata from generated shell ────────────────────
+  // Reads authoritative per-game values from #game-wrap data attributes.
+  function getControlMeta(name, fallback) {
+    var wrap = document.getElementById('game-wrap');
+    if (wrap && wrap.dataset && wrap.dataset[name] !== undefined) {
+      return wrap.dataset[name];
+    }
+    return fallback;
+  }
+
   var PirateArcadeActions = {
     getPrimaryKey: function () {
-      var mode = '';
-      var ov = document.getElementById('touch-overlay');
-      if (ov && ov.dataset && ov.dataset.controls) mode = ov.dataset.controls;
-      if (mode === 'breakout') return 'Space';
-      if (mode === 'asteroids') return 'Space';
-      return 'Enter';
+      return getControlMeta('controlActionKey', 'Enter');
     },
     performPrimary: function () {
       logEvent('actionPrimary', { key: this.getPrimaryKey() });
@@ -474,22 +479,9 @@
         ? window.PirateArcadeGameState.getState()
         : null;
       var phase = state && state.phase;
-      if (phase === 'game-over') return 'PLAY AGAIN';
-      if (phase === 'menu') {
-        var mode = '';
-        var ov = document.getElementById('touch-overlay');
-        if (ov && ov.dataset && ov.dataset.controls) mode = ov.dataset.controls;
-        if (mode === 'breakout') return 'LAUNCH';
-        if (mode === 'asteroids') return 'START';
-        return 'START';
-      }
-      // Playing phase: return game-specific label
-      var mode = '';
-      var ov = document.getElementById('touch-overlay');
-      if (ov && ov.dataset && ov.dataset.controls) mode = ov.dataset.controls;
-      if (mode === 'breakout') return 'LAUNCH';
-      if (mode === 'asteroids') return 'FIRE';
-      return 'ACTION';
+      if (phase === 'game-over') return getControlMeta('controlGameoverLabel', 'PLAY AGAIN');
+      if (phase === 'menu') return getControlMeta('controlMenuLabel', 'START');
+      return getControlMeta('controlPlayLabel', 'ACTION');
     },
     updateButtonLabel: function () {
       var label = this.getLabel();

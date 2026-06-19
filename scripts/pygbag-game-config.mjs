@@ -27,6 +27,9 @@ export const PYBAG_GAMES = [
     hintText: "Slide ship up or down",
     keyboardHelp:
       "ArrowUp / W — move up \u2022 ArrowDown / S — move down \u2022 Space / Escape — pause \u2022 Enter — confirm",
+    menuLabel: "START",
+    playLabel: "ACTION",
+    gameOverLabel: "PLAY AGAIN",
   },
   {
     id: "treasure-cove",
@@ -51,6 +54,9 @@ export const PYBAG_GAMES = [
     hintText: "Slide longboat left or right",
     keyboardHelp:
       "ArrowLeft / A — move left \u2022 ArrowRight / D — move right \u2022 Space — launch ball \u2022 Escape — pause \u2022 Enter — confirm",
+    menuLabel: "LAUNCH",
+    playLabel: "LAUNCH",
+    gameOverLabel: "PLAY AGAIN",
   },
   {
     id: "krakens-wake",
@@ -85,6 +91,9 @@ export const PYBAG_GAMES = [
     hintText: "Turn, thrust, and fire",
     keyboardHelp:
       "ArrowLeft / A — turn left \u2022 ArrowRight / D — turn right \u2022 ArrowUp / W — thrust \u2022 Space — fire \u2022 Escape / P — pause \u2022 Enter — confirm",
+    menuLabel: "START",
+    playLabel: "FIRE",
+    gameOverLabel: "PLAY AGAIN",
   },
 ];
 

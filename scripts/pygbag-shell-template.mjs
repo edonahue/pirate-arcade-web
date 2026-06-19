@@ -499,7 +499,10 @@ ${bootCode
       data-control-desktop-keys="${config.desktopKeys.join(",")}"
       data-control-directional-keys='${JSON.stringify(config.directionalKeys)}'
       data-control-hint="${config.hintText}"
-      data-control-keyboard-help="${config.keyboardHelp}">
+      data-control-keyboard-help="${config.keyboardHelp}"
+      data-control-menu-label="${config.menuLabel}"
+      data-control-play-label="${config.playLabel}"
+      data-control-gameover-label="${config.gameOverLabel}">
     <a id="back-link" href="/play/" data-no-touch-control>\u2190 Back to Arcade</a>
     <div id="controls-hint">${config.controlsHint}</div>
     <div id="transfer" align=center>

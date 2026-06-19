@@ -27,7 +27,6 @@
   }
 
   var held = {};
-  var hint = document.getElementById('controls-hint');
   var dragActive = {};
   var dragStarted = false;
 
@@ -322,17 +321,6 @@
   overlay.addEventListener('lostpointercapture', safeHandler(handleCancel));
   document.addEventListener('pointermove', safeHandler(handleMove), {passive: false});
 
-  if (hint) {
-    if (isPong) {
-      hint.textContent = 'Slide ship up/down  \u2022  START  \u2022  PAUSE';
-    } else if (isBreakout) {
-      hint.textContent = 'Slide longboat left/right  \u2022  LAUNCH  \u2022  PAUSE';
-    } else if (isAsteroids) {
-      hint.textContent = 'TURN  \u2022  THRUST  \u2022  FIRE  \u2022  PAUSE';
-    } else {
-      hint.textContent = 'Slide  \u2022  ACTION  \u2022  PAUSE';
-    }
-  }
   overlay.classList.add('active');
 
   // ── Release-all: reset all input state ──────────────────────

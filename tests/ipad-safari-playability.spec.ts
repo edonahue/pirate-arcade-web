@@ -9,9 +9,7 @@ import {
   expectGamePhase,
 } from "./helpers/browserGame";
 import {
-  startDiagnostics,
-  snapshotDiagnostics,
-  attachDiagnostics,
+  createDiagnosticCollector,
   blockingErrors,
 } from "./helpers/diagnostics";
 
@@ -74,7 +72,8 @@ test.describe("iPad Safari Playability", () => {
     test("paddle moves with touch drag in Y-axis drag zone", async ({
       page,
     }, testInfo) => {
-      const diag = startDiagnostics(page);
+      const collector = createDiagnosticCollector();
+      collector.start(page);
       await page.goto("/play/cannonball-clash/");
       await waitForPygbagCanvas(page);
 
@@ -105,15 +104,16 @@ test.describe("iPad Safari Playability", () => {
       const hasPixels = await canvasHasNonBgPixels(page);
       expect(hasPixels).toBe(true);
 
-      const snap = await snapshotDiagnostics(page, diag);
-      attachDiagnostics(testInfo, snap);
-      expect(blockingErrors(snap)).toEqual([]);
+      const snapshot = await collector.snapshot(testInfo);
+      await collector.attach(testInfo, "scenario");
+      expect(blockingErrors(snapshot)).toEqual([]);
     });
 
     test("START dispatches Enter (primary action) via bridge", async ({
       page,
     }, testInfo) => {
-      const diag = startDiagnostics(page);
+      const collector = createDiagnosticCollector();
+      collector.start(page);
       await page.goto("/play/cannonball-clash/");
       await waitForPygbagCanvas(page);
 
@@ -136,15 +136,16 @@ test.describe("iPad Safari Playability", () => {
       const afterPixels = await canvasHasNonBgPixels(page);
       expect(afterPixels).toBe(true);
 
-      const snap = await snapshotDiagnostics(page, diag);
-      attachDiagnostics(testInfo, snap);
-      expect(blockingErrors(snap)).toEqual([]);
+      const snapshot = await collector.snapshot(testInfo);
+      await collector.attach(testInfo, "scenario");
+      expect(blockingErrors(snapshot)).toEqual([]);
     });
 
     test("pause button dispatches Escape via bridge", async ({
       page,
     }, testInfo) => {
-      const diag = startDiagnostics(page);
+      const collector = createDiagnosticCollector();
+      collector.start(page);
       await page.goto("/play/cannonball-clash/");
       await waitForPygbagCanvas(page);
 
@@ -158,9 +159,9 @@ test.describe("iPad Safari Playability", () => {
         ),
       ).toBe(true);
 
-      const snap = await snapshotDiagnostics(page, diag);
-      attachDiagnostics(testInfo, snap);
-      expect(blockingErrors(snap)).toEqual([]);
+      const snapshot = await collector.snapshot(testInfo);
+      await collector.attach(testInfo, "scenario");
+      expect(blockingErrors(snapshot)).toEqual([]);
     });
   });
 
@@ -170,7 +171,8 @@ test.describe("iPad Safari Playability", () => {
     test("paddle moves with touch drag in X-axis drag zone", async ({
       page,
     }, testInfo) => {
-      const diag = startDiagnostics(page);
+      const collector = createDiagnosticCollector();
+      collector.start(page);
       await page.goto("/play/treasure-cove/");
       await waitForPygbagCanvas(page);
 
@@ -199,15 +201,16 @@ test.describe("iPad Safari Playability", () => {
       const hasPixels = await canvasHasNonBgPixels(page);
       expect(hasPixels).toBe(true);
 
-      const snap = await snapshotDiagnostics(page, diag);
-      attachDiagnostics(testInfo, snap);
-      expect(blockingErrors(snap)).toEqual([]);
+      const snapshot = await collector.snapshot(testInfo);
+      await collector.attach(testInfo, "scenario");
+      expect(blockingErrors(snapshot)).toEqual([]);
     });
 
     test("LAUNCH dispatches Space (primary action) via bridge", async ({
       page,
     }, testInfo) => {
-      const diag = startDiagnostics(page);
+      const collector = createDiagnosticCollector();
+      collector.start(page);
       await page.goto("/play/treasure-cove/");
       await waitForPygbagCanvas(page);
 
@@ -231,15 +234,16 @@ test.describe("iPad Safari Playability", () => {
       const afterPixels = await canvasHasNonBgPixels(page);
       expect(afterPixels).toBe(true);
 
-      const snap = await snapshotDiagnostics(page, diag);
-      attachDiagnostics(testInfo, snap);
-      expect(blockingErrors(snap)).toEqual([]);
+      const snapshot = await collector.snapshot(testInfo);
+      await collector.attach(testInfo, "scenario");
+      expect(blockingErrors(snapshot)).toEqual([]);
     });
 
     test("pause button dispatches Escape via bridge", async ({
       page,
     }, testInfo) => {
-      const diag = startDiagnostics(page);
+      const collector = createDiagnosticCollector();
+      collector.start(page);
       await page.goto("/play/treasure-cove/");
       await waitForPygbagCanvas(page);
 
@@ -253,9 +257,9 @@ test.describe("iPad Safari Playability", () => {
         ),
       ).toBe(true);
 
-      const snap = await snapshotDiagnostics(page, diag);
-      attachDiagnostics(testInfo, snap);
-      expect(blockingErrors(snap)).toEqual([]);
+      const snapshot = await collector.snapshot(testInfo);
+      await collector.attach(testInfo, "scenario");
+      expect(blockingErrors(snapshot)).toEqual([]);
     });
   });
 
@@ -265,7 +269,8 @@ test.describe("iPad Safari Playability", () => {
     test("touch buttons dispatch THRUST and FIRE", async ({
       page,
     }, testInfo) => {
-      const diag = startDiagnostics(page);
+      const collector = createDiagnosticCollector();
+      collector.start(page);
       await page.goto("/play/krakens-wake/");
       const canBoot = await page
         .waitForFunction(
@@ -299,13 +304,14 @@ test.describe("iPad Safari Playability", () => {
       const hasPixels = await canvasHasNonBgPixels(page);
       expect(hasPixels).toBe(true);
 
-      const snap = await snapshotDiagnostics(page, diag);
-      attachDiagnostics(testInfo, snap);
-      expect(blockingErrors(snap)).toEqual([]);
+      const snapshot = await collector.snapshot(testInfo);
+      await collector.attach(testInfo, "scenario");
+      expect(blockingErrors(snapshot)).toEqual([]);
     });
 
     test("pause dispatches Escape via bridge", async ({ page }, testInfo) => {
-      const diag = startDiagnostics(page);
+      const collector = createDiagnosticCollector();
+      collector.start(page);
       await page.goto("/play/krakens-wake/");
       const canBoot = await page
         .waitForFunction(
@@ -330,9 +336,9 @@ test.describe("iPad Safari Playability", () => {
         ),
       ).toBe(true);
 
-      const snap = await snapshotDiagnostics(page, diag);
-      attachDiagnostics(testInfo, snap);
-      expect(blockingErrors(snap)).toEqual([]);
+      const snapshot = await collector.snapshot(testInfo);
+      await collector.attach(testInfo, "scenario");
+      expect(blockingErrors(snapshot)).toEqual([]);
     });
   });
 
@@ -350,7 +356,8 @@ test.describe("iPad Safari Playability", () => {
           testInfo.project.name !== IPAD_PROJECT,
           `only runs on ${IPAD_PROJECT}`,
         );
-        const diag = startDiagnostics(page);
+        const collector = createDiagnosticCollector();
+        collector.start(page);
         await page.goto("/play/cannonball-clash/");
         await waitForPygbagCanvas(page);
 
@@ -363,9 +370,9 @@ test.describe("iPad Safari Playability", () => {
         const state = await readGameState(page);
         expect(state?.score).toBe(0);
 
-        const snap = await snapshotDiagnostics(page, diag);
-        attachDiagnostics(testInfo, snap);
-        expect(blockingErrors(snap)).toEqual([]);
+        const snapshot = await collector.snapshot(testInfo);
+        await collector.attach(testInfo, "scenario");
+        expect(blockingErrors(snapshot)).toEqual([]);
       });
 
       test("touch drag changes player paddle Y", async ({ page }, testInfo) => {
@@ -373,7 +380,8 @@ test.describe("iPad Safari Playability", () => {
           testInfo.project.name !== IPAD_PROJECT,
           `only runs on ${IPAD_PROJECT}`,
         );
-        const diag = startDiagnostics(page);
+        const collector = createDiagnosticCollector();
+        collector.start(page);
         await page.goto("/play/cannonball-clash/");
         await waitForPygbagCanvas(page);
 
@@ -409,9 +417,9 @@ test.describe("iPad Safari Playability", () => {
         );
         expect(diff).toBeGreaterThan(10);
 
-        const snap = await snapshotDiagnostics(page, diag);
-        attachDiagnostics(testInfo, snap);
-        expect(blockingErrors(snap)).toEqual([]);
+        const snapshot = await collector.snapshot(testInfo);
+        await collector.attach(testInfo, "scenario");
+        expect(blockingErrors(snapshot)).toEqual([]);
       });
     });
 
@@ -423,7 +431,8 @@ test.describe("iPad Safari Playability", () => {
           testInfo.project.name !== IPAD_PROJECT,
           `only runs on ${IPAD_PROJECT}`,
         );
-        const diag = startDiagnostics(page);
+        const collector = createDiagnosticCollector();
+        collector.start(page);
         await page.goto("/play/treasure-cove/");
         await waitForPygbagCanvas(page);
 
@@ -436,9 +445,9 @@ test.describe("iPad Safari Playability", () => {
         const state = await readGameState(page);
         expect(state?.score).toBe(0);
 
-        const snap = await snapshotDiagnostics(page, diag);
-        attachDiagnostics(testInfo, snap);
-        expect(blockingErrors(snap)).toEqual([]);
+        const snapshot = await collector.snapshot(testInfo);
+        await collector.attach(testInfo, "scenario");
+        expect(blockingErrors(snapshot)).toEqual([]);
       });
 
       test("touch drag moves paddle X", async ({ page }, testInfo) => {
@@ -446,7 +455,8 @@ test.describe("iPad Safari Playability", () => {
           testInfo.project.name !== IPAD_PROJECT,
           `only runs on ${IPAD_PROJECT}`,
         );
-        const diag = startDiagnostics(page);
+        const collector = createDiagnosticCollector();
+        collector.start(page);
         await page.goto("/play/treasure-cove/");
         await waitForPygbagCanvas(page);
 
@@ -484,9 +494,9 @@ test.describe("iPad Safari Playability", () => {
         );
         expect(diff).toBeGreaterThan(10);
 
-        const snap = await snapshotDiagnostics(page, diag);
-        attachDiagnostics(testInfo, snap);
-        expect(blockingErrors(snap)).toEqual([]);
+        const snapshot = await collector.snapshot(testInfo);
+        await collector.attach(testInfo, "scenario");
+        expect(blockingErrors(snapshot)).toEqual([]);
       });
     });
 
@@ -498,7 +508,8 @@ test.describe("iPad Safari Playability", () => {
           testInfo.project.name !== IPAD_PROJECT,
           `only runs on ${IPAD_PROJECT}`,
         );
-        const diag = startDiagnostics(page);
+        const collector = createDiagnosticCollector();
+        collector.start(page);
         await page.goto("/play/krakens-wake/");
         await waitForPygbagCanvas(page);
 
@@ -512,9 +523,9 @@ test.describe("iPad Safari Playability", () => {
         const state = await readGameState(page);
         expect(state?.score).toBe(0);
 
-        const snap = await snapshotDiagnostics(page, diag);
-        attachDiagnostics(testInfo, snap);
-        expect(blockingErrors(snap)).toEqual([]);
+        const snapshot = await collector.snapshot(testInfo);
+        await collector.attach(testInfo, "scenario");
+        expect(blockingErrors(snapshot)).toEqual([]);
       });
     });
   });
@@ -554,7 +565,8 @@ test.describe("iPad Safari Playability", () => {
     }
 
     test("touch drive moves ship forward", async ({ page }, testInfo) => {
-      const diag = startDiagnostics(page);
+      const collector = createDiagnosticCollector();
+      collector.start(page);
       await page.goto("/play/race-to-treasure-island/");
       await waitForPhaserReady(page);
 
@@ -571,13 +583,14 @@ test.describe("iPad Safari Playability", () => {
       expect(state.playerProgress).toBeGreaterThan(0);
       expect(state.paused).toBe(false);
 
-      const snap = await snapshotDiagnostics(page, diag);
-      attachDiagnostics(testInfo, snap);
-      expect(blockingErrors(snap)).toEqual([]);
+      const snapshot = await collector.snapshot(testInfo);
+      await collector.attach(testInfo, "scenario");
+      expect(blockingErrors(snapshot)).toEqual([]);
     });
 
     test("pause button pauses race", async ({ page }, testInfo) => {
-      const diag = startDiagnostics(page);
+      const collector = createDiagnosticCollector();
+      collector.start(page);
       await page.goto("/play/race-to-treasure-island/");
       await waitForPhaserReady(page);
 
@@ -593,13 +606,14 @@ test.describe("iPad Safari Playability", () => {
       expect(state).toBeTruthy();
       expect(state.paused).toBe(true);
 
-      const snap = await snapshotDiagnostics(page, diag);
-      attachDiagnostics(testInfo, snap);
-      expect(blockingErrors(snap)).toEqual([]);
+      const snapshot = await collector.snapshot(testInfo);
+      await collector.attach(testInfo, "scenario");
+      expect(blockingErrors(snapshot)).toEqual([]);
     });
 
     test("race completes and shows result", async ({ page }, testInfo) => {
-      const diag = startDiagnostics(page);
+      const collector = createDiagnosticCollector();
+      collector.start(page);
       await page.goto("/play/race-to-treasure-island/");
       await waitForPhaserReady(page);
 
@@ -625,9 +639,9 @@ test.describe("iPad Safari Playability", () => {
       expect(state.finished).toBe(true);
       expect(typeof state.result).toBe("string");
 
-      const snap = await snapshotDiagnostics(page, diag);
-      attachDiagnostics(testInfo, snap);
-      expect(blockingErrors(snap)).toEqual([]);
+      const snapshot = await collector.snapshot(testInfo);
+      await collector.attach(testInfo, "scenario");
+      expect(blockingErrors(snapshot)).toEqual([]);
     });
   });
 });

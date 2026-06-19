@@ -28,8 +28,7 @@ import {
   expectRotateDeviceOverlayPresent,
 } from "./helpers/browserGame";
 import {
-  collectPageDiagnostics,
-  attachDiagnostics,
+  createDiagnosticCollector,
   blockingErrors,
 } from "./helpers/diagnostics";
 import {
@@ -174,16 +173,18 @@ for (const game of GAMES) {
         `Error-aggregation test skipped on ${testInfo.project.name}`,
       );
 
+      const collector = createDiagnosticCollector();
+      collector.start(page);
       await page.goto(game.path, { waitUntil: "domcontentloaded" });
       await waitForPygbagRuntime(page);
       await unlockAndStartGame(page, game.desktopKeys);
       await page.waitForTimeout(1000);
 
-      const diagnostics = await collectPageDiagnostics(page);
-      attachDiagnostics(testInfo, diagnostics);
+      const snapshot = await collector.snapshot(testInfo);
+      await collector.attach(testInfo, "startup");
 
       // Filter to *blocking* errors only
-      const blocking = blockingErrors(diagnostics);
+      const blocking = blockingErrors(snapshot);
       if (blocking.length > 0) {
         throw new Error(
           `Blocking errors detected for ${game.name} on ${testInfo.project.name}:\n  - ${blocking.join("\n  - ")}`,
@@ -192,10 +193,10 @@ for (const game of GAMES) {
       expect(blocking).toEqual([]);
 
       // Game-critical asset failures
-      const gameAssetFailures = diagnostics.failedRequests.filter((f) =>
+      const gameAssetFailures = snapshot.failedRequests.filter((f) =>
         /\.(wasm|so|tar\.gz)(\?|$)/i.test(f.url),
       );
-      const gameAssetBadResponses = diagnostics.badResponses.filter((b) =>
+      const gameAssetBadResponses = snapshot.badResponses.filter((b) =>
         /\.(wasm|so|tar\.gz)(\?|$)/i.test(b.url),
       );
       expect(
@@ -214,16 +215,19 @@ for (const game of GAMES) {
         `Reload test skipped on ${testInfo.project.name}`,
       );
 
+      const collector = createDiagnosticCollector();
+      collector.start(page);
       await page.goto(game.path, { waitUntil: "domcontentloaded" });
       await waitForPygbagRuntime(page);
 
       // Reload and confirm we get back to a usable state
+      collector.beginScenario("reload");
       await page.reload({ waitUntil: "domcontentloaded" });
       await waitForPygbagRuntime(page);
 
-      const diagnostics = await collectPageDiagnostics(page);
-      attachDiagnostics(testInfo, diagnostics);
-      const blocking = blockingErrors(diagnostics);
+      const snapshot = await collector.snapshot(testInfo);
+      await collector.attach(testInfo, "reload");
+      const blocking = blockingErrors(snapshot);
       expect(blocking).toEqual([]);
     });
 
@@ -235,6 +239,8 @@ for (const game of GAMES) {
         `Blur test skipped on ${testInfo.project.name}`,
       );
 
+      const collector = createDiagnosticCollector();
+      collector.start(page);
       await page.goto(game.path, { waitUntil: "domcontentloaded" });
       await waitForPygbagRuntime(page);
       await unlockAndStartGame(page, game.desktopKeys);
@@ -246,9 +252,9 @@ for (const game of GAMES) {
       await page.evaluate(() => window.dispatchEvent(new Event("focus")));
       await page.waitForTimeout(500);
 
-      const diagnostics = await collectPageDiagnostics(page);
-      attachDiagnostics(testInfo, diagnostics);
-      const blocking = blockingErrors(diagnostics);
+      const snapshot = await collector.snapshot(testInfo);
+      await collector.attach(testInfo, "blur-refocus");
+      const blocking = blockingErrors(snapshot);
       expect(blocking).toEqual([]);
     });
   });
@@ -282,18 +288,20 @@ test.describe("Cross-game checks", () => {
     test(`${game.name}: no favicon or 404 noise in console`, async ({
       page,
     }, testInfo) => {
+      const collector = createDiagnosticCollector();
+      collector.start(page);
       await page.goto(game.path, { waitUntil: "domcontentloaded" });
       await waitForPygbagRuntime(page);
       await page.waitForTimeout(1000);
 
-      const diagnostics = await collectPageDiagnostics(page);
-      attachDiagnostics(testInfo, diagnostics);
+      const snapshot = await collector.snapshot(testInfo);
+      await collector.attach(testInfo, "startup");
 
       // No console errors, no failed requests, no 4xx/5xx on
       // game-critical assets. (The runtime test above already
       // checks for blocking patterns; this one asserts the
       // quiet-no-noise state explicitly.)
-      const noisy404s = diagnostics.badResponses.filter(
+      const noisy404s = snapshot.badResponses.filter(
         (r) =>
           r.status === 404 &&
           !r.url.includes("favicon") &&

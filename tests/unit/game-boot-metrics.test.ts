@@ -229,6 +229,29 @@ describe("game-boot-metrics", () => {
     expect((window as any).__paBootMetrics).toEqual({});
   });
 
+  it("clear only removes owned performance entries, not unrelated ones", () => {
+    loadMetrics();
+    const m = getMetrics();
+    // Create an unrelated performance entry
+    performance.mark("unrelated-mark");
+    performance.measure("unrelated-measure");
+    // Create PA-owned entries
+    m.mark("pa-own-mark");
+    m.mark("pa-own-end");
+    m.measure("pa-own-measure", "pa-own-mark", "pa-own-end");
+    // Clear PA entries
+    m.clear();
+    // Unrelated entries should still exist
+    expect(performance.getEntriesByName("unrelated-mark").length).toBe(1);
+    expect(performance.getEntriesByName("unrelated-measure").length).toBe(1);
+    // PA-owned entries should be gone
+    expect(performance.getEntriesByName("pa-own-mark").length).toBe(0);
+    expect(performance.getEntriesByName("pa-own-measure").length).toBe(0);
+    // Clean up unrelated entries
+    performance.clearMarks("unrelated-mark");
+    performance.clearMeasures("unrelated-measure");
+  });
+
   it("flat __paBootMetrics still readable for legacy consumers", () => {
     loadMetrics();
     const m = getMetrics();

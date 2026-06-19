@@ -29,8 +29,7 @@ import {
   getCanvasPixelSample,
 } from "./helpers/browserGame";
 import {
-  collectPageDiagnostics,
-  attachDiagnostics,
+  createDiagnosticCollector,
   blockingErrors,
 } from "./helpers/diagnostics";
 
@@ -84,6 +83,9 @@ for (const game of GAMES) {
       // Verify canvas is rendering something before we test input
       await expectCanvasHasRenderedPixels(page);
 
+      const collector = createDiagnosticCollector();
+      collector.start(page);
+
       // Send the test sequence and wait for observable change
       const changed = await sendKeysAndWaitForResponse(
         page,
@@ -91,9 +93,10 @@ for (const game of GAMES) {
         1500,
       );
 
+      const snapshot = await collector.snapshot(testInfo);
+      await collector.attach(testInfo, "input-test");
+
       if (!changed) {
-        const diagnostics = await collectPageDiagnostics(page);
-        attachDiagnostics(testInfo, diagnostics);
         throw new Error(
           `Canvas did not change after input sequence [${game.testSequence.join(", ")}] on ${testInfo.project.name}`,
         );
@@ -109,6 +112,9 @@ for (const game of GAMES) {
         !DESKTOP_PROJECTS.includes(testInfo.project.name),
         `Desktop focus test skipped on ${testInfo.project.name}`,
       );
+
+      const collector = createDiagnosticCollector();
+      collector.start(page);
 
       await page.goto(game.path, { waitUntil: "domcontentloaded" });
       await waitForPygbagRuntime(page);
@@ -127,9 +133,9 @@ for (const game of GAMES) {
       await page.keyboard.press("Enter");
       await page.waitForTimeout(300);
 
-      const diagnostics = await collectPageDiagnostics(page);
-      attachDiagnostics(testInfo, diagnostics);
-      const blocking = blockingErrors(diagnostics);
+      const snapshot = await collector.snapshot(testInfo);
+      await collector.attach(testInfo, "focus-test");
+      const blocking = blockingErrors(snapshot);
       expect(blocking).toEqual([]);
     });
 
@@ -164,6 +170,9 @@ for (const game of GAMES) {
         `Rapid-input test skipped on ${testInfo.project.name}`,
       );
 
+      const collector = createDiagnosticCollector();
+      collector.start(page);
+
       await page.goto(game.path, { waitUntil: "domcontentloaded" });
       await waitForPygbagRuntime(page);
       await unlockAndFocusGame(page);
@@ -178,9 +187,9 @@ for (const game of GAMES) {
       // Allow any deferred errors to surface
       await page.waitForTimeout(500);
 
-      const diagnostics = await collectPageDiagnostics(page);
-      attachDiagnostics(testInfo, diagnostics);
-      const blocking = blockingErrors(diagnostics);
+      const snapshot = await collector.snapshot(testInfo);
+      await collector.attach(testInfo, "rapid-input");
+      const blocking = blockingErrors(snapshot);
       expect(blocking).toEqual([]);
     });
 
@@ -189,6 +198,9 @@ for (const game of GAMES) {
         !DESKTOP_PROJECTS.includes(testInfo.project.name),
         `Escape-pause test skipped on ${testInfo.project.name}`,
       );
+
+      const collector = createDiagnosticCollector();
+      collector.start(page);
 
       await page.goto(game.path, { waitUntil: "domcontentloaded" });
       await waitForPygbagRuntime(page);
@@ -202,9 +214,9 @@ for (const game of GAMES) {
       await page.keyboard.press("Escape");
       await page.waitForTimeout(300);
 
-      const diagnostics = await collectPageDiagnostics(page);
-      attachDiagnostics(testInfo, diagnostics);
-      const blocking = blockingErrors(diagnostics);
+      const snapshot = await collector.snapshot(testInfo);
+      await collector.attach(testInfo, "escape-pause");
+      const blocking = blockingErrors(snapshot);
       expect(blocking).toEqual([]);
     });
 
@@ -215,6 +227,9 @@ for (const game of GAMES) {
         !DESKTOP_PROJECTS.includes(testInfo.project.name),
         `Pixel-diff test skipped on ${testInfo.project.name}`,
       );
+
+      const collector = createDiagnosticCollector();
+      collector.start(page);
 
       await page.goto(game.path, { waitUntil: "domcontentloaded" });
       await waitForPygbagRuntime(page);
@@ -227,9 +242,10 @@ for (const game of GAMES) {
         3000,
       );
 
+      const snapshot = await collector.snapshot(testInfo);
+      await collector.attach(testInfo, "pixel-diff");
+
       if (!changed) {
-        const diagnostics = await collectPageDiagnostics(page);
-        attachDiagnostics(testInfo, diagnostics);
         testInfo.annotations.push({
           type: "warn",
           description: `Canvas did not visibly change after input on ${testInfo.project.name} — game may be frozen or not responding to keyboard`,

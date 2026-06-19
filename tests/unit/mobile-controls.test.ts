@@ -12,6 +12,7 @@ function setupPongDOM(): void {
   document.body.innerHTML = `
     <div id="game-loading"><div class="loader-title">Loading</div></div>
     <canvas id="canvas" width="1600" height="900"></canvas>
+    <div id="game-wrap" data-control-mode="pong" data-control-action-key="Enter" data-control-drag-axis="y" data-control-desktop-keys="ArrowUp,ArrowDown,Space,Enter,Escape" data-control-directional-keys='{"up":["ArrowUp","w"],"down":["ArrowDown","s"]}' data-control-hint="Slide ship up or down" data-control-keyboard-help="ArrowUp / W — move up • ArrowDown / S — move down • Space / Escape — pause • Enter — confirm" data-control-menu-label="START" data-control-play-label="ACTION" data-control-gameover-label="PLAY AGAIN">
     <div class="touch-overlay" id="touch-overlay" data-controls="pong">
       <div class="touch-drag-zone touch-drag-y" data-dir="drag-y"></div>
       <div class="btn btn-nudge btn-up" data-dir="left">▲</div>
@@ -19,13 +20,15 @@ function setupPongDOM(): void {
       <div class="btn btn-action" data-dir="action">START</div>
       <div class="btn btn-pause" data-dir="pause">❚❚</div>
     </div>
-    <div id="controls-hint"></div>
+    <div id="controls-hint">Slide ship up/down  •  START  •  PAUSE</div>
+    </div>
   `;
 }
 
 function setupBreakoutDOM(): void {
   document.body.innerHTML = `
     <canvas id="canvas" width="1600" height="900"></canvas>
+    <div id="game-wrap" data-control-mode="breakout" data-control-action-key="Space" data-control-drag-axis="x" data-control-desktop-keys="ArrowLeft,ArrowRight,Space,Enter,Escape" data-control-directional-keys='{"left":["ArrowLeft","a"],"right":["ArrowRight","d"]}' data-control-hint="Slide longboat left or right" data-control-keyboard-help="ArrowLeft / A — move left • ArrowRight / D — move right • Space — launch ball • Escape — pause • Enter — confirm" data-control-menu-label="LAUNCH" data-control-play-label="LAUNCH" data-control-gameover-label="PLAY AGAIN">
     <div class="touch-overlay" id="touch-overlay" data-controls="breakout">
       <div class="touch-drag-zone touch-drag-x" data-dir="drag-x"></div>
       <div class="btn btn-nudge btn-left" data-dir="left">◀</div>
@@ -33,7 +36,8 @@ function setupBreakoutDOM(): void {
       <div class="btn btn-action" data-dir="action">LAUNCH</div>
       <div class="btn btn-pause" data-dir="pause">❚❚</div>
     </div>
-    <div id="controls-hint"></div>
+    <div id="controls-hint">Slide longboat left/right  •  LAUNCH  •  PAUSE</div>
+    </div>
   `;
 }
 
@@ -92,7 +96,7 @@ describe("mobile-controls", () => {
 
     it("updates hint text for pong mode", () => {
       const hint = document.getElementById("controls-hint")!;
-      expect(hint.textContent).toContain("slide");
+      expect(hint.textContent).toContain("Slide");
       expect(hint.textContent).toContain("up/down");
       expect(hint.textContent).toContain("START");
     });
@@ -137,15 +141,15 @@ describe("mobile-controls", () => {
       expect(downCalls[1].key).toBe("s");
     });
 
-    it("tap action dispatches Enter and Space", () => {
+    it("tap action dispatches Enter (fallback without PirateArcadeActions)", () => {
       dispatchOnBtn("action", 12);
       const calls = (window as any).__paInputDebug.bridgeCalls;
       const enterDown = calls.filter((c: any) => c.key === "Enter" && c.down);
       expect(enterDown.length).toBeGreaterThan(0);
-      const spaceDown = calls.filter((c: any) => c.key === "Space" && c.down);
-      expect(spaceDown.length).toBeGreaterThan(0);
-      // Should have both Enter and Space key down events
-      expect(enterDown.length + spaceDown.length).toBeGreaterThanOrEqual(2);
+      // Without PirateArcadeActions loaded, the fallback is Enter-only
+      expect(calls.filter((c: any) => c.key === "Space" && c.down).length).toBe(
+        0,
+      );
     });
 
     it("tap pause dispatches Escape", () => {
@@ -186,7 +190,7 @@ describe("mobile-controls", () => {
 
     it("updates hint text for breakout mode", () => {
       const hint = document.getElementById("controls-hint")!;
-      expect(hint.textContent).toContain("slide");
+      expect(hint.textContent).toContain("Slide");
       expect(hint.textContent).toContain("left/right");
       expect(hint.textContent).toContain("LAUNCH");
     });

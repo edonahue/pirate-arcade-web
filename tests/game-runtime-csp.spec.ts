@@ -32,10 +32,8 @@ import {
   dialogWasCalled,
 } from "./helpers/browserGame";
 import {
-  startDiagnostics,
-  snapshotDiagnostics,
+  createDiagnosticCollector,
   blockingErrors,
-  attachDiagnostics,
 } from "./helpers/diagnostics";
 import { loadPybagGameDetails } from "./helpers/gameRegistry";
 
@@ -76,7 +74,8 @@ for (const game of GAMES) {
 
       // Start diagnostics BEFORE navigation so CSP/EvalError events
       // during page load and WASM startup are captured
-      const diag = startDiagnostics(page);
+      const collector = createDiagnosticCollector();
+      collector.start(page);
 
       await page.goto(game.path, { waitUntil: "domcontentloaded" });
 
@@ -95,15 +94,15 @@ for (const game of GAMES) {
       }
 
       // Finalize diagnostics
-      const diagnostics = await snapshotDiagnostics(page, diag);
-      attachDiagnostics(testInfo, diagnostics);
+      const snapshot = await collector.snapshot(testInfo);
+      await collector.attach(testInfo, "startup");
 
       // Check for dialogs
       const dlgCalled = await dialogWasCalled(page);
       expect(dlgCalled).toBe(false);
 
       // Filter blocking errors to CSP-specific patterns
-      const cspBlocking = blockingErrors(diagnostics).filter((e) =>
+      const cspBlocking = blockingErrors(snapshot).filter((e) =>
         CSP_BLOCKING_PATTERNS.some((p) => p.test(e)),
       );
 

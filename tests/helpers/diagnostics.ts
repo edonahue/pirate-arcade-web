@@ -120,10 +120,12 @@ export interface RequestObservation {
 export interface DiagnosticCollector {
   /** Attach listeners. Call before page.goto(). */
   start(page: Page): void;
-  /** Begin a new named scenario (resets scenario-scoped counters). */
+  /** Begin a new named scenario (resets scenario-scoped ring buffers). */
   beginScenario(name: string): void;
   /** Take a snapshot of current page state + captured events. */
   snapshot(testInfo: TestInfo): Promise<RuntimeSnapshot>;
+  /** Attach snapshot to test report and detach listeners. */
+  attach(testInfo: TestInfo, scenarioName: string): Promise<void>;
   /** Detach listeners and release page reference. */
   stop(): void;
 }
@@ -198,6 +200,10 @@ export function blockingErrors(diag: {
 function pushRing<T>(arr: T[], max: number, item: T): void {
   if (arr.length >= max) arr.shift();
   arr.push(item);
+}
+
+function clearRing<T>(arr: T[]): void {
+  arr.length = 0;
 }
 
 // ── Diagnostic collector factory ────────────────────────────────
@@ -289,10 +295,11 @@ export function createDiagnosticCollector(): DiagnosticCollector {
     if ("x-service-worker" in headers) {
       servedFromWorker = true;
     } else if ("cf-cache-status" in headers) {
+      // Cannot determine worker provenance from Cloudflare headers alone
       servedFromWorker = null;
-    } else {
-      servedFromWorker = false;
     }
+    // Default: null/unknown when Playwright cannot determine provenance
+    // Only true with positive evidence, false only with reliable negative evidence
 
     pushRing(observations, MAX_OBSERVATIONS, {
       requestUrl: request.url().slice(0, 500),
@@ -334,12 +341,22 @@ export function createDiagnosticCollector(): DiagnosticCollector {
         .evaluate(() => !!navigator.serviceWorker?.controller)
         .then((controlled) => {
           swAtStart = controlled;
+        })
+        .catch(() => {
+          swAtStart = null;
         });
 
       attachHandlers(page);
     },
 
     beginScenario(name: string) {
+      // Clear scenario-scoped ring buffers
+      clearRing(consoleErrors);
+      clearRing(consoleWarnings);
+      clearRing(pageErrors);
+      clearRing(failedRequests);
+      clearRing(badResponses);
+      clearRing(observations);
       currentScenario = name;
     },
 
@@ -459,185 +476,29 @@ export function createDiagnosticCollector(): DiagnosticCollector {
         badResponses: [...badResponses],
       };
     },
-  };
-}
 
-// ── Legacy compatibility ───────────────────────────────────────
-
-/**
- * Attach diagnostics payload to test report.
- */
-export function attachDiagnostics(
-  testInfo: TestInfo,
-  diagnostics: PageDiagnostics,
-): void {
-  const summary = {
-    canvasSize: `${diagnostics.canvasWidth}x${diagnostics.canvasHeight}`,
-    canvasVisible: diagnostics.canvasVisible,
-    transferHidden: diagnostics.transferHidden,
-    consoleErrorCount: diagnostics.consoleErrors.length,
-    pageErrorCount: diagnostics.pageErrors.length,
-    failedRequestCount: diagnostics.failedRequests.length,
-    badResponseCount: diagnostics.badResponses.length,
-    finalInfoboxText: diagnostics.finalInfoboxText.slice(0, 200),
-  };
-  testInfo.attach("diagnostics-summary", {
-    body: JSON.stringify(summary, null, 2),
-    contentType: "application/json",
-  });
-  testInfo.attach("diagnostics-full", {
-    body: JSON.stringify(diagnostics, null, 2),
-    contentType: "application/json",
-  });
-}
-
-// ── Legacy-compatible diagnostic lifecycle (canonical implementation) ─────
-
-/**
- * Start collecting diagnostics on a page. Attaches listeners for console
- * errors/warnings, page errors, failed requests, and bad responses.
- *
- * Call this BEFORE `page.goto()` so no events are missed during page
- * load, runtime startup, or CSP violations.
- *
- * Returns a mutable PageDiagnostics object that live-updates as events
- * arrive. After the page has settled, call `snapshotDiagnostics(page, diag)`
- * to finalize, detach listeners, and read DOM state.
- */
-export function startDiagnostics(page: Page): PageDiagnostics {
-  const diag: PageDiagnostics = {
-    consoleErrors: [],
-    consoleWarnings: [],
-    pageErrors: [],
-    failedRequests: [],
-    badResponses: [],
-    observations: [],
-    finalInfoboxText: "",
-    canvasWidth: 0,
-    canvasHeight: 0,
-    canvasVisible: false,
-    transferHidden: false,
-    url: "",
-    userAgent: "",
-  };
-
-  const consoleHandler = (msg: { type(): string; text(): string }) => {
-    if (msg.type() === "error") diag.consoleErrors.push(msg.text());
-    else if (msg.type() === "warning") diag.consoleWarnings.push(msg.text());
-  };
-  const pageErrorHandler = (err: Error) => diag.pageErrors.push(err.message);
-  const requestFailedHandler = (req: {
-    url(): string;
-    failure(): { errorText: string } | null;
-  }) => {
-    const failure = req.failure();
-    diag.failedRequests.push({
-      url: req.url(),
-      failureText: failure?.errorText || "unknown",
-    });
-  };
-  const responseHandler = (resp: {
-    url(): string;
-    status(): number;
-    statusText(): string;
-  }) => {
-    const status = resp.status();
-    if (status >= 400) {
-      diag.badResponses.push({
-        url: resp.url(),
-        status,
-        statusText: resp.statusText(),
+    async attach(testInfo: TestInfo, scenarioName: string): Promise<void> {
+      const snap = await this.snapshot(testInfo);
+      const summary = {
+        scenario: scenarioName,
+        canvasSize: `${snap.metrics ? "n/a" : "n/a"}`, // metrics not directly in snapshot
+        loadingState: snap.loadingState,
+        consoleErrorCount: snap.consoleErrors.length,
+        pageErrorCount: snap.pageErrors.length,
+        failedRequestCount: snap.failedRequests.length,
+        badResponseCount: snap.badResponses.length,
+        observationCount: snap.observations.length,
+        navigation: snap.navigation,
+      };
+      await testInfo.attach(`${scenarioName}-diagnostics-summary`, {
+        body: JSON.stringify(summary, null, 2),
+        contentType: "application/json",
       });
-    }
+      await testInfo.attach(`${scenarioName}-diagnostics-full`, {
+        body: JSON.stringify(snap, null, 2),
+        contentType: "application/json",
+      });
+      this.stop();
+    },
   };
-
-  page.on("console", consoleHandler);
-  page.on("pageerror", pageErrorHandler);
-  page.on("requestfailed", requestFailedHandler);
-  page.on("response", responseHandler);
-
-  // Store handlers for cleanup
-  (page as any).__diag_handlers = {
-    consoleHandler,
-    pageErrorHandler,
-    requestFailedHandler,
-    responseHandler,
-  };
-
-  return diag;
-}
-
-/**
- * Finalize a PageDiagnostics object that was started with `startDiagnostics()`.
- * Detaches listeners, reads DOM state (infobox text, canvas dimensions, etc.),
- * and returns the populated snapshot.
- *
- * After this call, the diagnostic listeners are no longer attached to the page.
- */
-export async function snapshotDiagnostics(
-  page: Page,
-  diag: PageDiagnostics,
-): Promise<PageDiagnostics> {
-  // Detach listeners
-  const handlers = (page as any).__diag_handlers;
-  if (handlers) {
-    page.off("console", handlers.consoleHandler);
-    page.off("pageerror", handlers.pageErrorHandler);
-    page.off("requestfailed", handlers.requestFailedHandler);
-    page.off("response", handlers.responseHandler);
-    delete (page as any).__diag_handlers;
-  }
-
-  // Let async events flush
-  await page.waitForTimeout(500);
-
-  // Read current DOM state
-  const dom = await page.evaluate(() => {
-    const ib = document.getElementById("infobox") as HTMLElement | null;
-    const c = document.getElementById("canvas") as HTMLCanvasElement | null;
-    const tr = document.getElementById("transfer") as HTMLElement | null;
-    const cs = c ? window.getComputedStyle(c) : null;
-    return {
-      infoboxText: ib?.textContent?.trim() || "",
-      canvasWidth: c?.width || 0,
-      canvasHeight: c?.height || 0,
-      canvasVisible: !!(
-        c &&
-        cs &&
-        cs.visibility === "visible" &&
-        cs.display !== "none"
-      ),
-      transferHidden: !!tr?.hidden,
-    };
-  });
-
-  return {
-    consoleErrors: diag.consoleErrors.filter((e) => !isHarmlessConsoleError(e)),
-    consoleWarnings: diag.consoleWarnings,
-    pageErrors: diag.pageErrors,
-    failedRequests: diag.failedRequests,
-    badResponses: diag.badResponses,
-    observations: [],
-    finalInfoboxText: dom.infoboxText,
-    canvasWidth: dom.canvasWidth,
-    canvasHeight: dom.canvasHeight,
-    canvasVisible: dom.canvasVisible,
-    transferHidden: dom.transferHidden,
-    url: page.url(),
-    userAgent: await page.evaluate(() => navigator.userAgent),
-  };
-}
-
-/**
- * Collect a snapshot of diagnostics for the page.
- *
- * Attaches listeners, waits briefly for events to flush, reads DOM
- * state, then detaches listeners. Convenience wrapper around
- * `startDiagnostics` + `snapshotDiagnostics`.
- */
-export async function collectPageDiagnostics(
-  page: Page,
-): Promise<PageDiagnostics> {
-  const diag = startDiagnostics(page);
-  return snapshotDiagnostics(page, diag);
 }

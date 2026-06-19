@@ -1,9 +1,7 @@
 import { test, expect, type Page } from "@playwright/test";
 import {
-  startDiagnostics,
-  snapshotDiagnostics,
+  createDiagnosticCollector,
   blockingErrors,
-  attachDiagnostics,
 } from "./helpers/diagnostics";
 
 interface WebNativeGameSpec {
@@ -178,12 +176,12 @@ for (const game of GAMES) {
       expect(dims.w).toBeGreaterThan(100);
       expect(dims.h).toBeGreaterThan(100);
 
-      const diagnostics = await snapshotDiagnostics(
-        page,
-        startDiagnostics(page),
-      );
-      attachDiagnostics(testInfo, diagnostics);
-      const blocking = blockingErrors(diagnostics);
+      const collector = createDiagnosticCollector();
+      collector.start(page);
+
+      const snapshot = await collector.snapshot(testInfo);
+      await collector.attach(testInfo, "scenario");
+      const blocking = blockingErrors(snapshot);
       expect(blocking).toEqual([]);
     });
 
@@ -195,10 +193,11 @@ for (const game of GAMES) {
         `Input test skipped on ${testInfo.project.name}`,
       );
 
+      const collector = createDiagnosticCollector();
+      collector.start(page);
+
       await page.goto(game.path, { waitUntil: "domcontentloaded" });
       await waitForPhaserReady(page);
-
-      const diag = startDiagnostics(page);
 
       const canvas = page.locator("#game-container canvas");
       await canvas.click();
@@ -220,9 +219,9 @@ for (const game of GAMES) {
       expect(dims.w).toBeGreaterThan(100);
       expect(dims.h).toBeGreaterThan(100);
 
-      const diagnostics = await snapshotDiagnostics(page, diag);
-      attachDiagnostics(testInfo, diagnostics);
-      const blocking = blockingErrors(diagnostics);
+      const snapshot = await collector.snapshot(testInfo);
+      await collector.attach(testInfo, "scenario");
+      const blocking = blockingErrors(snapshot);
       expect(blocking).toEqual([]);
     });
 
@@ -234,6 +233,9 @@ for (const game of GAMES) {
         `Error test skipped on ${testInfo.project.name}`,
       );
 
+      const collector = createDiagnosticCollector();
+      collector.start(page);
+
       await page.goto(game.path, { waitUntil: "domcontentloaded" });
       await waitForPhaserReady(page);
 
@@ -241,12 +243,9 @@ for (const game of GAMES) {
       await page.keyboard.press("ArrowRight");
       await page.waitForTimeout(500);
 
-      const diagnostics = await snapshotDiagnostics(
-        page,
-        startDiagnostics(page),
-      );
-      attachDiagnostics(testInfo, diagnostics);
-      const blocking = blockingErrors(diagnostics);
+      const snapshot = await collector.snapshot(testInfo);
+      await collector.attach(testInfo, "scenario");
+      const blocking = blockingErrors(snapshot);
       expect(blocking).toEqual([]);
     });
 
@@ -256,18 +255,19 @@ for (const game of GAMES) {
         `Reload test skipped on ${testInfo.project.name}`,
       );
 
+      const collector = createDiagnosticCollector();
+      collector.start(page);
+
       await page.goto(game.path, { waitUntil: "domcontentloaded" });
       await waitForPhaserReady(page);
 
+      collector.beginScenario("reload");
       await page.reload({ waitUntil: "domcontentloaded" });
       await waitForPhaserReady(page);
 
-      const diagnostics = await snapshotDiagnostics(
-        page,
-        startDiagnostics(page),
-      );
-      attachDiagnostics(testInfo, diagnostics);
-      const blocking = blockingErrors(diagnostics);
+      const snapshot = await collector.snapshot(testInfo);
+      await collector.attach(testInfo, "reload");
+      const blocking = blockingErrors(snapshot);
       expect(blocking).toEqual([]);
     });
 
@@ -279,6 +279,9 @@ for (const game of GAMES) {
         `Blur test skipped on ${testInfo.project.name}`,
       );
 
+      const collector = createDiagnosticCollector();
+      collector.start(page);
+
       await page.goto(game.path, { waitUntil: "domcontentloaded" });
       await waitForPhaserReady(page);
 
@@ -287,12 +290,9 @@ for (const game of GAMES) {
       await page.evaluate(() => window.dispatchEvent(new Event("focus")));
       await page.waitForTimeout(500);
 
-      const diagnostics = await snapshotDiagnostics(
-        page,
-        startDiagnostics(page),
-      );
-      attachDiagnostics(testInfo, diagnostics);
-      const blocking = blockingErrors(diagnostics);
+      const snapshot = await collector.snapshot(testInfo);
+      await collector.attach(testInfo, "blur-refocus");
+      const blocking = blockingErrors(snapshot);
       expect(blocking).toEqual([]);
     });
 

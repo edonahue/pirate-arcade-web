@@ -31,10 +31,8 @@ import {
   dialogWasCalled,
 } from "./helpers/browserGame";
 import {
-  attachDiagnostics,
+  createDiagnosticCollector,
   blockingErrors,
-  startDiagnostics,
-  snapshotDiagnostics,
 } from "./helpers/diagnostics";
 
 interface TouchTest {
@@ -207,7 +205,8 @@ for (const game of GAMES) {
         `Mobile test skipped on ${testInfo.project.name}`,
       );
 
-      const diag = startDiagnostics(page);
+      const collector = createDiagnosticCollector();
+      collector.start(page);
 
       await page.goto(game.path, { waitUntil: "domcontentloaded" });
       await waitForPygbagRuntime(page);
@@ -242,15 +241,15 @@ for (const game of GAMES) {
         // Small gap so error events can flush
         await page.waitForTimeout(100);
 
-        const blocking = blockingErrors(diag);
+        const snapshot = await collector.snapshot(testInfo);
+        const blocking = blockingErrors(snapshot);
         expect(
           blocking,
           `Blocking errors after "${test.desc}": ${blocking.join(", ")}`,
         ).toEqual([]);
       }
 
-      const diagnostics = await snapshotDiagnostics(page, diag);
-      attachDiagnostics(testInfo, diagnostics);
+      await collector.attach(testInfo, "touch-taps");
     });
 
     test("no JavaScript dialogs during mobile gameplay", async ({
@@ -264,6 +263,9 @@ for (const game of GAMES) {
       // Install dialog capture BEFORE navigation so any alert/confirm/
       // prompt that fires during runtime startup or gameplay is caught.
       await installDialogCapture(page);
+
+      const collector = createDiagnosticCollector();
+      collector.start(page);
 
       await page.goto(game.path, { waitUntil: "domcontentloaded" });
       await waitForPygbagRuntime(page);
@@ -285,6 +287,8 @@ for (const game of GAMES) {
         }
       }
 
+      await collector.attach(testInfo, "dialog-check");
+
       const dlgCalled = await dialogWasCalled(page);
       expect(dlgCalled).toBe(false);
     });
@@ -297,7 +301,8 @@ for (const game of GAMES) {
         `Rapid-tap test skipped on ${testInfo.project.name}`,
       );
 
-      const diag = startDiagnostics(page);
+      const collector = createDiagnosticCollector();
+      collector.start(page);
 
       await page.goto(game.path, { waitUntil: "domcontentloaded" });
       await waitForPygbagRuntime(page);
@@ -321,9 +326,9 @@ for (const game of GAMES) {
 
       await page.waitForTimeout(500);
 
-      const diagnostics = await snapshotDiagnostics(page, diag);
-      attachDiagnostics(testInfo, diagnostics);
-      const blocking = blockingErrors(diagnostics);
+      const snapshot = await collector.snapshot(testInfo);
+      await collector.attach(testInfo, "rapid-tap");
+      const blocking = blockingErrors(snapshot);
       expect(blocking).toEqual([]);
     });
 
@@ -423,7 +428,8 @@ test.describe(`${ASTEROIDS_GAME.name} - mobile input`, () => {
       `Asteroids mobile test skipped on ${testInfo.project.name}`,
     );
 
-    const diag = startDiagnostics(page);
+    const collector = createDiagnosticCollector();
+    collector.start(page);
 
     await page.goto(ASTEROIDS_GAME.path, { waitUntil: "domcontentloaded" });
     // Skipping waitForPygbagRuntime: see comment at the top of
@@ -447,14 +453,14 @@ test.describe(`${ASTEROIDS_GAME.name} - mobile input`, () => {
       );
       await page.waitForTimeout(100);
 
-      const blocking = blockingErrors(diag);
+      const snapshot = await collector.snapshot(testInfo);
+      const blocking = blockingErrors(snapshot);
       expect(
         blocking,
         `Blocking errors after "${test.desc}": ${blocking.join(", ")}`,
       ).toEqual([]);
     }
 
-    const finalDiag = await snapshotDiagnostics(page, diag);
-    attachDiagnostics(testInfo, finalDiag);
+    await collector.attach(testInfo, "asteroids-tap");
   });
 });
