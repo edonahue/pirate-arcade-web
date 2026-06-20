@@ -208,9 +208,10 @@ function cacheFirst(event) {
     return fetch(event.request).then((res) => {
       if (res && res.status === 200) {
         const clone = res.clone();
-        caches
+        return caches
           .open(CACHE_NAME)
-          .then((cache) => cache.put(event.request, clone));
+          .then((cache) => cache.put(event.request, clone))
+          .then(() => res);
       }
       return res;
     });
