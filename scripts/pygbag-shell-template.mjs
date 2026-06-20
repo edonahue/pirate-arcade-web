@@ -97,11 +97,13 @@ function renderPythonBootCode(config) {
   );
   lines.push('            async with platform.fopen(url, "rb") as f:');
   lines.push("                data = f.read()");
-  lines.push('            _w.PirateArcadeMetrics.mark("archive-fetch-end")');
   lines.push(
-    "            _w.PirateArcadeMetrics.setArchiveByteLength(len(data))",
+    '                _w.PirateArcadeMetrics.mark("archive-fetch-end")',
   );
-  lines.push("            return data");
+  lines.push(
+    "                _w.PirateArcadeMetrics.setArchiveByteLength(len(data))",
+  );
+  lines.push("                return data");
   lines.push("");
   lines.push("        archive_task = asyncio.create_task(fetch_archive())");
   lines.push("        pygame_task = asyncio.create_task(install_pygame())");
