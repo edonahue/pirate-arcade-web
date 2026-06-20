@@ -193,7 +193,7 @@
               '',
               '        archive_task = asyncio.create_task(fetch_archive())',
               '        pygame_task = asyncio.create_task(install_pygame())',
-              '        await archive_task',
+              '        data = await archive_task',
               '        await pygame_task',
               '        _w.PirateArcadeMetrics.mark("dependencies-ready")',
               '',

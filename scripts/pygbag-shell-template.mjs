@@ -107,7 +107,7 @@ function renderPythonBootCode(config) {
   lines.push("");
   lines.push("        archive_task = asyncio.create_task(fetch_archive())");
   lines.push("        pygame_task = asyncio.create_task(install_pygame())");
-  lines.push("        await archive_task");
+  lines.push("        data = await archive_task");
   lines.push("        await pygame_task");
   lines.push('        _w.PirateArcadeMetrics.mark("dependencies-ready")');
   lines.push("");
