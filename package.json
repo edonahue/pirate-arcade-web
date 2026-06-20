@@ -27,6 +27,7 @@
     "audit:game-archives": "node scripts/audit-game-archives.mjs",
     "test:game-performance": "playwright test tests/game-load-performance.spec.ts --project=chromium-desktop --project=mobile-safari",
     "test:game-performance:headed": "playwright test tests/game-load-performance.spec.ts --project=chromium-desktop --project=mobile-safari --headed",
+    "test:pygbag-performance": "playwright test tests/game-load-performance.spec.ts --project=chromium-desktop",
     "test:mobile-layout": "playwright test tests/mobile-game-layout.spec.ts --project=mobile-chrome --project=mobile-safari --project=webkit-desktop",
     "test:mobile-playability": "playwright test tests/mobile-touch-playability.spec.ts --project=mobile-chrome --project=mobile-safari",
     "test:mobile-input": "playwright test tests/game-input-mobile.spec.ts --project=mobile-chrome --project=mobile-safari",

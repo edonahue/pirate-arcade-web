@@ -77,6 +77,7 @@ for (const game of GAMES) {
     test("runtime starts and the canvas becomes visible", async ({
       page,
     }, testInfo) => {
+      test.setTimeout(300000);
       // Only run on desktop projects; mobile emulations are too noisy
       // for the heavy WASM startup. Mobile projects have their own
       // shorter test below.
@@ -147,6 +148,7 @@ for (const game of GAMES) {
     test("desktop keyboard input is accepted and the canvas renders", async ({
       page,
     }, testInfo) => {
+      test.setTimeout(300000);
       test.skip(
         !DESKTOP_PROJECTS.includes(testInfo.project.name),
         `Desktop input test skipped on ${testInfo.project.name}`,

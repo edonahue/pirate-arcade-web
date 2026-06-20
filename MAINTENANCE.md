@@ -47,7 +47,8 @@ gate and will fail if someone hand-edits a shell without regenerating.
 the correct ordered sequence of PirateArcadeMetrics marks (JS + Python
 phases), including structural invariants:
 
-- Phase sequence: cross-file-replaced → pythons-js-requested → python-ready → boot-start → pygame-install-start → archive-fetch-start → pygame-install-end → archive-fetch-end → archive-extract-start → archive-extract-end → input-bridge-installed → display-init-start → display-init-end → game-object-created → game-ready
+- Phase sequence (schema v3): cross-file-replaced → pythons-js-requested → python-ready → boot-start → pygame-install-start → archive-fetch-start → pygame-install-end → archive-fetch-end → archive-extract-start → archive-extract-end → input-bridge-installed → display-init-start → display-init-end → game-object-created → game-ready → loader-hidden → user-input-active → active-play → first-user-input
+- Metrics schema version (`game-boot-metrics.js`) currently v3 with 25+ marks, 13-stage failure enum, long-task observer, archive/runtime context
 - `async def boot():` + `asyncio.ensure_future(boot())`
 - `computeDurations()` after `game-ready`
 - `sys.print_exception` in exception handler
@@ -111,6 +112,42 @@ The Playwright shell test (`tests/game-shell-integrity.spec.ts`) validates at ru
 
 **Principle:** Expected elements existing does not prove unexpected content is absent. Always add negative assertions for leaked code.
 
+## Pygbag loading performance
+
+`tests/game-load-performance.spec.ts` measures Pygbag boot performance for
+the three Pygbag games. Two scenarios:
+
+- **First navigation** — validates `flags.activePlay === true`, `schemaVersion === 3`,
+  resource classification, archive network evidence, and `classifyLoadType` returns
+  `"fresh-context"`.
+- **Reload navigation** — validates same assertions on a second load with the
+  service worker active.
+
+Each scenario attaches a JSON report (`PerfReport`) and runtime diagnostics
+(`RuntimeSnapshot`) to the Playwright test output for inspection.
+
+### Running
+
+```sh
+npm run test:pygbag-performance          # chromium-desktop only (fastest)
+npm run test:game-performance            # chromium-desktop + mobile-safari
+npm run test:game-performance:headed     # headed mode for debugging
+```
+
+### Diagnostics helpers
+
+| Helper                 | File                  | Purpose                                                                                     |
+| ---------------------- | --------------------- | ------------------------------------------------------------------------------------------- |
+| `game-boot-metrics.js` | `public/play/shared/` | Runtime metrics collector (25+ marks, long tasks, failure stages)                           |
+| `performanceReport.ts` | `tests/helpers/`      | `PerfSnapshot` type, `classifyLoadType()`, `summarizeResources()`, `buildArchiveEvidence()` |
+| `diagnostics.ts`       | `tests/helpers/`      | `createDiagnosticCollector()`, `getBootMetrics()`, `RuntimeSnapshot`                        |
+
+### Schema version
+
+The metrics schema (`game-boot-metrics.js`) is currently **v3**. The test asserts
+`snapshot.schemaVersion === 3`. If the schema changes, update the test
+expectation and regenerate shells.
+
 ## Browser game screenshots
 
 Production screenshots (`public/images/screenshot-<id>.png`, 1280x720 PNG)
@@ -166,7 +203,9 @@ browser game consistency & shells, service worker, cache versioning,
 pygbag boot contract, pygbag shell drift, game versions, HTML structure,
 archive parity & audit, public domain art, game theming source,
 screenshot assets, performance budgets, site links, game registry,
-repository docs, race ship assets, screenshot assets.
+repository docs, race ship assets, screenshot assets. Pygbag loading
+performance tests are not included in the fast gate — they require a
+running `astro preview` server and CDN-accessible Pygbag runtime.
 
 The full gate adds: site theme, a11y (axe scans with strict color-contrast
 on all non-game pages), mobile layout/pause/input/navigation/regression,
@@ -300,6 +339,12 @@ Grouped by dependency type (dev vs production for npm). Labels: `dependencies`.
 | `playwright` | Browser games + desktop input (chromium)                                | ~10 min  |
 | `shell-test` | Cross-browser shell integrity (chromium, WebKit, iPad)                  | ~3 min   |
 | `lighthouse` | Lighthouse CI smoke/baseline audit                                      | ~2 min   |
+
+Pygbag loading performance tests (`game-load-performance.spec.ts`) are
+not in CI — they require a running `astro preview` server and Pygbag
+runtime accessible from the test environment. Run locally (with the
+preview server running and a fast CDN connection) before a performance-
+sensitive release.
 
 The `verify` job runs the complete fast gate via `npm run verify:release:fast`.
 All downstream jobs (`playwright`, `shell-test`, `lighthouse`) also build from

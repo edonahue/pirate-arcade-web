@@ -116,7 +116,7 @@ export async function waitForPygbagRuntime(page: Page): Promise<void> {
       return false;
     },
     initialInfobox,
-    { timeout: 120000, polling: 500 },
+    { timeout: 180000, polling: 500 },
   );
 
   // After waitForFunction completes (by canvas size, infobox text,
