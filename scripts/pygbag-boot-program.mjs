@@ -356,3 +356,30 @@ function generateSource(config) {
     footer.join("\n")
   );
 }
+
+// ── Shell source extraction ──────────────────────────────────
+
+/**
+ * Extract the Python boot source from a committed Pygbag shell HTML file.
+ * The shell stores the source as a JS array: var gameCode = ["...",].join("")
+ * Returns the reconstructed Python source, or null if the pattern isn't found.
+ *
+ * Note: The extracted content contains JS escape sequences (\n, \uXXXX, etc.)
+ * because it reads the raw HTML text. For exact comparison against rendered
+ * output, use the drift checker (check-pygbag-shell-drift.mjs) which compares
+ * full rendered HTML against committed HTML.
+ */
+export function extractGameCodeFromShell(html) {
+  const match = html.match(/var gameCode = \[([\s\S]*?)\]\.join\(/);
+  if (!match) return null;
+  // Parse the array elements (quoted strings with optional trailing comma)
+  const raw = match[1];
+  const lines = [];
+  // Match quoted strings: "..." or '...'
+  const stringRe = /["']((?:[^"'\\]|\\.)*)["']/g;
+  let m;
+  while ((m = stringRe.exec(raw)) !== null) {
+    lines.push(m[1]);
+  }
+  return lines.join("");
+}

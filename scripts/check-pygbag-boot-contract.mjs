@@ -2,11 +2,10 @@
 /**
  * Validate the Pygbag Python boot contract across all generated shells.
  *
- * The boot contract defines the ordered sequence of PirateArcadeMetrics
- * marks that every Pygbag shell must emit at runtime. This validator
- * checks that each shell's inline script contains the correct phase
- * sequence, and that the Python boot code maintains the correct
- * ordered list of phases.
+ * Python-side checks use the authoritative renderPythonBootProgram() as
+ * source of truth. Shell-to-source equivalence verifies the commited shell
+ * matches the rendered output. JS-side phases are checked from the shell
+ * (they come from the inline script template, not the Python boot code).
  *
  * Usage: node scripts/check-pygbag-boot-contract.mjs
  */
@@ -15,6 +14,11 @@ import { readFileSync, existsSync } from "fs";
 import { resolve, dirname } from "path";
 import { fileURLToPath } from "url";
 import PYBAG_GAMES from "./pygbag-game-config.mjs";
+import {
+  renderPythonBootProgram,
+  BOOT_MARKS,
+  extractGameCodeFromShell,
+} from "./pygbag-boot-program.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = resolve(__dirname, "..");
@@ -22,31 +26,10 @@ const root = resolve(__dirname, "..");
 // ── Boot contract definition ──────────────────────────────────
 
 // Phases emitted from JS inline script (inline <script> block)
-// page-script-start is in external game-boot-metrics.js, not checked here
 const JS_BOOT_PHASES = [
   "cross-file-replaced",
   "pythons-js-requested",
   "python-ready",
-];
-
-// Phases emitted from Python boot() function, in order
-const PYTHON_BOOT_PHASES = [
-  "boot-start",
-  "pygame-install-start",
-  "pygame-install-end",
-  "archive-fetch-start",
-  "archive-fetch-end",
-  "dependencies-ready",
-  "archive-extract-start",
-  "archive-extract-end",
-  "input-bridge-installed",
-  "display-init-start",
-  "display-init-end",
-  "game-module-import-start",
-  "game-module-import-end",
-  "game-constructor-start",
-  "game-constructor-end",
-  "game-ready",
 ];
 
 // ── Validator ─────────────────────────────────────────────────
@@ -79,11 +62,12 @@ for (const config of PYBAG_GAMES) {
   }
 
   const html = readFileSync(indexPath, "utf-8");
+  const rendered = renderPythonBootProgram(config);
 
-  // Check JS-side phases (inline script only — game-boot-metrics.js is shared)
+  // ── JS-side phases (from inline script in shell) ─────────────
+
   for (const phase of JS_BOOT_PHASES) {
     totalChecks++;
-    // JS-side uses single quotes for mark() arguments
     const pattern = new RegExp("mark\\('" + phase + "'\\)");
     if (pattern.test(html)) {
       ok(config.id + ": JS phase " + phase);
@@ -93,12 +77,27 @@ for (const config of PYBAG_GAMES) {
     }
   }
 
-  // Check Python-side phases (inside the gameCode string array)
-  for (const phase of PYTHON_BOOT_PHASES) {
+  // ── Shell gameCode extractable ───────────────────────────────
+  // Verify the gameCode array exists in the shell. Full shell-to-source
+  // equivalence is covered by scripts/check-pygbag-shell-drift.mjs.
+
+  totalChecks++;
+  const extracted = extractGameCodeFromShell(html);
+  if (extracted) {
+    ok(config.id + ": shell gameCode extractable");
+  } else {
+    fail(config.id + ": shell gameCode not extractable");
+  }
+
+  // ── Python-side phases (from authoritative renderer) ─────────
+
+  const source = rendered.source;
+
+  // Check all BOOT_MARKS appear in the rendered source
+  for (const phase of BOOT_MARKS) {
     totalChecks++;
-    // Python side uses double quotes for mark() arguments
     const pattern = new RegExp('mark\\("' + phase + '"\\)');
-    if (pattern.test(html)) {
+    if (pattern.test(source)) {
       ok(config.id + ": Python phase " + phase);
       totalPhases++;
     } else {
@@ -106,108 +105,79 @@ for (const config of PYBAG_GAMES) {
     }
   }
 
-  // Verify Python phases appear in the correct order in gameCode
-  // Extract the gameCode array content (ends at ].join)
-  const gameCodeMatch = html.match(/var gameCode = \[([\s\S]*?)\]\.join\(/);
-  if (gameCodeMatch) {
-    const gameCodeJs = gameCodeMatch[1];
-    // Check that all PYTHON_BOOT_PHASES appear in order
-    let lastIdx = -1;
-    let orderOk = true;
-    for (const phase of PYTHON_BOOT_PHASES) {
-      totalChecks++;
-      const pattern = new RegExp('mark\\("' + phase + '"\\)');
-      const phaseIdx = gameCodeJs.search(pattern);
-      if (phaseIdx === -1) {
-        fail(config.id + ": Python phase " + phase + " not in gameCode");
-        continue;
-      }
-      if (phaseIdx < lastIdx) {
-        fail(
-          config.id +
-            ": Python phase order violation — " +
-            phase +
-            " appears after " +
-            PYTHON_BOOT_PHASES[PYTHON_BOOT_PHASES.indexOf(phase) - 1],
-        );
-        orderOk = false;
-      }
-      lastIdx = phaseIdx;
-    }
-    if (orderOk) {
-      ok(config.id + ": Python phase order correct");
-    }
-
-    // ── Phase 2: Required Python boot structural checks ────────────
-
-    // 7. sys.path.insert(0, a) must be present (makes game package importable)
+  // Verify BOOT_MARKS appear in the correct order
+  let lastIdx = -1;
+  let orderOk = true;
+  for (const phase of BOOT_MARKS) {
     totalChecks++;
-    if (/sys\.path\.insert\(/.test(gameCodeJs)) {
-      ok(config.id + ": sys.path.insert present");
-    } else {
+    const pattern = new RegExp('mark\\("' + phase + '"\\)');
+    const phaseIdx = source.search(pattern);
+    if (phaseIdx === -1) {
+      fail(config.id + ": Python phase " + phase + " not in source");
+      continue;
+    }
+    if (phaseIdx < lastIdx) {
       fail(
         config.id +
-          ": missing sys.path.insert — game package won't be importable",
+          ": Python phase order violation — " +
+          phase +
+          " appears after " +
+          BOOT_MARKS[BOOT_MARKS.indexOf(phase) - 1],
       );
+      orderOk = false;
     }
-
-    // 8. os.chdir(a) must be present (sets working directory for game assets)
-    totalChecks++;
-    if (/os\.chdir\(/.test(gameCodeJs)) {
-      ok(config.id + ": os.chdir present");
-    } else {
-      fail(config.id + ": missing os.chdir — game assets won't resolve");
-    }
-
-    // 9. Import line must appear after sys.path.insert and os.chdir
-    // Only runs when both preconditions exist (already checked above)
-    const importMatch = html.match(/'\s*from\s+\S+\s+import\s+\S+/);
-    const sysPathMatch = html.match(/sys\.path\.insert/);
-    const osChdirMatch = html.match(/os\.chdir/);
-    const importIdx = importMatch ? importMatch.index : -1;
-    const sysPathIdx = sysPathMatch ? sysPathMatch.index : -1;
-    const osChdirIdx = osChdirMatch ? osChdirMatch.index : -1;
-
-    if (sysPathIdx !== -1 && osChdirIdx !== -1) {
-      totalChecks++;
-      if (
-        importIdx !== -1 &&
-        importIdx > sysPathIdx &&
-        importIdx > osChdirIdx
-      ) {
-        ok(config.id + ": import follows sys.path.insert and os.chdir");
-      } else {
-        fail(
-          config.id +
-            ": import before sys.path.insert or os.chdir — game package may not resolve",
-        );
-      }
-    }
-
-    // 10. Validate exact pythonModule and gameClass from config
-    totalChecks++;
-    const expectedImport =
-      "from " + config.pythonModule + " import " + config.gameClass;
-    if (html.includes(expectedImport)) {
-      ok(config.id + ': import "' + expectedImport + '" matches config');
-    } else {
-      fail(
-        config.id +
-          ': expected import "' +
-          expectedImport +
-          '" not found in shell',
-      );
-    }
-
-    // ── End structural checks ─────────────────────────────────────
-  } else {
-    fail(config.id + ": could not extract gameCode");
+    lastIdx = phaseIdx;
+  }
+  if (orderOk) {
+    ok(config.id + ": Python phase order correct");
   }
 
-  // Verify key structural dependencies:
-  // 1. computeDurations() must appear after game-ready mark
-  const hasComputeDurations = html.includes("computeDurations()");
-  const hasGameReady = /mark\("game-ready"\)/.test(html);
+  // ── Structural checks on rendered source ─────────────────────
+
+  totalChecks++;
+  if (/sys\.path\.insert\(/.test(source)) {
+    ok(config.id + ": sys.path.insert present");
+  } else {
+    fail(config.id + ": missing sys.path.insert");
+  }
+
+  totalChecks++;
+  if (/os\.chdir\(/.test(source)) {
+    ok(config.id + ": os.chdir present");
+  } else {
+    fail(config.id + ": missing os.chdir");
+  }
+
+  // Import must appear after sys.path.insert and os.chdir
+  const importMatch = source.match(/from\s+\S+\s+import\s+\S+/);
+  const sysPathMatch = source.match(/sys\.path\.insert/);
+  const osChdirMatch = source.match(/os\.chdir/);
+  const importIdx = importMatch ? importMatch.index : -1;
+  const sysPathIdx = sysPathMatch ? sysPathMatch.index : -1;
+  const osChdirIdx = osChdirMatch ? osChdirMatch.index : -1;
+
+  if (sysPathIdx !== -1 && osChdirIdx !== -1) {
+    totalChecks++;
+    if (importIdx !== -1 && importIdx > sysPathIdx && importIdx > osChdirIdx) {
+      ok(config.id + ": import follows sys.path.insert and os.chdir");
+    } else {
+      fail(config.id + ": import before sys.path.insert or os.chdir");
+    }
+  }
+
+  // Validate exact pythonModule and gameClass from config
+  totalChecks++;
+  const expectedImport =
+    "from " + config.pythonModule + " import " + config.gameClass;
+  if (source.includes(expectedImport)) {
+    ok(config.id + ': import "' + expectedImport + '" matches config');
+  } else {
+    fail(config.id + ': expected import "' + expectedImport + '" not found');
+  }
+
+  // computeDurations must appear after game-ready mark
+  const hasComputeDurations = source.includes("computeDurations()");
+  const hasGameReady = /mark\("game-ready"\)/.test(source);
   totalChecks++;
 
   if (hasComputeDurations && hasGameReady) {
@@ -216,41 +186,41 @@ for (const config of PYBAG_GAMES) {
     fail(config.id + ": computeDurations present but game-ready mark missing");
   }
 
-  // 2. ready() call must appear
+  // ready() call must appear
   totalChecks++;
-  if (/PirateArcadeLoading\.ready\(/.test(html)) {
+  if (/PirateArcadeLoading\.ready\(/.test(source)) {
     ok(config.id + ": ready() present");
   } else {
     fail(config.id + ": missing ready() call");
   }
 
-  // 3. error() call must appear in except block
+  // error() call must appear in except block
   totalChecks++;
-  if (/PirateArcadeLoading\.error\(/.test(html)) {
+  if (/PirateArcadeLoading\.error\(/.test(source)) {
     ok(config.id + ": error() present");
   } else {
     fail(config.id + ": missing error() call");
   }
 
-  // 4. exception handler must use sys.print_exception
+  // exception handler must use sys.print_exception
   totalChecks++;
-  if (html.includes("print_exception")) {
+  if (source.includes("print_exception")) {
     ok(config.id + ": sys.print_exception present");
   } else {
     fail(config.id + ": missing sys.print_exception");
   }
 
-  // 5. boot must be async (boot():)
+  // boot must be async (async def boot():)
   totalChecks++;
-  if (html.includes("async def boot():")) {
+  if (source.includes("async def boot():")) {
     ok(config.id + ": async boot()");
   } else {
     fail(config.id + ": boot() not async");
   }
 
-  // 6. asyncio.ensure_future(boot()) must be present
+  // asyncio.ensure_future(boot()) must be present
   totalChecks++;
-  if (html.includes("asyncio.ensure_future(boot())")) {
+  if (source.includes("asyncio.ensure_future(boot())")) {
     ok(config.id + ": asyncio.ensure_future(boot())");
   } else {
     fail(config.id + ": missing asyncio.ensure_future(boot())");

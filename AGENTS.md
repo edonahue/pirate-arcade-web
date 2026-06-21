@@ -12,6 +12,8 @@ Modern pirate arcade + public builder notebook. Playful but not cheesy. Honest a
 
 - `public/play/*` — browser-game shells. Pinned Pygbag CDN version (0.9.3). Never edit without Playwright validation.
 - Pygbag shells (`cannonball-clash`, `treasure-cove`, `krakens-wake`) are **generated** from `scripts/pygbag-shell-template.mjs` + `scripts/pygbag-game-config.mjs`. Hand-editing generated shells is forbidden. Regenerate via `npm run generate:pygbag-shells`.
+- `scripts/pygbag-boot-program.mjs` — single authoritative Python boot program renderer. All generated boot code flows through `renderPythonBootProgram(config)`. Consumed by shell template, boot contract validator, unit tests, and mock harness. `BOOT_MARKS`, `FAILURE_STAGES`, `CRITICAL_ORDER` are canonical exports used by both test and production validators.
+- `scripts/check-pygbag-boot-contract.mjs` now checks the rendered Python source directly (via `BOOT_MARKS`) instead of regex-parsing shell HTML for phase ordering/structural checks. JS-side phases still come from the shell. Full shell-to-source equivalence is covered by the drift checker.
 - `public/play/shared/pygbag-loading.js` — single authoritative `PirateArcadeLoading` API (30s slow timer, retry button, no "Error:" prefix). The bridge (`pygame-input-bridge.js`) no longer defines or replaces it.
 - `public/_headers` — per-route CSP. `unsafe-eval` only on game routes (`/play/*`). Keep global CSP strict.
 - `public/sw.js` — classic service worker (no `import`). CACHE_VERSION inlined by build script. WARM_CACHE listener at top scope.
@@ -103,9 +105,12 @@ Template generates `from ${pythonModule} import ${gameClass}` at runtime.
 
 `scripts/check-pygbag-boot-contract.mjs` validates:
 
+- Python-side phases and ordering checked against `renderPythonBootProgram(config).source` (via canonical `BOOT_MARKS`)
 - Required `sys.path.insert(0, a)` before game module import
 - Required `os.chdir(a)` to set working directory for assets
 - Import statement appears AFTER both path/chdir (correct resolution order)
+- JS-side phases still checked from the shell inline script
+- Shell gameCode extractability verified (full equivalence covered by drift checker)
 
 ### Loading API policy (Phase 3)
 
