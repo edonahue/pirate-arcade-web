@@ -308,8 +308,13 @@ export async function sendKeysAndRequireResponse(
   const baseline = await captureResponseBaseline(page);
 
   for (const key of keys) {
-    await page.keyboard.press(key);
-    await page.waitForTimeout(50);
+    await page.evaluate((k) => {
+      const input = (window as any).PirateArcadeInput;
+      if (input?.tap) {
+        input.tap(k, 80);
+      }
+    }, key);
+    await page.waitForTimeout(80);
   }
 
   await page.waitForTimeout(Math.min(waitMs, 500));
