@@ -92,6 +92,12 @@ const CHECKS = {
     cmdParts: ["npm", "run", "test:pygbag-boot-contract"],
     group: "static",
   },
+  bootprog: {
+    name: "Pygbag boot program",
+    cmd: "npm run test:pygbag-boot-program",
+    cmdParts: ["npm", "run", "test:pygbag-boot-program"],
+    group: "static",
+  },
   drift: {
     name: "Pygbag shell drift",
     cmd: "npm run test:pygbag-shell-drift",
@@ -285,6 +291,7 @@ const FAST_IDS = [
   "sw",
   "cachever",
   "boot",
+  "bootprog",
   "drift",
   "versions",
   "htmlstruct",

@@ -68,6 +68,7 @@
     "test:copy-tone": "node scripts/check-copy-tone.mjs",
     "test:game-shell-integrity": "node scripts/check-game-shell-integrity.mjs",
     "test:pygbag-boot-contract": "node scripts/check-pygbag-boot-contract.mjs",
+    "test:pygbag-boot-program": "vitest run tests/unit/pygbag-boot-program.test.ts",
     "test:pygbag-shell-drift": "node scripts/check-pygbag-shell-drift.mjs",
     "generate:pygbag-shells": "node scripts/generate-pygbag-shells.mjs --apply",
     "test:performance-budgets": "node scripts/check-performance-budgets.mjs",
