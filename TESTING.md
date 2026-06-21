@@ -172,7 +172,7 @@ tests/
   browser-games.spec.ts         # Health/smoke (~18 tests)
   game-input-desktop.spec.ts    # Desktop keyboard/mouse (~12 tests)
   game-input-mobile.spec.ts     # Mobile touch/orientation (~15 tests)
-  game-load-performance.spec.ts # Cold/warm load metrics, milestone snapshots, resource breakdown, SW classification, duplicate detection
+  game-load-performance.spec.ts # Cold/warm load metrics, milestone snapshots, resource breakdown, SW classification, duplicate detection, active-game health with in-page rAF/publisher/bridge sampler
   game-theming.spec.ts          # Visual theming: ship/longboat source markers, archive parity,
                                 #   paddle color diversity, pixel rendering, Kraken's Wake CI skip
   game-prewarm.spec.ts          # Prewarm data attributes + WARM_CACHE + single-installer + dedup
@@ -227,6 +227,23 @@ debugging with `npm run preview` outside of Playwright convenient.
 Pygbag/WASM startups are CPU- and network-heavy. Parallel WASM
 downloads hit CDN rate limits and can be flaky. The total runtime is
 ~1-2 minutes on Chromium for the full suite, which is acceptable.
+
+### Python unit tests (`npm run test:unit`)
+
+Python publisher and game-source contract tests run via pytest:
+
+| File                                      | Tests | Purpose                                                                                                                                                                                                                           |
+| ----------------------------------------- | ----- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `tests/unit/test_pa_state.py`             | 29    | `StatePublisher` lazy API: factory call counting, event-key change detection, active/static heartbeat, dedup, force publish, counter reconciliation, on-demand stats snapshot                                                     |
+| `tests/unit/test_game_source_contract.py` | 33    | Game source ownership (shared publisher import, no direct DOM/JSON/builtins), API pattern (`_state_event_key`, `_build_game_state`, lazy factory), event-key exclusion of continuous values, Breakout scan removal from `_update` |
+
+Run with:
+
+```sh
+python3 -m pytest tests/unit/test_pa_state.py
+python3 -m pytest tests/unit/test_game_source_contract.py
+npm run test:unit  # all unit tests (JS + Python)
+```
 
 ---
 

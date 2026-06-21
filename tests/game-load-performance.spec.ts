@@ -13,6 +13,7 @@ import {
   createDiagnosticCollector,
   getBootMetrics,
 } from "./helpers/diagnostics";
+import { runInPageSample } from "./helpers/pygbagPerformance";
 
 const GAMES = loadPybagGames();
 
@@ -216,26 +217,6 @@ async function collectResourceEntriesRaw(page: Page): Promise<{
       .filter((r) => r.name.includes(".tar.gz"))
       .map((r) => r.name),
   };
-}
-
-// Publisher counters live in Python builtins and are verified via unit tests.
-// Bridge counters are available via PirateArcadeGameState.getMeta().
-async function readPublisherStats(
-  _page: Page,
-): Promise<Record<string, unknown> | null> {
-  return null;
-}
-
-async function readBridgeMeta(
-  page: Page,
-): Promise<Record<string, unknown> | null> {
-  return page.evaluate(() => {
-    const gs = (window as any).PirateArcadeGameState as
-      | { getMeta: () => Record<string, unknown> }
-      | undefined;
-    if (!gs?.getMeta) return null;
-    return gs.getMeta();
-  });
 }
 
 for (const game of GAMES) {
@@ -598,91 +579,9 @@ for (const game of GAMES) {
         await waitForMilestone(page, "first-user-input", 5000);
 
         const SAMPLE_MS = 8000;
-        const sampleEnd = Date.now() + SAMPLE_MS;
 
-        const pubStatsBefore = await readPublisherStats(page);
-        const bridgeMetaBefore = await readBridgeMeta(page);
-
-        const rAFIntervals: number[] = [];
-        const canvasDigests: string[] = [];
-        const stateTexts: string[] = [];
-        let longTaskCount = 0;
-        let longTaskTotalDuration = 0;
-        let longTaskMaxDuration = 0;
-        let inputBridgeCalls = 0;
-        let lastRAFRaise: number | null = null;
-
-        while (Date.now() < sampleEnd) {
-          const result = await page.evaluate(() => {
-            const canvas = document.getElementById(
-              "canvas",
-            ) as HTMLCanvasElement | null;
-            const stateEl = document.getElementById("pa-game-state");
-            const stateTextLocal = stateEl?.textContent || "";
-            let canvasDigestLocal = "";
-            if (canvas) {
-              const ctx = canvas.getContext("2d");
-              if (ctx) {
-                try {
-                  const d = ctx.getImageData(
-                    0,
-                    0,
-                    Math.min(16, canvas.width),
-                    Math.min(16, canvas.height),
-                  );
-                  let hash = 0;
-                  for (let i = 0; i < d.data.length; i += 64) {
-                    hash = (hash << 5) - hash + d.data[i];
-                    hash |= 0;
-                  }
-                  canvasDigestLocal = hash.toString(16);
-                } catch {}
-              }
-            }
-            return {
-              stateText: stateTextLocal,
-              canvasDigest: canvasDigestLocal,
-            };
-          });
-
-          stateTexts.push(result.stateText);
-          canvasDigests.push(result.canvasDigest);
-
-          await page.evaluate(
-            () =>
-              new Promise<void>((resolve) =>
-                requestAnimationFrame(() => resolve()),
-              ),
-          );
-
-          const now = Date.now();
-          if (lastRAFRaise !== null) {
-            rAFIntervals.push(now - lastRAFRaise);
-          }
-          lastRAFRaise = now;
-
-          if (rAFIntervals.length % 60 === 0) {
-            const bridgeOk = await page.evaluate(() => {
-              const input = (window as any).PirateArcadeInput as
-                | { keyDown: (key: string) => boolean }
-                | undefined;
-              if (!input?.keyDown) return false;
-              return input.keyDown(" ");
-            });
-            if (bridgeOk) inputBridgeCalls++;
-          }
-
-          if (rAFIntervals.length % 120 === 0) {
-            const snapshot = await collectSnapshot(page);
-            if (snapshot?.context.longTaskSummary) {
-              longTaskCount = snapshot.context.longTaskSummary.count;
-              longTaskTotalDuration =
-                snapshot.context.longTaskSummary.totalDuration;
-              longTaskMaxDuration =
-                snapshot.context.longTaskSummary.maxDuration;
-            }
-          }
-        }
+        // Run the in-page sample (no per-frame Playwright round trips)
+        const sample = await runInPageSample(page, SAMPLE_MS);
 
         const rAFCount = await page.evaluate(() => {
           let count = 0;
@@ -696,95 +595,30 @@ for (const game of GAMES) {
           });
         });
 
-        const pubStatsAfter = await readPublisherStats(page);
-        const bridgeMetaAfter = await readBridgeMeta(page);
-
         const snapshot = await collectSnapshot(page);
         const runtimeDiag = await diag.snapshot(testInfo);
-
-        const uniqueStates = new Set(stateTexts.filter(Boolean));
-        const stateMutationRate = uniqueStates.size / (SAMPLE_MS / 1000);
-
-        const pubDelta =
-          pubStatsBefore && pubStatsAfter
-            ? Object.fromEntries(
-                Object.entries(pubStatsAfter).map(([k, v]) => [
-                  k,
-                  typeof v === "number" &&
-                  typeof (pubStatsBefore as Record<string, unknown>)[k] ===
-                    "number"
-                    ? (v as number) -
-                      ((pubStatsBefore as Record<string, unknown>)[k] as number)
-                    : v,
-                ]),
-              )
-            : null;
-
-        const bridgeDelta =
-          bridgeMetaBefore && bridgeMetaAfter
-            ? Object.fromEntries(
-                Object.entries(bridgeMetaAfter).map(([k, v]) => [
-                  k,
-                  typeof v === "number" &&
-                  typeof (bridgeMetaBefore as Record<string, unknown>)[k] ===
-                    "number"
-                    ? (v as number) -
-                      ((bridgeMetaBefore as Record<string, unknown>)[
-                        k
-                      ] as number)
-                    : v,
-                ]),
-              )
-            : null;
 
         const healthReport = {
           game: game.id,
           sampleMs: SAMPLE_MS,
-          rAFIntervalCount: rAFIntervals.length,
+          rAFIntervalCount: sample.rAFIntervalCount,
           rAFIntervalsMs: {
-            min: rAFIntervals.length
-              ? Math.round(Math.min(...rAFIntervals))
-              : "N/A",
-            max: rAFIntervals.length
-              ? Math.round(Math.max(...rAFIntervals))
-              : "N/A",
-            p50: rAFIntervals.length
-              ? Math.round(
-                  rAFIntervals.slice().sort((a, b) => a - b)[
-                    Math.floor(rAFIntervals.length / 2)
-                  ],
-                )
-              : "N/A",
-            p95: rAFIntervals.length
-              ? Math.round(
-                  rAFIntervals.slice().sort((a, b) => a - b)[
-                    Math.floor(rAFIntervals.length * 0.95)
-                  ],
-                )
-              : "N/A",
+            min: sample.rAFIntervalMin,
+            max: sample.rAFIntervalMax,
+            p50: sample.rAFIntervalP50,
+            p95: sample.rAFIntervalP95,
           },
-          intervalsOver50ms: rAFIntervals.filter((i) => i > 50).length,
-          longTasks: {
-            count: longTaskCount,
-            totalDurationMs: longTaskTotalDuration,
-            maxDurationMs: longTaskMaxDuration,
-          },
-          uniqueCanvasDigests: new Set(canvasDigests.filter(Boolean)).size,
-          inputBridgeSuccessfulCalls: inputBridgeCalls,
-          statePublication: {
-            uniqueStatePayloads: uniqueStates.size,
-            totalSamples: stateTexts.length,
-            estimatedRateHz: Math.round(stateMutationRate * 10) / 10,
-          },
+          intervalsOver50ms: sample.intervalsOver50ms,
+          mutationCountDelta: sample.mutationCountDelta,
+          publisherDelta: sample.publisherDelta,
+          bridgeDelta: sample.bridgeDelta,
           blockingErrors:
             runtimeDiag.consoleErrors.length + runtimeDiag.pageErrors.length,
-          publisherCounters: pubDelta,
-          bridgeCounters: bridgeDelta,
         };
 
         console.log(
           `${game.id}: rAF p95=${healthReport.rAFIntervalsMs.p95}ms, ` +
-            `publisher=${JSON.stringify(pubDelta)} bridge=${JSON.stringify(bridgeDelta)}`,
+            `publisher=${JSON.stringify(sample.publisherDelta)} bridge=${JSON.stringify(sample.bridgeDelta)}`,
         );
 
         await testInfo.attach(`health-${game.id}`, {
@@ -797,20 +631,73 @@ for (const game of GAMES) {
         });
 
         expect(rAFCount).toBeGreaterThan(0);
-        expect(rAFIntervals.length).toBeGreaterThan(60);
-        expect(healthReport.uniqueCanvasDigests).toBeGreaterThanOrEqual(1);
+        expect(sample.rAFIntervalCount).toBeGreaterThan(60);
         expect(healthReport.blockingErrors).toBe(0);
-        expect(healthReport.statePublication.estimatedRateHz).toBeLessThan(500);
-        expect(
-          healthReport.statePublication.uniqueStatePayloads,
-        ).toBeGreaterThan(0);
 
-        if (bridgeDelta && typeof bridgeDelta.rawReadCount === "number") {
-          expect(bridgeDelta.parseCount as number).toBeGreaterThanOrEqual(0);
-          expect(
-            bridgeDelta.subscriberNotificationCount as number,
-          ).toBeGreaterThanOrEqual(0);
-          expect(bridgeDelta.mutationCount as number).toBeGreaterThanOrEqual(0);
+        // ── Publisher efficiency assertions ──
+        const pubDelta = sample.publisherDelta;
+        if (pubDelta) {
+          // Publisher stats must be present for Pygbag games
+          expect(pubDelta.updateCalls).toBeDefined();
+          expect(typeof pubDelta.updateCalls).toBe("number");
+
+          // State factory should not be called for every update
+          const uc = pubDelta.updateCalls as number;
+          const sfc = pubDelta.stateFactoryCalls as number;
+          if (typeof sfc === "number" && uc > 0) {
+            expect(sfc).toBeLessThan(uc / 3);
+          }
+
+          // State build skips must be greater than zero
+          const sbs = pubDelta.stateBuildSkips as number;
+          if (typeof sbs === "number") {
+            expect(sbs).toBeGreaterThan(0);
+          }
+
+          // DOM writes should remain bounded (below ~15 Hz)
+          const dw = pubDelta.domWrites as number;
+          if (typeof dw === "number") {
+            const domHz = dw / (SAMPLE_MS / 1000);
+            expect(domHz).toBeLessThan(15);
+          }
+
+          // Stats snapshot calls should reflect only explicit requests
+          const ssc = pubDelta.statsSnapshotCalls as number;
+          if (typeof ssc === "number") {
+            // At least the 2 calls from before/after sampling
+            expect(ssc).toBeGreaterThanOrEqual(2);
+          }
+
+          // serializationAttempts should be close to actual domWrites + unchanged skips
+          const sa = pubDelta.serializationAttempts as number;
+          const us = pubDelta.unchangedPayloadSkips as number;
+          if (
+            typeof sa === "number" &&
+            typeof dw === "number" &&
+            typeof us === "number"
+          ) {
+            expect(sa).toBe(dw + us);
+          }
+        } else {
+          // Race to Treasure Island returns null for publisher stats
+          expect(game.id).toBe("race-to-treasure-island");
+        }
+
+        // ── Bridge efficiency assertions ──
+        const bridgeDelta = sample.bridgeDelta;
+        if (bridgeDelta) {
+          // Parse count must not exceed changed raw payloads by unreasonable margin
+          const pc = bridgeDelta.parseCount as number;
+          const rrc = bridgeDelta.rawReadCount as number;
+          if (typeof pc === "number" && typeof rrc === "number" && rrc > 0) {
+            expect(pc).toBeLessThanOrEqual(rrc + 5);
+          }
+
+          // Subscriber notifications must not exceed successful parses
+          const snc = bridgeDelta.subscriberNotificationCount as number;
+          if (typeof pc === "number" && typeof snc === "number" && pc > 0) {
+            expect(snc).toBeLessThanOrEqual(pc);
+          }
         }
       } finally {
         diag.stop();

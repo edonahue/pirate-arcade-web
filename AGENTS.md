@@ -127,6 +127,28 @@ Template generates `from ${pythonModule} import ${gameClass}` at runtime.
 
 `DEBUG_PANEL_VERSION` in template now references `ASSET_VERSION` directly (no separate constant).
 
+### Lazy state publication (Checkpoint 3 — post-Phase-5)
+
+`scripts/pygbag-port/shared/pa_state.py` — `StatePublisher` with lazy API:
+
+- **`tick(dt, event_key, state_factory, active)`**: `state_factory` is a callable invoked only when publication is due. `event_key` is a cheap tuple of discrete scalars used for immediate-event detection. `active` controls heartbeat — static phases (`active=False`) suppress continuous publication.
+- **`force_publish(state_factory=None, state_dict=None)`**: one-shot publish.
+- **`stats_snapshot()`**: serializes counters on demand. Accessible from JS via `PirateArcadeGameState.getPublisherStats()`.
+
+Each game implements:
+
+- `_state_event_key()`: returns tuple of discrete values (phase, score, lives, etc.) — no continuous values like positions or speeds.
+- `_build_game_state()`: returns full state dictionary — called only when publisher decides to publish.
+
+Event-key values that trigger immediate publish across all games: phase changes, paused toggle, score, lives, launch state, action-ready, bricks remaining, stage, stage transitions, pickup types, power-up types, AI shrink state, paddle-wide/slow-motion active flags.
+
+Continuous values excluded from event keys (still present in full state): paddle/ship position, ball/ship speed, remaining timer ms, projectile count, ball speed arrays, ship angle.
+
+Active phases (`active=True`): `playing` (all games).
+Static phases (`active=False`): `menu`, `paused`, `game-over`, `stage-transition`.
+
+Backward compatibility: no `active`/`state_factory` support if omitted (graceful noop — state not published without factory).
+
 ### Generator usability (Phase 5)
 
 `scripts/generate-pygbag-shells.mjs` improvements:

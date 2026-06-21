@@ -115,13 +115,25 @@ The Playwright shell test (`tests/game-shell-integrity.spec.ts`) validates at ru
 ## Pygbag loading performance
 
 `tests/game-load-performance.spec.ts` measures Pygbag boot performance for
-the three Pygbag games. Two scenarios:
+the three Pygbag games. Two scenario families:
+
+**Boot scenarios:**
 
 - **First navigation** — validates `flags.activePlay === true`, `schemaVersion === 3`,
   resource classification, archive network evidence, and `classifyLoadType` returns
   `"fresh-context"`.
 - **Reload navigation** — validates same assertions on a second load with the
   service worker active.
+
+**Active-game health scenario:**
+
+- Runs an in-page sampling loop (one `page.evaluate()` call) that collects rAF interval
+  statistics, publisher counter deltas, and bridge counter deltas over 8 seconds.
+- Publisher efficiency assertions: `stateFactoryCalls < updateCalls / 3`,
+  `stateBuildSkips > 0`, DOM writes < 15 Hz.
+- Bridge efficiency assertions: `parseCount <= rawReadCount + 5`,
+  `subscriberNotificationCount <= parseCount`.
+- Uses the typed helper `runInPageSample()` from `tests/helpers/pygbagPerformance.ts`.
 
 Each scenario attaches a JSON report (`PerfReport`) and runtime diagnostics
 (`RuntimeSnapshot`) to the Playwright test output for inspection.
@@ -141,6 +153,7 @@ npm run test:game-performance:headed     # headed mode for debugging
 | `game-boot-metrics.js` | `public/play/shared/` | Runtime metrics collector (25+ marks, long tasks, failure stages)                           |
 | `performanceReport.ts` | `tests/helpers/`      | `PerfSnapshot` type, `classifyLoadType()`, `summarizeResources()`, `buildArchiveEvidence()` |
 | `diagnostics.ts`       | `tests/helpers/`      | `createDiagnosticCollector()`, `getBootMetrics()`, `RuntimeSnapshot`                        |
+| `pygbagPerformance.ts` | `tests/helpers/`      | `PublisherCounters`, `BridgeMeta`, `HealthSampleResult`, `runInPageSample()`                |
 
 ### Schema version
 
@@ -386,7 +399,22 @@ Browser game Python archives live at:
 `https://pygame-web.github.io/archives/<id>-<ASSET_VERSION>.tar.gz`
 
 `ASSET_VERSION` (from `scripts/game-asset-versions.mjs`) must be the
-same across all browser games. Currently `"mobile-v8"`.
+same across all browser games. Currently `"mobile-v10"`.
+
+**Rebuilding from source after Python changes:**
+
+```sh
+node scripts/patch-browser-game-archives.mjs              # all games
+node scripts/patch-browser-game-archives.mjs --game=pong  # single game
+node scripts/patch-browser-game-archives.mjs --game=breakout
+node scripts/patch-browser-game-archives.mjs --game=asteroids
+```
+
+The script wraps source files under `scripts/pygbag-port/<id>/` into an
+`assets/` directory, copies the shared publisher module from
+`scripts/pygbag-port/shared/`, strips `__pycache__` dirs, and creates
+a deterministic tarball. Temp files are cleaned up via `try/finally`.
+Prints compressed size and MD5 hash for each archive.
 
 **Validation:**
 
