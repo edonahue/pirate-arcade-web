@@ -308,9 +308,14 @@
     bfcacheRestores: 0,
     mutationCount: 0,
     pollCycles: 0,
+    rawReadCount: 0,
+    unchangedRawSkips: 0,
+    parseCount: 0,
+    subscriberNotificationCount: 0,
   };
   var _stateObserver = null;
   var _observerTarget = null;
+  var _debounceTimer = null;
   var _bfcacheRestoreCount = 0;
 
   var POLL_INTERVAL = 500;
@@ -370,6 +375,7 @@
   }
 
   function _notifySubscribers() {
+    _bridgeMeta.subscriberNotificationCount++;
     _gameStateSubs.forEach(function (cb) {
       try { cb(_gameState); } catch (e) {}
     });
@@ -398,10 +404,15 @@
     // Fast path: compare raw JSON strings (avoids double-stringify)
     var raw = _readRawJson();
     if (raw) {
-      if (raw === _lastRawJson) return;
+      _bridgeMeta.rawReadCount++;
+      if (raw === _lastRawJson) {
+        _bridgeMeta.unchangedRawSkips++;
+        return;
+      }
       _lastRawJson = raw;
       try {
         _gameState = JSON.parse(raw);
+        _bridgeMeta.parseCount++;
         _notifySubscribers();
         return;
       } catch (e) {
@@ -411,6 +422,7 @@
     // Fallback: python file I/O
     var parsed = _readGameState();
     if (!parsed) return;
+    _bridgeMeta.parseCount++;
     if (JSON.stringify(parsed) !== JSON.stringify(_gameState)) {
       _gameState = parsed;
       _notifySubscribers();
@@ -429,11 +441,11 @@
       return false;
     }
     _observerTarget = el;
-    var debounceTimer = null;
     _stateObserver = new MutationObserver(function () {
       _bridgeMeta.mutationCount++;
-      if (debounceTimer) clearTimeout(debounceTimer);
-      debounceTimer = setTimeout(function () {
+      if (_debounceTimer) clearTimeout(_debounceTimer);
+      _debounceTimer = setTimeout(function () {
+        _debounceTimer = null;
         _refreshAndNotify();
       }, DEBOUNCE_MS);
     });
@@ -449,6 +461,10 @@
   }
 
   function _stopMutationObserver() {
+    if (_debounceTimer) {
+      clearTimeout(_debounceTimer);
+      _debounceTimer = null;
+    }
     if (_stateObserver) {
       _stateObserver.disconnect();
       _stateObserver = null;
@@ -533,6 +549,10 @@
         bfcacheRestores: _bridgeMeta.bfcacheRestores,
         mutationCount: _bridgeMeta.mutationCount,
         pollCycles: _bridgeMeta.pollCycles,
+        rawReadCount: _bridgeMeta.rawReadCount,
+        unchangedRawSkips: _bridgeMeta.unchangedRawSkips,
+        parseCount: _bridgeMeta.parseCount,
+        subscriberNotificationCount: _bridgeMeta.subscriberNotificationCount,
       };
     },
   };

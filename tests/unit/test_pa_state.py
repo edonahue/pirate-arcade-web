@@ -142,6 +142,61 @@ class TestStatePublisherHeartbeat(unittest.TestCase):
         self.assertIsNotNone(_B.get(STATE_KEY))
         self.assert_published_value("v", 2)
 
+    def test_counters_exist_in_builtins(self):
+        stats = _B.get("__pa_state_publish_stats__")
+        self.assertIsNotNone(stats)
+        self.assertEqual(stats["configuredActiveHz"], 8)
+
+    def test_counter_update_calls_increment(self):
+        self.pub._last_phase = "playing"
+        self.pub.tick(0.05, {"gameId": "test", "phase": "playing"})
+        self.assertEqual(self.pub._stats["updateCalls"], 1)
+        self.assertEqual(self.pub._stats["intervalSkips"], 1)
+
+    def test_counter_event_change(self):
+        self.pub.tick(0.01, {"gameId": "test", "phase": "menu"})
+        self.assertEqual(self.pub._stats["eventChanges"], 1)
+        self.assertEqual(self.pub._stats["builtinsWrites"], 1)
+        self.assertEqual(self.pub._stats["lastWriteReason"], "event-change")
+
+    def test_counter_heartbeat_write(self):
+        self.pub._last_phase = "playing"
+        self.pub.tick(STATE_PUBLISH_INTERVAL, {"gameId": "test", "phase": "playing", "v": 1})
+        self.assertEqual(self.pub._stats["heartbeatWrites"], 1)
+        self.assertEqual(self.pub._stats["builtinsWrites"], 1)
+        self.assertEqual(self.pub._stats["lastWriteReason"], "heartbeat")
+
+    def test_counter_unchanged_payload_skip(self):
+        self.pub._last_phase = "playing"
+        self.pub.tick(STATE_PUBLISH_INTERVAL, {"gameId": "test", "phase": "playing", "v": 1})
+        self.assertEqual(self.pub._stats["builtinsWrites"], 1)
+        self.pub.tick(STATE_PUBLISH_INTERVAL, {"gameId": "test", "phase": "playing", "v": 1})
+        self.assertEqual(self.pub._stats["unchangedPayloadSkips"], 1)
+        self.assertEqual(self.pub._stats["builtinsWrites"], 1)
+
+    def test_counter_forced_write(self):
+        self.pub.force_publish({"gameId": "test", "phase": "menu"})
+        self.assertEqual(self.pub._stats["forcedWrites"], 1)
+        self.assertEqual(self.pub._stats["builtinsWrites"], 1)
+        self.assertEqual(self.pub._stats["lastWriteReason"], "forced")
+
+    def test_counter_serialization_on_interval_not_skip(self):
+        self.pub._last_phase = "playing"
+        self.pub.tick(0.05, {"gameId": "test", "phase": "playing"})
+        self.assertEqual(self.pub._stats["serializationAttempts"], 0)
+        self.pub.tick(STATE_PUBLISH_INTERVAL, {"gameId": "test", "phase": "playing", "v": 1})
+        self.assertEqual(self.pub._stats["serializationAttempts"], 1)
+
+    def test_counter_dom_write_failure_does_not_block_builtins(self):
+        self.pub._last_phase = "playing"
+        self.pub.tick(STATE_PUBLISH_INTERVAL, {"gameId": "test", "phase": "playing"})
+        self.assertEqual(self.pub._stats["builtinsWrites"], 1)
+        # domWriteFailures may be 0 or 1 depending on environment; just verify no crash
+
+    def test_stats_exposed_on_builtins(self):
+        stats = _B.get("__pa_state_publish_stats__")
+        self.assertIs(stats, self.pub._stats)
+
 
 if __name__ == "__main__":
     result = unittest.main(verbosity=2, exit=False)
