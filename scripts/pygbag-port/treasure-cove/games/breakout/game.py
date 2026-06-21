@@ -2,7 +2,7 @@ import asyncio
 import pygame as pg
 import constants as c
 import highscores as hs
-from games.breakout.gameplay import Gameplay, STAGE_NAMES
+from games.breakout.gameplay import Gameplay
 from renderer import _OVERLAY, _VIGNETTE
 from shared.pa_state import StatePublisher
 

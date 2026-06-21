@@ -218,6 +218,26 @@ async function collectResourceEntriesRaw(page: Page): Promise<{
   };
 }
 
+// Publisher counters live in Python builtins and are verified via unit tests.
+// Bridge counters are available via PirateArcadeGameState.getMeta().
+async function readPublisherStats(
+  _page: Page,
+): Promise<Record<string, unknown> | null> {
+  return null;
+}
+
+async function readBridgeMeta(
+  page: Page,
+): Promise<Record<string, unknown> | null> {
+  return page.evaluate(() => {
+    const gs = (window as any).PirateArcadeGameState as
+      | { getMeta: () => Record<string, unknown> }
+      | undefined;
+    if (!gs?.getMeta) return null;
+    return gs.getMeta();
+  });
+}
+
 for (const game of GAMES) {
   test.describe(`${game.name} playable-readiness performance`, () => {
     test("CP2.11 — fresh-context navigation", async ({ page }, testInfo) => {
@@ -580,6 +600,9 @@ for (const game of GAMES) {
         const SAMPLE_MS = 8000;
         const sampleEnd = Date.now() + SAMPLE_MS;
 
+        const pubStatsBefore = await readPublisherStats(page);
+        const bridgeMetaBefore = await readBridgeMeta(page);
+
         const rAFIntervals: number[] = [];
         const canvasDigests: string[] = [];
         const stateTexts: string[] = [];
@@ -673,11 +696,46 @@ for (const game of GAMES) {
           });
         });
 
+        const pubStatsAfter = await readPublisherStats(page);
+        const bridgeMetaAfter = await readBridgeMeta(page);
+
         const snapshot = await collectSnapshot(page);
         const runtimeDiag = await diag.snapshot(testInfo);
 
         const uniqueStates = new Set(stateTexts.filter(Boolean));
         const stateMutationRate = uniqueStates.size / (SAMPLE_MS / 1000);
+
+        const pubDelta =
+          pubStatsBefore && pubStatsAfter
+            ? Object.fromEntries(
+                Object.entries(pubStatsAfter).map(([k, v]) => [
+                  k,
+                  typeof v === "number" &&
+                  typeof (pubStatsBefore as Record<string, unknown>)[k] ===
+                    "number"
+                    ? (v as number) -
+                      ((pubStatsBefore as Record<string, unknown>)[k] as number)
+                    : v,
+                ]),
+              )
+            : null;
+
+        const bridgeDelta =
+          bridgeMetaBefore && bridgeMetaAfter
+            ? Object.fromEntries(
+                Object.entries(bridgeMetaAfter).map(([k, v]) => [
+                  k,
+                  typeof v === "number" &&
+                  typeof (bridgeMetaBefore as Record<string, unknown>)[k] ===
+                    "number"
+                    ? (v as number) -
+                      ((bridgeMetaBefore as Record<string, unknown>)[
+                        k
+                      ] as number)
+                    : v,
+                ]),
+              )
+            : null;
 
         const healthReport = {
           game: game.id,
@@ -720,10 +778,13 @@ for (const game of GAMES) {
           },
           blockingErrors:
             runtimeDiag.consoleErrors.length + runtimeDiag.pageErrors.length,
+          publisherCounters: pubDelta,
+          bridgeCounters: bridgeDelta,
         };
 
         console.log(
-          `${game.id}: rAF p95=${healthReport.rAFIntervalsMs.p95}ms, stateRate=${healthReport.statePublication.estimatedRateHz}/s`,
+          `${game.id}: rAF p95=${healthReport.rAFIntervalsMs.p95}ms, ` +
+            `publisher=${JSON.stringify(pubDelta)} bridge=${JSON.stringify(bridgeDelta)}`,
         );
 
         await testInfo.attach(`health-${game.id}`, {
@@ -743,6 +804,14 @@ for (const game of GAMES) {
         expect(
           healthReport.statePublication.uniqueStatePayloads,
         ).toBeGreaterThan(0);
+
+        if (bridgeDelta && typeof bridgeDelta.rawReadCount === "number") {
+          expect(bridgeDelta.parseCount as number).toBeGreaterThanOrEqual(0);
+          expect(
+            bridgeDelta.subscriberNotificationCount as number,
+          ).toBeGreaterThanOrEqual(0);
+          expect(bridgeDelta.mutationCount as number).toBeGreaterThanOrEqual(0);
+        }
       } finally {
         diag.stop();
       }

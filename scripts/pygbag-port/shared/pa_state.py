@@ -26,6 +26,10 @@ class StatePublisher:
             "lastWriteReason": None,
         }
         builtins.__dict__["__pa_state_publish_stats__"] = self._stats
+        self._update_stats_json()
+
+    def _update_stats_json(self):
+        builtins.__dict__["__pa_state_publish_stats_json__"] = json.dumps(self._stats)
 
     def tick(self, dt, state_dict):
         self._stats["updateCalls"] += 1
@@ -36,16 +40,16 @@ class StatePublisher:
 
         if not phase_changed and self._accumulator < self._interval:
             self._stats["intervalSkips"] += 1
+            self._update_stats_json()
             return
 
         if phase_changed:
             self._stats["eventChanges"] += 1
-            self._publish(state_dict, "event-change")
         else:
             self._stats["heartbeatWrites"] += 1
-            self._publish(state_dict, "heartbeat")
 
         self._accumulator = 0.0
+        self._publish(state_dict, "event-change" if phase_changed else "heartbeat")
 
     def force_publish(self, state_dict):
         self._stats["forcedWrites"] += 1
@@ -58,6 +62,7 @@ class StatePublisher:
         _gs_json = json.dumps(state_dict)
         if _gs_json == self._last_json:
             self._stats["unchangedPayloadSkips"] += 1
+            self._update_stats_json()
             return
         self._last_json = _gs_json
         self._stats["lastWriteReason"] = reason
@@ -69,3 +74,4 @@ class StatePublisher:
             self._stats["domWrites"] += 1
         except Exception:
             self._stats["domWriteFailures"] += 1
+        self._update_stats_json()
