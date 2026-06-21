@@ -171,20 +171,17 @@ class AsteroidsGame:
             if key == pg.K_ESCAPE:
                 return 'menu'
 
-    def _update(self, dt):
-        try:
-            if self.state == 'playing' and not self.paused:
-                keys = pg.key.get_pressed()
-                result = self.gameplay.update(dt, keys)
-                if result[0] == 'game_over':
-                    self.state = 'game_over'
-                    self.game_over_state = result[1]
-                    hs.submit_asteroids(self.gameplay.score)
-        except Exception:
-            traceback.print_exc()
-            print("*** BUG: Uncaught exception in Asteroids _update — recovering to menu ***")
-            self.state = 'menu'
-        self._state_pub.tick(dt, {
+    def _state_event_key(self):
+        return (
+            self.state,
+            self.paused,
+            self.gameplay.score,
+            self.gameplay.lives,
+            self.state == "menu",
+        )
+
+    def _build_game_state(self):
+        return {
             "gameId": "krakens-wake",
             "phase": (
                 "game-over" if self.state == "game_over"
@@ -199,7 +196,28 @@ class AsteroidsGame:
             "actionReady": self.state == "menu",
             "shipAngle": self.gameplay.ship.angle,
             "shipSpeed": self.gameplay.ship.speed,
-        })
+        }
+
+    def _update(self, dt):
+        try:
+            if self.state == 'playing' and not self.paused:
+                keys = pg.key.get_pressed()
+                result = self.gameplay.update(dt, keys)
+                if result[0] == 'game_over':
+                    self.state = 'game_over'
+                    self.game_over_state = result[1]
+                    hs.submit_asteroids(self.gameplay.score)
+        except Exception:
+            traceback.print_exc()
+            print("*** BUG: Uncaught exception in Asteroids _update — recovering to menu ***")
+            self.state = 'menu'
+        active = self.state == 'playing' and not self.paused
+        self._state_pub.tick(
+            dt,
+            event_key=self._state_event_key(),
+            state_factory=self._build_game_state,
+            active=active,
+        )
 
     def _draw(self, fps):
         try:

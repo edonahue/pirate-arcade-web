@@ -10,7 +10,7 @@ class StatePublisher:
         self._interval = 1.0 / heartbeat_hz
         self._accumulator = 0.0
         self._last_json = None
-        self._last_phase = None
+        self._last_event_key = None
         self._stats = {
             "updateCalls": 0,
             "eventChanges": 0,
@@ -24,45 +24,67 @@ class StatePublisher:
             "heartbeatWrites": 0,
             "configuredActiveHz": heartbeat_hz,
             "lastWriteReason": None,
+            "stateFactoryCalls": 0,
+            "statsSnapshotCalls": 0,
+            "activeTicks": 0,
+            "staticTicks": 0,
+            "stateBuildSkips": 0,
         }
         builtins.__dict__["__pa_state_publish_stats__"] = self._stats
-        self._update_stats_json()
+        builtins.__dict__["__pa_state_publisher__"] = self
 
-    def _update_stats_json(self):
-        builtins.__dict__["__pa_state_publish_stats_json__"] = json.dumps(self._stats)
-
-    def tick(self, dt, state_dict):
+    def tick(self, dt, event_key=None, state_factory=None, active=True):
         self._stats["updateCalls"] += 1
         self._accumulator += dt
-        phase = state_dict.get("phase")
-        phase_changed = phase is not None and phase != self._last_phase
-        self._last_phase = phase
 
-        if not phase_changed and self._accumulator < self._interval:
-            self._stats["intervalSkips"] += 1
-            self._update_stats_json()
+        event_changed = event_key is not None and event_key != self._last_event_key
+        if event_changed:
+            self._last_event_key = event_key
+            self._stats["eventChanges"] += 1
+            self._accumulator = 0.0
+            state_dict = state_factory() if state_factory else None
+            if state_dict is not None:
+                self._publish(state_dict, "event-change")
             return
 
-        if phase_changed:
-            self._stats["eventChanges"] += 1
-        else:
-            self._stats["heartbeatWrites"] += 1
+        if not active:
+            self._stats["staticTicks"] += 1
+            self._stats["stateBuildSkips"] += 1
+            return
+
+        self._stats["activeTicks"] += 1
+
+        if self._accumulator < self._interval:
+            self._stats["intervalSkips"] += 1
+            self._stats["stateBuildSkips"] += 1
+            return
 
         self._accumulator = 0.0
-        self._publish(state_dict, "event-change" if phase_changed else "heartbeat")
+        state_dict = state_factory() if state_factory else None
+        if state_dict is not None:
+            self._publish(state_dict, "heartbeat")
 
-    def force_publish(self, state_dict):
+    def force_publish(self, state_factory=None, state_dict=None):
         self._stats["forcedWrites"] += 1
-        self._last_phase = state_dict.get("phase")
         self._accumulator = 0.0
-        self._publish(state_dict, "forced")
+        if state_dict is not None:
+            self._publish(state_dict, "forced")
+        elif state_factory is not None:
+            state_dict = state_factory()
+            if state_dict is not None:
+                self._publish(state_dict, "forced")
+
+    def stats_snapshot(self):
+        self._stats["statsSnapshotCalls"] += 1
+        builtins.__dict__["__pa_state_publish_stats_json__"] = json.dumps(self._stats)
+        return self._stats
 
     def _publish(self, state_dict, reason=None):
         self._stats["serializationAttempts"] += 1
+        self._stats["stateFactoryCalls"] += 1
         _gs_json = json.dumps(state_dict)
         if _gs_json == self._last_json:
             self._stats["unchangedPayloadSkips"] += 1
-            self._update_stats_json()
             return
         self._last_json = _gs_json
         self._stats["lastWriteReason"] = reason
@@ -74,4 +96,3 @@ class StatePublisher:
             self._stats["domWrites"] += 1
         except Exception:
             self._stats["domWriteFailures"] += 1
-        self._update_stats_json()

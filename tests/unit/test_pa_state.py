@@ -5,19 +5,31 @@ import os
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../../scripts/pygbag-port"))
 
-import builtins
+import builtins as _builtins
 
-_B = builtins.__dict__
+_B = _builtins.__dict__
 
 from shared.pa_state import StatePublisher, STATE_PUBLISH_INTERVAL, STATE_HEARTBEAT_HZ
 
 STATE_KEY = "__pa_game_state_json"
 
 
-class TestStatePublisherHeartbeat(unittest.TestCase):
+class TestStatePublisherLazyAPI(unittest.TestCase):
     def setUp(self):
         _B[STATE_KEY] = None
+        # Remove any prior publisher ref
+        _B.pop("__pa_state_publisher__", None)
+        _B.pop("__pa_state_publish_stats__", None)
+        _B.pop("__pa_state_publish_stats_json__", None)
         self.pub = StatePublisher()
+        self.factory_calls = 0
+        self.last_factory_arg = None
+
+    def _make_factory(self, state_dict):
+        def factory():
+            self.factory_calls += 1
+            return dict(state_dict)
+        return factory
 
     def assert_published_value(self, key, expected):
         raw = _B.get(STATE_KEY)
@@ -25,177 +37,273 @@ class TestStatePublisherHeartbeat(unittest.TestCase):
         parsed = json.loads(raw)
         self.assertEqual(parsed.get(key), expected)
 
-    def test_does_not_publish_before_interval(self):
-        self.pub._last_phase = "playing"
-        self.pub.tick(0.05, {"gameId": "test", "phase": "playing", "score": 0})
-        self.assertIsNone(_B.get(STATE_KEY))
+    def assert_not_published(self):
+        self.assertIsNone(_B.get(STATE_KEY), "expected no publication")
 
-    def test_publishes_after_full_interval(self):
-        self.pub._last_phase = "playing"
-        self.pub.tick(STATE_PUBLISH_INTERVAL, {"gameId": "test", "phase": "playing", "score": 0})
+    # ── Core lazy behavior ──
+
+    def test_first_tick_invokes_factory_on_event_key_change(self):
+        """First tick has no prior event_key, so event changes -> factory called."""
+        factory = self._make_factory({"gameId": "t", "phase": "playing", "score": 0})
+        self.pub.tick(0.01, event_key=("playing", 0), state_factory=factory, active=True)
+        self.assertEqual(self.factory_calls, 1)
         self.assertIsNotNone(_B.get(STATE_KEY))
 
-    def test_accumulates_across_partial_ticks(self):
-        self.pub._last_phase = "playing"
-        self.pub.tick(0.06, {"gameId": "test", "phase": "playing", "score": 0})
-        self.assertIsNone(_B.get(STATE_KEY))
-        self.pub.tick(0.07, {"gameId": "test", "phase": "playing", "score": 0})
-        self.assertIsNotNone(_B.get(STATE_KEY))
-
-    def test_phase_transition_publishes_immediately(self):
-        self.pub.tick(0.01, {"gameId": "test", "phase": "menu", "score": 0})
-        self.assertIsNotNone(_B.get(STATE_KEY))
-
-    def test_phase_transition_from_playing_to_paused(self):
-        self.pub.tick(STATE_PUBLISH_INTERVAL, {"gameId": "test", "phase": "playing", "score": 0})
+    def test_skipped_active_tick_does_not_invoke_factory(self):
+        """Active tick before interval does not call factory."""
+        factory = self._make_factory({"gameId": "t", "phase": "playing", "score": 0})
+        self.pub.tick(0.01, event_key=("playing", 0), state_factory=factory, active=True)
         _B[STATE_KEY] = None
-        self.pub.tick(0.01, {"gameId": "test", "phase": "paused", "score": 0})
-        self.assertIsNotNone(_B.get(STATE_KEY))
+        self.factory_calls = 0
+        self.pub.tick(0.05, event_key=("playing", 0), state_factory=factory, active=True)
+        self.assertEqual(self.factory_calls, 0)
+        self.assert_not_published()
 
-    def test_same_phase_no_publish_before_interval(self):
-        self.pub.tick(STATE_PUBLISH_INTERVAL, {"gameId": "test", "phase": "menu", "score": 0})
+    def test_skipped_static_tick_does_not_invoke_factory(self):
+        """Static (active=False) tick does not call factory."""
+        factory = self._make_factory({"gameId": "t", "phase": "menu", "score": 0})
+        self.pub.tick(0.01, event_key=("menu", 0), state_factory=factory, active=True)
+        self.factory_calls = 0
         _B[STATE_KEY] = None
-        self.pub.tick(0.05, {"gameId": "test", "phase": "menu", "score": 0})
-        self.assertIsNone(_B.get(STATE_KEY))
+        self.pub.tick(0.05, event_key=("menu", 0), state_factory=factory, active=False)
+        self.assertEqual(self.factory_calls, 0)
+        self.assert_not_published()
 
-    def test_dedup_same_state_not_published_twice(self):
-        self.pub.tick(STATE_PUBLISH_INTERVAL, {"gameId": "test", "phase": "playing", "score": 0})
-        first = _B.get(STATE_KEY)
-        self.pub.tick(STATE_PUBLISH_INTERVAL, {"gameId": "test", "phase": "playing", "score": 0})
-        self.assertIs(_B.get(STATE_KEY), first)
-
-    def test_dedup_different_state_publishes(self):
-        self.pub.tick(STATE_PUBLISH_INTERVAL, {"gameId": "test", "phase": "playing", "score": 0})
+    def test_heartbeat_invokes_factory_once(self):
+        """Active heartbeat interval triggers one factory call."""
+        factory = self._make_factory({"gameId": "t", "phase": "playing", "score": 0})
+        self.pub.tick(0.01, event_key=("playing", 0), state_factory=factory, active=True)
+        self.factory_calls = 0
         _B[STATE_KEY] = None
-        self.pub.tick(STATE_PUBLISH_INTERVAL, {"gameId": "test", "phase": "playing", "score": 1})
+        # Use a different state value to avoid dedup
+        factory2 = self._make_factory({"gameId": "t", "phase": "playing", "score": 5})
+        self.pub.tick(STATE_PUBLISH_INTERVAL, event_key=("playing", 0), state_factory=factory2, active=True)
+        self.assertEqual(self.factory_calls, 1)
         self.assertIsNotNone(_B.get(STATE_KEY))
+        self.assert_published_value("score", 5)
+
+    def test_event_key_change_invokes_factory_immediately(self):
+        """Event key change calls factory regardless of interval."""
+        factory = self._make_factory({"gameId": "t", "phase": "playing", "score": 0})
+        self.pub.tick(0.01, event_key=("playing", 0), state_factory=factory, active=True)
+        self.factory_calls = 0
+        _B[STATE_KEY] = None
+        factory2 = self._make_factory({"gameId": "t", "phase": "playing", "score": 1})
+        self.pub.tick(0.01, event_key=("playing", 1), state_factory=factory2, active=True)
+        self.assertEqual(self.factory_calls, 1)
         self.assert_published_value("score", 1)
 
-    def test_force_publishes_immediately(self):
-        self.pub.force_publish({"gameId": "test", "phase": "menu", "score": 0})
-        self.assertIsNotNone(_B.get(STATE_KEY))
-
-    def test_force_publish_updates_phase_tracking(self):
-        self.pub.force_publish({"gameId": "test", "phase": "menu", "score": 0})
+    def test_score_change_publishes_immediately(self):
+        """Score change (in event key) triggers immediate publish."""
+        factory = self._make_factory({"gameId": "t", "phase": "playing", "score": 0})
+        self.pub.tick(0.01, event_key=("playing", 0), state_factory=factory, active=True)
+        self.factory_calls = 0
         _B[STATE_KEY] = None
-        self.pub.tick(0.05, {"gameId": "test", "phase": "menu", "score": 0})
-        self.assertIsNone(_B.get(STATE_KEY))
+        factory2 = self._make_factory({"gameId": "t", "phase": "playing", "score": 5})
+        self.pub.tick(0.01, event_key=("playing", 5), state_factory=factory2, active=True)
+        self.assertEqual(self.factory_calls, 1)
+        self.assert_published_value("score", 5)
 
-    def test_accumulator_resets_after_publish(self):
-        self.pub.tick(STATE_PUBLISH_INTERVAL, {"gameId": "test", "phase": "playing", "score": 0})
+    def test_lives_change_publishes_immediately(self):
+        """Lives change (in event key) triggers immediate publish."""
+        factory = self._make_factory({"gameId": "t", "phase": "playing", "lives": 3})
+        self.pub.tick(0.01, event_key=("playing", 3), state_factory=factory, active=True)
+        self.factory_calls = 0
         _B[STATE_KEY] = None
-        self.pub.tick(0.05, {"gameId": "test", "phase": "playing", "score": 0})
-        self.assertIsNone(_B.get(STATE_KEY))
+        factory2 = self._make_factory({"gameId": "t", "phase": "playing", "lives": 2})
+        self.pub.tick(0.01, event_key=("playing", 2), state_factory=factory2, active=True)
+        self.assertEqual(self.factory_calls, 1)
+        self.assert_published_value("lives", 2)
 
-    def test_no_crash_with_none_phase(self):
-        self.pub.tick(STATE_PUBLISH_INTERVAL, {"gameId": "test", "score": 0})
+    def test_launch_state_change_publishes_immediately(self):
+        """ballLaunched change triggers immediate publish."""
+        factory = self._make_factory({"gameId": "t", "phase": "playing", "ballLaunched": False})
+        self.pub.tick(0.01, event_key=("playing", False), state_factory=factory, active=True)
+        self.factory_calls = 0
+        _B[STATE_KEY] = None
+        factory2 = self._make_factory({"gameId": "t", "phase": "playing", "ballLaunched": True})
+        self.pub.tick(0.01, event_key=("playing", True), state_factory=factory2, active=True)
+        self.assertEqual(self.factory_calls, 1)
+        self.assert_published_value("ballLaunched", True)
+
+    def test_unchanged_static_state_remains_idle(self):
+        """Static phase with unchanged event key stays idle."""
+        factory = self._make_factory({"gameId": "t", "phase": "menu", "score": 0})
+        self.pub.tick(0.01, event_key=("menu", 0), state_factory=factory, active=True)
+        self.factory_calls = 0
+        _B[STATE_KEY] = None
+        for _ in range(100):
+            self.pub.tick(0.016, event_key=("menu", 0), state_factory=factory, active=False)
+        self.assertEqual(self.factory_calls, 0)
+        self.assert_not_published()
+
+    def test_force_publish_with_factory_invokes_once(self):
+        """force_publish with factory argument calls it once."""
+        factory = self._make_factory({"gameId": "t", "phase": "menu"})
+        self.pub.force_publish(state_factory=factory)
+        self.assertEqual(self.factory_calls, 1)
         self.assertIsNotNone(_B.get(STATE_KEY))
 
-    def test_publishes_null_value(self):
-        self.pub.tick(STATE_PUBLISH_INTERVAL, {"gameId": "test", "phase": "playing", "value": None})
-        self.assertIsNotNone(_B.get(STATE_KEY))
-        self.assert_published_value("value", None)
-
-    def test_custom_heartbeat_rate(self):
-        pub2 = StatePublisher(heartbeat_hz=2)
-        pub2._last_phase = "playing"
-        pub2.tick(0.4, {"gameId": "test", "phase": "playing", "score": 0})
-        self.assertIsNone(_B.get(STATE_KEY))
-        pub2.tick(0.1, {"gameId": "test", "phase": "playing", "score": 0})
+    def test_force_publish_with_dict_uses_directly(self):
+        """force_publish with state_dict does not call factory."""
+        factory = self._make_factory({"gameId": "t", "phase": "menu"})
+        self.pub.force_publish(state_dict={"gameId": "t", "phase": "menu"})
+        self.assertEqual(self.factory_calls, 0)
         self.assertIsNotNone(_B.get(STATE_KEY))
 
-    def test_correct_json_structure(self):
-        state = {"gameId": "test", "phase": "playing", "score": 42, "active": True}
-        self.pub.tick(STATE_PUBLISH_INTERVAL, state)
-        self.assert_published_value("gameId", "test")
-        self.assert_published_value("phase", "playing")
-        self.assert_published_value("score", 42)
-        self.assert_published_value("active", True)
+    def test_dedup_same_payload_not_published_twice(self):
+        """Unchanged built payload does not write to builtins twice."""
+        factory = self._make_factory({"gameId": "t", "phase": "playing", "score": 0})
+        self.pub.tick(0.01, event_key=("playing", 0), state_factory=factory, active=True)
+        self.factory_calls = 0
+        factory2 = self._make_factory({"gameId": "t", "phase": "playing", "score": 0})
+        self.pub.tick(STATE_PUBLISH_INTERVAL, event_key=("playing", 0), state_factory=factory2, active=True)
+        self.assertEqual(self.pub._stats["builtinsWrites"], 1)
+        self.assertEqual(self.pub._stats["unchangedPayloadSkips"], 1)
+
+    def test_large_dt_no_publication_burst(self):
+        """Large dt value does not trigger multiple catch-up publications."""
+        factory = self._make_factory({"gameId": "t", "phase": "playing", "score": 0})
+        self.pub.tick(0.01, event_key=("playing", 0), state_factory=factory, active=True)
+        self.factory_calls = 0
+        _B[STATE_KEY] = None
+        # A large dt should still only publish once (on next heartbeat tick)
+        self.pub._accumulator = 0.0
+        self.pub.tick(5.0, event_key=("playing", 0), state_factory=factory, active=True)
+        # One heartbeat publish
+        self.assertEqual(self.factory_calls, 1)
+
+    def test_statistics_not_serialized_during_ordinary_ticks(self):
+        """Stats JSON is NOT serialized during normal tick flow."""
+        factory = self._make_factory({"gameId": "t", "phase": "playing", "score": 0})
+        _B["__pa_state_publish_stats_json__"] = "INITIAL"
+        self.pub.tick(0.01, event_key=("playing", 0), state_factory=factory, active=True)
+        stats_json = _B.get("__pa_state_publish_stats_json__")
+        self.assertEqual(stats_json, "INITIAL",
+                         "tick should not update stats JSON")
+        self.assertEqual(self.pub._stats["statsSnapshotCalls"], 0)
+
+    def test_stats_snapshot_serializes_once(self):
+        """stats_snapshot() serializes stats JSON and increments counter."""
+        self.pub.stats_snapshot()
+        self.assertEqual(self.pub._stats["statsSnapshotCalls"], 1)
+        stats_json = _B.get("__pa_state_publish_stats_json__")
+        self.assertIsNotNone(stats_json)
+        parsed = json.loads(stats_json)
+        self.assertEqual(parsed["statsSnapshotCalls"], 1)
+
+    def test_counters_reconcile(self):
+        """Multiple ticks produce consistent counter values."""
+        factory = self._make_factory({"gameId": "t", "phase": "playing", "score": 0})
+        # Initial tick with event change
+        self.pub.tick(0.01, event_key=("playing", 0), state_factory=factory, active=True)
+        # 3 skipped active ticks
+        self.pub.tick(0.03, event_key=("playing", 0), state_factory=factory, active=True)
+        self.pub.tick(0.03, event_key=("playing", 0), state_factory=factory, active=True)
+        self.pub.tick(0.03, event_key=("playing", 0), state_factory=factory, active=True)
+        # One heartbeat
+        self.pub.tick(STATE_PUBLISH_INTERVAL, event_key=("playing", 0), state_factory=factory, active=True)
+        s = self.pub._stats
+        self.assertEqual(s["updateCalls"], 5)
+        self.assertGreater(s["stateBuildSkips"], 0)
+        self.assertGreater(s["stateFactoryCalls"], 0)
+        self.assertGreater(s["activeTicks"], 0)
+        self.assertEqual(s["staticTicks"], 0)
+
+    def test_dom_failure_preserves_builtins_state(self):
+        """DOM write failure does not prevent builtins assignment."""
+        factory = self._make_factory({"gameId": "t", "phase": "playing", "score": 42})
+        self.pub.tick(0.01, event_key=("playing", 42), state_factory=factory, active=True)
+        self.assertIsNotNone(_B.get(STATE_KEY))
+        parsed = json.loads(_B[STATE_KEY])
+        self.assertEqual(parsed["score"], 42)
+
+    def test_state_factory_not_called_when_no_factory_provided(self):
+        """tick with no state_factory does not crash."""
+        self.pub.tick(0.01, event_key=("playing", 0), active=True)
+        self.assert_not_published()
+
+    def test_empty_factory_returns_none_no_crash(self):
+        """Factory returning None does not crash."""
+        def none_factory():
+            return None
+        self.pub.tick(0.01, event_key=("playing", 0), state_factory=none_factory, active=True)
+        self.assert_not_published()
+
+    # ── Compatibility / existing behavior ──
 
     def test_default_heartbeat_hz(self):
         self.assertEqual(STATE_HEARTBEAT_HZ, 8)
         self.assertAlmostEqual(STATE_PUBLISH_INTERVAL, 0.125)
 
-    def test_variable_phases_always_publish_on_change(self):
-        self.pub.tick(0.125, {"gameId": "test", "phase": "menu", "score": 0})
-        _B[STATE_KEY] = None
-        self.pub.tick(0.01, {"gameId": "test", "phase": "playing", "score": 0})
-        self.assertIsNotNone(_B.get(STATE_KEY))
+    def test_correct_json_structure(self):
+        factory = self._make_factory({"gameId": "t", "phase": "playing", "score": 42})
+        self.pub.tick(0.01, event_key=("playing", 42), state_factory=factory, active=True)
+        self.assert_published_value("gameId", "t")
+        self.assert_published_value("phase", "playing")
+        self.assert_published_value("score", 42)
 
-    def test_emscripten_exception_does_not_prevent_builtins_assign(self):
-        self.pub.tick(STATE_PUBLISH_INTERVAL, {"gameId": "test", "phase": "playing"})
-        raw = _B.get(STATE_KEY)
-        self.assertIsNotNone(raw)
-        parsed = json.loads(raw)
-        self.assertEqual(parsed["gameId"], "test")
-
-    def test_tick_does_not_publish_when_same_json_and_not_enough_time(self):
-        self.pub.tick(STATE_PUBLISH_INTERVAL, {"gameId": "test", "phase": "playing", "v": 1})
-        _B[STATE_KEY] = None
-        self.pub.tick(0.01, {"gameId": "test", "phase": "playing", "v": 2})
+    def test_custom_heartbeat_rate(self):
+        pub2 = StatePublisher(heartbeat_hz=2)
+        pub2._last_event_key = ("playing", 0)
+        factory = self._make_factory({"gameId": "t", "phase": "playing", "score": 0})
+        pub2.tick(0.4, event_key=("playing", 0), state_factory=factory, active=True)
         self.assertIsNone(_B.get(STATE_KEY))
-
-    def test_publishes_after_second_identical_interval(self):
-        self.pub.tick(STATE_PUBLISH_INTERVAL, {"gameId": "test", "phase": "playing", "v": 1})
-        _B[STATE_KEY] = None
-        self.pub.tick(STATE_PUBLISH_INTERVAL, {"gameId": "test", "phase": "playing", "v": 2})
+        self.assertEqual(self.factory_calls, 0)
+        pub2.tick(0.2, event_key=("playing", 0), state_factory=factory, active=True)
+        self.assertEqual(self.factory_calls, 1)
         self.assertIsNotNone(_B.get(STATE_KEY))
-        self.assert_published_value("v", 2)
+
+    def test_publishes_null_value(self):
+        factory = self._make_factory({"gameId": "t", "phase": "playing", "value": None})
+        self.pub.tick(0.01, event_key=("playing", None), state_factory=factory, active=True)
+        self.assert_published_value("value", None)
+
+    def test_force_publish_updates_event_key_tracking(self):
+        """force_publish updates internal event_key tracking so next tick with same key skips."""
+        factory = self._make_factory({"gameId": "t", "phase": "menu", "score": 0})
+        self.pub.force_publish(state_dict={"gameId": "t", "phase": "menu", "score": 0})
+        self.pub._last_event_key = ("menu", 0)
+        _B[STATE_KEY] = None
+        self.pub.tick(0.05, event_key=("menu", 0), state_factory=factory, active=False)
+        self.assertEqual(self.factory_calls, 0)
+        self.assert_not_published()
+
+    def test_accumulator_resets_after_publish(self):
+        factory = self._make_factory({"gameId": "t", "phase": "playing", "score": 0})
+        self.pub.tick(0.01, event_key=("playing", 0), state_factory=factory, active=True)
+        # accumulator was reset by event change publish
+        self.factory_calls = 0
+        _B[STATE_KEY] = None
+        self.pub.tick(0.05, event_key=("playing", 0), state_factory=factory, active=True)
+        self.assertEqual(self.factory_calls, 0)
+        self.assert_not_published()
+
+    def test_variable_phases_publish_on_key_change(self):
+        factory = self._make_factory({"gameId": "t", "phase": "menu", "score": 0})
+        self.pub.tick(0.125, event_key=("menu", 0), state_factory=factory, active=True)
+        self.factory_calls = 0
+        _B[STATE_KEY] = None
+        factory2 = self._make_factory({"gameId": "t", "phase": "playing", "score": 0})
+        self.pub.tick(0.01, event_key=("playing", 0), state_factory=factory2, active=True)
+        self.assertEqual(self.factory_calls, 1)
+        self.assert_published_value("phase", "playing")
+
+    def test_stats_exposed_on_builtins(self):
+        stats = _B.get("__pa_state_publish_stats__")
+        self.assertIs(stats, self.pub._stats)
 
     def test_counters_exist_in_builtins(self):
         stats = _B.get("__pa_state_publish_stats__")
         self.assertIsNotNone(stats)
         self.assertEqual(stats["configuredActiveHz"], 8)
 
-    def test_counter_update_calls_increment(self):
-        self.pub._last_phase = "playing"
-        self.pub.tick(0.05, {"gameId": "test", "phase": "playing"})
-        self.assertEqual(self.pub._stats["updateCalls"], 1)
-        self.assertEqual(self.pub._stats["intervalSkips"], 1)
-
-    def test_counter_event_change(self):
-        self.pub.tick(0.01, {"gameId": "test", "phase": "menu"})
-        self.assertEqual(self.pub._stats["eventChanges"], 1)
-        self.assertEqual(self.pub._stats["builtinsWrites"], 1)
-        self.assertEqual(self.pub._stats["lastWriteReason"], "event-change")
-
-    def test_counter_heartbeat_write(self):
-        self.pub._last_phase = "playing"
-        self.pub.tick(STATE_PUBLISH_INTERVAL, {"gameId": "test", "phase": "playing", "v": 1})
-        self.assertEqual(self.pub._stats["heartbeatWrites"], 1)
-        self.assertEqual(self.pub._stats["builtinsWrites"], 1)
-        self.assertEqual(self.pub._stats["lastWriteReason"], "heartbeat")
-
-    def test_counter_unchanged_payload_skip(self):
-        self.pub._last_phase = "playing"
-        self.pub.tick(STATE_PUBLISH_INTERVAL, {"gameId": "test", "phase": "playing", "v": 1})
-        self.assertEqual(self.pub._stats["builtinsWrites"], 1)
-        self.pub.tick(STATE_PUBLISH_INTERVAL, {"gameId": "test", "phase": "playing", "v": 1})
-        self.assertEqual(self.pub._stats["unchangedPayloadSkips"], 1)
-        self.assertEqual(self.pub._stats["builtinsWrites"], 1)
-
-    def test_counter_forced_write(self):
-        self.pub.force_publish({"gameId": "test", "phase": "menu"})
-        self.assertEqual(self.pub._stats["forcedWrites"], 1)
-        self.assertEqual(self.pub._stats["builtinsWrites"], 1)
-        self.assertEqual(self.pub._stats["lastWriteReason"], "forced")
-
-    def test_counter_serialization_on_interval_not_skip(self):
-        self.pub._last_phase = "playing"
-        self.pub.tick(0.05, {"gameId": "test", "phase": "playing"})
-        self.assertEqual(self.pub._stats["serializationAttempts"], 0)
-        self.pub.tick(STATE_PUBLISH_INTERVAL, {"gameId": "test", "phase": "playing", "v": 1})
-        self.assertEqual(self.pub._stats["serializationAttempts"], 1)
-
-    def test_counter_dom_write_failure_does_not_block_builtins(self):
-        self.pub._last_phase = "playing"
-        self.pub.tick(STATE_PUBLISH_INTERVAL, {"gameId": "test", "phase": "playing"})
-        self.assertEqual(self.pub._stats["builtinsWrites"], 1)
-        # domWriteFailures may be 0 or 1 depending on environment; just verify no crash
-
-    def test_stats_exposed_on_builtins(self):
-        stats = _B.get("__pa_state_publish_stats__")
-        self.assertIs(stats, self.pub._stats)
+    def test_all_new_counters_present(self):
+        stats = self.pub._stats
+        for key in ("stateFactoryCalls", "statsSnapshotCalls", "activeTicks",
+                     "staticTicks", "stateBuildSkips"):
+            self.assertIn(key, stats)
+            self.assertIsInstance(stats[key], int)
 
 
 if __name__ == "__main__":

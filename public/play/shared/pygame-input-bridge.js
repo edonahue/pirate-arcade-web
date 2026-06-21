@@ -513,6 +513,30 @@
 
   var PirateArcadeGameState = {
     getState: function () { return _gameState; },
+    getPublisherStats: function () {
+      if (!window.python || typeof window.python.PyRun_SimpleString !== 'function') {
+        return null;
+      }
+      try {
+        window.python.PyRun_SimpleString(
+          'import json, builtins\n' +
+          'try:\n' +
+          '  _pub = builtins.__dict__.get("__pa_state_publisher__")\n' +
+          '  if _pub is not None:\n' +
+          '    _pub.stats_snapshot()\n' +
+          '  _stats = builtins.__dict__.get("__pa_state_publish_stats__")\n' +
+          '  open("/tmp/_pa_pub_stats.json","w").write(\n' +
+          '    json.dumps(_stats) if _stats is not None else "null"\n' +
+          '  )\n' +
+          'except Exception:\n' +
+          '  pass\n'
+        );
+        var raw = window.python.FS.readFile('/tmp/_pa_pub_stats.json', { encoding: 'utf8' });
+        return JSON.parse(raw);
+      } catch (e) {
+        return null;
+      }
+    },
     subscribe: function (cb) {
       if (_gameStateSubs.size >= 20) {
         console.warn('PirateArcadeGameState: subscriber limit reached (20)');

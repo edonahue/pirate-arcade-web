@@ -145,20 +145,39 @@ class BreakoutGame:
             if key == pg.K_ESCAPE:
                 return 'quit'
 
-    def _update(self, dt):
-        if self.state == 'playing' and not self.paused:
-            keys = pg.key.get_pressed()
-            result = self.gameplay.update(dt, keys)
-            if result[0] == 'game_over':
-                self.state = 'game_over'
-                self.game_over_state = result[1]
-                hs.submit_breakout(self.gameplay.score)
+    def _state_event_key(self):
+        stage_transition = self.gameplay.stage_transition_phase is not None
+        ball_launched = any(b.launched for b in self.gameplay.balls)
+        return (
+            self.state,
+            self.paused,
+            self.gameplay.score,
+            self.gameplay.lives,
+            self.state == "menu" or (
+                self.state == "game_over" and not stage_transition
+            ),
+            ball_launched,
+            self.gameplay.stage,
+            stage_transition,
+            self.gameplay.remaining_bricks,
+            self.gameplay.last_pickup_type,
+            self.gameplay.wide_paddle_timer > 0,
+            self.gameplay.slow_motion_timer > 0,
+        )
 
-        active_balls = sum(1 for b in self.gameplay.balls if b.launched and b.y + b.radius <= c.WINDOW_HEIGHT)
-        effective_speed = max((b.speed for b in self.gameplay.balls if b.launched), default=c.BALL_BREAKOUT_SPEED)
-        underlying_speed = max((b._underlying_speed for b in self.gameplay.balls if b.launched), default=c.BALL_BREAKOUT_SPEED)
-
-        self._state_pub.tick(dt, {
+    def _build_game_state(self):
+        launched = [b for b in self.gameplay.balls if b.launched]
+        active_balls = sum(
+            1 for b in launched
+            if b.y + b.radius <= c.WINDOW_HEIGHT
+        )
+        if launched:
+            effective_speed = max(b.speed for b in launched)
+            underlying_speed = max(b._underlying_speed for b in launched)
+        else:
+            effective_speed = c.BALL_BREAKOUT_SPEED
+            underlying_speed = c.BALL_BREAKOUT_SPEED
+        return {
             "gameId": "treasure-cove",
             "phase": (
                 "game-over" if self.state == "game_over"
@@ -168,7 +187,7 @@ class BreakoutGame:
             ),
             "score": self.gameplay.score,
             "playerPosition": self.gameplay.paddle.x,
-            "ballLaunched": any(b.launched for b in self.gameplay.balls),
+            "ballLaunched": bool(launched),
             "lives": self.gameplay.lives,
             "actionReady": self.state == "menu" or (
                 self.state == "game_over" and not self.gameplay.stage_transition_phase
@@ -176,7 +195,7 @@ class BreakoutGame:
             "stage": self.gameplay.stage,
             "maxStage": self.gameplay.max_stage,
             "ballsActive": active_balls,
-            "ballSpeeds": [b.speed for b in self.gameplay.balls if b.launched],
+            "ballSpeeds": [b.speed for b in launched],
             "underlyingBallSpeed": underlying_speed,
             "effectiveBallSpeed": effective_speed,
             "initialBallSpeed": c.BALL_BREAKOUT_SPEED,
@@ -193,7 +212,23 @@ class BreakoutGame:
             "slowMotionActive": self.gameplay.slow_motion_timer > 0,
             "slowMotionRemainingMs": int(self.gameplay.slow_motion_timer * 1000),
             "stageTransitionActive": self.gameplay.stage_transition_phase is not None,
-        })
+        }
+
+    def _update(self, dt):
+        if self.state == 'playing' and not self.paused:
+            keys = pg.key.get_pressed()
+            result = self.gameplay.update(dt, keys)
+            if result[0] == 'game_over':
+                self.state = 'game_over'
+                self.game_over_state = result[1]
+                hs.submit_breakout(self.gameplay.score)
+        active = self.state == 'playing' and not self.paused
+        self._state_pub.tick(
+            dt,
+            event_key=self._state_event_key(),
+            state_factory=self._build_game_state,
+            active=active,
+        )
 
     def _draw(self, fps):
         if self.state == 'menu':

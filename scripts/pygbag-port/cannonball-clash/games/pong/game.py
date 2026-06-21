@@ -117,26 +117,20 @@ class PongGame:
             if key == pg.K_p:
                 self.paused = not self.paused
 
-    def _update(self, dt):
-        keys = pg.key.get_pressed()
-        if self.state == 'playing' and not self.paused:
-            result = self.gameplay.update(dt, keys)
-            if result[0] == 'game_over':
-                self.state = 'game_over'
-                self.game_over_state = result[1]
-                self.game_over_timer = 0
-                if result[1] == 'player':
-                    self.particles.reset()
-                    self.audio.play('victory')
-                    hs.submit_pong(
-                        self.gameplay.player_score,
-                        self.gameplay.ai_score,
-                        self.ai_difficulty)
-        elif self.state == 'game_over':
-            self.game_over_timer += dt
-            if self.game_over_state == 'player':
-                self.particles.update(dt)
-        self._state_pub.tick(dt, {
+    def _state_event_key(self):
+        return (
+            self.state,
+            self.paused,
+            self.gameplay.player_score,
+            self.gameplay.ai_score,
+            self.state == "menu",
+            getattr(self.gameplay, 'rally_tier', 0),
+            None if self.gameplay.powerup is None else ("large_paddle" if self.gameplay.powerup.powerup_type == c.POWERUP_TYPE_LARGE_PADDLE else "cursed_powder"),
+            getattr(self.gameplay, 'ai_shrink_timer', 0) > 0,
+        )
+
+    def _build_game_state(self):
+        return {
             "gameId": "cannonball-clash",
             "phase": (
                 "game-over" if self.state == "game_over"
@@ -158,7 +152,34 @@ class PongGame:
             "aiShrinkActive": getattr(self.gameplay, 'ai_shrink_timer', 0) > 0,
             "aiShrinkRemainingMs": int(getattr(self.gameplay, 'ai_shrink_timer', 0) * 1000),
             "aiDifficulty": self.gameplay.ai.speed_factor if hasattr(self.gameplay.ai, 'speed_factor') else 0.6,
-        })
+        }
+
+    def _update(self, dt):
+        keys = pg.key.get_pressed()
+        if self.state == 'playing' and not self.paused:
+            result = self.gameplay.update(dt, keys)
+            if result[0] == 'game_over':
+                self.state = 'game_over'
+                self.game_over_state = result[1]
+                self.game_over_timer = 0
+                if result[1] == 'player':
+                    self.particles.reset()
+                    self.audio.play('victory')
+                    hs.submit_pong(
+                        self.gameplay.player_score,
+                        self.gameplay.ai_score,
+                        self.ai_difficulty)
+        elif self.state == 'game_over':
+            self.game_over_timer += dt
+            if self.game_over_state == 'player':
+                self.particles.update(dt)
+        active = self.state == 'playing' and not self.paused
+        self._state_pub.tick(
+            dt,
+            event_key=self._state_event_key(),
+            state_factory=self._build_game_state,
+            active=active,
+        )
 
     def _draw(self, fps):
         if self.state == 'menu':
