@@ -19,23 +19,25 @@ const GAMES = [
     sourceDir: "scripts/pygbag-port/cannonball-clash/games/pong",
     archivePath: "public/play/cannonball-clash/cannonball-clash.tar.gz",
     archiveGameDir: "pong",
-    keyFiles: ["paddle.py", "gameplay.py"],
+    keyFiles: ["paddle.py", "gameplay.py", "game.py"],
   },
   {
     id: "treasure-cove",
     sourceDir: "scripts/pygbag-port/treasure-cove/games/breakout",
     archivePath: "public/play/treasure-cove/treasure-cove.tar.gz",
     archiveGameDir: "breakout",
-    keyFiles: ["paddle.py", "gameplay.py"],
+    keyFiles: ["paddle.py", "gameplay.py", "game.py"],
   },
   {
     id: "krakens-wake",
     sourceDir: "scripts/pygbag-port/krakens-wake/games/asteroids",
     archivePath: "public/play/krakens-wake/krakens-wake.tar.gz",
     archiveGameDir: "asteroids",
-    keyFiles: ["ship.py", "gameplay.py"],
+    keyFiles: ["ship.py", "gameplay.py", "game.py"],
   },
 ];
+
+const SHARED_FILES = ["__init__.py", "pa_state.py"];
 
 console.log("🔍 Checking archive/source parity...");
 
@@ -75,6 +77,33 @@ for (const game of GAMES) {
       }
     } catch (err) {
       console.log(`  ❌ ${file}: Error reading source: ${err.message}`);
+      allPassed = false;
+    }
+  }
+}
+
+// Check shared module files in each archive
+console.log(`\n── shared ──`);
+for (const file of SHARED_FILES) {
+  const sourcePath = join(root, "scripts/pygbag-port/shared", file);
+  const sourceContent = readFileSync(sourcePath, "utf8");
+  for (const game of GAMES) {
+    const archivePath = join(root, game.archivePath);
+    try {
+      const archiveContent = execSync(
+        `tar xzf "${archivePath}" --to-stdout assets/shared/${file} 2>/dev/null`,
+        { encoding: "utf-8", stdio: ["pipe", "pipe", "ignore"] },
+      );
+      if (sourceContent === archiveContent) {
+        console.log(`  ✅ ${game.id} assets/shared/${file}: matches`);
+      } else {
+        console.log(`  ❌ ${game.id} assets/shared/${file}: differs!`);
+        allPassed = false;
+      }
+    } catch {
+      console.log(
+        `  ❌ ${game.id} assets/shared/${file}: missing from archive`,
+      );
       allPassed = false;
     }
   }

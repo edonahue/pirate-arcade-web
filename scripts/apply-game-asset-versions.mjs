@@ -70,7 +70,7 @@ for (const gameDir of GAMES) {
     // Update preload link (handles optional crossorigin attribute)
     content = content.replace(
       /<link rel="preload" href="\/play\/[^"]+\.tar\.gz\?v=mobile-v\d+" as="fetch"(?: crossorigin="[^"]+")?>/g,
-      `<link rel="preload" href="/play/${gameDir}/${gameDir}.tar.gz?v=${ASSET_VERSION}" as="fetch">`,
+      `<link rel="preload" href="/play/${gameDir}/${gameDir}.tar.gz?v=${ASSET_VERSION}" as="fetch" crossorigin="anonymous">`,
     );
 
     // Update CSS link

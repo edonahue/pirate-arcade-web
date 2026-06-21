@@ -51,6 +51,14 @@ for (const game of GAMES) {
   const assetsDir = resolve(tmp, "assets");
   mkdirSync(assetsDir, { recursive: true });
 
+  // Copy shared module into assets/
+  const sharedDir = resolve(SRC, "shared");
+  if (existsSync(sharedDir)) {
+    const sharedDest = resolve(assetsDir, "shared");
+    rmSync(sharedDest, { recursive: true, force: true });
+    cpSync(sharedDir, sharedDest, { recursive: true });
+  }
+
   // Copy all entries from src into assets/ excluding known non-asset items
   const entries = readdirSync(src, { withFileTypes: true });
   for (const entry of entries) {

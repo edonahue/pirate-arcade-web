@@ -294,6 +294,7 @@
   //   refresh()           → one-shot poll
 
   var _gameState = null;
+  var _lastRawJson = null;
   var _gameStateSubs = new Set();
   var _gameStateTimer = null;
   var _gameStatePolling = false;
@@ -374,7 +375,40 @@
     });
   }
 
+  function _readRawJson() {
+    // Fast source: JS-set state (Race sets window.__pa_game_state_json directly)
+    if (typeof window.__pa_game_state_json === 'string') {
+      _bridgeMeta.source = 'window.__pa_game_state_json';
+      _bridgeMeta.lastUpdatedAt = Date.now();
+      _bridgeMeta.stale = false;
+      return window.__pa_game_state_json;
+    }
+    // DOM element bridge: Pygbag writes into #pa-game-state via innerText
+    var bridgeEl = document.getElementById('pa-game-state');
+    if (bridgeEl && bridgeEl.textContent) {
+      _bridgeMeta.source = 'dom#pa-game-state';
+      _bridgeMeta.lastUpdatedAt = Date.now();
+      _bridgeMeta.stale = false;
+      return bridgeEl.textContent;
+    }
+    return null;
+  }
+
   function _refreshAndNotify() {
+    // Fast path: compare raw JSON strings (avoids double-stringify)
+    var raw = _readRawJson();
+    if (raw) {
+      if (raw === _lastRawJson) return;
+      _lastRawJson = raw;
+      try {
+        _gameState = JSON.parse(raw);
+        _notifySubscribers();
+        return;
+      } catch (e) {
+        _bridgeMeta.parseErrorCount++;
+      }
+    }
+    // Fallback: python file I/O
     var parsed = _readGameState();
     if (!parsed) return;
     if (JSON.stringify(parsed) !== JSON.stringify(_gameState)) {

@@ -1,11 +1,10 @@
 import asyncio
-import json
-import builtins
 import pygame as pg
 import constants as c
 import highscores as hs
 from games.breakout.gameplay import Gameplay, STAGE_NAMES
 from renderer import _OVERLAY, _VIGNETTE
+from shared.pa_state import StatePublisher
 
 
 class BreakoutGame:
@@ -19,6 +18,7 @@ class BreakoutGame:
         self.pause_selection = 0
         self.sound_enabled = True
         self._init_fonts()
+        self._state_pub = StatePublisher()
 
     def _init_fonts(self):
         self.title_font = pg.font.Font(c.FONT_NAME, c.FONT_SIZE_TITLE)
@@ -154,15 +154,11 @@ class BreakoutGame:
                 self.game_over_state = result[1]
                 hs.submit_breakout(self.gameplay.score)
 
-        primary_ball = self.gameplay.balls[0] if self.gameplay.balls else self.gameplay.balls[0] if len(self.gameplay.balls) > 0 else None
-        if primary_ball is None:
-            primary_ball = self.gameplay.balls[0]
-        launched_count = sum(1 for b in self.gameplay.balls if b.launched)
         active_balls = sum(1 for b in self.gameplay.balls if b.launched and b.y + b.radius <= c.WINDOW_HEIGHT)
         effective_speed = max((b.speed for b in self.gameplay.balls if b.launched), default=c.BALL_BREAKOUT_SPEED)
         underlying_speed = max((b._underlying_speed for b in self.gameplay.balls if b.launched), default=c.BALL_BREAKOUT_SPEED)
 
-        _gs_json = json.dumps({
+        self._state_pub.tick(dt, {
             "gameId": "treasure-cove",
             "phase": (
                 "game-over" if self.state == "game_over"
@@ -198,12 +194,6 @@ class BreakoutGame:
             "slowMotionRemainingMs": int(self.gameplay.slow_motion_timer * 1000),
             "stageTransitionActive": self.gameplay.stage_transition_phase is not None,
         })
-        builtins.__pa_game_state_json = _gs_json
-        try:
-            import __EMSCRIPTEN__ as _pa_platform
-            _pa_platform.window["pa-game-state"].innerText = _gs_json
-        except Exception:
-            pass
 
     def _draw(self, fps):
         if self.state == 'menu':

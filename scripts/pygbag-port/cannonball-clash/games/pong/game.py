@@ -1,12 +1,11 @@
 import asyncio
-import json
-import builtins
 import pygame as pg
 import constants as c
 import highscores as hs
 from games.pong.menu import Menu
 from games.pong.gameplay import Gameplay
 from renderer import draw_pause_overlay, draw_game_over, WinParticles, _VIGNETTE
+from shared.pa_state import StatePublisher
 
 
 class PongGame:
@@ -24,6 +23,7 @@ class PongGame:
         self.ai_difficulty = 'medium'
         self.game_over_timer = 0
         self.particles = WinParticles()
+        self._state_pub = StatePublisher()
 
     async def run(self):
         while True:
@@ -136,7 +136,7 @@ class PongGame:
             self.game_over_timer += dt
             if self.game_over_state == 'player':
                 self.particles.update(dt)
-        _gs_json = json.dumps({
+        self._state_pub.tick(dt, {
             "gameId": "cannonball-clash",
             "phase": (
                 "game-over" if self.state == "game_over"
@@ -159,12 +159,6 @@ class PongGame:
             "aiShrinkRemainingMs": int(getattr(self.gameplay, 'ai_shrink_timer', 0) * 1000),
             "aiDifficulty": self.gameplay.ai.speed_factor if hasattr(self.gameplay.ai, 'speed_factor') else 0.6,
         })
-        builtins.__pa_game_state_json = _gs_json
-        try:
-            import __EMSCRIPTEN__ as _pa_platform
-            _pa_platform.window["pa-game-state"].innerText = _gs_json
-        except Exception:
-            pass
 
     def _draw(self, fps):
         if self.state == 'menu':

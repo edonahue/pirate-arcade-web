@@ -12,9 +12,9 @@
     <link rel="preconnect" href="https://pygame-web.github.io">
     <link rel="dns-prefetch" href="https://pygame-web.github.io">
     <link rel="modulepreload" href="https://pygame-web.github.io/cdn/0.9.3/pythons.js" crossorigin="anonymous">
-    <link rel="preload" href="/play/treasure-cove/treasure-cove.tar.gz?v=mobile-v8" as="fetch" crossorigin="anonymous">
+    <link rel="preload" href="/play/treasure-cove/treasure-cove.tar.gz?v=mobile-v9" as="fetch" crossorigin="anonymous">
     <script src="/play/shared/game-boot-metrics.js"></script>
-    <script src="/play/shared/pygbag-loading.js?v=mobile-v8"></script>
+    <script src="/play/shared/pygbag-loading.js?v=mobile-v9"></script>
     <style>
       * { margin: 0; padding: 0; box-sizing: border-box; }
       html, body { width: 100%; height: 100%; overflow: hidden; background: #0a0e17; color: #b8c4d4; }
@@ -63,7 +63,7 @@
         #game-wrap { display: none; }
       }
     </style>
-    <link rel="stylesheet" href="/play/shared/mobile-controls.css?v=mobile-v8">
+    <link rel="stylesheet" href="/play/shared/mobile-controls.css?v=mobile-v9">
     <!--
       CDN VERSION PIN: pythons.js@0.9.3 — if upgrading, test thoroughly.
       The inline script below depends on pygbag internals (FS, cross_file,
@@ -178,7 +178,7 @@
               '        # Pre-install pygame wheel from CDN and fetch archive in parallel',
               '        _w.PirateArcadeLoading.set("Installing Pygame and downloading game package…")',
               '        import aio.pep0723',
-              '        url = _w.location.origin + "/play/treasure-cove/treasure-cove.tar.gz?v=mobile-v8"',
+              '        url = _w.location.origin + "/play/treasure-cove/treasure-cove.tar.gz?v=mobile-v9"',
               '        _w.PirateArcadeMetrics.setArchiveUrl(url)',
               '',
               '        async def install_pygame():',
@@ -518,14 +518,14 @@
     }
     </script>
 
-    <link rel="stylesheet" href="/play/shared/debug-panel.css?v=mobile-v8">
-    <script src="/play/shared/pygame-input-bridge.js?v=mobile-v8"></script>
-    <script src="/play/shared/game-viewport.js?v=mobile-v8"></script>
-    <script src="/play/shared/mobile-controls.js?v=mobile-v8"></script>
-    <script src="/play/shared/debug-panel.js?v=mobile-v8"></script>
+    <link rel="stylesheet" href="/play/shared/debug-panel.css?v=mobile-v9">
+    <script src="/play/shared/pygame-input-bridge.js?v=mobile-v9"></script>
+    <script src="/play/shared/game-viewport.js?v=mobile-v9"></script>
+    <script src="/play/shared/mobile-controls.js?v=mobile-v9"></script>
+    <script src="/play/shared/debug-panel.js?v=mobile-v9"></script>
     <!--
       GAME: treasure-cove
-      ARCHIVE: /play/treasure-cove/treasure-cove.tar.gz?v=mobile-v8
+      ARCHIVE: /play/treasure-cove/treasure-cove.tar.gz?v=mobile-v9
       CONTROL: keyboard + touch
       CDN: pythons.js@0.9.3
       SHARED: pygbag-loading.js, pygame-input-bridge.js, game-viewport.js, mobile-controls.js
