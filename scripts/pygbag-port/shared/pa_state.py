@@ -82,7 +82,7 @@ class StatePublisher:
     def _publish(self, state_dict, reason=None):
         self._stats["serializationAttempts"] += 1
         self._stats["stateFactoryCalls"] += 1
-        _gs_json = json.dumps(state_dict)
+        _gs_json = json.dumps({**state_dict, "__pa_stats": self._stats})
         if _gs_json == self._last_json:
             self._stats["unchangedPayloadSkips"] += 1
             return

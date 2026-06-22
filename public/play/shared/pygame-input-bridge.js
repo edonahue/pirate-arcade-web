@@ -514,25 +514,11 @@
   var PirateArcadeGameState = {
     getState: function () { return _gameState; },
     getPublisherStats: function () {
-      if (!window.python || typeof window.python.PyRun_SimpleString !== 'function') {
-        return null;
-      }
       try {
-        window.python.PyRun_SimpleString(
-          'import json, builtins\n' +
-          'try:\n' +
-          '  _pub = builtins.__dict__.get("__pa_state_publisher__")\n' +
-          '  if _pub is not None:\n' +
-          '    _pub.stats_snapshot()\n' +
-          '  _stats = builtins.__dict__.get("__pa_state_publish_stats__")\n' +
-          '  open("/tmp/_pa_pub_stats.json","w").write(\n' +
-          '    json.dumps(_stats) if _stats is not None else "null"\n' +
-          '  )\n' +
-          'except Exception:\n' +
-          '  pass\n'
-        );
-        var raw = window.python.FS.readFile('/tmp/_pa_pub_stats.json', { encoding: 'utf8' });
-        return JSON.parse(raw);
+        var el = document.getElementById('pa-game-state');
+        if (!el || !el.innerText) return null;
+        var state = JSON.parse(el.innerText);
+        return state.__pa_stats || null;
       } catch (e) {
         return null;
       }
@@ -695,5 +681,34 @@
   };
 
   window.PirateArcadeActions = PirateArcadeActions;
+
+  // ── Page-visibility bridge ───────────────────────────────────
+  // Communicates page visibility state to Python so the game loop
+  // can reduce CPU when the tab is hidden.
+  function _paPushVisibility(visible) {
+    if (window.python && typeof window.python.PyRun_SimpleString === 'function') {
+      var code = 'import builtins; builtins.__dict__["__pa_page_visible__"] = ' + (visible ? 'True' : 'False');
+      try { window.python.PyRun_SimpleString(code); } catch (e) {}
+    }
+  }
+  // Also set the initial state via a non-Python flag so pa_loop.py
+  // can default to True before Python bridge is available.
+  window.__paPageVisible = true;
+  document.addEventListener('visibilitychange', function () {
+    var v = !document.hidden;
+    window.__paPageVisible = v;
+    _paPushVisibility(v);
+  });
+  window.addEventListener('pagehide', function () {
+    window.__paPageVisible = false;
+    _paPushVisibility(false);
+  });
+  window.addEventListener('pageshow', function (e) {
+    if (e.persisted) {
+      window.__paPageVisible = true;
+      _paPushVisibility(true);
+    }
+  });
+
   logEvent('bridgeInit', {});
 })();

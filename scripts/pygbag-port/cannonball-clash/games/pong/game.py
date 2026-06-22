@@ -6,6 +6,7 @@ from games.pong.menu import Menu
 from games.pong.gameplay import Gameplay
 from renderer import draw_pause_overlay, draw_game_over, WinParticles, _VIGNETTE
 from shared.pa_state import StatePublisher
+from shared.pa_loop import should_draw
 
 
 class PongGame:
@@ -24,6 +25,7 @@ class PongGame:
         self.game_over_timer = 0
         self.particles = WinParticles()
         self._state_pub = StatePublisher()
+        self._last_draw_key = None
 
     async def run(self):
         while True:
@@ -37,7 +39,12 @@ class PongGame:
 
             dt = 1 / 60
             self._update(dt)
-            self._draw(60)
+            draw_key = (self.state, self.paused, self.menu_selection, self.pause_selection, self.sound_enabled)
+            _should_draw, self._last_draw_key = should_draw(draw_key, self._last_draw_key)
+            if self.state == 'playing' and not self.paused:
+                _should_draw = True
+            if _should_draw:
+                self._draw(60)
             pg.display.flip()
             await asyncio.sleep(0)
 

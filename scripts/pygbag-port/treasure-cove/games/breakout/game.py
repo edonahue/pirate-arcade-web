@@ -5,6 +5,7 @@ import highscores as hs
 from games.breakout.gameplay import Gameplay
 from renderer import _OVERLAY, _VIGNETTE
 from shared.pa_state import StatePublisher
+from shared.pa_loop import should_draw
 
 
 class BreakoutGame:
@@ -19,6 +20,7 @@ class BreakoutGame:
         self.sound_enabled = True
         self._init_fonts()
         self._state_pub = StatePublisher()
+        self._last_draw_key = None
 
     def _init_fonts(self):
         self.title_font = pg.font.Font(c.FONT_NAME, c.FONT_SIZE_TITLE)
@@ -85,7 +87,12 @@ class BreakoutGame:
 
             dt = 1 / 60
             self._update(dt)
-            self._draw(60)
+            draw_key = (self.state, self.paused, self.pause_selection, self.sound_enabled)
+            _should_draw, self._last_draw_key = should_draw(draw_key, self._last_draw_key)
+            if self.state == 'playing' and not self.paused:
+                _should_draw = True
+            if _should_draw:
+                self._draw(60)
             pg.display.flip()
             await asyncio.sleep(0)
 

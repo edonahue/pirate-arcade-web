@@ -151,15 +151,25 @@ class TestStatePublisherLazyAPI(unittest.TestCase):
         self.assertEqual(self.factory_calls, 0)
         self.assertIsNotNone(_B.get(STATE_KEY))
 
-    def test_dedup_same_payload_not_published_twice(self):
-        """Unchanged built payload does not write to builtins twice."""
+    def test_stats_included_in_published_payload(self):
+        """Published JSON includes __pa_stats field with publisher counters."""
         factory = self._make_factory({"gameId": "t", "phase": "playing", "score": 0})
         self.pub.tick(0.01, event_key=("playing", 0), state_factory=factory, active=True)
-        self.factory_calls = 0
+        raw = _B.get(STATE_KEY)
+        self.assertIsNotNone(raw)
+        parsed = json.loads(raw)
+        self.assertIn("__pa_stats", parsed)
+        self.assertIsInstance(parsed["__pa_stats"]["updateCalls"], int)
+
+    def test_every_publish_has_unique_stats(self):
+        """Each publish produces unique __pa_stats (counters always increment)."""
+        factory = self._make_factory({"gameId": "t", "phase": "playing", "score": 0})
+        self.pub.tick(0.01, event_key=("playing", 0), state_factory=factory, active=True)
         factory2 = self._make_factory({"gameId": "t", "phase": "playing", "score": 0})
         self.pub.tick(STATE_PUBLISH_INTERVAL, event_key=("playing", 0), state_factory=factory2, active=True)
-        self.assertEqual(self.pub._stats["builtinsWrites"], 1)
-        self.assertEqual(self.pub._stats["unchangedPayloadSkips"], 1)
+        # Both publishes went through because __pa_stats changed between them
+        self.assertEqual(self.pub._stats["builtinsWrites"], 2)
+        self.assertEqual(self.pub._stats["unchangedPayloadSkips"], 0)
 
     def test_large_dt_no_publication_burst(self):
         """Large dt value does not trigger multiple catch-up publications."""

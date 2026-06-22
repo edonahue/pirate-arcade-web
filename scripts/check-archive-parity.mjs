@@ -37,7 +37,7 @@ const GAMES = [
   },
 ];
 
-const SHARED_FILES = ["__init__.py", "pa_state.py"];
+const SHARED_FILES = ["__init__.py", "pa_state.py", "pa_loop.py"];
 
 console.log("🔍 Checking archive/source parity...");
 

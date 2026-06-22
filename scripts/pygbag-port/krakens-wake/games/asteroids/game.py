@@ -6,6 +6,7 @@ from games.asteroids.gameplay import Gameplay
 from renderer import _OVERLAY, _VIGNETTE, draw_scanlines
 from util import toggle_fullscreen
 from shared.pa_state import StatePublisher
+from shared.pa_loop import should_draw
 import random
 import traceback
 
@@ -34,6 +35,7 @@ class AsteroidsGame:
         self.sound_enabled = True
         self._init_fonts()
         self._state_pub = StatePublisher()
+        self._last_draw_key = None
         _ensure_stars()
 
     def _init_fonts(self):
@@ -97,6 +99,7 @@ class AsteroidsGame:
                 if event.type == pg.KEYDOWN and event.key == pg.K_F11:
                     self.surface, fullscreen = toggle_fullscreen(self.surface, fullscreen)
                     pg.display.set_caption("KRAKEN'S WAKE")
+                    self._last_draw_key = None
                 elif event.type == pg.MOUSEBUTTONDOWN and self.state == 'playing':
                     self.paused = not self.paused
                 elif event.type == pg.KEYDOWN:
@@ -108,7 +111,12 @@ class AsteroidsGame:
 
             dt = 1 / 60
             self._update(dt)
-            self._draw(60)
+            draw_key = (self.state, self.paused, self.pause_selection, self.sound_enabled)
+            _should_draw, self._last_draw_key = should_draw(draw_key, self._last_draw_key)
+            if self.state == 'playing' and not self.paused:
+                _should_draw = True
+            if _should_draw:
+                self._draw(60)
             pg.display.flip()
             await asyncio.sleep(0)
 
