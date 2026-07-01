@@ -22,6 +22,8 @@ class BreakoutGame:
         self._state_pub = StatePublisher()
         self._present_gate = PresentGate()
         self._timer = FixedStepTimer()
+        self._active_animation = False
+        self._render_after_anim = False
 
     def _init_fonts(self):
         self.title_font = pg.font.Font(c.FONT_NAME, c.FONT_SIZE_TITLE)
@@ -87,8 +89,10 @@ class BreakoutGame:
                         return
 
             hidden = page_hidden()
-            active = self.state == 'playing' and not self.paused
-            frame = self._timer.begin_frame(active=active, hidden=hidden)
+            simulation_active = self.state == 'playing' and not self.paused
+            animation_active = self._active_animation
+            render_continuous = simulation_active or animation_active or self._render_after_anim
+            frame = self._timer.begin_frame(active=simulation_active or animation_active, hidden=hidden)
             metrics = self._timer.metrics()
 
             for _ in range(frame.steps):
@@ -96,8 +100,8 @@ class BreakoutGame:
                 metrics.record_step()
 
             draw_key = (self.state, self.paused, self.game_over_state)
-            force_draw = (self.state == 'playing' and not self.paused)
-            if force_draw:
+            if render_continuous:
+                self._render_after_anim = False
                 self._draw(60)
                 self._state_pub._stats["draws"] += 1
                 metrics.record_draw()
@@ -108,7 +112,7 @@ class BreakoutGame:
             else:
                 metrics.record_static_draw_skip()
 
-            if self._present_gate.check_present(draw_key, force=force_draw):
+            if self._present_gate.check_present(draw_key, force=render_continuous):
                 pg.display.flip()
                 self._state_pub._stats["presentations"] += 1
                 metrics.record_present()
@@ -127,6 +131,7 @@ class BreakoutGame:
                 self.gameplay.reset()
                 self.paused = False
                 self.game_over_state = None
+                self._active_animation = False
                 return
             if key == pg.K_ESCAPE:
                 return 'quit'
@@ -148,6 +153,7 @@ class BreakoutGame:
                     self.gameplay.reset()
                     self.paused = False
                     self.game_over_state = None
+                    self._active_animation = False
                 elif self.pause_selection == 2:
                     self.sound_enabled = not self.sound_enabled
                     self.audio.muted = not self.sound_enabled
@@ -172,6 +178,7 @@ class BreakoutGame:
                 self.gameplay.reset()
                 self.paused = False
                 self.game_over_state = None
+                self._active_animation = False
                 return
             if key == pg.K_ESCAPE:
                 return 'quit'
@@ -192,7 +199,7 @@ class BreakoutGame:
             stage_transition,
             self.gameplay.remaining_bricks,
             self.gameplay.last_pickup_type,
-            self.gameplay.wide_paddle_timer > 0,
+            self.gameplay.paddle.wide_timer > 0,
             self.gameplay.slow_motion_timer > 0,
         )
 
@@ -238,8 +245,8 @@ class BreakoutGame:
             "treasureBricksRemaining": self.gameplay.treasure_count,
             "fallingPickupCount": len(self.gameplay.falling_pickups),
             "lastPickupType": self.gameplay.last_pickup_type,
-            "widePaddleActive": self.gameplay.wide_paddle_timer > 0,
-            "widePaddleRemainingMs": int(self.gameplay.wide_paddle_timer * 1000),
+            "widePaddleActive": self.gameplay.paddle.wide_timer > 0,
+            "widePaddleRemainingMs": int(self.gameplay.paddle.wide_timer * 1000),
             "slowMotionActive": self.gameplay.slow_motion_timer > 0,
             "slowMotionRemainingMs": int(self.gameplay.slow_motion_timer * 1000),
             "stageTransitionActive": self.gameplay.stage_transition_phase is not None,
@@ -252,8 +259,12 @@ class BreakoutGame:
             if result[0] == 'game_over':
                 self.state = 'game_over'
                 self.game_over_state = result[1]
+                self._active_animation = True
                 hs.submit_breakout(self.gameplay.score)
-        active = self.state == 'playing' and not self.paused
+        elif self.state == 'game_over' and self._active_animation:
+            self._active_animation = False
+            self._render_after_anim = True
+        active = (self.state == 'playing' and not self.paused) or self._active_animation
         self._state_pub.tick(
             dt,
             event_key=self._state_event_key(),

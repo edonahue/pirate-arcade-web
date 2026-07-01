@@ -48,6 +48,127 @@ BRICK_ROW_ACCENT = [
 REINFORCED_OVERLAY_COLOR = (60, 55, 50, 180)
 CRACK_COLOR = (160, 140, 100)
 
+_cached_body_surfs = {}
+
+
+def _build_body_surf(row, brick_type):
+    key = (row, brick_type)
+    if key in _cached_body_surfs:
+        return _cached_body_surfs[key]
+
+    w = c.BRICK_WIDTH
+    h = c.BRICK_HEIGHT
+    bevel = 3
+    color = BRICK_FORTRESS_COLORS[row]
+    highlight = BRICK_HIGHLIGHT[row]
+    shadow = BRICK_SHADOW[row]
+    accent = BRICK_ROW_ACCENT[row]
+
+    surf = pg.Surface((w, h), pg.SRCALPHA)
+
+    pg.draw.rect(surf, color, (0, 0, w, h), border_radius=2)
+
+    pg.draw.polygon(surf, highlight, [
+        (0, 0), (w, 0),
+        (w - bevel, bevel), (bevel, bevel),
+    ])
+    pg.draw.polygon(surf, highlight, [
+        (0, 0), (bevel, bevel),
+        (bevel, h - bevel), (0, h),
+    ])
+    pg.draw.polygon(surf, shadow, [
+        (0, h), (bevel, h - bevel),
+        (w - bevel, h - bevel), (w, h),
+    ])
+    pg.draw.polygon(surf, shadow, [
+        (w, 0), (w - bevel, bevel),
+        (w - bevel, h - bevel), (w, h),
+    ])
+
+    joint_y = h // 2
+    pg.draw.line(surf, shadow, (2, joint_y), (w - 2, joint_y), 1)
+
+    accent_x = 3
+    pg.draw.line(surf, accent, (accent_x, 4), (accent_x, h - 4), 1)
+
+    _cached_body_surfs[key] = surf
+    return surf
+
+
+_crack_surfs = {}
+_crack_overlay_surfs = {}
+
+
+def _build_crack_surf(w, h, color):
+    key = (w, h, color)
+    if key in _crack_surfs:
+        return _crack_surfs[key]
+    surf = pg.Surface((w, h), pg.SRCALPHA)
+    pg.draw.line(surf, color, (w // 4, 2), (w // 3, h - 2), 2)
+    pg.draw.line(surf, color, (w // 3, h - 2), (w // 2, h // 2), 2)
+    _crack_surfs[key] = surf
+    return surf
+
+
+def _build_damage_crack_surf(w, h, color):
+    key = ("damage", w, h, color)
+    if key in _crack_surfs:
+        return _crack_surfs[key]
+    surf = pg.Surface((w, h), pg.SRCALPHA)
+    pg.draw.line(surf, color, (w // 4, 2), (w // 3, h - 2), 1)
+    pg.draw.line(surf, color, (w // 3, h - 2), (w // 2, h // 2), 1)
+    _crack_surfs[key] = surf
+    return surf
+
+
+def _build_reinforced_overlay(w, h):
+    key = ("reinforced", w, h)
+    if key in _crack_overlay_surfs:
+        return _crack_overlay_surfs[key]
+    surf = pg.Surface((w, h), pg.SRCALPHA)
+    pg.draw.rect(surf, (60, 55, 50, 180), (0, 0, w, h), border_radius=2)
+    pg.draw.rect(surf, (120, 110, 80, 200), (0, 0, w, h), 2, border_radius=2)
+    for bx in range(0, w, 12):
+        pg.draw.line(surf, (100, 90, 60, 120), (bx, 0), (bx, h), 1)
+    _crack_overlay_surfs[key] = surf
+    return surf
+
+
+def _build_keg_surf(w, h):
+    key = ("keg", w, h)
+    if key in _crack_overlay_surfs:
+        return _crack_overlay_surfs[key]
+    surf = pg.Surface((w, h), pg.SRCALPHA)
+    cx, cy = w // 2, h // 2
+    r = min(w, h) // 2 - 2
+    pg.draw.circle(surf, c.PIRATE_FLAME, (cx, cy), r)
+    pg.draw.circle(surf, c.PIRATE_FLAME_INNER, (cx, cy), r - 2)
+    pg.draw.circle(surf, (255, 255, 200, 60), (cx - 2, cy - 2), r - 4)
+    fuse = [(cx + 4, cy - r), (cx + 8, cy - r - 4), (cx + 6, cy - r - 8)]
+    pg.draw.lines(surf, (180, 100, 50), False, fuse, 2)
+    pg.draw.circle(surf, (255, 200, 50), (cx + 6, cy - r - 8), 2)
+    _crack_overlay_surfs[key] = surf
+    return surf
+
+
+def _build_treasure_surf(w, h):
+    key = ("treasure", w, h)
+    if key in _crack_overlay_surfs:
+        return _crack_overlay_surfs[key]
+    surf = pg.Surface((w, h), pg.SRCALPHA)
+    cx, cy = w // 2, h // 2
+    tw, th = 14, 10
+    tx, ty = cx - tw // 2, cy - th // 2
+    pg.draw.rect(surf, c.PIRATE_BROWN_DARK, (tx, ty, tw, th), border_radius=2)
+    pg.draw.rect(surf, c.PIRATE_GOLD, (tx, ty, tw, th), 1, border_radius=2)
+    pg.draw.line(surf, c.PIRATE_GOLD, (tx, ty + th // 2 - 1), (tx + tw, ty + th // 2 - 1), 1)
+    pg.draw.circle(surf, c.PIRATE_TREASURE, (cx, cy), 2)
+    for si in range(4):
+        sx = tx + 3 + si * 3
+        pg.draw.line(surf, (255, 220, 100, 40), (sx, ty + 2), (sx + 1, ty + th - 2), 1)
+    _crack_overlay_surfs[key] = surf
+    return surf
+
 
 class Brick:
     def __init__(self, col, row, brick_type=c.BRICK_STANDARD):
@@ -70,7 +191,6 @@ class Brick:
         self.width = c.BRICK_WIDTH
         self.height = c.BRICK_HEIGHT
         self._build_glow()
-        self._build_special_surfs()
 
     def _build_glow(self):
         pad = 6
@@ -81,40 +201,6 @@ class Brick:
             alpha = max(0, c.BRICK_GLOW_ALPHA - (pad - i) * 7)
             r = pg.Rect(i, i, w - i * 2, h - i * 2)
             pg.draw.rect(self._glow_surf, (*c.PIRATE_GOLD, alpha), r, border_radius=3)
-
-    def _build_special_surfs(self):
-        self._reinforced_overlay = None
-        self._keg_surf = None
-        self._treasure_surf = None
-
-        if self.brick_type == c.BRICK_REINFORCED:
-            self._reinforced_overlay = pg.Surface((self.width, self.height), pg.SRCALPHA)
-            pg.draw.rect(self._reinforced_overlay, (60, 55, 50, 180), (0, 0, self.width, self.height), border_radius=2)
-            pg.draw.rect(self._reinforced_overlay, (120, 110, 80, 200), (0, 0, self.width, self.height), 2, border_radius=2)
-            for bx in range(0, self.width, 12):
-                pg.draw.line(self._reinforced_overlay, (100, 90, 60, 120), (bx, 0), (bx, self.height), 1)
-        elif self.brick_type == c.BRICK_POWDER_KEG:
-            self._keg_surf = pg.Surface((self.width, self.height), pg.SRCALPHA)
-            cx, cy = self.width // 2, self.height // 2
-            r = min(self.width, self.height) // 2 - 2
-            pg.draw.circle(self._keg_surf, c.PIRATE_FLAME, (cx, cy), r)
-            pg.draw.circle(self._keg_surf, c.PIRATE_FLAME_INNER, (cx, cy), r - 2)
-            pg.draw.circle(self._keg_surf, (255, 255, 200, 60), (cx - 2, cy - 2), r - 4)
-            fuse = [(cx + 4, cy - r), (cx + 8, cy - r - 4), (cx + 6, cy - r - 8)]
-            pg.draw.lines(self._keg_surf, (180, 100, 50), False, fuse, 2)
-            pg.draw.circle(self._keg_surf, (255, 200, 50), (cx + 6, cy - r - 8), 2)
-        elif self.brick_type == c.BRICK_TREASURE:
-            self._treasure_surf = pg.Surface((self.width, self.height), pg.SRCALPHA)
-            cx, cy = self.width // 2, self.height // 2
-            tw, th = 14, 10
-            tx, ty = cx - tw // 2, cy - th // 2
-            pg.draw.rect(self._treasure_surf, c.PIRATE_BROWN_DARK, (tx, ty, tw, th), border_radius=2)
-            pg.draw.rect(self._treasure_surf, c.PIRATE_GOLD, (tx, ty, tw, th), 1, border_radius=2)
-            pg.draw.line(self._treasure_surf, c.PIRATE_GOLD, (tx, ty + th // 2 - 1), (tx + tw, ty + th // 2 - 1), 1)
-            pg.draw.circle(self._treasure_surf, c.PIRATE_TREASURE, (cx, cy), 2)
-            for si in range(4):
-                sx = tx + 3 + si * 3
-                pg.draw.line(self._treasure_surf, (255, 220, 100, 40), (sx, ty + 2), (sx + 1, ty + th - 2), 1)
 
     @property
     def rect(self):
@@ -143,50 +229,28 @@ class Brick:
         gy = self.y - 6
         surface.blit(self._glow_surf, (gx, gy))
 
+        body = _build_body_surf(self.row, self.brick_type)
+        surface.blit(body, (self.x, self.y))
+
         r = self.rect
         bw = self.width
         bh = self.height
-        bevel = 3
+        brick_type = self.brick_type
 
-        pg.draw.rect(surface, self.color, r, border_radius=2)
-
-        pg.draw.polygon(surface, self.highlight, [
-            (r.x, r.y), (r.x + bw, r.y),
-            (r.x + bw - bevel, r.y + bevel), (r.x + bevel, r.y + bevel),
-        ])
-        pg.draw.polygon(surface, self.highlight, [
-            (r.x, r.y), (r.x + bevel, r.y + bevel),
-            (r.x + bevel, r.y + bh - bevel), (r.x, r.y + bh),
-        ])
-        pg.draw.polygon(surface, self.shadow, [
-            (r.x, r.y + bh), (r.x + bevel, r.y + bh - bevel),
-            (r.x + bw - bevel, r.y + bh - bevel), (r.x + bw, r.y + bh),
-        ])
-        pg.draw.polygon(surface, self.shadow, [
-            (r.x + bw, r.y), (r.x + bw - bevel, r.y + bevel),
-            (r.x + bw - bevel, r.y + bh - bevel), (r.x + bw, r.y + bh),
-        ])
-
-        joint_y = r.y + bh // 2
-        pg.draw.line(surface, self.shadow, (r.x + 2, joint_y), (r.x + bw - 2, joint_y), 1)
-
-        accent_x = r.x + 3
-        pg.draw.line(surface, self.accent, (accent_x, r.y + 4), (accent_x, r.y + bh - 4), 1)
-
-        if self.brick_type == c.BRICK_REINFORCED and self._reinforced_overlay:
-            surface.blit(self._reinforced_overlay, (r.x, r.y))
+        if brick_type == c.BRICK_REINFORCED:
+            overlay = _build_reinforced_overlay(bw, bh)
+            surface.blit(overlay, (r.x, r.y))
             if self.health < self.max_health:
-                crack_color = CRACK_COLOR
-                pg.draw.line(surface, crack_color, (r.x + bw // 4, r.y + 2), (r.x + bw // 3, r.y + bh - 2), 2)
-                pg.draw.line(surface, crack_color, (r.x + bw // 3, r.y + bh - 2), (r.x + bw // 2, r.y + bh // 2), 2)
+                cracks = _build_crack_surf(bw, bh, CRACK_COLOR)
+                surface.blit(cracks, (r.x, r.y))
+        elif brick_type == c.BRICK_POWDER_KEG:
+            keg = _build_keg_surf(bw, bh)
+            surface.blit(keg, (r.x, r.y))
+        elif brick_type == c.BRICK_TREASURE:
+            treasure = _build_treasure_surf(bw, bh)
+            surface.blit(treasure, (r.x, r.y))
 
-        if self.brick_type == c.BRICK_POWDER_KEG and self._keg_surf:
-            surface.blit(self._keg_surf, (r.x, r.y))
-
-        if self.brick_type == c.BRICK_TREASURE and self._treasure_surf:
-            surface.blit(self._treasure_surf, (r.x, r.y))
-
-        if self.health < 1 and self.brick_type != c.BRICK_REINFORCED:
+        if self.health < 1 and brick_type != c.BRICK_REINFORCED:
             dc = (min(255, self.color[0] - 30), min(255, self.color[1] - 30), min(255, self.color[2] - 30))
-            pg.draw.line(surface, dc, (r.x + bw // 4, r.y + 2), (r.x + bw // 3, r.y + bh - 2), 1)
-            pg.draw.line(surface, dc, (r.x + bw // 3, r.y + bh - 2), (r.x + bw // 2, r.y + bh // 2), 1)
+            damage = _build_damage_crack_surf(bw, bh, dc)
+            surface.blit(damage, (r.x, r.y))

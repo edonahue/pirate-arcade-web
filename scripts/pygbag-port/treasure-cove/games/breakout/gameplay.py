@@ -55,6 +55,12 @@ STAGE_NAMES = {
     3: "Treasure Vault",
 }
 
+STAGE_BACKDROP_COLORS = {
+    1: (15, 20, 40),
+    2: (25, 15, 35),
+    3: (10, 10, 20),
+}
+
 LEGEND = {
     -1: c.BRICK_EMPTY,
     0: c.BRICK_STANDARD,
@@ -62,6 +68,8 @@ LEGEND = {
     2: c.BRICK_POWDER_KEG,
     3: c.BRICK_TREASURE,
 }
+
+CREW_LOST_HOLD_DURATION = 0.7
 
 
 class Gameplay:
@@ -74,7 +82,7 @@ class Gameplay:
         self.stage_font = pg.font.Font(c.FONT_NAME, c.FONT_SIZE_TITLE)
         self.small_font = pg.font.Font(c.FONT_NAME, c.FONT_SIZE_SMALL)
 
-        self.paddle = Paddle()
+        self.paddle = Paddle(c.WINDOW_WIDTH // 2, c.WINDOW_HEIGHT - c.PADDLE_BREAKOUT_MARGIN)
         self.balls = [Ball()]
         self.bricks = []
         self.falling_pickups = []
@@ -89,13 +97,15 @@ class Gameplay:
         self.flash_timer = 0.0
         self.stage_transition_timer = 0.0
         self.stage_transition_phase = None
-        self.wide_paddle_timer = 0.0
         self.slow_motion_timer = 0.0
         self.slow_motion_factor = c.BALL_BREAKOUT_SLOW_FACTOR
         self.run_complete = False
         self.last_pickup_type = None
         self._pickup_label_timer = 0.0
         self._pickup_label = None
+        self._pickup_label_surf = None
+        self._life_lost_timer = 0.0
+        self._life_lost_pending_reset = False
 
         self._cached_score = -1
         self._cached_score_surf = None
@@ -104,7 +114,37 @@ class Gameplay:
         self._stage_banner_timer = 0.0
         self._stage_banner_surf = None
 
+        self._backdrop_surfs = {}
+        self._build_backdrop_surfs()
         self._build_bricks()
+
+    def _build_backdrop_surfs(self):
+        for stage, color in STAGE_BACKDROP_COLORS.items():
+            surf = pg.Surface((c.WINDOW_WIDTH, c.WINDOW_HEIGHT))
+            surf.fill(color)
+            r = pg.Rect(0, 0, c.WINDOW_WIDTH, c.WINDOW_HEIGHT)
+            stripe_color = (min(255, color[0] + 8), min(255, color[1] + 8), min(255, color[2] + 8))
+            for sy in range(60, c.WINDOW_HEIGHT, 80):
+                pg.draw.line(surf, stripe_color, (0, sy), (c.WINDOW_WIDTH, sy), 1)
+            for sx in range(40, c.WINDOW_WIDTH, 120):
+                pg.draw.line(surf, stripe_color, (sx, 0), (sx, c.WINDOW_HEIGHT), 1)
+            if stage == 1:
+                for i in range(3):
+                    ay = 200 + i * 100
+                    pts = [(0, ay), (100, ay - 40), (200, ay)]
+                    pg.draw.lines(surf, (20, 30, 60), False, pts, 2)
+            elif stage == 2:
+                for i in range(4):
+                    cx = 200 + i * 400
+                    pg.draw.circle(surf, (40, 20, 50), (cx, 400), 60, 2)
+                    pg.draw.circle(surf, (40, 20, 50), (cx, 400), 40, 1)
+            elif stage == 3:
+                for i in range(6):
+                    gx = 100 + i * 250
+                    gsize = random.randint(20, 50)
+                    pg.draw.circle(surf, (50, 40, 20, 60), (gx, 500 + random.randint(-100, 100)), gsize, 1)
+                    pg.draw.circle(surf, (60, 50, 25, 40), (gx, 500 + random.randint(-100, 100)), gsize // 2, 1)
+            self._backdrop_surfs[stage] = surf
 
     def _get_stage_speed(self):
         return c.STAGE_START_SPEEDS.get(self.stage, c.BALL_BREAKOUT_SPEED)
@@ -141,20 +181,32 @@ class Gameplay:
     def _spawn_explosion_particles(self, brick):
         cx = brick.x + brick.width // 2
         cy = brick.y + brick.height // 2
-        for _ in range(random.randint(15, 25)):
+        count = min(random.randint(15, 25), 15)
+        for _ in range(count):
             self.explosion_particles.append(ExplosionParticle(cx, cy))
 
     def reset_round(self):
-        self.paddle.reset()
+        self.paddle.x = c.WINDOW_WIDTH // 2
+        self.paddle.y = c.WINDOW_HEIGHT - c.PADDLE_BREAKOUT_MARGIN
+        self.paddle.vx = 0
         self.balls = [Ball()]
         primary = self.balls[0]
-        primary.reset(self.paddle, speed=self._get_stage_speed())
+        primary.x = self.paddle.x
+        primary.y = self.paddle.y - self.paddle.height // 2 - primary.radius - 1
+        primary._underlying_speed = self._get_stage_speed()
+        primary.speed = 0
+        primary.launched = False
+        primary.px = primary.x
+        primary.py = primary.y
         self.hit_particles = []
         self.explosion_particles = []
         self.brick_flashes = []
         self.falling_pickups = []
         self._pickup_label_timer = 0.0
         self._pickup_label = None
+        self._pickup_label_surf = None
+        self._life_lost_timer = 0.0
+        self._life_lost_pending_reset = False
 
     def reset(self):
         self.score = 0
@@ -164,7 +216,6 @@ class Gameplay:
         self.explosion_particles = []
         self.brick_flashes = []
         self.flash_timer = 0.0
-        self.wide_paddle_timer = 0.0
         self.slow_motion_timer = 0.0
         self.run_complete = False
         self.stage_transition_timer = 0.0
@@ -175,6 +226,10 @@ class Gameplay:
         self._cached_score_surf = None
         self._cached_lives = -1
         self._cached_lives_surf = None
+        self._life_lost_timer = 0.0
+        self._life_lost_pending_reset = False
+        self._pickup_label = None
+        self._pickup_label_surf = None
         self._build_bricks()
         self.reset_round()
 
@@ -184,34 +239,29 @@ class Gameplay:
         self.falling_pickups = []
         self._pickup_label_timer = 0.0
         self._pickup_label = None
-        self.wide_paddle_timer = 0.0
+        self._pickup_label_surf = None
         self.slow_motion_timer = 0.0
         self.paddle.wide_timer = 0.0
-        if self.paddle.is_wide:
-            self.paddle.width = self.paddle.base_width
-            self.paddle._built = False
-        for ball in self.balls:
-            ball.trail.clear()
         self._remove_all_slow()
 
     def _remove_all_slow(self):
         for ball in self.balls:
-            if hasattr(ball, '_slow_mult'):
-                del ball._slow_mult
+            ball.set_slow(False)
 
     def _apply_slow_to_all_balls(self):
         for ball in self.balls:
-            ball.apply_slow(self.slow_motion_factor)
+            ball.set_slow(True)
 
     def _remove_slow_from_all_balls(self):
         for ball in self.balls:
-            ball.remove_slow()
+            ball.set_slow(False)
 
     def _powder_keg_chain(self, start_brick, chain_set=None):
         if chain_set is None:
             chain_set = set()
+        chain_set.add(id(start_brick))
         if len(chain_set) > c.POWDER_KEG_CHAIN_MAX:
-            return
+            return []
         affected = []
         cx = start_brick.x + start_brick.width // 2
         cy = start_brick.y + start_brick.height // 2
@@ -255,25 +305,95 @@ class Gameplay:
                 for ball in self.balls:
                     if len(self.balls) + len(new_balls) >= c.MAX_BALLS:
                         break
-                    nb = ball.clone(self.paddle)
+                    nb = Ball()
+                    nb.x = ball.x
+                    nb.y = ball.y
+                    nb.px = ball.px
+                    nb.py = ball.py
+                    nb.vx = -ball.vx
+                    nb.vy = ball.vy
+                    nb.speed = ball.speed
+                    nb._underlying_speed = ball._underlying_speed
+                    nb._slow_mult = ball._slow_mult
+                    nb.launched = True
                     new_balls.append(nb)
                 self.balls.extend(new_balls)
-                if self.slow_motion_timer > 0:
-                    for nb in new_balls:
-                        nb.apply_slow(self.slow_motion_factor)
         elif pickup.pickup_type == "wide_paddle":
             self.paddle.activate_wide()
-            self.wide_paddle_timer = self.paddle.wide_timer
         elif pickup.pickup_type == "slow_motion":
             self.slow_motion_timer = c.BALL_BREAKOUT_SLOW_DURATION
             self._apply_slow_to_all_balls()
 
         self._pickup_label = pickup.label
         self._pickup_label_timer = 1.5
+        self._pickup_label_surf = self.hud_font.render(pickup.label, True, c.PIRATE_GOLD)
         self.audio.play('powerup')
+
+    def _resolve_brick_swept(self, ball, brick):
+        brick_rect = brick.rect
+        bx1, by1 = ball.px, ball.py
+        bx2, by2 = ball.x, ball.y
+        dx = bx2 - bx1
+        dy = by2 - by1
+        if dx == 0 and dy == 0:
+            return False
+        r = ball.radius
+        exp_rect = brick_rect.inflate(r * 2, r * 2)
+        tmin, tmax = 0.0, 1.0
+        if dx != 0:
+            tx1 = (exp_rect.left - bx1) / dx
+            tx2 = (exp_rect.right - bx1) / dx
+            tmin = max(tmin, min(tx1, tx2))
+            tmax = min(tmax, max(tx1, tx2))
+        elif bx1 < exp_rect.left or bx1 > exp_rect.right:
+            return False
+        if dy != 0:
+            ty1 = (exp_rect.top - by1) / dy
+            ty2 = (exp_rect.bottom - by1) / dy
+            tmin = max(tmin, min(ty1, ty2))
+            tmax = min(tmax, max(ty1, ty2))
+        elif by1 < exp_rect.top or by1 > exp_rect.bottom:
+            return False
+        if tmin > tmax:
+            return False
+        hit_x = bx1 + dx * tmin
+        hit_y = by1 + dy * tmin
+        if dx > 0:
+            hit_from_left = hit_x <= brick_rect.centerx
+        elif dx < 0:
+            hit_from_left = False
+        else:
+            hit_from_left = True
+        if dy > 0:
+            hit_from_top = hit_y <= brick_rect.centery
+        elif dy < 0:
+            hit_from_top = False
+        else:
+            hit_from_top = True
+        overlap_x = abs(hit_x - brick_rect.centerx) / brick_rect.width
+        overlap_y = abs(hit_y - brick_rect.centery) / brick_rect.height
+        if overlap_x >= overlap_y:
+            if hit_from_left:
+                ball.vx = -abs(ball.vx)
+            else:
+                ball.vx = abs(ball.vx)
+        else:
+            if hit_from_top:
+                ball.vy = -abs(ball.vy)
+            else:
+                ball.vy = abs(ball.vy)
+        ball.x = bx1 + dx * max(0.0, min(1.0, tmin - 0.01))
+        ball.y = by1 + dy * max(0.0, min(1.0, tmin - 0.01))
+        ball.ensure_min_vy()
+        return True
 
     def update(self, dt, keys):
         if keys is None:
+            return ('playing', None)
+
+        if self._life_lost_timer > 0:
+            self._life_lost_timer -= dt
+            self._update_particles(dt)
             return ('playing', None)
 
         if self.stage_transition_phase:
@@ -296,19 +416,18 @@ class Gameplay:
                     self.stage_transition_phase = None
                     self.stage_transition_timer = 0.0
 
-            for p in self.hit_particles:
-                p.update(dt)
-            self.hit_particles = [p for p in self.hit_particles if not p.dead]
-            for p in self.explosion_particles:
-                p.update(dt)
-            self.explosion_particles = [p for p in self.explosion_particles if not p.dead]
+            self._update_particles(dt)
             return ('stage_transition', None)
 
         target_active = bool(getattr(builtins, "__pa_touch_active__", False))
         target_axis = getattr(builtins, "__pa_touch_axis__", None)
         target_value = getattr(builtins, "__pa_touch_value__", None)
         if target_active and target_axis == "x" and target_value is not None:
-            half = self.paddle.width // 2
+            half = c.PADDLE_BREAKOUT_WIDTH // 2
+            w = c.PADDLE_BREAKOUT_WIDTH
+            if self.paddle.wide_timer > 0:
+                w = int(c.PADDLE_BREAKOUT_WIDTH * c.PADDLE_BREAKOUT_WIDE_MULTIPLIER)
+                half = w // 2
             target_x = float(target_value)
             target_x = max(half, min(c.WINDOW_WIDTH - half, target_x))
             diff = target_x - self.paddle.x
@@ -329,7 +448,8 @@ class Gameplay:
 
         for ball in self.balls:
             if not ball.launched:
-                ball.stick_to_paddle(self.paddle)
+                ball.x = self.paddle.x
+                ball.y = self.paddle.y - self.paddle.height // 2 - ball.radius - 1
                 if keys[pg.K_SPACE]:
                     ball.launch()
                     self.audio.play('paddle_hit')
@@ -342,6 +462,7 @@ class Gameplay:
             if ball.y - ball.radius <= 0:
                 ball.y = ball.radius
                 ball.vy = -ball.vy
+                ball.ensure_min_vy()
                 self.audio.play('wall_hit')
             if ball.x - ball.radius <= 0:
                 ball.x = ball.radius
@@ -353,23 +474,26 @@ class Gameplay:
                 self.audio.play('wall_hit')
 
             if ball.rect.colliderect(self.paddle.rect):
-                offset = (ball.x - self.paddle.x) / (self.paddle.width / 2)
+                offset = (ball.x - self.paddle.x) / (self.paddle.rect.width / 2)
                 offset = max(-1, min(1, offset))
                 angle = offset * 60
                 speed = ball.speed
                 ball.vx = math.cos(math.radians(angle)) * speed
                 ball.vy = -abs(math.sin(math.radians(angle)) * speed)
-                ball.y = self.paddle.y - self.paddle.height // 2 - ball.radius
+                ball.y = self.paddle.rect.top - ball.radius
                 ball.bump_speed()
+                ball.ensure_min_vy()
                 self.audio.play('paddle_hit')
 
-            ball_rect = ball.rect
             for brick in self.bricks:
                 if not brick.alive:
                     continue
-                if ball_rect.colliderect(brick.rect):
+                if ball.rect.colliderect(brick.rect):
                     self._resolve_brick_collision(ball, brick)
                     break
+                elif self._resolve_brick_swept(ball, brick):
+                    if not brick.alive:
+                        break
 
         falling_balls = 0
         launched_balls = 0
@@ -380,23 +504,31 @@ class Gameplay:
                 launched_balls += 1
 
         if falling_balls > 0 and launched_balls == 0:
-            if falling_balls >= len(self.balls):
+            if falling_balls >= len([b for b in self.balls if b.launched]):
                 self.lives -= 1
                 self.flash_timer = 0.3
                 self.audio.play('life_lost')
                 if self.lives <= 0:
                     return ('game_over', 'lost')
-                self.reset_round()
-                self.wide_paddle_timer = 0.0
-                self.slow_motion_timer = 0.0
-                self.paddle.wide_timer = 0.0
-                if self.paddle.is_wide:
-                    self.paddle.width = self.paddle.base_width
-                    self.paddle._built = False
-                self._remove_all_slow()
+                self._life_lost_timer = CREW_LOST_HOLD_DURATION
+                self._life_lost_pending_reset = True
+                self._pickup_label = "CREW LOST!"
+                self._pickup_label_surf = self.hud_font.render("CREW LOST!", True, c.PIRATE_RED)
+                self._pickup_label_timer = CREW_LOST_HOLD_DURATION + 0.2
                 return ('playing', None)
             else:
                 self.balls = [b for b in self.balls if not (b.launched and b.y + b.radius > c.WINDOW_HEIGHT)]
+
+        if self._life_lost_pending_reset and self._life_lost_timer <= 0:
+            self._life_lost_pending_reset = False
+            self.reset_round()
+            self.slow_motion_timer = 0.0
+            self.paddle.wide_timer = 0.0
+            self._remove_all_slow()
+            self._pickup_label = None
+            self._pickup_label_surf = None
+            self._pickup_label_timer = 0.0
+            self._life_lost_timer = 0.0
 
         any_launched = any(b.launched for b in self.balls)
         if self.remaining_bricks == 0 and not self.stage_transition_phase and any_launched:
@@ -422,19 +554,14 @@ class Gameplay:
             self._pickup_label_timer -= dt
 
     def _update_timers(self, dt):
-        if self.wide_paddle_timer > 0:
-            self.wide_paddle_timer -= dt
-            if self.wide_paddle_timer <= 0:
-                self.wide_paddle_timer = 0.0
-                if not self.paddle.is_wide:
-                    self.paddle.width = self.paddle.base_width
-                    self.paddle._built = False
-
         if self.slow_motion_timer > 0:
             self.slow_motion_timer -= dt
             if self.slow_motion_timer <= 0:
                 self.slow_motion_timer = 0.0
                 self._remove_slow_from_all_balls()
+
+        if self._life_lost_timer > 0:
+            self._life_lost_timer -= dt
 
         if self._stage_banner_timer > 0:
             self._stage_banner_timer -= dt
@@ -470,6 +597,8 @@ class Gameplay:
         else:
             ball.vy = -ball.vy
 
+        ball.ensure_min_vy()
+
         self.score += brick.points
         self._spawn_brick_particles(brick)
         self.flash_timer = 0.15
@@ -484,7 +613,6 @@ class Gameplay:
             brick.health = 0
             if was_alive:
                 self.remaining_bricks -= 1
-                self.score += brick.points
             self._powder_keg_chain(brick)
             self.audio.play('explosion')
             return
@@ -504,7 +632,11 @@ class Gameplay:
         pass
 
     def draw(self, surface, fps=0):
-        surface.fill(c.PIRATE_NAVY)
+        backdrop = self._backdrop_surfs.get(self.stage)
+        if backdrop:
+            surface.blit(backdrop, (0, 0))
+        else:
+            surface.fill(c.PIRATE_NAVY)
 
         for rect, timer in self.brick_flashes:
             idx = int(timer / 0.3 * 7) if timer <= 0.3 else 7
@@ -528,11 +660,10 @@ class Gameplay:
         for p in self.explosion_particles:
             p.draw(surface)
 
-        if self._pickup_label and self._pickup_label_timer > 0:
-            label_surf = self.hud_font.render(self._pickup_label, True, c.PIRATE_GOLD)
-            lx = c.WINDOW_WIDTH // 2 - label_surf.get_width() // 2
+        if self._pickup_label_surf and self._pickup_label_timer > 0:
+            lx = c.WINDOW_WIDTH // 2 - self._pickup_label_surf.get_width() // 2
             ly = c.WINDOW_HEIGHT // 2 - 40
-            surface.blit(label_surf, (lx, ly))
+            surface.blit(self._pickup_label_surf, (lx, ly))
 
         if self._stage_banner_timer > 0 and self._stage_banner_surf:
             bx = c.WINDOW_WIDTH // 2 - self._stage_banner_surf.get_width() // 2
@@ -568,8 +699,9 @@ class Gameplay:
             balls_surf = self.small_font.render(balls_text, True, c.PIRATE_TAN)
             surface.blit(balls_surf, (20, 45))
 
-        if self.wide_paddle_timer > 0:
-            remaining = int(self.wide_paddle_timer)
+        wide_timer = self.paddle.wide_timer
+        if wide_timer > 0:
+            remaining = int(wide_timer)
             wp_text = f"WIDE: {remaining}s"
             wp_surf = self.small_font.render(wp_text, True, c.PIRATE_TEAL)
             wp_rect = wp_surf.get_rect()
@@ -584,8 +716,12 @@ class Gameplay:
             sm_text = f"SLOW: {remaining}s"
             sm_surf = self.small_font.render(sm_text, True, (100, 255, 100))
             sm_rect = sm_surf.get_rect()
-            y_offset = 45 if not balls_text and self.wide_paddle_timer <= 0 else 65 if balls_text and self.wide_paddle_timer <= 0 else 85
-            sm_rect.topleft = (20, y_offset)
+            y_base = 45
+            if balls_text:
+                y_base += 20
+            if wide_timer > 0:
+                y_base += 20
+            sm_rect.topleft = (20, y_base)
             surface.blit(sm_surf, sm_rect)
 
         if self.flash_timer > 0:

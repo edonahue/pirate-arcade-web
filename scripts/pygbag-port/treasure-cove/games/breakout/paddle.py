@@ -1,159 +1,106 @@
 import pygame as pg
 import constants as c
+import math
 
 
 class Paddle:
-    def __init__(self):
-        self.base_width = c.PADDLE_BREAKOUT_WIDTH
-        self.base_height = c.PADDLE_BREAKOUT_HEIGHT
-        self.width = self.base_width
-        self.height = self.base_height
-        self.x = c.WINDOW_WIDTH // 2
-        self.y = c.WINDOW_HEIGHT - c.PADDLE_BREAKOUT_MARGIN
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
         self.vx = 0
+        self.width = c.PADDLE_BREAKOUT_WIDTH
+        self.height = c.PADDLE_BREAKOUT_HEIGHT
         self.wide_timer = 0.0
-        self._built = False
+        self.was_wide = False
+        self._build_surfs()
+        self._pulse_surfs = []
+        self._cached_pulse = None
 
     def _build_surfs(self):
-        pad = 12
-        w_glow = self.width + pad * 2
-        h_glow = self.height + pad * 2
-        self._glow_surf = pg.Surface((w_glow, h_glow), pg.SRCALPHA)
-        for i in range(pad, 0, -1):
-            alpha = max(0, 45 - (pad - i) * 4)
-            r = pg.Rect(i, i, w_glow - i * 2, h_glow - i * 2)
-            glow_color = c.PIRATE_TEAL if self.wide_timer > 0 else c.PIRATE_GOLD
-            pg.draw.rect(self._glow_surf, (*glow_color, alpha), r, border_radius=6)
+        w = self.width
+        h = self.height
 
-        vw = max(self.width + 32, 50)
-        vh = self.height + 18
-        self._ship_surf = pg.Surface((vw, vh), pg.SRCALPHA)
-        hull_color = c.PIRATE_DARK_WOOD
-        deck_color = c.PIRATE_BROWN
-        trim_color = c.PIRATE_GOLD
-        mast_color = c.PIRATE_TAN
-        oy = 4
+        self._glow_width = w * 3
+        self._glow_surf = pg.Surface((self._glow_width, h + 12), pg.SRCALPHA)
+        for i in range(6, 0, -1):
+            alpha = max(0, c.BRICK_GLOW_ALPHA - (6 - i) * 7)
+            gx = (self._glow_width - (w + i * 2)) // 2
+            gr = pg.Rect(gx, i, w + i * 2, h + 6 - i * 2)
+            pg.draw.rect(self._glow_surf, (*c.PIRATE_GOLD, alpha), gr, border_radius=3)
 
-        pg.draw.polygon(self._ship_surf, hull_color, [
-            (0, oy + vh - 8),
-            (2, oy + 8),
-            (vw // 2 - 2, oy + 2),
-            (vw // 2 + 2, oy + 2),
-            (vw - 2, oy + 8),
-            (vw, oy + vh - 8),
-            (vw - 4, oy + vh - 4),
-            (4, oy + vh - 4),
-        ])
-        pg.draw.rect(self._ship_surf, hull_color, (4, oy + 6, vw - 8, vh - 14))
-        pg.draw.rect(self._ship_surf, deck_color, (6, oy + 8, vw - 12, vh - 18))
-        pg.draw.line(self._ship_surf, trim_color, (4, oy + 6), (vw - 4, oy + 6), 2)
-        pg.draw.line(self._ship_surf, trim_color, (2, oy + vh - 6), (vw - 2, oy + vh - 6), 1)
+        self._normal_surf = pg.Surface((w, h), pg.SRCALPHA)
+        pg.draw.rect(self._normal_surf, c.PIRATE_CANNON, (0, 0, w, h), border_radius=4)
+        pg.draw.rect(self._normal_surf, c.PIRATE_BLOOD, (0, 0, w, h), 2, border_radius=4)
+        plank_h = h // 3
+        for py in range(plank_h, h, plank_h):
+            pg.draw.line(self._normal_surf, c.PIRATE_BROWN, (2, py), (w - 2, py), 1)
+        for px in range(6, w, 8):
+            pg.draw.line(self._normal_surf, (60, 55, 50, 60), (px, 2), (px + 2, h - 2), 1)
 
-        mast_x = vw // 2
-        mast_top = oy + 4
-        mast_bot = oy + vh - 12
-        pg.draw.line(self._ship_surf, mast_color, (mast_x, mast_top), (mast_x, mast_bot), 3)
-        pg.draw.rect(self._ship_surf, c.PIRATE_DARK_WOOD, (mast_x - 4, oy + 4, 8, 4))
+        wide_w = int(w * c.PADDLE_BREAKOUT_WIDE_MULTIPLIER)
+        self._wide_surf = pg.Surface((wide_w, h), pg.SRCALPHA)
+        pg.draw.rect(self._wide_surf, (40, 50, 60), (0, 0, wide_w, h), border_radius=4)
+        pg.draw.rect(self._wide_surf, (0, 200, 255), (0, 0, wide_w, h), 2, border_radius=4)
+        plank_h = h // 3
+        for py in range(plank_h, h, plank_h):
+            pg.draw.line(self._wide_surf, (30, 60, 80), (2, py), (wide_w - 2, py), 1)
+        for px in range(6, wide_w, 8):
+            pg.draw.line(self._wide_surf, (50, 90, 110, 60), (px, 2), (px + 2, h - 2), 1)
 
-        yardarm_y = oy + vh // 3
-        spread = vw // 4
-        pg.draw.line(self._ship_surf, trim_color,
-                     (mast_x - spread, yardarm_y), (mast_x + spread, yardarm_y), 2)
-
-        sail_spread = max(12, vw // 5)
-        sail_top = mast_top + 6
-        sail_bot = yardarm_y + 4
-        pg.draw.polygon(self._ship_surf, c.PIRATE_CREAM, [
-            (mast_x, sail_top), (mast_x + sail_spread, sail_bot), (mast_x - sail_spread, sail_bot),
-        ])
-        pg.draw.polygon(self._ship_surf, c.PIRATE_SAND, [
-            (mast_x, sail_top), (mast_x + sail_spread, sail_bot), (mast_x - sail_spread, sail_bot),
-        ], 1)
-
-        oar_y = oy + vh - 6
-        oar_count = 4
-        oar_spacing = vw // (oar_count + 1)
-        oar_color = (130, 90, 50)
-        for i in range(1, oar_count + 1):
-            ox = oar_spacing * i
-            pg.draw.line(self._ship_surf, oar_color, (ox - 4, oar_y - 4), (ox, oar_y + 4), 2)
-            pg.draw.line(self._ship_surf, oar_color, (ox, oar_y + 4), (ox + 4, oar_y - 4), 2)
-
-        crate_w = max(14, vw // 6)
-        crate_h = vh // 3
-        crate_x = (vw - crate_w) // 2
-        crate_y = oy + 8
-        pg.draw.rect(self._ship_surf, c.PIRATE_BROWN_DARK, (crate_x, crate_y, crate_w, crate_h))
-        pg.draw.rect(self._ship_surf, c.PIRATE_GOLD, (crate_x, crate_y, crate_w, crate_h), 1)
-        band_y = crate_y + crate_h // 2 - 1
-        pg.draw.line(self._ship_surf, c.PIRATE_GOLD, (crate_x + 2, band_y), (crate_x + crate_w - 2, band_y), 1)
-
-        lantern_radius = 4
-        lantern_x = vw // 2
-        lantern_y = oy + vh - 10
-        pg.draw.circle(self._ship_surf, c.PIRATE_GOLD, (lantern_x, lantern_y), lantern_radius)
-        pg.draw.circle(self._ship_surf, c.PIRATE_TREASURE, (lantern_x, lantern_y), lantern_radius - 1)
-
-        self._built = True
+    def _build_pulse_surfs(self):
+        self._pulse_surfs = []
+        for frame in range(8):
+            alpha = int(100 + 155 * abs(math.sin(frame * math.pi / 8)))
+            w = self._wide_surf.get_width()
+            h = self.height
+            surf = pg.Surface((w + 6, h + 6), pg.SRCALPHA)
+            pg.draw.rect(surf, (0, 200, 255, alpha), (0, 0, w + 6, h + 6), 3, border_radius=5)
+            self._pulse_surfs.append(surf)
 
     @property
     def rect(self):
-        return pg.Rect(self.x - self.width // 2, self.y - self.height // 2,
-                       self.width, self.height)
-
-    def reset(self):
-        self.x = c.WINDOW_WIDTH // 2
-        self.vx = 0
-        self.wide_timer = 0.0
-        self.width = self.base_width
-        self.height = self.base_height
-        self._built = False
+        w = self.width
+        if self.wide_timer > 0:
+            w = int(w * c.PADDLE_BREAKOUT_WIDE_MULTIPLIER)
+        return pg.Rect(self.x - w // 2, self.y - self.height // 2, w, self.height)
 
     def activate_wide(self):
-        self.width = int(self.base_width * c.PADDLE_BREAKOUT_WIDE_MULTIPLIER)
         self.wide_timer = c.PADDLE_BREAKOUT_WIDE_DURATION
-        self._built = False
-
-    @property
-    def is_wide(self):
-        return self.wide_timer > 0
-
-    @property
-    def wide_remaining(self):
-        return max(0, self.wide_timer)
+        self.was_wide = True
 
     def update(self, dt):
-        self.x += self.vx * dt
-        self.x = max(self.width // 2, min(c.WINDOW_WIDTH - self.width // 2, self.x))
-
         if self.wide_timer > 0:
             self.wide_timer -= dt
             if self.wide_timer <= 0:
-                self.width = self.base_width
-                self.height = self.base_height
-                self._built = False
+                self.wide_timer = 0
 
     def draw(self, surface):
-        if not self._built:
-            self._build_surfs()
-
-        gx = int(self.x - self.width // 2 - 12)
-        gy = int(self.y - self.height // 2 - 12)
+        gx = self.x - self._glow_width // 2
+        gy = self.y - self.height // 2 - 6
         surface.blit(self._glow_surf, (gx, gy))
 
-        sx = int(self.x - self.width // 2)
-        sy = int(self.y - self.height // 2 - 7)
+        wide = self.wide_timer > 0
+        bw = self.width
+        bh = self.height
+        r = self.rect
 
-        if self.is_wide:
-            tinted = self._ship_surf.copy()
-            tint = pg.Surface((self._ship_surf.get_width(), self._ship_surf.get_height()), pg.SRCALPHA)
-            tint.fill((0, 180, 255, 60))
-            tinted.blit(tint, (0, 0), special_flags=pg.BLEND_RGBA_MULT)
-
-            pulse = abs(math.sin(pg.time.get_ticks() * 0.005))
-            near_expiry = self.wide_timer < 2.0
-            if near_expiry and pulse > 0.7:
-                pg.draw.rect(surface, c.PIRATE_TEAL, self.rect, 3)
-            surface.blit(tinted, (sx, sy))
+        if wide:
+            surf = self._wide_surf
+            blit_w = surf.get_width()
+            blit_x = r.x
         else:
-            surface.blit(self._ship_surf, (sx, sy))
+            surf = self._normal_surf
+            blit_w = bw
+            blit_x = r.x
+        surface.blit(surf, (blit_x, r.y))
+
+        near_expiry = 0 < self.wide_timer < 2.0
+        if near_expiry:
+            frame = int((pg.time.get_ticks() // 60) % 8)
+            if len(self._pulse_surfs) == 0:
+                self._build_pulse_surfs()
+            if self._pulse_surfs:
+                ps = self._pulse_surfs[frame]
+                px = r.x - 3
+                py = r.y - 3
+                surface.blit(ps, (px, py))

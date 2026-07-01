@@ -24,6 +24,8 @@ PICKUP_SYMBOLS = {
 
 
 class Pickup:
+    _cached_scale_surfs = {}
+
     def __init__(self, x, y, pickup_type):
         self.x = x
         self.y = y
@@ -57,6 +59,14 @@ class Pickup:
             pg.draw.line(self._icon_surf, self.color, (half, half), (half, half - half // 2 + 2), 2)
             pg.draw.line(self._icon_surf, self.color, (half, half), (half + half // 2 - 2, half), 2)
 
+        if self.pickup_type not in self._cached_scale_surfs:
+            frames = {}
+            for frame in range(8):
+                pulse_scale = 1.0 + math.sin(frame * math.pi / 4) * 0.05
+                scaled_size = int(s * pulse_scale)
+                frames[frame] = pg.transform.scale(self._icon_surf, (scaled_size, scaled_size))
+            self._cached_scale_surfs[self.pickup_type] = frames
+
         self._font = pg.font.Font(c.FONT_NAME, c.FONT_SIZE_TINY)
         self._label_surf = self._font.render(self.label, True, self.color)
 
@@ -76,18 +86,21 @@ class Pickup:
 
     def draw(self, surface):
         s = c.PICKUP_SIZE
-        pulse_extra = int(math.sin(self.pulse) * 3)
         ox = self.x - s // 2 - 6
         oy = self.y - s // 2 - 6
         surface.blit(self._glow_surf, (ox, oy))
-        scale = 1.0 + math.sin(self.pulse) * 0.05
-        scaled_size = int(s * scale)
-        scaled_surf = pg.transform.scale(self._icon_surf, (scaled_size, scaled_size))
-        ix = self.x - scaled_size // 2
-        iy = self.y - scaled_size // 2
+        frame = int(self.pulse * 4 / math.pi) % 8
+        frames = self._cached_scale_surfs.get(self.pickup_type, {})
+        scaled_surf = frames.get(frame)
+        if scaled_surf is None:
+            pulse_scale = 1.0 + math.sin(self.pulse) * 0.05
+            scaled_size = int(s * pulse_scale)
+            scaled_surf = pg.transform.scale(self._icon_surf, (scaled_size, scaled_size))
+        ix = self.x - scaled_surf.get_width() // 2
+        iy = self.y - scaled_surf.get_height() // 2
         surface.blit(scaled_surf, (ix, iy))
         pg.draw.rect(surface, (255, 255, 255, 100),
-                     (ix, iy, scaled_size, scaled_size), 1, border_radius=3)
+                     (ix, iy, scaled_surf.get_width(), scaled_surf.get_height()), 1, border_radius=3)
 
     def draw_label(self, surface, font):
         text = font.render(self.label, True, self.color)
