@@ -36,6 +36,7 @@ const GAMES = [
       "__pa_touch_axis__",
       "__pa_touch_value__",
     ],
+    archiveMarker: "_ship_surf",
   },
   {
     id: "treasure-cove",
@@ -48,21 +49,21 @@ const GAMES = [
     archiveSubPath: "assets/games/breakout/paddle.py",
     requiredMarkers: [
       "_build_surfs",
-      "_ship_surf",
-      "pg.draw.polygon",
+      "_normal_surf",
+      "_wide_surf",
       /PIRATE_\w+/,
-      "vw",
-      "mast_x",
-      "crate",
-      "lantern",
+      "PIRATE_CANNON",
+      "PIRATE_BLOOD",
+      "PIRATE_BROWN",
       "PIRATE_GOLD",
-      "PIRATE_DARK_WOOD",
+      "pg.draw.rect",
     ],
     gameplayMarkers: [
       "__pa_touch_active__",
       "__pa_touch_axis__",
       "__pa_touch_value__",
     ],
+    archiveMarker: "_normal_surf",
   },
   {
     id: "krakens-wake",
@@ -82,6 +83,7 @@ const GAMES = [
       "PIRATE_FLAME",
     ],
     gameplayMarkers: [],
+    archiveMarker: "_ship_surf",
   },
 ];
 
@@ -145,11 +147,12 @@ for (const game of GAMES) {
       );
       allPassed = false;
     } else {
-      if (!archiveSource.includes("_ship_surf")) {
-        console.log(`  ❌ Archive missing _ship_surf`);
+      const archiveMarker = game.archiveMarker || "_ship_surf";
+      if (!archiveSource.includes(archiveMarker)) {
+        console.log(`  ❌ Archive missing ${archiveMarker}`);
         allPassed = false;
       } else {
-        console.log(`  ✅ Archive has _ship_surf`);
+        console.log(`  ✅ Archive has ${archiveMarker}`);
       }
     }
   } catch (err) {
