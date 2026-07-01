@@ -84,8 +84,7 @@ export async function getBootMetrics(
 ): Promise<BootMetricsSnapshot | null> {
   return page.evaluate(() => {
     const pm = (window as any).PirateArcadeMetrics as
-      | PirateArcadeMetrics
-      | undefined;
+      PirateArcadeMetrics | undefined;
     if (!pm || typeof pm.snapshot !== "function") return null;
     return pm.snapshot();
   });
@@ -402,8 +401,7 @@ export function createDiagnosticCollector(): DiagnosticCollector {
       page
         .evaluate(() => {
           const gs = (window as any).PirateArcadeGameState as
-            | PirateArcadeGameState
-            | undefined;
+            PirateArcadeGameState | undefined;
           if (!gs) return null;
           return {
             state: gs.getState ? gs.getState() : null,

@@ -243,17 +243,17 @@ Both mutations were caught precisely — the test suite is well-targeted.
 
 ### Summary of Repairs Applied
 
-| Finding                                                            | Status  | Verification Command                                                                        |
+| Finding | Status | Verification Command |
 | ------------------------------------------------------------------ | ------- | ------------------------------------------------------------------------------------------- | ----- |
-| budget.json was inert, now removed from repo                       | Removed | `rm budget.json` (dead config, never loaded)                                                |
-| Performance assertions were warnings                               | Fixed   | `npm run verify:release:fast`                                                               |
-| Lighthouse was absent from CI                                      | Fixed   | Check `.github/workflows/ci.yml`                                                            |
-| Inert LHCI audits existed                                          | Fixed   | `npm run verify:release:fast`                                                               |
-| Build-log and 404 accessibility coverage was missing               | Fixed   | `npx playwright test tests/a11y.spec.ts --project=chromium-desktop -g "build-log            | 404"` |
-| Light-theme accessibility coverage was missing                     | Fixed   | `npx playwright test tests/a11y.spec.ts --project=chromium-desktop -g "light"`              |
-| WARM_CACHE payload was not deterministically tested                | Fixed   | `npx playwright test tests/game-prewarm.spec.ts --project=chromium-desktop -g "WARM_CACHE"` |
-| Captain's Log clear behavior had non-user-facing fallback coverage | Fixed   | `npx playwright test tests/captains-log.spec.ts --project=chromium-desktop -g "clear"`      |
-| Single-installer test overstated its assertion                     | Fixed   | `npx playwright test tests/game-prewarm.spec.ts --project=chromium-desktop -g "installer"`  |
+| budget.json was inert, now removed from repo | Removed | `rm budget.json` (dead config, never loaded) |
+| Performance assertions were warnings | Fixed | `npm run verify:release:fast` |
+| Lighthouse was absent from CI | Fixed | Check `.github/workflows/ci.yml` |
+| Inert LHCI audits existed | Fixed | `npm run verify:release:fast` |
+| Build-log and 404 accessibility coverage was missing | Fixed | `npx playwright test tests/a11y.spec.ts --project=chromium-desktop -g "build-log            | 404"` |
+| Light-theme accessibility coverage was missing | Fixed | `npx playwright test tests/a11y.spec.ts --project=chromium-desktop -g "light"` |
+| WARM_CACHE payload was not deterministically tested | Fixed | `npx playwright test tests/game-prewarm.spec.ts --project=chromium-desktop -g "WARM_CACHE"` |
+| Captain's Log clear behavior had non-user-facing fallback coverage | Fixed | `npx playwright test tests/captains-log.spec.ts --project=chromium-desktop -g "clear"` |
+| Single-installer test overstated its assertion | Fixed | `npx playwright test tests/game-prewarm.spec.ts --project=chromium-desktop -g "installer"` |
 
 ### Remaining Open Diagnostic Items
 

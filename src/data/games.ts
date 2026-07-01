@@ -1,10 +1,7 @@
 import gamesData from "./games.json";
 
 export type GameStatus =
-  | "browser-playable"
-  | "desktop-available"
-  | "browser-planned"
-  | "experimental";
+  "browser-playable" | "desktop-available" | "browser-planned" | "experimental";
 
 export type GameEngine = "pygbag" | "phaser";
 

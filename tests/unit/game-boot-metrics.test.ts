@@ -5,8 +5,7 @@ import type { PirateArcadeMetrics } from "../helpers/diagnostics";
 
 function getMetrics(): PirateArcadeMetrics {
   const m = (window as any).PirateArcadeMetrics as
-    | PirateArcadeMetrics
-    | undefined;
+    PirateArcadeMetrics | undefined;
   if (!m) throw new Error("PirateArcadeMetrics not loaded");
   return m;
 }

@@ -43,8 +43,7 @@ async function collectResourceEntries(page: Page): Promise<ResourceEntry[]> {
 async function performPrimaryAction(page: Page): Promise<boolean> {
   return page.evaluate(() => {
     const actions = (window as any).PirateArcadeActions as
-      | { performPrimary: () => void }
-      | undefined;
+      { performPrimary: () => void } | undefined;
     if (!actions?.performPrimary) return false;
     actions.performPrimary();
     return true;
@@ -75,8 +74,7 @@ async function waitForMilestone(
     try {
       const s = await page.evaluate(async () => {
         const pm = (window as any).PirateArcadeMetrics as
-          | { snapshot: () => unknown }
-          | undefined;
+          { snapshot: () => unknown } | undefined;
         if (!pm?.snapshot) return null;
         return JSON.stringify(pm.snapshot(), null, 2);
       });
@@ -121,8 +119,7 @@ async function waitForLoaderHidden(
     try {
       const s = await page.evaluate(async () => {
         const pm = (window as any).PirateArcadeMetrics as
-          | { snapshot: () => unknown }
-          | undefined;
+          { snapshot: () => unknown } | undefined;
         if (!pm?.snapshot) return null;
         return JSON.stringify(pm.snapshot(), null, 2);
       });
