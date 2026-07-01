@@ -19,6 +19,8 @@ class Ship:
         self._build_ship()
         self._build_flames()
 
+    _N_BUCKETS = 36
+
     def _build_ship(self):
         size = 110
         self._ship_surf = pg.Surface((size, size), pg.SRCALPHA)
@@ -67,6 +69,10 @@ class Ship:
         pg.draw.circle(self._ship_surf, window_color, (cx + 7, cy + 2), 3)
 
         self._size = size
+        self._ship_cache = [
+            pg.transform.rotate(self._ship_surf, i * 360.0 / self._N_BUCKETS)
+            for i in range(self._N_BUCKETS)
+        ]
 
     def _build_flames(self):
         self._flame_frames = []
@@ -82,6 +88,14 @@ class Ship:
             pg.draw.polygon(surf, c.PIRATE_FLAME, outer)
             pg.draw.polygon(surf, c.PIRATE_FLAME_INNER, inner)
             self._flame_frames.append(surf)
+        self._flame_cache = [
+            [pg.transform.rotate(f, i * 360.0 / self._N_BUCKETS) for i in range(self._N_BUCKETS)]
+            for f in self._flame_frames
+        ]
+
+    @staticmethod
+    def _bucket(angle):
+        return round(angle * 36 / 360) % 36
 
     def reset(self):
         self.x = c.WINDOW_WIDTH // 2
@@ -159,12 +173,13 @@ class Ship:
         if self.invulnerable > 0 and int(self.invulnerable * 60) % 2 == 0:
             return
 
-        rotated = pg.transform.rotate(self._ship_surf, self.angle)
+        b = self._bucket(self.angle)
+        rotated = self._ship_cache[b]
         r = rotated.get_rect(center=(int(self.x), int(self.y)))
         surface.blit(rotated, r)
 
         if self.thrusting:
-            flame = pg.transform.rotate(self._flame_frames[self._flame_frame], self.angle)
+            flame = self._flame_cache[self._flame_frame][b]
             rad = math.radians(self.angle - 90)
             fx = self.x - math.cos(rad) * 32
             fy = self.y - math.sin(rad) * 32

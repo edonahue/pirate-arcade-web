@@ -3,6 +3,10 @@ import constants as c
 import math
 import random
 
+_N_BUCKETS = 36
+_BARREL_ROT_CACHE = {}
+_MAX_CACHE = 256
+
 def _get_barrel_surf(radius, hull_color):
     size = int(radius * 2)
     surf = pg.Surface((size, size), pg.SRCALPHA)
@@ -100,9 +104,22 @@ class Barrel:
             children.append(child)
         return children
 
+    @staticmethod
+    def _bucket(angle):
+        return round(angle * _N_BUCKETS / 360) % _N_BUCKETS
+
     def draw(self, surface):
         if not self.alive:
             return
-        rotated = pg.transform.rotate(self.surf, self.rotation)
+        b = self._bucket(self.rotation)
+        key = (self.radius, self._hull_color, b)
+        try:
+            rotated = _BARREL_ROT_CACHE[key]
+        except KeyError:
+            angle = b * (360.0 / _N_BUCKETS)
+            raw = _get_barrel_surf(self.radius, self._hull_color)
+            rotated = pg.transform.rotate(raw, angle)
+            if len(_BARREL_ROT_CACHE) < _MAX_CACHE:
+                _BARREL_ROT_CACHE[key] = rotated
         r = rotated.get_rect(center=(int(self.x), int(self.y)))
         surface.blit(rotated, r)

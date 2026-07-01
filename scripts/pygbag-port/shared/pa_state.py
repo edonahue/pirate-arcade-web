@@ -32,8 +32,12 @@ class StatePublisher:
             "draws": 0,
             "presentations": 0,
         }
+        self._include_stats_in_payload = True
         builtins.__dict__["__pa_state_publish_stats__"] = self._stats
         builtins.__dict__["__pa_state_publisher__"] = self
+
+    def set_include_stats(self, include):
+        self._include_stats_in_payload = include
 
     def tick(self, dt, event_key=None, state_factory=None, active=True):
         self._stats["updateCalls"] += 1
@@ -84,7 +88,10 @@ class StatePublisher:
     def _publish(self, state_dict, reason=None):
         self._stats["serializationAttempts"] += 1
         self._stats["stateFactoryCalls"] += 1
-        _gs_json = json.dumps({**state_dict, "__pa_stats": self._stats})
+        payload = state_dict
+        if self._include_stats_in_payload:
+            payload = {**state_dict, "__pa_stats": self._stats}
+        _gs_json = json.dumps(payload)
         if _gs_json == self._last_json:
             self._stats["unchangedPayloadSkips"] += 1
             return

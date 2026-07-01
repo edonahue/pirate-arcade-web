@@ -53,6 +53,7 @@ def _ensure_gradient():
         pg.draw.line(_DARK_GRADIENT, (r, g, b), (0, y), (c.WINDOW_WIDTH, y))
 
 _SCANLINES = None
+_COMPOSITE_OVERLAY = None
 
 def _ensure_scanlines():
     global _SCANLINES
@@ -62,6 +63,18 @@ def _ensure_scanlines():
     for y in range(0, c.WINDOW_HEIGHT, 4):
         pg.draw.line(_SCANLINES, (0, 0, 0, 10), (0, y), (c.WINDOW_WIDTH, y))
         pg.draw.line(_SCANLINES, (0, 0, 0, 4), (0, y + 1), (c.WINDOW_WIDTH, y + 1))
+
+def _ensure_composite_overlay():
+    global _COMPOSITE_OVERLAY
+    if _COMPOSITE_OVERLAY is not None:
+        return
+    _COMPOSITE_OVERLAY = _VIGNETTE.copy()
+    _ensure_scanlines()
+    _COMPOSITE_OVERLAY.blit(_SCANLINES, (0, 0))
+
+def draw_composite_overlay(surface):
+    _ensure_composite_overlay()
+    surface.blit(_COMPOSITE_OVERLAY, (0, 0))
 
 _ALPHA_LEVELS = 8
 

@@ -3,10 +3,10 @@ import pygame as pg
 import constants as c
 import highscores as hs
 from games.asteroids.gameplay import Gameplay
-from renderer import _OVERLAY, _VIGNETTE, draw_scanlines
+from renderer import _OVERLAY, _VIGNETTE, draw_composite_overlay
 from util import toggle_fullscreen
 from shared.pa_state import StatePublisher
-from shared.pa_loop import should_draw
+from shared.pa_loop import FixedStepTimer, PresentGate, page_hidden
 import random
 import traceback
 
@@ -35,7 +35,8 @@ class AsteroidsGame:
         self.sound_enabled = True
         self._init_fonts()
         self._state_pub = StatePublisher()
-        self._last_draw_key = None
+        self._present_gate = PresentGate()
+        self._timer = FixedStepTimer()
         _ensure_stars()
 
     def _init_fonts(self):
@@ -99,7 +100,6 @@ class AsteroidsGame:
                 if event.type == pg.KEYDOWN and event.key == pg.K_F11:
                     self.surface, fullscreen = toggle_fullscreen(self.surface, fullscreen)
                     pg.display.set_caption("KRAKEN'S WAKE")
-                    self._last_draw_key = None
                 elif event.type == pg.MOUSEBUTTONDOWN and self.state == 'playing':
                     self.paused = not self.paused
                 elif event.type == pg.KEYDOWN:
@@ -109,18 +109,39 @@ class AsteroidsGame:
                     elif result == 'quit':
                         return 'quit'
 
-            dt = 1 / 60
-            self._update(dt)
+            hidden = page_hidden()
+            active = self.state == 'playing' and not self.paused
+            frame = self._timer.begin_frame(active=active, hidden=hidden)
+            metrics = self._timer.metrics()
+
+            for _ in range(frame.steps):
+                self._update(frame.step_seconds)
+                metrics.record_step()
+
             draw_key = (self.state, self.paused, self.pause_selection, self.sound_enabled)
-            _should_draw, self._last_draw_key = should_draw(draw_key, self._last_draw_key)
-            if self.state == 'playing' and not self.paused:
-                _should_draw = True
-            if _should_draw:
+            force_draw = (self.state == 'playing' and not self.paused)
+            if force_draw:
                 self._draw(60)
                 self._state_pub._stats["draws"] += 1
-            pg.display.flip()
-            self._state_pub._stats["presentations"] += 1
-            await asyncio.sleep(0)
+                metrics.record_draw()
+            elif self._present_gate.check_draw(draw_key):
+                self._draw(60)
+                self._state_pub._stats["draws"] += 1
+                metrics.record_draw()
+            else:
+                metrics.record_static_draw_skip()
+
+            if self._present_gate.check_present(draw_key, force=force_draw):
+                pg.display.flip()
+                self._state_pub._stats["presentations"] += 1
+                metrics.record_present()
+            else:
+                metrics.record_static_present_skip()
+
+            if hidden:
+                await asyncio.sleep(0.05)
+            else:
+                await asyncio.sleep(0)
 
     def _handle_key(self, key):
         if self.state == 'menu':
@@ -245,8 +266,7 @@ class AsteroidsGame:
             elif self.state == 'game_over':
                 self._draw_game_over()
 
-            self.surface.blit(_VIGNETTE, (0, 0))
-            draw_scanlines(self.surface)
+            draw_composite_overlay(self.surface)
         except Exception:
             traceback.print_exc()
             print("*** BUG: Uncaught exception in Asteroids _draw — recovering ***")

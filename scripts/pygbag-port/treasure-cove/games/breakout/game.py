@@ -5,7 +5,7 @@ import highscores as hs
 from games.breakout.gameplay import Gameplay
 from renderer import _OVERLAY, _VIGNETTE
 from shared.pa_state import StatePublisher
-from shared.pa_loop import should_draw
+from shared.pa_loop import FixedStepTimer, PresentGate, page_hidden
 
 
 class BreakoutGame:
@@ -20,7 +20,8 @@ class BreakoutGame:
         self.sound_enabled = True
         self._init_fonts()
         self._state_pub = StatePublisher()
-        self._last_draw_key = None
+        self._present_gate = PresentGate()
+        self._timer = FixedStepTimer()
 
     def _init_fonts(self):
         self.title_font = pg.font.Font(c.FONT_NAME, c.FONT_SIZE_TITLE)
@@ -85,18 +86,39 @@ class BreakoutGame:
                     if result == 'quit':
                         return
 
-            dt = 1 / 60
-            self._update(dt)
-            draw_key = (self.state, self.paused, self.pause_selection, self.sound_enabled)
-            _should_draw, self._last_draw_key = should_draw(draw_key, self._last_draw_key)
-            if self.state == 'playing' and not self.paused:
-                _should_draw = True
-            if _should_draw:
+            hidden = page_hidden()
+            active = self.state == 'playing' and not self.paused
+            frame = self._timer.begin_frame(active=active, hidden=hidden)
+            metrics = self._timer.metrics()
+
+            for _ in range(frame.steps):
+                self._update(frame.step_seconds)
+                metrics.record_step()
+
+            draw_key = (self.state, self.paused, self.game_over_state)
+            force_draw = (self.state == 'playing' and not self.paused)
+            if force_draw:
                 self._draw(60)
                 self._state_pub._stats["draws"] += 1
-            pg.display.flip()
-            self._state_pub._stats["presentations"] += 1
-            await asyncio.sleep(0)
+                metrics.record_draw()
+            elif self._present_gate.check_draw(draw_key):
+                self._draw(60)
+                self._state_pub._stats["draws"] += 1
+                metrics.record_draw()
+            else:
+                metrics.record_static_draw_skip()
+
+            if self._present_gate.check_present(draw_key, force=force_draw):
+                pg.display.flip()
+                self._state_pub._stats["presentations"] += 1
+                metrics.record_present()
+            else:
+                metrics.record_static_present_skip()
+
+            if hidden:
+                await asyncio.sleep(0.05)
+            else:
+                await asyncio.sleep(0)
 
     def _handle_key(self, key):
         if self.state == 'menu':

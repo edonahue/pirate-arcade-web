@@ -315,6 +315,52 @@ class TestStatePublisherLazyAPI(unittest.TestCase):
             self.assertIn(key, stats)
             self.assertIsInstance(stats[key], int)
 
+    # ── Stats deduplication ──
+
+    def test_set_include_stats_false_excludes_stats(self):
+        """set_include_stats(False) omits __pa_stats from published payload."""
+        factory = self._make_factory({"gameId": "t", "phase": "playing", "score": 0})
+        self.pub.set_include_stats(False)
+        self.pub.tick(0.01, event_key=("playing", 0), state_factory=factory, active=True)
+        parsed = json.loads(_B[STATE_KEY])
+        self.assertNotIn("__pa_stats", parsed)
+
+    def test_identical_state_skipped_when_stats_excluded(self):
+        """Same game state without __pa_stats correctly deduplicates."""
+        self.pub.set_include_stats(False)
+        factory = self._make_factory({"gameId": "t", "phase": "playing", "score": 0})
+        self.pub.tick(0.01, event_key=("playing", 0), state_factory=factory, active=True)
+        self.factory_calls = 0
+        _B[STATE_KEY] = None
+        self.pub.tick(STATE_PUBLISH_INTERVAL, event_key=("playing", 0), state_factory=factory, active=True)
+        self.assertEqual(self.pub._stats["unchangedPayloadSkips"], 1)
+        self.assertIsNone(_B[STATE_KEY])
+
+    def test_toggle_stats_mid_life(self):
+        """Toggling include_stats mid-life changes behavior."""
+        self.pub.set_include_stats(True)
+        factory = self._make_factory({"gameId": "t", "phase": "playing", "score": 0})
+        self.pub.tick(0.01, event_key=("playing", 0), state_factory=factory, active=True)
+        parsed = json.loads(_B[STATE_KEY])
+        self.assertIn("__pa_stats", parsed)
+        _B[STATE_KEY] = None
+        self.pub.set_include_stats(False)
+        factory2 = self._make_factory({"gameId": "t", "phase": "playing", "score": 5})
+        self.pub.tick(0.01, event_key=("playing", 5), state_factory=factory2, active=True)
+        parsed2 = json.loads(_B[STATE_KEY])
+        self.assertNotIn("__pa_stats", parsed2)
+
+    def test_dedup_with_stats_enabled_never_happens(self):
+        """With stats enabled, __pa_stats changes each tick so dedup never triggers."""
+        factory = self._make_factory({"gameId": "t", "phase": "playing", "score": 0})
+        self.pub.set_include_stats(True)
+        self.pub.tick(0.01, event_key=("playing", 0), state_factory=factory, active=True)
+        _B[STATE_KEY] = None
+        factory2 = self._make_factory({"gameId": "t", "phase": "playing", "score": 0})
+        self.pub.tick(STATE_PUBLISH_INTERVAL, event_key=("playing", 0), state_factory=factory2, active=True)
+        self.assertEqual(self.pub._stats["unchangedPayloadSkips"], 0)
+        self.assertIsNotNone(_B[STATE_KEY])
+
 
 if __name__ == "__main__":
     result = unittest.main(verbosity=2, exit=False)
