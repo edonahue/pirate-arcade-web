@@ -103,7 +103,7 @@
   },
   "description": "A pirate-themed arcade collection and an experiment in zero-cost AI-assisted development.",
   "dependencies": {
-    "phaser": "^3.90.0"
+    "phaser": "^4.2.0"
   },
   "repository": {
     "type": "git",
