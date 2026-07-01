@@ -29,6 +29,8 @@ class StatePublisher:
             "activeTicks": 0,
             "staticTicks": 0,
             "stateBuildSkips": 0,
+            "draws": 0,
+            "presentations": 0,
         }
         builtins.__dict__["__pa_state_publish_stats__"] = self._stats
         builtins.__dict__["__pa_state_publisher__"] = self

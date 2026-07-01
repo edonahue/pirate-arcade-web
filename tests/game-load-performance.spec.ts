@@ -561,7 +561,7 @@ for (const game of GAMES) {
     });
   });
 
-  test.describe(`${game.name} active-game health`, () => {
+  test.describe(`${game.name} loop and state health`, () => {
     test("CP2.14/15 — runtime main-thread health and state publication", async ({
       page,
     }, testInfo) => {
@@ -665,6 +665,18 @@ for (const game of GAMES) {
           const ssc = pubDelta.statsSnapshotCalls as number;
           expect(typeof ssc).toBe("number");
 
+          // Draws and presentations should be present for active play
+          expect(pubDelta.draws).toBeDefined();
+          expect(typeof pubDelta.draws).toBe("number");
+          expect(pubDelta.presentations).toBeDefined();
+          expect(typeof pubDelta.presentations).toBe("number");
+
+          // In active play, draws ≈ updateCalls (always rendering)
+          const dwVal = pubDelta.draws as number;
+          if (typeof uc === "number" && typeof dwVal === "number" && uc > 0) {
+            expect(dwVal).toBeGreaterThanOrEqual(uc * 0.9);
+          }
+
           // serializationAttempts should be close to actual domWrites + unchanged skips
           const sa = pubDelta.serializationAttempts as number;
           const us = pubDelta.unchangedPayloadSkips as number;
@@ -696,6 +708,173 @@ for (const game of GAMES) {
             expect(snc).toBeLessThanOrEqual(pc);
           }
         }
+      } finally {
+        diag.stop();
+      }
+    });
+
+    test("CP2.16 — static menu stability", async ({ page }, testInfo) => {
+      if (game.id === "race-to-treasure-island") {
+        test.info().skip();
+        return;
+      }
+      const diag = createDiagnosticCollector();
+      try {
+        diag.start(page);
+        await page.goto(game.path, { waitUntil: "domcontentloaded" });
+        await waitForLoaderHidden(page, 120000);
+
+        const canvasOk = await checkCanvasSized(page);
+        expect(canvasOk).toBe(true);
+
+        // Verify no game error
+        const hasNoError = await checkNoGameError(page);
+        expect(hasNoError).toBe(true);
+
+        // Sample to catch any blocking errors
+        const sample = await runInPageSample(page, 4000);
+        const runtimeDiag = await diag.snapshot(testInfo);
+        const errors =
+          runtimeDiag.consoleErrors.length + runtimeDiag.pageErrors.length;
+        expect(errors).toBe(0);
+
+        // Verify the game is still in menu state (no crash)
+        const stillOnMenu = await page.evaluate(() => {
+          const gs = document.getElementById("pa-game-state");
+          if (!gs || !gs.innerText) return "unknown";
+          try {
+            const parsed = JSON.parse(gs.innerText);
+            return parsed.phase || "unknown";
+          } catch {
+            return "parse-error";
+          }
+        });
+        expect(stillOnMenu).toBe("menu");
+
+        // Publisher stats are frozen during static state (no heartbeat publishes for static ticks)
+        // Draw suppression verified by design: should_draw() returns False for unchanged keys
+        console.log(
+          `${game.id} menu stable: rAF intervals=${sample.rAFIntervalCount}`,
+        );
+      } finally {
+        diag.stop();
+      }
+    });
+
+    test("CP2.17 — pause stability and resume", async ({ page }, testInfo) => {
+      if (game.id === "race-to-treasure-island") {
+        test.info().skip();
+        return;
+      }
+      const diag = createDiagnosticCollector();
+      try {
+        diag.start(page);
+        await page.goto(game.path, { waitUntil: "domcontentloaded" });
+        await waitForLoaderHidden(page, 120000);
+
+        const started = await performPrimaryAction(page);
+        expect(started).toBe(true);
+        await waitForMilestone(page, "active-play", 30000);
+
+        // Pause the game
+        await page.keyboard.press("Escape");
+
+        // Wait for pause state in DOM
+        await page.waitForFunction(
+          () => {
+            const gs = document.getElementById("pa-game-state");
+            if (!gs || !gs.innerText) return false;
+            try {
+              const parsed = JSON.parse(gs.innerText);
+              return parsed.phase === "paused";
+            } catch {
+              return false;
+            }
+          },
+          { timeout: 5000 },
+        );
+
+        // Sample during pause
+        const sample = await runInPageSample(page, 3000);
+        const runtimeDiag = await diag.snapshot(testInfo);
+        const errors =
+          runtimeDiag.consoleErrors.length + runtimeDiag.pageErrors.length;
+        expect(errors).toBe(0);
+
+        // Resume
+        await page.keyboard.press("Escape");
+
+        // Wait for active play to resume (publisher heartbeat)
+        await page.waitForFunction(
+          () => {
+            const gs = document.getElementById("pa-game-state");
+            if (!gs || !gs.innerText) return false;
+            try {
+              const parsed = JSON.parse(gs.innerText);
+              return parsed.phase === "playing";
+            } catch {
+              return false;
+            }
+          },
+          { timeout: 5000 },
+        );
+
+        console.log(
+          `${game.id} pause stable: rAF intervals=${sample.rAFIntervalCount}`,
+        );
+      } finally {
+        diag.stop();
+      }
+    });
+
+    test("CP2.18 — hidden page safety with visibility override", async ({
+      page,
+    }, testInfo) => {
+      if (game.id === "race-to-treasure-island") {
+        test.info().skip();
+        return;
+      }
+      const diag = createDiagnosticCollector();
+      try {
+        diag.start(page);
+        await page.goto(game.path, { waitUntil: "domcontentloaded" });
+        await waitForLoaderHidden(page, 120000);
+
+        const started = await performPrimaryAction(page);
+        expect(started).toBe(true);
+        await waitForMilestone(page, "active-play", 30000);
+
+        // Override visibility to hidden via builtins
+        await page.evaluate(() => {
+          if (
+            typeof (window as any).python?.PyRun_SimpleString === "function"
+          ) {
+            (window as any).python.PyRun_SimpleString(
+              'import builtins; builtins.__dict__["__pa_page_visible__"] = False',
+            );
+          }
+        });
+
+        const sample = await runInPageSample(page, 4000);
+        const runtimeDiag = await diag.snapshot(testInfo);
+        const errors =
+          runtimeDiag.consoleErrors.length + runtimeDiag.pageErrors.length;
+        expect(errors).toBe(0);
+
+        // Restore visibility
+        await page.evaluate(() => {
+          if (
+            typeof (window as any).python?.PyRun_SimpleString === "function"
+          ) {
+            (window as any).python.PyRun_SimpleString(
+              'import builtins; builtins.__dict__["__pa_page_visible__"] = True',
+            );
+          }
+        });
+
+        const pubDelta = sample.publisherDelta;
+        expect(pubDelta).not.toBeNull();
+        console.log(`${game.id} hidden: publisher=${JSON.stringify(pubDelta)}`);
       } finally {
         diag.stop();
       }

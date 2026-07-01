@@ -28,6 +28,8 @@ export interface PublisherCounters {
   activeTicks: number;
   staticTicks: number;
   stateBuildSkips: number;
+  draws: number;
+  presentations: number;
   [key: string]: unknown;
 }
 

@@ -311,7 +311,7 @@ class TestStatePublisherLazyAPI(unittest.TestCase):
     def test_all_new_counters_present(self):
         stats = self.pub._stats
         for key in ("stateFactoryCalls", "statsSnapshotCalls", "activeTicks",
-                     "staticTicks", "stateBuildSkips"):
+                     "staticTicks", "stateBuildSkips", "draws", "presentations"):
             self.assertIn(key, stats)
             self.assertIsInstance(stats[key], int)
 

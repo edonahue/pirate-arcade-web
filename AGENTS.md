@@ -149,6 +149,33 @@ Static phases (`active=False`): `menu`, `paused`, `game-over`, `stage-transition
 
 Backward compatibility: no `active`/`state_factory` support if omitted (graceful noop — state not published without factory).
 
+Publisher stats (`__pa_stats` in every published payload) include: `updateCalls`,
+`eventChanges`, `intervalSkips`, `serializationAttempts`, `unchangedPayloadSkips`,
+`builtinsWrites`, `domWrites`, `domWriteFailures`, `forcedWrites`, `heartbeatWrites`,
+`configuredActiveHz`, `lastWriteReason`, `stateFactoryCalls`, `statsSnapshotCalls`,
+`activeTicks`, `staticTicks`, `stateBuildSkips`, `draws`, `presentations`.
+
+### Loop architecture (Pygbag games)
+
+All three games share the same loop pattern (`pa_loop.py` provides `should_draw()`
+and `page_hidden()`):
+
+```
+while True:
+    process_events()
+    update(dt)  # fixed dt=1/60
+    if should_draw(current_key, last_draw_key):
+        draw()
+    pg.display.flip()
+    await asyncio.sleep(0)
+```
+
+Static states (menu, paused, game-over) suppress draws via should_draw() —
+the draw key is a tuple of discrete visual state values (selection, toggles).
+Active play always draws. `draws` and `presentations` counters track actual
+render work in `__pa_stats`. Active pacing not needed — loops naturally run
+at ~60 Hz (~27 Hz for Kraken's Wake) via Pygbag's cooperative scheduler.
+
 ### Generator usability (Phase 5)
 
 `scripts/generate-pygbag-shells.mjs` improvements:

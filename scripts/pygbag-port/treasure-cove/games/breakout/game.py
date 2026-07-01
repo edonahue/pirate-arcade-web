@@ -93,7 +93,9 @@ class BreakoutGame:
                 _should_draw = True
             if _should_draw:
                 self._draw(60)
+                self._state_pub._stats["draws"] += 1
             pg.display.flip()
+            self._state_pub._stats["presentations"] += 1
             await asyncio.sleep(0)
 
     def _handle_key(self, key):

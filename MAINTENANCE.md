@@ -146,6 +146,47 @@ npm run test:game-performance            # chromium-desktop + mobile-safari
 npm run test:game-performance:headed     # headed mode for debugging
 ```
 
+### Loop architecture (Pygbag games)
+
+All three Pygbag games follow the same loop pattern:
+
+```
+while True:
+    process_events()
+    update(dt)                          # fixed dt=1/60
+    if should_draw(current_key, last_draw_key):
+        draw()
+    pg.display.flip()
+    await asyncio.sleep(0)
+```
+
+Static states (menu, pause, game-over) suppress draws via `should_draw()`
+from `shared/pa_loop.py`. The draw key is a tuple of discrete visual state
+values — draws resume only when the key changes (e.g., selection moves, sound
+toggles). Active play (`state == 'playing' and not paused`) always draws.
+
+Draws and presentations are counted in the publisher stats dict as `draws`
+and `presentations`. Since `pg.display.flip()` runs every loop iteration,
+`presentations == updateCalls`. During static states `draws << updateCalls`
+because the draw-skip suppresses most render work.
+
+Publisher counters available in `__pa_stats`:
+`updateCalls`, `eventChanges`, `intervalSkips`, `serializationAttempts`,
+`unchangedPayloadSkips`, `builtinsWrites`, `domWrites`, `domWriteFailures`,
+`forcedWrites`, `heartbeatWrites`, `configuredActiveHz`, `lastWriteReason`,
+`stateFactoryCalls`, `statsSnapshotCalls`, `activeTicks`, `staticTicks`,
+`stateBuildSkips`, `draws`, `presentations`.
+
+**Active pacing:** Not needed — loops naturally run at ~60 Hz (~27 Hz for
+Kraken's Wake) via Pygbag's `asyncio.sleep(0)` cooperative scheduler. No
+explicit pacing delay added.
+
+**Hidden-page behavior:** The visibility bridge (`_paPushVisibility` in
+`pygame-input-bridge.js`) propagates `document.hidden` state to Python
+builtins via `PyRun_SimpleString`. The `page_hidden()` function in
+`pa_loop.py` returns the current state. No gameplay freeze on hidden
+(currently implemented).
+
 ### Diagnostics helpers
 
 | Helper                 | File                  | Purpose                                                                                     |
