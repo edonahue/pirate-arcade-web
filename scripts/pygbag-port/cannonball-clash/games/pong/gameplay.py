@@ -32,6 +32,47 @@ def _segment_intersects_rect(x1, y1, x2, y2, rect):
         return False
     return tmin <= tmax
 
+
+def _swept_ball_hits_paddle(ball, paddle):
+    is_player = paddle.side == 'left'
+    if is_player and ball.vx >= 0:
+        return (False, 0.0, 0.0)
+    if not is_player and ball.vx <= 0:
+        return (False, 0.0, 0.0)
+
+    r = c.BALL_SIZE // 2
+    pr = paddle.rect
+    exp_rect = pr.inflate(r * 2, r * 2)
+    if ball.rect.colliderect(pr):
+        return (True, 0.0, ball.y)
+
+    dx = ball.x - ball.px
+    dy = ball.y - ball.py
+
+    tmin, tmax = 0.0, 1.0
+    if dx != 0:
+        tx1 = (exp_rect.left - ball.px) / dx
+        tx2 = (exp_rect.right - ball.px) / dx
+        tmin = max(tmin, min(tx1, tx2))
+        tmax = min(tmax, max(tx1, tx2))
+    elif ball.px < exp_rect.left or ball.px > exp_rect.right:
+        return (False, 0.0, 0.0)
+
+    if dy != 0:
+        ty1 = (exp_rect.top - ball.py) / dy
+        ty2 = (exp_rect.bottom - ball.py) / dy
+        tmin = max(tmin, min(ty1, ty2))
+        tmax = min(tmax, max(ty1, ty2))
+    elif ball.py < exp_rect.top or ball.py > exp_rect.bottom:
+        return (False, 0.0, 0.0)
+
+    if tmin > tmax:
+        return (False, 0.0, 0.0)
+
+    t = max(0.0, tmin)
+    contact_y = ball.py + dy * t
+    return (True, t, contact_y)
+
 class Gameplay:
     def __init__(self, audio):
         self.audio = audio
@@ -71,14 +112,17 @@ class Gameplay:
 
     def _build_tier_overlays(self):
         for tier, color in c.RALLY_GLOW_TIERS.items():
-            surf = pg.Surface((c.WINDOW_WIDTH, c.WINDOW_HEIGHT), pg.SRCALPHA)
             border_w = 30 + tier * 2
             alpha = min(60, 20 + tier * 2)
-            pg.draw.rect(surf, (*color, alpha), (0, 0, c.WINDOW_WIDTH, border_w))
-            pg.draw.rect(surf, (*color, alpha), (0, c.WINDOW_HEIGHT - border_w, c.WINDOW_WIDTH, border_w))
-            pg.draw.rect(surf, (*color, alpha), (0, 0, border_w, c.WINDOW_HEIGHT))
-            pg.draw.rect(surf, (*color, alpha), (c.WINDOW_WIDTH - border_w, 0, border_w, c.WINDOW_HEIGHT))
-            self._tier_overlays[tier] = surf
+            top = pg.Surface((c.WINDOW_WIDTH, border_w), pg.SRCALPHA)
+            pg.draw.rect(top, (*color, alpha), (0, 0, c.WINDOW_WIDTH, border_w))
+            bottom = pg.Surface((c.WINDOW_WIDTH, border_w), pg.SRCALPHA)
+            pg.draw.rect(bottom, (*color, alpha), (0, 0, c.WINDOW_WIDTH, border_w))
+            left = pg.Surface((border_w, c.WINDOW_HEIGHT), pg.SRCALPHA)
+            pg.draw.rect(left, (*color, alpha), (0, 0, border_w, c.WINDOW_HEIGHT))
+            right = pg.Surface((border_w, c.WINDOW_HEIGHT), pg.SRCALPHA)
+            pg.draw.rect(right, (*color, alpha), (0, 0, border_w, c.WINDOW_HEIGHT))
+            self._tier_overlays[tier] = (top, bottom, left, right)
 
     def set_difficulty(self, difficulty):
         self.ai.set_difficulty(difficulty)
@@ -103,19 +147,34 @@ class Gameplay:
         self.point_callout = None
         self._point_callout_surf = None
 
+    def begin_match(self):
+        self.reset()
+        self.ball.launch()
+
+    def begin_serve(self):
+        self.reset_round()
+        self.ball.launch()
+
     def reset(self):
         self.player_score = 0
         self.ai_score = 0
         self.longest_rally = 0
         self.rally_tier = 0
         self.powerup = None
-        self.powerup_spawn_timer = c.POWERUP_SPAWN_INTERVAL
+        self.schedule_next_powerup()
         self.hit_particles = []
         self.flash_timer = 0.0
         self.ai_shrink_timer = 0.0
         self.ai_paddle.height = self.ai_base_height
         self.ai_paddle._built = False
         self.reset_round()
+
+    def schedule_next_powerup(self):
+        self.powerup_spawn_timer = c.POWERUP_SPAWN_INTERVAL
+
+    def remove_powerup(self, reason):
+        self.powerup = None
+        self.schedule_next_powerup()
 
     def _spawn_hit_particles(self, x, y):
         for _ in range(random.randint(8, 12)):
@@ -141,8 +200,7 @@ class Gameplay:
         if self.point_transition_timer > 0:
             self.point_transition_timer -= dt
             if self.point_transition_timer <= 0:
-                self.reset_round()
-                self.ball.launch()
+                self.begin_serve()
                 self.point_callout = None
                 self._point_callout_surf = None
             self.hit_particles = [p for p in self.hit_particles if not p.dead]
@@ -188,50 +246,46 @@ class Gameplay:
             self.ball.vy = -self.ball.vy
             self.audio.play('wall_hit')
 
+        r = c.BALL_SIZE // 2
         for paddle in (self.player_paddle, self.ai_paddle):
-            hit = self.ball.rect.colliderect(paddle.rect)
+            hit, t, contact_y = _swept_ball_hits_paddle(self.ball, paddle)
             if not hit:
-                pr = paddle.rect
-                r = c.BALL_SIZE // 2
-                exp_rect = pr.inflate(r * 2, r * 2)
-                hit = _segment_intersects_rect(self.ball.px, self.ball.py,
-                                               self.ball.x, self.ball.y, exp_rect)
-            if hit:
-                is_player = paddle is self.player_paddle
-                self.ball.last_hit_by = 'player' if is_player else 'ai'
-                offset = (self.ball.y - paddle.y) / (paddle.height / 2)
-                offset = max(-1, min(1, offset))
-                angle = offset * 60
-                direction = 1 if is_player else -1
-                speed = self.ball.speed
-                self.ball.vx = math.cos(math.radians(angle)) * speed * direction
-                self.ball.vy = math.sin(math.radians(angle)) * speed
-                if is_player:
-                    self.ball.x = paddle.x + paddle.width // 2 + c.BALL_SIZE // 2
-                else:
-                    self.ball.x = paddle.x - paddle.width // 2 - c.BALL_SIZE // 2
-                self.ball.bump_speed()
-                self.rally_count += 1
-                if self.rally_count > self.longest_rally:
-                    self.longest_rally = self.rally_count
-                new_tier = 0
-                for m in sorted(c.RALLY_MILESTONES, reverse=True):
-                    if self.rally_count >= m:
-                        new_tier = m
-                        break
-                if new_tier > self.rally_tier:
-                    self.rally_tier = new_tier
-                    label = c.RALLY_LABELS.get(new_tier, f"RALLY {new_tier}")
-                    self.rally_callout_text = label
-                    self.rally_callout_surf = self.hud_font.render(label, True, c.PIRATE_GOLD)
-                    self.rally_callout_timer = 1.5
-                    self.ball.set_rally_tier(self.rally_tier)
-                elif self.rally_tier > 0:
-                    self.ball.set_rally_tier(self.rally_tier)
-                self.audio.play('paddle_hit')
-                self._spawn_hit_particles(self.ball.x, self.ball.y)
-                paddle.trigger_recoil()
-                break
+                continue
+            is_player = paddle is self.player_paddle
+            self.ball.last_hit_by = 'player' if is_player else 'ai'
+            offset = (contact_y - paddle.y) / (paddle.height / 2)
+            offset = max(-1, min(1, offset))
+            angle = offset * 60
+            direction = 1 if is_player else -1
+            speed = self.ball.speed
+            self.ball.vx = math.cos(math.radians(angle)) * speed * direction
+            self.ball.vy = math.sin(math.radians(angle)) * speed
+            if is_player:
+                self.ball.x = paddle.rect.right + r
+            else:
+                self.ball.x = paddle.rect.left - r
+            self.ball.bump_speed()
+            self.rally_count += 1
+            if self.rally_count > self.longest_rally:
+                self.longest_rally = self.rally_count
+            new_tier = 0
+            for m in sorted(c.RALLY_MILESTONES, reverse=True):
+                if self.rally_count >= m:
+                    new_tier = m
+                    break
+            if new_tier > self.rally_tier:
+                self.rally_tier = new_tier
+                label = c.RALLY_LABELS.get(new_tier, f"RALLY {new_tier}")
+                self.rally_callout_text = label
+                self.rally_callout_surf = self.hud_font.render(label, True, c.PIRATE_GOLD)
+                self.rally_callout_timer = 1.5
+                self.ball.set_rally_tier(self.rally_tier)
+            elif self.rally_tier > 0:
+                self.ball.set_rally_tier(self.rally_tier)
+            self.audio.play('paddle_hit')
+            self._spawn_hit_particles(self.ball.x, self.ball.y)
+            paddle.trigger_recoil()
+            break
 
         if self.ball.x < -c.BALL_SIZE:
             self.ai_score += 1
@@ -257,12 +311,11 @@ class Gameplay:
         self.powerup_spawn_timer -= dt
         if self.powerup_spawn_timer <= 0 and self.powerup is None:
             self.powerup = PowerUp()
-            self.powerup_spawn_timer = c.POWERUP_SPAWN_INTERVAL
 
         if self.powerup:
             self.powerup.update(dt)
             if self.powerup.expired:
-                self.powerup = None
+                self.remove_powerup('expire')
             elif self.powerup.rect.colliderect(self.player_paddle.rect):
                 if self.powerup.powerup_type == c.POWERUP_TYPE_LARGE_PADDLE:
                     self.player_paddle.activate_big()
@@ -272,8 +325,7 @@ class Gameplay:
                     self.ai_paddle.height = shrink_h
                     self.ai_paddle._built = False
                 self.audio.play('powerup')
-                self.powerup = None
-                self.powerup_spawn_timer = c.POWERUP_SPAWN_INTERVAL
+                self.remove_powerup('collect')
 
         if self.ai_shrink_timer > 0:
             self.ai_shrink_timer -= dt
@@ -299,9 +351,13 @@ class Gameplay:
     def draw(self, surface, fps=0):
         surface.fill(c.PIRATE_NAVY)
         draw_center_line(surface)
-        tier_overlay = self._tier_overlays.get(self.rally_tier)
-        if tier_overlay:
-            surface.blit(tier_overlay, (0, 0))
+        tier_strips = self._tier_overlays.get(self.rally_tier)
+        if tier_strips:
+            top, bottom, left, right = tier_strips
+            surface.blit(top, (0, 0))
+            surface.blit(bottom, (0, c.WINDOW_HEIGHT - bottom.get_height()))
+            surface.blit(left, (0, 0))
+            surface.blit(right, (c.WINDOW_WIDTH - right.get_width(), 0))
         self.player_paddle.draw(surface)
         self.ai_paddle.draw(surface)
 

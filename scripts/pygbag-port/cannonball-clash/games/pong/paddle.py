@@ -16,6 +16,17 @@ class Paddle:
         self._recoil_nudge = 0
         self._recoil_timer = 0.0
         self._muzzle_flash_timer = 0.0
+        self._build_muzzle_flash_frames()
+
+    def _build_muzzle_flash_frames(self):
+        self._muzzle_flash_frames = []
+        for i in range(8):
+            t = (i + 1) / 8.0
+            radius = max(1, int(18 * t))
+            alpha = int(180 * t)
+            surf = pg.Surface((radius * 2, radius * 2), pg.SRCALPHA)
+            pg.draw.circle(surf, (255, 240, 180, alpha), (radius, radius), radius)
+            self._muzzle_flash_frames.append(surf)
 
     def _build_surfs(self):
         vw = self._visual_w
@@ -229,11 +240,10 @@ class Paddle:
             pg.draw.rect(surface, c.POWERUP_COLOR, self.rect, 2)
         else:
             surface.blit(self._ship_surf, (sx, sy))
-        # Muzzle flash at bow
+        # Muzzle flash at bow (cached frames, no per-frame allocation)
         if self._muzzle_flash_timer > 0:
-            flash_radius = int(18 * (self._muzzle_flash_timer / 0.12))
+            progress = self._muzzle_flash_timer / 0.12
+            idx = min(7, int(progress * 8))
+            frame = self._muzzle_flash_frames[idx]
             bow_x = self.x + (1 if self.side == 'left' else -1) * (self._visual_w // 2)
-            flash_color = (255, 240, 180, int(180 * self._muzzle_flash_timer / 0.12))
-            flash_surf = pg.Surface((flash_radius * 2, flash_radius * 2), pg.SRCALPHA)
-            pg.draw.circle(flash_surf, flash_color, (flash_radius, flash_radius), flash_radius)
-            surface.blit(flash_surf, (bow_x - flash_radius, self.y - flash_radius))
+            surface.blit(frame, (bow_x - frame.get_width() // 2, int(self.y) - frame.get_height() // 2))

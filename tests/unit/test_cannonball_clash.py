@@ -299,11 +299,16 @@ class TestArenaOverlay(unittest.TestCase):
         self.assertNotIn(0, self.gp._tier_overlays)
 
     def test_overlay_used_at_active_tier(self):
-        self.gp.rally_tier = 5
-        surf = self.gp._tier_overlays.get(5)
-        self.assertIsNotNone(surf)
-        self.assertEqual(surf.get_width(), c.WINDOW_WIDTH)
-        self.assertEqual(surf.get_height(), c.WINDOW_HEIGHT)
+        strips = self.gp._tier_overlays.get(5)
+        self.assertIsNotNone(strips)
+        top, bottom, left, right = strips
+        self.assertEqual(top.get_width(), c.WINDOW_WIDTH)
+        self.assertEqual(bottom.get_width(), c.WINDOW_WIDTH)
+        self.assertEqual(left.get_height(), c.WINDOW_HEIGHT)
+        self.assertEqual(right.get_height(), c.WINDOW_HEIGHT)
+        border_w = 30 + 5 * 2
+        self.assertEqual(top.get_height(), border_w)
+        self.assertEqual(left.get_width(), border_w)
 
 
 class TestCachedTrailSurfaces(unittest.TestCase):
@@ -327,6 +332,256 @@ class TestCachedTrailSurfaces(unittest.TestCase):
     def test_trail_surf_cache_size(self):
         self.ball._build_trail_surfs(20)
         self.assertEqual(len(self.ball._trail_surfs), c.RALLY_TRAIL_TIERS[20])
+
+
+class TestMatchLifecycle(unittest.TestCase):
+    def setUp(self):
+        self.game = PongGame(None, _MockAudio())
+
+    def _start_match(self):
+        self.game.state = 'menu'
+        self.game.menu_selection = 0
+        self.game._handle_key(pg.K_SPACE)
+
+    def test_begin_match_launches_ball(self):
+        self._start_match()
+        self.assertEqual(self.game.state, 'playing')
+        self.assertGreater(self.game.gameplay.ball.speed, 0)
+
+    def test_begin_match_ball_moves(self):
+        self._start_match()
+        x0 = self.game.gameplay.ball.x
+        self.game._update(1/60)
+        self.assertNotEqual(self.game.gameplay.ball.x, x0)
+
+    def test_pause_restart_launches_ball(self):
+        self._start_match()
+        self.game.paused = True
+        self.game.pause_selection = 1
+        self.game._handle_key(pg.K_SPACE)
+        self.assertFalse(self.game.paused)
+        self.assertEqual(self.game.gameplay.player_score, 0)
+        self.assertEqual(self.game.gameplay.ai_score, 0)
+        self.assertGreater(self.game.gameplay.ball.speed, 0)
+
+    def test_game_over_replay_launches_ball(self):
+        self.game.state = 'game_over'
+        self.game.gameplay.player_score = 11
+        self.game.gameplay.ai_score = 9
+        self.game._handle_key(pg.K_SPACE)
+        self.assertEqual(self.game.state, 'playing')
+        self.assertEqual(self.game.gameplay.player_score, 0)
+        self.assertGreater(self.game.gameplay.ball.speed, 0)
+
+    def test_point_lifecycle_holds_then_launches(self):
+        self._start_match()
+        speed_before = self.game.gameplay.ball.speed
+        self.game.gameplay.point_transition_timer = c.POINT_PAUSE_DURATION
+        self.game.gameplay.point_callout = 'HIT!'
+        self.game._update(1/60)
+        self.assertAlmostEqual(self.game.gameplay.point_transition_timer, c.POINT_PAUSE_DURATION - 1/60, places=3)
+        self.assertEqual(self.game.gameplay.ball.speed, speed_before)
+        self.game.gameplay.point_transition_timer = 0.01
+        self.game._update(0.02)
+        self.assertEqual(self.game.gameplay.point_transition_timer, 0.0)
+        self.assertIsNone(self.game.gameplay.point_callout)
+        self.assertGreater(self.game.gameplay.ball.speed, 0)
+
+    def test_victory_rendering_animates_then_static(self):
+        self.game.state = 'game_over'
+        self.game.game_over_state = 'player'
+        self.game._active_animation = True
+        self.game.game_over_timer = 0
+        self.assertTrue(self.game._active_animation)
+        self.game._update(0.01)
+        self.assertGreater(self.game.game_over_timer, 0)
+        for _ in range(100):
+            self.game._update(1/60)
+        self.assertFalse(self.game._active_animation)
+        self.assertGreaterEqual(self.game.game_over_timer, c.WIN_ANIMATION_DURATION)
+
+    def test_static_draw_suppression_after_victory(self):
+        self.game.state = 'game_over'
+        self.game.game_over_state = 'player'
+        self.game._active_animation = False
+        self.game.game_over_timer = c.WIN_ANIMATION_DURATION
+        self.game._render_after_anim = False
+        self.game._update(1/60)
+        metrics = self.game._timer.metrics()
+        metrics.reset()
+        for _ in range(10):
+            self.game._update(1/60)
+        self.assertEqual(metrics.snapshot()["simSteps"], 0)
+
+
+class TestCollisionIntegration(unittest.TestCase):
+    def setUp(self):
+        self.gp = Gameplay(_MockAudio())
+
+    def test_high_speed_ball_hits_left_paddle(self):
+        self.gp.ball.x = self.gp.player_paddle.rect.right + 10
+        self.gp.ball.y = self.gp.player_paddle.y
+        self.gp.ball.px = self.gp.ball.x + 100
+        self.gp.ball.py = self.gp.ball.y
+        self.gp.ball.vx = -999999
+        self.gp.ball.vy = 0
+        self.gp.ball.speed = 999999
+        self.gp.update(1/60, {pg.K_w: False, pg.K_s: False, pg.K_UP: False, pg.K_DOWN: False})
+        self.assertGreater(self.gp.rally_count, 0)
+
+    def test_ball_moving_away_from_left_paddle_no_collision(self):
+        old_rally = self.gp.rally_count
+        self.gp.ball.x = self.gp.player_paddle.rect.right + 30
+        self.gp.ball.y = self.gp.player_paddle.y
+        self.gp.ball.px = self.gp.ball.x - 50
+        self.gp.ball.py = self.gp.ball.y
+        self.gp.ball.vx = 500
+        self.gp.ball.vy = 0
+        self.gp.ball.speed = 500
+        self.gp.update(1/60, {pg.K_w: False, pg.K_s: False, pg.K_UP: False, pg.K_DOWN: False})
+        self.assertEqual(self.gp.rally_count, old_rally)
+
+    def test_ball_moving_away_from_right_paddle_no_collision(self):
+        old_rally = self.gp.rally_count
+        self.gp.ball.x = self.gp.ai_paddle.rect.left - 30
+        self.gp.ball.y = self.gp.ai_paddle.y
+        self.gp.ball.px = self.gp.ball.x + 50
+        self.gp.ball.py = self.gp.ball.y
+        self.gp.ball.vx = -500
+        self.gp.ball.vy = 0
+        self.gp.ball.speed = 500
+        self.gp.update(1/60, {pg.K_w: False, pg.K_s: False, pg.K_UP: False, pg.K_DOWN: False})
+        self.assertEqual(self.gp.rally_count, old_rally)
+
+    def test_single_increment_per_hit(self):
+        self.gp.ball.x = self.gp.player_paddle.rect.right + 5
+        self.gp.ball.y = self.gp.player_paddle.y
+        self.gp.ball.px = self.gp.ball.x + 200
+        self.gp.ball.py = self.gp.ball.y
+        self.gp.ball.vx = -999999
+        self.gp.ball.vy = 0
+        self.gp.ball.speed = 999999
+        self.gp.rally_count = 0
+        self.gp.update(1/60, {pg.K_w: False, pg.K_s: False, pg.K_UP: False, pg.K_DOWN: False})
+        self.assertEqual(self.gp.rally_count, 1)
+        self.gp.update(1/60, {pg.K_w: False, pg.K_s: False, pg.K_UP: False, pg.K_DOWN: False})
+        self.assertEqual(self.gp.rally_count, 1)
+
+    def test_ball_resolved_outside_paddle_face(self):
+        self.gp.ball.x = self.gp.player_paddle.rect.right + 5
+        self.gp.ball.y = self.gp.player_paddle.y
+        self.gp.ball.px = self.gp.ball.x + 200
+        self.gp.ball.py = self.gp.ball.y
+        self.gp.ball.vx = -999999
+        self.gp.ball.vy = 0
+        self.gp.ball.speed = 999999
+        self.gp.update(1/60, {pg.K_w: False, pg.K_s: False, pg.K_UP: False, pg.K_DOWN: False})
+        r = c.BALL_SIZE // 2
+        self.assertGreaterEqual(self.gp.ball.x, self.gp.player_paddle.rect.right + r)
+
+    def test_high_speed_right_paddle_collision(self):
+        self.gp.ball.x = self.gp.ai_paddle.rect.left - 10
+        self.gp.ball.y = self.gp.ai_paddle.y
+        self.gp.ball.px = self.gp.ball.x - 200
+        self.gp.ball.py = self.gp.ball.y
+        self.gp.ball.vx = 999999
+        self.gp.ball.vy = 0
+        self.gp.ball.speed = 999999
+        self.gp.update(1/60, {pg.K_w: False, pg.K_s: False, pg.K_UP: False, pg.K_DOWN: False})
+        self.assertGreater(self.gp.rally_count, 0)
+
+    def test_edge_contact_still_collides(self):
+        self.gp.ball.x = self.gp.player_paddle.rect.right + 3
+        self.gp.ball.y = self.gp.player_paddle.rect.top - 2
+        self.gp.ball.px = self.gp.ball.x + 100
+        self.gp.ball.py = self.gp.ball.y + 50
+        self.gp.ball.vx = -999
+        self.gp.ball.vy = -300
+        self.gp.ball.speed = 1000
+        self.gp.update(1/60, {pg.K_w: False, pg.K_s: False, pg.K_UP: False, pg.K_DOWN: False})
+        self.assertGreater(self.gp.rally_count, 0)
+
+
+class TestPowerupCadence(unittest.TestCase):
+    def setUp(self):
+        self.gp = Gameplay(_MockAudio())
+
+    def test_spawn_after_countdown(self):
+        self.gp.powerup = None
+        self.gp.powerup_spawn_timer = 0.001
+        self.gp.update(1/60, {pg.K_w: False, pg.K_s: False, pg.K_UP: False, pg.K_DOWN: False})
+        self.assertIsNotNone(self.gp.powerup)
+
+    def test_collection_restarts_timer(self):
+        from games.pong.powerup import PowerUp
+        self.gp.powerup = PowerUp(c.POWERUP_TYPE_LARGE_PADDLE)
+        self.gp.powerup.x = self.gp.player_paddle.x + 1
+        self.gp.powerup.y = self.gp.player_paddle.y
+        self.gp.powerup_spawn_timer = 1.0
+        self.gp.update(1/60, {pg.K_w: False, pg.K_s: False, pg.K_UP: False, pg.K_DOWN: False})
+        self.assertIsNone(self.gp.powerup)
+        self.assertAlmostEqual(self.gp.powerup_spawn_timer, c.POWERUP_SPAWN_INTERVAL, delta=0.1)
+
+    def test_expiry_restarts_timer(self):
+        from games.pong.powerup import PowerUp
+        self.gp.powerup = PowerUp(c.POWERUP_TYPE_LARGE_PADDLE)
+        self.gp.powerup.x = 0
+        self.gp.powerup.timer = 0.001
+        self.gp.powerup_spawn_timer = -5
+        self.gp.update(1/60, {pg.K_w: False, pg.K_s: False, pg.K_UP: False, pg.K_DOWN: False})
+        self.assertIsNone(self.gp.powerup)
+        self.assertAlmostEqual(self.gp.powerup_spawn_timer, c.POWERUP_SPAWN_INTERVAL, delta=0.1)
+
+    def test_no_immediate_replacement_after_expiry(self):
+        from games.pong.powerup import PowerUp
+        self.gp.powerup = PowerUp(c.POWERUP_TYPE_LARGE_PADDLE)
+        self.gp.powerup.timer = 0.001
+        self.gp.update(1/60, {pg.K_w: False, pg.K_s: False, pg.K_UP: False, pg.K_DOWN: False})
+        self.assertIsNone(self.gp.powerup)
+        self.assertGreater(self.gp.powerup_spawn_timer, 5)
+
+    def test_no_duplicate_spawn(self):
+        from games.pong.powerup import PowerUp
+        self.gp.powerup = PowerUp(c.POWERUP_TYPE_CURSED_POWDER)
+        self.gp.powerup_spawn_timer = -5
+        self.gp.update(1/60, {pg.K_w: False, pg.K_s: False, pg.K_UP: False, pg.K_DOWN: False})
+        self.assertIsNotNone(self.gp.powerup)
+
+    def test_reset_sets_initial_interval(self):
+        self.gp.reset()
+        self.assertAlmostEqual(self.gp.powerup_spawn_timer, c.POWERUP_SPAWN_INTERVAL, delta=0.1)
+
+    def test_point_transition_no_duplicate_pickup(self):
+        self.gp.point_transition_timer = 0.5
+        self.gp.powerup = None
+        self.gp.powerup_spawn_timer = -5
+        self.gp.update(1/60, {pg.K_w: False, pg.K_s: False, pg.K_UP: False, pg.K_DOWN: False})
+        self.assertIsNone(self.gp.powerup)
+
+
+class TestBallTrailCache(unittest.TestCase):
+    def setUp(self):
+        self.ball = Ball()
+
+    def test_identity_on_repeat_assign(self):
+        self.ball.set_rally_tier(5)
+        surfs = self.ball._trail_surfs
+        self.ball.set_rally_tier(5)
+        self.assertIs(surfs, self.ball._trail_surfs)
+
+
+class TestMuzzleFlashCache(unittest.TestCase):
+    def setUp(self):
+        self.paddle = Paddle(200, 300, side='left')
+
+    def test_bounded_size(self):
+        self.assertEqual(len(self.paddle._muzzle_flash_frames), 8)
+
+    def test_frames_are_surfaces(self):
+        for frame in self.paddle._muzzle_flash_frames:
+            self.assertIsNotNone(frame)
+            self.assertGreater(frame.get_width(), 0)
+            self.assertGreater(frame.get_height(), 0)
 
 
 if __name__ == "__main__":

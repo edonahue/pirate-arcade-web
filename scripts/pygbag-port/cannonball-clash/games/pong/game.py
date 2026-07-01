@@ -28,6 +28,7 @@ class PongGame:
         self._present_gate = PresentGate()
         self._timer = FixedStepTimer()
         self._active_animation = False
+        self._render_after_anim = False
 
     async def run(self):
         while True:
@@ -40,17 +41,19 @@ class PongGame:
                         return
 
             hidden = page_hidden()
-            active = (self.state == 'playing' and not self.paused) or self._active_animation
-            frame = self._timer.begin_frame(active=active, hidden=hidden)
+            simulation_active = self.state == 'playing' and not self.paused
+            animation_active = self._active_animation
+            render_continuous = simulation_active or animation_active or self._render_after_anim
+            frame = self._timer.begin_frame(active=simulation_active or animation_active, hidden=hidden)
             metrics = self._timer.metrics()
 
             for _ in range(frame.steps):
                 self._update(frame.step_seconds)
                 metrics.record_step()
 
-            draw_key = (self.state, self.paused, self.menu_selection, self.pause_selection, self.sound_enabled)
-            force_draw = (self.state == 'playing' and not self.paused)
-            if force_draw:
+            draw_key = (self.state, self.paused, self.menu_selection, self.pause_selection, self.sound_enabled, self.game_over_state)
+            if render_continuous:
+                self._render_after_anim = False
                 self._draw(60)
                 self._state_pub._stats["draws"] += 1
                 metrics.record_draw()
@@ -61,7 +64,7 @@ class PongGame:
             else:
                 metrics.record_static_draw_skip()
 
-            if self._present_gate.check_present(draw_key, force=force_draw):
+            if self._present_gate.check_present(draw_key, force=render_continuous):
                 pg.display.flip()
                 self._state_pub._stats["presentations"] += 1
                 metrics.record_present()
@@ -85,7 +88,7 @@ class PongGame:
                 if self.menu_selection == 1:
                     return 'quit'
                 self.state = 'playing'
-                self.gameplay.reset()
+                self.gameplay.begin_match()
                 self.paused = False
                 self.game_over_state = None
                 self.game_over_timer = 0
@@ -107,7 +110,7 @@ class PongGame:
                 if self.pause_selection == 0:
                     self.paused = False
                 elif self.pause_selection == 1:
-                    self.gameplay.reset()
+                    self.gameplay.begin_match()
                     self.paused = False
                     self.game_over_state = None
                     self.game_over_timer = 0
@@ -140,7 +143,7 @@ class PongGame:
         if key in (pg.K_SPACE, pg.K_RETURN):
             if self.state == 'game_over':
                 self.state = 'playing'
-                self.gameplay.reset()
+                self.gameplay.begin_match()
                 self.paused = False
                 self.game_over_state = None
                 self.game_over_timer = 0
@@ -212,6 +215,7 @@ class PongGame:
                 self.particles.update(dt)
             if self.game_over_timer >= c.WIN_ANIMATION_DURATION:
                 self._active_animation = False
+                self._render_after_anim = True
         active = (self.state == 'playing' and not self.paused) or self._active_animation
         self._state_pub.tick(
             dt,

@@ -77,6 +77,8 @@ class Ball:
         self.vy = sin(radians(angle)) * self.speed
 
     def set_rally_tier(self, tier):
+        if tier == self.rally_tier:
+            return
         self.rally_tier = tier
         max_trail = c.RALLY_TRAIL_TIERS.get(tier, c.BALL_TRAIL_LENGTH)
         self.trail = deque(self.trail, maxlen=max_trail)
