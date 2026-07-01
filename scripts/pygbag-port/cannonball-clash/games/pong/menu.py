@@ -28,7 +28,7 @@ class Menu:
             self._line_surfs.append(self.inst_font.render(line, True, c.GRAY))
 
         self._powerup_surf = self.hud_font.render(
-            "Power-up: Double-shot cannons!", True, c.POWERUP_COLOR)
+            "Power-up: Reinforced Hull!", True, c.POWERUP_COLOR)
 
         self._hint_surf = self.inst_font.render(
             "W/S navigate  •  SPACE / Enter select", True, c.GRAY)

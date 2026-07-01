@@ -13,6 +13,9 @@ class Paddle:
         self._built = False
         self.side = side  # 'left' (player) or 'right' (AI)
         self._visual_w = 80  # wide enough to read as ship at browser scale
+        self._recoil_nudge = 0
+        self._recoil_timer = 0.0
+        self._muzzle_flash_timer = 0.0
 
     def _build_surfs(self):
         vw = self._visual_w
@@ -161,6 +164,11 @@ class Paddle:
                              (stern_x + 2, py, 5, 3))
 
         self._offset_x = left_margin
+        # Pre-tinted big version
+        self._ship_surf_big = self._ship_surf.copy()
+        tint = pg.Surface((vw, h), pg.SRCALPHA)
+        tint.fill((255, 200, 50, 80))
+        self._ship_surf_big.blit(tint, (0, 0), special_flags=pg.BLEND_RGBA_MULT)
         self._built = True
 
     @property
@@ -168,9 +176,21 @@ class Paddle:
         return pg.Rect(self.x - self.width // 2, self.y - self.height // 2,
                        self.width, self.height)
 
+    def trigger_recoil(self):
+        dir = -1 if self.side == 'left' else 1
+        self._recoil_nudge = dir * 6
+        self._recoil_timer = 0.08
+        self._muzzle_flash_timer = 0.12
+
     def update(self, dt):
         self.y += self.vy * dt
         self.y = max(self.height // 2, min(c.WINDOW_HEIGHT - self.height // 2, self.y))
+        if self._recoil_timer > 0:
+            self._recoil_timer -= dt
+            if self._recoil_timer <= 0:
+                self._recoil_nudge = 0
+        if self._muzzle_flash_timer > 0:
+            self._muzzle_flash_timer -= dt
         if self.big_timer > 0:
             self.big_timer -= dt
             if self.big_timer <= 0:
@@ -181,6 +201,9 @@ class Paddle:
         self.big_timer = 0.0
         self.height = self.base_height
         self._built = False
+        self._recoil_nudge = 0
+        self._recoil_timer = 0.0
+        self._muzzle_flash_timer = 0.0
 
     def activate_big(self):
         self.height = int(self.base_height * c.PADDLE_BIG_MULTIPLIER)
@@ -198,15 +221,19 @@ class Paddle:
         gx = self.x - self._visual_w // 2 - 12
         gy = self.y - self.height // 2 - 12
         surface.blit(self._glow_surf, (gx, gy))
-        # Ship centered on paddle position
-        sx = self.x - self._visual_w // 2
+        # Ship centered on paddle position, offset by recoil nudge
+        sx = self.x - self._visual_w // 2 + self._recoil_nudge
         sy = self.y - self.height // 2
         if self.is_big:
-            tinted = self._ship_surf.copy()
-            tint = pg.Surface((self._visual_w, self.height), pg.SRCALPHA)
-            tint.fill((255, 200, 50, 80))
-            tinted.blit(tint, (0, 0), special_flags=pg.BLEND_RGBA_MULT)
-            surface.blit(tinted, (sx, sy))
+            surface.blit(self._ship_surf_big, (sx, sy))
             pg.draw.rect(surface, c.POWERUP_COLOR, self.rect, 2)
         else:
             surface.blit(self._ship_surf, (sx, sy))
+        # Muzzle flash at bow
+        if self._muzzle_flash_timer > 0:
+            flash_radius = int(18 * (self._muzzle_flash_timer / 0.12))
+            bow_x = self.x + (1 if self.side == 'left' else -1) * (self._visual_w // 2)
+            flash_color = (255, 240, 180, int(180 * self._muzzle_flash_timer / 0.12))
+            flash_surf = pg.Surface((flash_radius * 2, flash_radius * 2), pg.SRCALPHA)
+            pg.draw.circle(flash_surf, flash_color, (flash_radius, flash_radius), flash_radius)
+            surface.blit(flash_surf, (bow_x - flash_radius, self.y - flash_radius))

@@ -27,6 +27,7 @@ class PongGame:
         self._state_pub = StatePublisher()
         self._present_gate = PresentGate()
         self._timer = FixedStepTimer()
+        self._active_animation = False
 
     async def run(self):
         while True:
@@ -39,7 +40,7 @@ class PongGame:
                         return
 
             hidden = page_hidden()
-            active = self.state == 'playing' and not self.paused
+            active = (self.state == 'playing' and not self.paused) or self._active_animation
             frame = self._timer.begin_frame(active=active, hidden=hidden)
             metrics = self._timer.metrics()
 
@@ -89,6 +90,7 @@ class PongGame:
                 self.game_over_state = None
                 self.game_over_timer = 0
                 self.particles.reset()
+                self._active_animation = False
                 return
 
         if self.state == 'playing' and self.paused:
@@ -110,6 +112,7 @@ class PongGame:
                     self.game_over_state = None
                     self.game_over_timer = 0
                     self.particles.reset()
+                    self._active_animation = False
                 elif self.pause_selection == 2:
                     self.sound_enabled = not self.sound_enabled
                     self.audio.muted = not self.sound_enabled
@@ -125,6 +128,7 @@ class PongGame:
                     self.paused = False
                     self.gameplay.reset()
                     self.particles.reset()
+                    self._active_animation = False
                 return
 
         if key == pg.K_ESCAPE:
@@ -141,6 +145,7 @@ class PongGame:
                 self.game_over_state = None
                 self.game_over_timer = 0
                 self.particles.reset()
+                self._active_animation = False
                 return
         if self.state == 'playing' and not self.paused:
             if key == pg.K_f:
@@ -193,6 +198,7 @@ class PongGame:
                 self.state = 'game_over'
                 self.game_over_state = result[1]
                 self.game_over_timer = 0
+                self._active_animation = True
                 if result[1] == 'player':
                     self.particles.reset()
                     self.audio.play('victory')
@@ -200,11 +206,13 @@ class PongGame:
                         self.gameplay.player_score,
                         self.gameplay.ai_score,
                         self.ai_difficulty)
-        elif self.state == 'game_over':
+        elif self.state == 'game_over' and self._active_animation:
             self.game_over_timer += dt
             if self.game_over_state == 'player':
                 self.particles.update(dt)
-        active = self.state == 'playing' and not self.paused
+            if self.game_over_timer >= c.WIN_ANIMATION_DURATION:
+                self._active_animation = False
+        active = (self.state == 'playing' and not self.paused) or self._active_animation
         self._state_pub.tick(
             dt,
             event_key=self._state_event_key(),
