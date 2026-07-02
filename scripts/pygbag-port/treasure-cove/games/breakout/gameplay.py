@@ -141,9 +141,10 @@ class Gameplay:
             elif stage == 3:
                 for i in range(6):
                     gx = 100 + i * 250
-                    gsize = random.randint(20, 50)
-                    pg.draw.circle(surf, (50, 40, 20, 60), (gx, 500 + random.randint(-100, 100)), gsize, 1)
-                    pg.draw.circle(surf, (60, 50, 25, 40), (gx, 500 + random.randint(-100, 100)), gsize // 2, 1)
+                    gsize = 20 + (i * 5) % 31
+                    gy = 500 + ((i * 37) % 201) - 100
+                    pg.draw.circle(surf, (50, 40, 20, 60), (gx, gy), gsize, 1)
+                    pg.draw.circle(surf, (60, 50, 25, 40), (gx, gy), gsize // 2, 1)
             self._backdrop_surfs[stage] = surf
 
     def _get_stage_speed(self):
@@ -632,6 +633,8 @@ class Gameplay:
         pass
 
     def draw(self, surface, fps=0):
+        if not self._backdrop_surfs:
+            self._build_backdrop_surfs()
         backdrop = self._backdrop_surfs.get(self.stage)
         if backdrop:
             surface.blit(backdrop, (0, 0))
