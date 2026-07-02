@@ -176,6 +176,12 @@ const CHECKS = {
     cmdParts: ["npm", "run", "test:performance-budgets"],
     group: "static",
   },
+  pythongames: {
+    name: "Python gameplay tests",
+    cmd: "npm run test:python-games",
+    cmdParts: ["npm", "run", "test:python-games"],
+    group: "static",
+  },
   sitetheme: {
     name: "Site theme",
     cmd: "npm run test:site-theme",
@@ -280,6 +286,7 @@ const FAST_IDS = [
   "format",
   "typecheck",
   "build",
+  "pythongames",
   "seo-audit",
   "copy-tone",
   "css-tokens",

@@ -1,0 +1,5 @@
+# Pirate Arcade Web — Python test dependencies
+# Install: pip install -r requirements-test.txt
+# These are development/test-only; not used in production or browser builds.
+
+pygame==2.5.2

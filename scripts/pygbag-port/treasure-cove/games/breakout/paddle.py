@@ -69,10 +69,17 @@ class Paddle:
         self.was_wide = True
 
     def update(self, dt):
+        self.x += self.vx * dt
+        w = self.width
         if self.wide_timer > 0:
             self.wide_timer -= dt
             if self.wide_timer <= 0:
                 self.wide_timer = 0
+                w = self.width
+            else:
+                w = int(w * c.PADDLE_BREAKOUT_WIDE_MULTIPLIER)
+        half = w // 2
+        self.x = max(half, min(c.WINDOW_WIDTH - half, self.x))
 
     def draw(self, surface):
         gx = self.x - self._glow_width // 2

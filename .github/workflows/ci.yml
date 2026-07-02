@@ -25,13 +25,39 @@ jobs:
       - name: Fast release gate
         run: npm run verify:release:fast
 
+  # Python game tests — isolates each game's test suite in its own
+  # subprocess to prevent sys.modules contamination between games.
+  python-games:
+    runs-on: ubuntu-latest
+    needs: verify
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements-test.txt
+      - run: npm run test:python-games
+      - name: Upload test logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-test-logs-${{ github.run_id }}
+          path: /tmp/python-game-test-*.log
+          retention-days: 7
+
   # Playwright tests — separate job so a test flake doesn't block the
   # build. Only chromium-desktop is run here; mobile-safari/mobile-chrome
   # and webkit-desktop are exercised locally before each release (see
   # TESTING.md and tests/TESTING_CHECKLIST.md).
   playwright:
     runs-on: ubuntu-latest
-    needs: verify
+    needs: [verify, python-games]
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v5

@@ -15,11 +15,12 @@ def _ensure_stars():
     global _BG_STARS
     if _BG_STARS is not None:
         return
+    rng = random.Random(0xCAFEBABE)
     _BG_STARS = pg.Surface((c.WINDOW_WIDTH, c.WINDOW_HEIGHT), pg.SRCALPHA)
     for _ in range(200):
-        x = random.randint(0, c.WINDOW_WIDTH)
-        y = random.randint(0, c.WINDOW_HEIGHT)
-        b = random.randint(100, 220)
+        x = rng.randint(0, c.WINDOW_WIDTH)
+        y = rng.randint(0, c.WINDOW_HEIGHT)
+        b = rng.randint(100, 220)
         _BG_STARS.set_at((x, y), (b, b, b, b))
 
 

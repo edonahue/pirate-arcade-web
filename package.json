@@ -22,6 +22,7 @@
     "test:web-native-games": "playwright test tests/web-native-games.spec.ts --project=chromium-desktop --project=firefox-desktop --project=webkit-desktop",
     "test:web-native-games:chromium": "playwright test tests/web-native-games.spec.ts --project=chromium-desktop",
     "test:desktop-input": "playwright test tests/game-input-desktop.spec.ts --project=chromium-desktop --project=firefox-desktop --project=webkit-desktop",
+    "test:python-games": "python3 scripts/run-python-game-tests.py",
     "test:unit": "vitest run",
     "test:unit:watch": "vitest",
     "audit:game-archives": "node scripts/audit-game-archives.mjs",

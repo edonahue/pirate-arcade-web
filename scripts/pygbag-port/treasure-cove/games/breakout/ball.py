@@ -56,17 +56,17 @@ class Ball:
         self.launched = False
 
     def launch(self):
-        angle = random.uniform(-60, 60)
-        self._underlying_speed = c.BALL_BREAKOUT_SPEED
         self._slow_mult = 1.0
         self.speed = self._underlying_speed * self._slow_mult
+        angle = random.uniform(-60, 60)
         self.vx = cos(radians(angle)) * self.speed
-        self.vy = sin(radians(angle)) * self.speed
+        self.vy = -abs(sin(radians(angle)) * self.speed)
         if abs(self.vy) < self.speed * 0.15:
-            self.vy = (self.speed * 0.15) * (1 if self.vy >= 0 else -1)
+            self.vy = -self.speed * 0.15
             norm = (self.vx ** 2 + self.vy ** 2) ** 0.5
-            self.vx = self.vx / norm * self.speed
-            self.vy = self.vy / norm * self.speed
+            if norm > 0:
+                self.vx = self.vx / norm * self.speed
+                self.vy = self.vy / norm * self.speed
         self.launched = True
 
     @property
@@ -118,10 +118,11 @@ class Ball:
         gx = int(self.x - self._glow_size)
         gy = int(self.y - self._glow_size)
         surface.blit(self._glow_surf, (gx, gy))
+        speed = max(1, (self.vx ** 2 + self.vy ** 2) ** 0.5)
         for i, surf in enumerate(self._trail_surfs):
             t = (i + 1) / len(self._trail_surfs)
-            tx = int(self.x - self.vx * 4 * t)
-            ty = int(self.y - self.vy * 4 * t)
+            tx = int(self.x - self.vx / speed * 20 * t)
+            ty = int(self.y - self.vy / speed * 20 * t)
             size = surf.get_width() // 2
             surface.blit(surf, (tx - size, ty - size))
         ball_color = c.PIRATE_CANNON

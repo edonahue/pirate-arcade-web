@@ -276,6 +276,8 @@ class Gameplay:
             dx = abs(cx - bx)
             dy = abs(cy - by)
             if dx <= start_brick.width * 1.5 and dy <= start_brick.height * 1.5:
+                if len(chain_set) >= c.POWDER_KEG_CHAIN_MAX:
+                    continue
                 chain_set.add(id(brick))
                 self._spawn_brick_particles(brick)
                 self._spawn_explosion_particles(brick)
@@ -325,6 +327,7 @@ class Gameplay:
             self.slow_motion_timer = c.BALL_BREAKOUT_SLOW_DURATION
             self._apply_slow_to_all_balls()
 
+        self.last_pickup_type = pickup.pickup_type
         self._pickup_label = pickup.label
         self._pickup_label_timer = 1.5
         self._pickup_label_surf = self.hud_font.render(pickup.label, True, c.PIRATE_GOLD)
@@ -386,10 +389,23 @@ class Gameplay:
         ball.x = bx1 + dx * max(0.0, min(1.0, tmin - 0.01))
         ball.y = by1 + dy * max(0.0, min(1.0, tmin - 0.01))
         ball.ensure_min_vy()
+        self._damage_brick(ball, brick)
         return True
 
     def update(self, dt, keys):
         if keys is None:
+            return ('playing', None)
+
+        if self._life_lost_pending_reset and self._life_lost_timer <= 0:
+            self._life_lost_pending_reset = False
+            self.reset_round()
+            self.slow_motion_timer = 0.0
+            self.paddle.wide_timer = 0.0
+            self._remove_all_slow()
+            self._pickup_label = None
+            self._pickup_label_surf = None
+            self._pickup_label_timer = 0.0
+            self._life_lost_timer = -1.0
             return ('playing', None)
 
         if self._life_lost_timer > 0:
@@ -474,7 +490,7 @@ class Gameplay:
                 ball.vx = -ball.vx
                 self.audio.play('wall_hit')
 
-            if ball.rect.colliderect(self.paddle.rect):
+            if ball.vy > 0 and ball.rect.colliderect(self.paddle.rect):
                 offset = (ball.x - self.paddle.x) / (self.paddle.rect.width / 2)
                 offset = max(-1, min(1, offset))
                 angle = offset * 60
@@ -519,17 +535,6 @@ class Gameplay:
                 return ('playing', None)
             else:
                 self.balls = [b for b in self.balls if not (b.launched and b.y + b.radius > c.WINDOW_HEIGHT)]
-
-        if self._life_lost_pending_reset and self._life_lost_timer <= 0:
-            self._life_lost_pending_reset = False
-            self.reset_round()
-            self.slow_motion_timer = 0.0
-            self.paddle.wide_timer = 0.0
-            self._remove_all_slow()
-            self._pickup_label = None
-            self._pickup_label_surf = None
-            self._pickup_label_timer = 0.0
-            self._life_lost_timer = 0.0
 
         any_launched = any(b.launched for b in self.balls)
         if self.remaining_bricks == 0 and not self.stage_transition_phase and any_launched:
@@ -582,24 +587,7 @@ class Gameplay:
             if f[1] <= 0:
                 self.brick_flashes.remove(f)
 
-    def _resolve_brick_collision(self, ball, brick):
-        ball_rect = ball.rect
-        brick_rect = brick.rect
-
-        overlap_left = ball_rect.right - brick_rect.left
-        overlap_right = brick_rect.right - ball_rect.left
-        overlap_top = ball_rect.bottom - brick_rect.top
-        overlap_bottom = brick_rect.bottom - ball_rect.top
-
-        min_overlap = min(overlap_left, overlap_right, overlap_top, overlap_bottom)
-
-        if min_overlap == overlap_left or min_overlap == overlap_right:
-            ball.vx = -ball.vx
-        else:
-            ball.vy = -ball.vy
-
-        ball.ensure_min_vy()
-
+    def _damage_brick(self, ball, brick):
         self.score += brick.points
         self._spawn_brick_particles(brick)
         self.flash_timer = 0.15
@@ -629,6 +617,26 @@ class Gameplay:
         else:
             self.audio.play('brick_break')
 
+    def _resolve_brick_collision(self, ball, brick):
+        ball_rect = ball.rect
+        brick_rect = brick.rect
+
+        overlap_left = ball_rect.right - brick_rect.left
+        overlap_right = brick_rect.right - ball_rect.left
+        overlap_top = ball_rect.bottom - brick_rect.top
+        overlap_bottom = brick_rect.bottom - ball_rect.top
+
+        min_overlap = min(overlap_left, overlap_right, overlap_top, overlap_bottom)
+
+        if min_overlap == overlap_left or min_overlap == overlap_right:
+            ball.vx = -ball.vx
+        else:
+            ball.vy = -ball.vy
+
+        ball.ensure_min_vy()
+
+        self._damage_brick(ball, brick)
+
     def _handle_debug_hooks(self):
         pass
 
@@ -641,14 +649,14 @@ class Gameplay:
         else:
             surface.fill(c.PIRATE_NAVY)
 
+        for brick in self.bricks:
+            if brick.alive:
+                brick.draw(surface)
+
         for rect, timer in self.brick_flashes:
             idx = int(timer / 0.3 * 7) if timer <= 0.3 else 7
             idx = max(0, min(7, idx))
             surface.blit(_BRICK_FLASH_SURFS[idx], rect)
-
-        for brick in self.bricks:
-            if brick.alive:
-                brick.draw(surface)
 
         for ball in self.balls:
             ball.draw(surface)

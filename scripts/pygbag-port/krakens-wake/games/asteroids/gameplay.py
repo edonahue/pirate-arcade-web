@@ -21,14 +21,14 @@ def _init_stars():
     global _STARS
     if _STARS is not None:
         return
-    random.seed(0xDEADBEEF)
+    rng = random.Random(0xDEADBEEF)
     _STARS = []
     for _ in range(120):
-        x = random.randint(0, c.WINDOW_WIDTH)
-        y = random.randint(0, c.WINDOW_HEIGHT)
-        brightness = random.randint(60, 200)
-        size = random.choice([1, 1, 1, 2, 2, 3])
-        twinkle = random.random() < 0.3
+        x = rng.randint(0, c.WINDOW_WIDTH)
+        y = rng.randint(0, c.WINDOW_HEIGHT)
+        brightness = rng.randint(60, 200)
+        size = rng.choice([1, 1, 1, 2, 2, 3])
+        twinkle = rng.random() < 0.3
         _STARS.append((x, y, brightness, size, twinkle))
 
 _NEBULA_SURFACES = None
