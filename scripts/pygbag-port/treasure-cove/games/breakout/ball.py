@@ -69,6 +69,15 @@ class Ball:
             self.vy = self.vy / norm * self.speed
         self.launched = True
 
+    @property
+    def rect(self):
+        return pg.Rect(
+            int(self.x - self.radius),
+            int(self.y - self.radius),
+            self.radius * 2,
+            self.radius * 2,
+        )
+
     def set_slow(self, active):
         if active:
             self._slow_mult = c.BALL_BREAKOUT_SLOW_FACTOR
