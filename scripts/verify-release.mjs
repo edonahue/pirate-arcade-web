@@ -286,7 +286,6 @@ const FAST_IDS = [
   "format",
   "typecheck",
   "build",
-  "pythongames",
   "seo-audit",
   "copy-tone",
   "css-tokens",
