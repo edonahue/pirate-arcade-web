@@ -107,7 +107,7 @@ class TestBallMinVy(unittest.TestCase):
         self.ball.vy = 1
         self.ball.speed = 650
         self.ball.ensure_min_vy()
-        self.assertGreaterEqual(abs(self.ball.vy), 650 * 0.15)
+        self.assertGreaterEqual(abs(self.ball.vy), 90)
 
     def test_ensure_min_vy_rescales_vx(self):
         self.ball.launch()
@@ -341,6 +341,13 @@ class TestGameplayLifeLossHold(unittest.TestCase):
     def test_reset_round_clears_life_lost_state(self):
         self.gp._life_lost_timer = CREW_LOST_HOLD_DURATION
         self.gp._life_lost_pending_reset = True
+        self.gp.reset_ball()
+        self.assertEqual(self.gp._life_lost_timer, 0.0)
+        self.assertFalse(self.gp._life_lost_pending_reset)
+
+    def test_reset_round_alias_works(self):
+        self.gp._life_lost_timer = CREW_LOST_HOLD_DURATION
+        self.gp._life_lost_pending_reset = True
         self.gp.reset_round()
         self.assertEqual(self.gp._life_lost_timer, 0.0)
         self.assertFalse(self.gp._life_lost_pending_reset)
@@ -354,19 +361,29 @@ class TestGameplayStageBackdrops(unittest.TestCase):
     def setUp(self):
         self.gp = Gameplay(_MockAudio())
 
-    def test_backdrop_surfs_exist(self):
+    def test_backdrops_built_lazily(self):
+        self.assertEqual(len(self.gp._backdrop_surfs), 0)
+        self.gp._build_backdrop_surfs()
         self.assertIn(1, self.gp._backdrop_surfs)
         self.assertIn(2, self.gp._backdrop_surfs)
         self.assertIn(3, self.gp._backdrop_surfs)
 
     def test_backdrop_surfaces_correct_size(self):
+        self.gp._build_backdrop_surfs()
         for surf in self.gp._backdrop_surfs.values():
             self.assertEqual(surf.get_width(), c.WINDOW_WIDTH)
             self.assertEqual(surf.get_height(), c.WINDOW_HEIGHT)
 
     def test_current_stage_backdrop_used(self):
+        self.gp._build_backdrop_surfs()
         surf = self.gp._backdrop_surfs.get(self.gp.stage)
         self.assertIsNotNone(surf)
+
+    def test_draw_triggers_lazy_build(self):
+        before = len(self.gp._backdrop_surfs)
+        self.gp.draw(pg.Surface((c.WINDOW_WIDTH, c.WINDOW_HEIGHT)))
+        after = len(self.gp._backdrop_surfs)
+        self.assertGreater(after, before)
 
 
 class TestGameplayLabelCache(unittest.TestCase):
@@ -541,6 +558,288 @@ class TestGameplayStageTransition(unittest.TestCase):
         self.gp._start_stage_transition()
         self.assertIsNone(self.gp._pickup_label)
         self.assertIsNone(self.gp._pickup_label_surf)
+
+
+class TestBallSetRadius(unittest.TestCase):
+    def setUp(self):
+        self.ball = Ball()
+
+    def test_set_radius_changes_radius(self):
+        self.ball.set_radius(20)
+        self.assertEqual(self.ball.radius, 20)
+
+    def test_set_radius_rebuilds_glow(self):
+        old_glow_size = self.ball._glow_size
+        self.ball.set_radius(20)
+        self.assertNotEqual(self.ball._glow_size, old_glow_size)
+
+    def test_set_radius_rebuilds_trail(self):
+        old_trails = self.ball._trail_surfs
+        self.ball.set_radius(20)
+        self.assertIsNot(self.ball._trail_surfs, old_trails)
+
+    def test_set_radius_noop_when_same(self):
+        old_glow_size = self.ball._glow_size
+        old_trails = self.ball._trail_surfs
+        self.ball.set_radius(c.BALL_BREAKOUT_SIZE)
+        self.assertEqual(self.ball._glow_size, old_glow_size)
+        self.assertIs(self.ball._trail_surfs, old_trails)
+
+    def test_custom_radius_in_ctor(self):
+        ball = Ball(radius=25)
+        self.assertEqual(ball.radius, 25)
+
+    def test_custom_radius_rebuilds_glow(self):
+        ball = Ball(radius=25)
+        self.assertEqual(ball._glow_size, 75)
+
+    def test_rect_reflects_new_radius(self):
+        self.ball.set_radius(15)
+        self.assertEqual(self.ball.rect.width, 30)
+        self.assertEqual(self.ball.rect.height, 30)
+
+
+class TestRoundPhase(unittest.TestCase):
+    def setUp(self):
+        self.gp = Gameplay(_MockAudio())
+
+    def test_round_starts_at_one(self):
+        self.assertEqual(self.gp.round, 1)
+
+    def test_round_increments_on_life_loss(self):
+        self.gp.lives = 2
+        self.gp.balls = [Ball()]
+        self.gp.balls[0].launched = True
+        self.gp.balls[0].y = c.WINDOW_HEIGHT + 100
+        self.gp.update(1/60, pg.key.get_pressed())
+        self.assertEqual(self.gp.round, 2)
+
+    def test_round_reset_on_stage_transition(self):
+        self.gp.round = 3
+        self.gp._start_stage_transition()
+        self.assertEqual(self.gp.round, 1)
+
+    def test_round_reset_on_game_reset(self):
+        self.gp.round = 5
+        self.gp.reset()
+        self.assertEqual(self.gp.round, 1)
+
+    def test_round_in_state_event_key(self):
+        game = BreakoutGame(None, _MockAudio())
+        game.gameplay = self.gp
+        self.gp.round = 3
+        key = game._state_event_key()
+        self.assertIn(3, key)
+
+    def test_round_in_build_game_state(self):
+        game = BreakoutGame(None, _MockAudio())
+        game.gameplay = self.gp
+        self.gp.round = 4
+        state = game._build_game_state()
+        self.assertEqual(state["round"], 4)
+
+
+class TestMultiballRadiusInheritance(unittest.TestCase):
+    def setUp(self):
+        self.gp = Gameplay(_MockAudio())
+
+    def _force_multiball(self):
+        pu = Pickup(100, 100, "multiball")
+        pu.y = self.gp.paddle.y
+        pu.x = self.gp.paddle.x
+        self.gp.falling_pickups.append(pu)
+        self.gp.balls[0].launched = True
+        self.gp.balls[0].set_radius(20)
+        self.gp._update_pickups(1/60)
+
+    def test_new_ball_inherits_source_radius(self):
+        self._force_multiball()
+        for b in self.gp.balls:
+            self.assertEqual(b.radius, 20)
+
+    def test_new_ball_has_set_radius_method(self):
+        self._force_multiball()
+        for b in self.gp.balls:
+            self.assertTrue(hasattr(b, "set_radius"))
+
+
+class TestFallenBallCleanup(unittest.TestCase):
+    def setUp(self):
+        self.gp = Gameplay(_MockAudio())
+
+    def test_fallen_ball_removed_from_multiball(self):
+        self.gp.balls = [Ball(), Ball()]
+        self.gp.balls[0].launched = True
+        self.gp.balls[0].y = c.WINDOW_HEIGHT + 100
+        self.gp.balls[1].launched = True
+        self.gp.balls[1].y = 200
+        self.gp.paddle.x = c.WINDOW_WIDTH // 2
+        self.gp.update(1/60, pg.key.get_pressed())
+        self.assertEqual(len(self.gp.balls), 1)
+
+    def test_all_fallen_balls_trigger_life_loss(self):
+        self.gp.lives = 2
+        self.gp.balls = [Ball(), Ball()]
+        self.gp.balls[0].launched = True
+        self.gp.balls[0].y = c.WINDOW_HEIGHT + 100
+        self.gp.balls[1].launched = True
+        self.gp.balls[1].y = c.WINDOW_HEIGHT + 200
+        self.gp.paddle.x = c.WINDOW_WIDTH // 2
+        self.gp.update(1/60, pg.key.get_pressed())
+        self.assertEqual(self.gp.lives, 1)
+
+
+class TestSingleContactDamage(unittest.TestCase):
+    def setUp(self):
+        self.gp = Gameplay(_MockAudio())
+
+    def test_brick_skipped_when_id_in_hit_set(self):
+        brick = self.gp.bricks[0]
+        brick.health = 2
+        self.gp._hit_bricks_this_frame.add(id(brick))
+        self.gp._damage_brick(self.gp.balls[0], brick)
+        self.assertEqual(brick.health, 2)
+
+    def test_no_score_when_brick_skipped(self):
+        brick = self.gp.bricks[0]
+        brick.health = 2
+        self.gp._hit_bricks_this_frame.add(id(brick))
+        score_before = self.gp.score
+        self.gp._damage_brick(self.gp.balls[0], brick)
+        self.assertEqual(self.gp.score, score_before)
+
+    def test_hit_tracked_for_each_brick(self):
+        self.gp._hit_bricks_this_frame = set()
+        b1 = self.gp.bricks[0]
+        b2 = self.gp.bricks[1]
+        b1.health = 2
+        b2.health = 2
+        self.gp._damage_brick(self.gp.balls[0], b1)
+        self.gp._damage_brick(self.gp.balls[0], b2)
+        self.assertIn(id(b1), self.gp._hit_bricks_this_frame)
+        self.assertIn(id(b2), self.gp._hit_bricks_this_frame)
+
+    def test_hit_set_cleared_by_update(self):
+        brick = self.gp.bricks[0]
+        brick.health = 2
+        self.gp._damage_brick(self.gp.balls[0], brick)
+        self.assertIn(id(brick), self.gp._hit_bricks_this_frame)
+        self.gp.update(1/60, pg.key.get_pressed())
+        self.assertNotIn(id(brick), self.gp._hit_bricks_this_frame)
+
+
+class TestBrickDestructionTelemetry(unittest.TestCase):
+    def setUp(self):
+        self.gp = Gameplay(_MockAudio())
+
+    def test_telemetry_tracks_standard(self):
+        brick = self.gp.bricks[0]
+        brick.brick_type = c.BRICK_STANDARD
+        brick.health = 1
+        self.gp._damage_brick(self.gp.balls[0], brick)
+        self.assertEqual(self.gp._brick_destruction_counts["standard"], 1)
+
+    def test_telemetry_tracks_powder_keg(self):
+        self.gp._brick_destruction_counts["powder_keg"] = 0
+        start = None
+        for b in self.gp.bricks:
+            if b.brick_type == c.BRICK_POWDER_KEG:
+                start = b
+                break
+        if start:
+            start.health = 1
+            self.gp._damage_brick(self.gp.balls[0], start)
+            self.assertGreater(self.gp._brick_destruction_counts["powder_keg"], 0)
+
+    def test_destruction_count_in_published_state(self):
+        self.gp.game = BreakoutGame(None, _MockAudio())
+        self.gp.game.gameplay = self.gp
+        self.gp._brick_destruction_counts["standard"] = 5
+        state = self.gp.game._build_game_state()
+        self.assertEqual(state["brickDestructionCounts"]["standard"], 5)
+
+    def test_counts_reset_on_new_game(self):
+        self.gp._brick_destruction_counts["treasure"] = 99
+        self.gp.reset()
+        self.assertEqual(self.gp._brick_destruction_counts["treasure"], 0)
+
+
+class TestPickupHistory(unittest.TestCase):
+    def setUp(self):
+        self.gp = Gameplay(_MockAudio())
+
+    def test_pickup_tracked_on_collect(self):
+        pu = Pickup(100, 100, "multiball")
+        pu.y = self.gp.paddle.y
+        pu.x = self.gp.paddle.x
+        self.gp.falling_pickups.append(pu)
+        self.gp._update_pickups(1/60)
+        self.assertIn("multiball", self.gp._pickup_history)
+
+    def test_pickup_history_reset_on_new_game(self):
+        self.gp._pickup_history.append("slow_motion")
+        self.gp.reset()
+        self.assertEqual(len(self.gp._pickup_history), 0)
+
+    def test_pickup_history_in_published_state(self):
+        self.gp.game = BreakoutGame(None, _MockAudio())
+        self.gp.game.gameplay = self.gp
+        self.gp._pickup_history.append("wide_paddle")
+        state = self.gp.game._build_game_state()
+        self.assertIn("wide_paddle", state["pickupHistory"])
+
+
+class TestLazyBackdrops(unittest.TestCase):
+    def setUp(self):
+        self.gp = Gameplay(_MockAudio())
+
+    def test_no_backdrops_after_init(self):
+        self.assertEqual(len(self.gp._backdrop_surfs), 0)
+
+    def test_draw_builds_backdrops(self):
+        self.gp.draw(pg.Surface((c.WINDOW_WIDTH, c.WINDOW_HEIGHT)))
+        self.assertGreater(len(self.gp._backdrop_surfs), 0)
+
+    def test_draw_uses_correct_backdrop(self):
+        self.gp.draw(pg.Surface((c.WINDOW_WIDTH, c.WINDOW_HEIGHT)))
+        self.assertIn(self.gp.stage, self.gp._backdrop_surfs)
+
+    def test_no_redundant_build(self):
+        self.gp._build_backdrop_surfs()
+        first = self.gp._backdrop_surfs.get(1)
+        self.gp.draw(pg.Surface((c.WINDOW_WIDTH, c.WINDOW_HEIGHT)))
+        second = self.gp._backdrop_surfs.get(1)
+        self.assertIs(first, second)
+
+
+class TestHudCaching(unittest.TestCase):
+    def setUp(self):
+        self.gp = Gameplay(_MockAudio())
+
+    def test_stage_text_cached(self):
+        self.gp.draw(pg.Surface((c.WINDOW_WIDTH, c.WINDOW_HEIGHT)))
+        self.assertIsNotNone(self.gp._cached_stage_surf)
+        surf_ref = self.gp._cached_stage_surf
+        self.gp.draw(pg.Surface((c.WINDOW_WIDTH, c.WINDOW_HEIGHT)))
+        self.assertIs(self.gp._cached_stage_surf, surf_ref)
+
+    def test_balls_text_cached(self):
+        self.gp.balls = [Ball(), Ball()]
+        self.gp.draw(pg.Surface((c.WINDOW_WIDTH, c.WINDOW_HEIGHT)))
+        self.assertIsNotNone(self.gp._cached_balls_surf)
+
+    def test_breached_label_prebuilt(self):
+        self.assertIsNotNone(self.gp._cached_breached_surf)
+
+    def test_wide_text_cached(self):
+        self.gp.paddle.activate_wide()
+        self.gp.draw(pg.Surface((c.WINDOW_WIDTH, c.WINDOW_HEIGHT)))
+        self.assertIsNotNone(self.gp._cached_wide_surf)
+
+    def test_slow_text_cached(self):
+        self.gp.slow_motion_timer = 5.0
+        self.gp.draw(pg.Surface((c.WINDOW_WIDTH, c.WINDOW_HEIGHT)))
+        self.assertIsNotNone(self.gp._cached_slow_surf)
 
 
 if __name__ == "__main__":

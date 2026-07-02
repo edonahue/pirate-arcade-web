@@ -90,6 +90,7 @@ class Gameplay:
         self.lives = c.PLAYER_LIVES
         self.stage = 1
         self.max_stage = c.MAX_STAGES
+        self.round = 1
         self.show_fps = False
         self.hit_particles = []
         self.explosion_particles = []
@@ -106,6 +107,9 @@ class Gameplay:
         self._pickup_label_surf = None
         self._life_lost_timer = 0.0
         self._life_lost_pending_reset = False
+        self._brick_destruction_counts = {"standard": 0, "reinforced": 0, "powder_keg": 0, "treasure": 0}
+        self._pickup_history = []
+        self._hit_bricks_this_frame = set()
 
         self._cached_score = -1
         self._cached_score_surf = None
@@ -114,8 +118,17 @@ class Gameplay:
         self._stage_banner_timer = 0.0
         self._stage_banner_surf = None
 
+        self._cached_stage_text = None
+        self._cached_stage_surf = None
+        self._cached_balls_text = None
+        self._cached_balls_surf = None
+        self._cached_wide_text = None
+        self._cached_wide_surf = None
+        self._cached_slow_text = None
+        self._cached_slow_surf = None
+        self._cached_breached_surf = self.hud_font.render("FORTRESS BREACHED!", True, c.PIRATE_GOLD)
+
         self._backdrop_surfs = {}
-        self._build_backdrop_surfs()
         self._build_bricks()
 
     def _build_backdrop_surfs(self):
@@ -186,7 +199,7 @@ class Gameplay:
         for _ in range(count):
             self.explosion_particles.append(ExplosionParticle(cx, cy))
 
-    def reset_round(self):
+    def reset_ball(self):
         self.paddle.x = c.WINDOW_WIDTH // 2
         self.paddle.y = c.WINDOW_HEIGHT - c.PADDLE_BREAKOUT_MARGIN
         self.paddle.vx = 0
@@ -209,10 +222,14 @@ class Gameplay:
         self._life_lost_timer = 0.0
         self._life_lost_pending_reset = False
 
+    def reset_round(self):
+        self.reset_ball()
+
     def reset(self):
         self.score = 0
         self.lives = c.PLAYER_LIVES
         self.stage = 1
+        self.round = 1
         self.hit_particles = []
         self.explosion_particles = []
         self.brick_flashes = []
@@ -223,16 +240,26 @@ class Gameplay:
         self.stage_transition_phase = None
         self._stage_banner_timer = 0.0
         self.last_pickup_type = None
+        self._brick_destruction_counts = {"standard": 0, "reinforced": 0, "powder_keg": 0, "treasure": 0}
+        self._pickup_history = []
         self._cached_score = -1
         self._cached_score_surf = None
         self._cached_lives = -1
         self._cached_lives_surf = None
+        self._cached_stage_text = None
+        self._cached_stage_surf = None
+        self._cached_balls_text = None
+        self._cached_balls_surf = None
+        self._cached_wide_text = None
+        self._cached_wide_surf = None
+        self._cached_slow_text = None
+        self._cached_slow_surf = None
         self._life_lost_timer = 0.0
         self._life_lost_pending_reset = False
         self._pickup_label = None
         self._pickup_label_surf = None
         self._build_bricks()
-        self.reset_round()
+        self.reset_ball()
 
     def _start_stage_transition(self):
         self.stage_transition_phase = "breached"
@@ -244,6 +271,7 @@ class Gameplay:
         self.slow_motion_timer = 0.0
         self.paddle.wide_timer = 0.0
         self._remove_all_slow()
+        self.round = 1
 
     def _remove_all_slow(self):
         for ball in self.balls:
@@ -287,6 +315,7 @@ class Gameplay:
                 if was_alive:
                     self.remaining_bricks -= 1
                     self.score += brick.points
+                    self._track_brick_destruction(brick)
                 affected.append(brick)
                 if brick.brick_type == c.BRICK_POWDER_KEG and brick is not start_brick:
                     self._powder_keg_chain(brick, chain_set)
@@ -319,6 +348,7 @@ class Gameplay:
                     nb._underlying_speed = ball._underlying_speed
                     nb._slow_mult = ball._slow_mult
                     nb.launched = True
+                    nb.set_radius(ball.radius)
                     new_balls.append(nb)
                 self.balls.extend(new_balls)
         elif pickup.pickup_type == "wide_paddle":
@@ -332,6 +362,18 @@ class Gameplay:
         self._pickup_label_timer = 1.5
         self._pickup_label_surf = self.hud_font.render(pickup.label, True, c.PIRATE_GOLD)
         self.audio.play('powerup')
+        self._pickup_history.append(pickup.pickup_type)
+
+    def _track_brick_destruction(self, brick):
+        bt = brick.brick_type
+        if bt == c.BRICK_STANDARD:
+            self._brick_destruction_counts["standard"] += 1
+        elif bt == c.BRICK_REINFORCED:
+            self._brick_destruction_counts["reinforced"] += 1
+        elif bt == c.BRICK_POWDER_KEG:
+            self._brick_destruction_counts["powder_keg"] += 1
+        elif bt == c.BRICK_TREASURE:
+            self._brick_destruction_counts["treasure"] += 1
 
     def _resolve_brick_swept(self, ball, brick):
         brick_rect = brick.rect
@@ -398,7 +440,7 @@ class Gameplay:
 
         if self._life_lost_pending_reset and self._life_lost_timer <= 0:
             self._life_lost_pending_reset = False
-            self.reset_round()
+            self.reset_ball()
             self.slow_motion_timer = 0.0
             self.paddle.wide_timer = 0.0
             self._remove_all_slow()
@@ -422,7 +464,7 @@ class Gameplay:
                         return ('game_over', 'won')
                     self.stage += 1
                     self._build_bricks()
-                    self.reset_round()
+                    self.reset_ball()
                     self.stage_transition_phase = "enter"
                     self.stage_transition_timer = 1.5
                     self._stage_banner_timer = 1.5
@@ -473,6 +515,8 @@ class Gameplay:
             else:
                 ball.update(dt)
 
+        self._hit_bricks_this_frame = set()
+
         for ball in self.balls:
             if not ball.launched:
                 continue
@@ -521,20 +565,20 @@ class Gameplay:
                 launched_balls += 1
 
         if falling_balls > 0 and launched_balls == 0:
-            if falling_balls >= len([b for b in self.balls if b.launched]):
-                self.lives -= 1
-                self.flash_timer = 0.3
-                self.audio.play('life_lost')
-                if self.lives <= 0:
-                    return ('game_over', 'lost')
-                self._life_lost_timer = CREW_LOST_HOLD_DURATION
-                self._life_lost_pending_reset = True
-                self._pickup_label = "CREW LOST!"
-                self._pickup_label_surf = self.hud_font.render("CREW LOST!", True, c.PIRATE_RED)
-                self._pickup_label_timer = CREW_LOST_HOLD_DURATION + 0.2
-                return ('playing', None)
-            else:
-                self.balls = [b for b in self.balls if not (b.launched and b.y + b.radius > c.WINDOW_HEIGHT)]
+            self.lives -= 1
+            self.round += 1
+            self.flash_timer = 0.3
+            self.audio.play('life_lost')
+            if self.lives <= 0:
+                return ('game_over', 'lost')
+            self._life_lost_timer = CREW_LOST_HOLD_DURATION
+            self._life_lost_pending_reset = True
+            self._pickup_label = "CREW LOST!"
+            self._pickup_label_surf = self.hud_font.render("CREW LOST!", True, c.PIRATE_RED)
+            self._pickup_label_timer = CREW_LOST_HOLD_DURATION + 0.2
+            return ('playing', None)
+        elif falling_balls > 0 and launched_balls > 0:
+            self.balls = [b for b in self.balls if not (b.launched and b.y + b.radius > c.WINDOW_HEIGHT)]
 
         any_launched = any(b.launched for b in self.balls)
         if self.remaining_bricks == 0 and not self.stage_transition_phase and any_launched:
@@ -588,6 +632,10 @@ class Gameplay:
                 self.brick_flashes.remove(f)
 
     def _damage_brick(self, ball, brick):
+        if id(brick) in self._hit_bricks_this_frame:
+            return
+        self._hit_bricks_this_frame.add(id(brick))
+
         self.score += brick.points
         self._spawn_brick_particles(brick)
         self.flash_timer = 0.15
@@ -602,6 +650,7 @@ class Gameplay:
             brick.health = 0
             if was_alive:
                 self.remaining_bricks -= 1
+                self._track_brick_destruction(brick)
             self._powder_keg_chain(brick)
             self.audio.play('explosion')
             return
@@ -609,6 +658,7 @@ class Gameplay:
         brick.hit()
         if was_alive and not brick.alive:
             self.remaining_bricks -= 1
+            self._track_brick_destruction(brick)
             if brick_type == c.BRICK_TREASURE:
                 self._drop_pickup(brick)
 
@@ -681,10 +731,9 @@ class Gameplay:
             by = c.WINDOW_HEIGHT // 2 - 80
             surface.blit(self._stage_banner_surf, (bx, by))
 
-            sub_label = self.hud_font.render("FORTRESS BREACHED!", True, c.PIRATE_GOLD)
-            sx = c.WINDOW_WIDTH // 2 - sub_label.get_width() // 2
+            sx = c.WINDOW_WIDTH // 2 - self._cached_breached_surf.get_width() // 2
             sy = by + self._stage_banner_surf.get_height() + 10
-            surface.blit(sub_label, (sx, sy))
+            surface.blit(self._cached_breached_surf, (sx, sy))
 
         if self.score != self._cached_score:
             self._cached_score = self.score
@@ -700,40 +749,48 @@ class Gameplay:
         surface.blit(self._cached_lives_surf, (lx, 20))
 
         stage_text = f"STAGE {self.stage}/{self.max_stage}"
-        stage_surf = self.small_font.render(stage_text, True, c.PIRATE_GOLD)
-        surface.blit(stage_surf, (20, 20))
+        if stage_text != self._cached_stage_text:
+            self._cached_stage_text = stage_text
+            self._cached_stage_surf = self.small_font.render(stage_text, True, c.PIRATE_GOLD)
+        surface.blit(self._cached_stage_surf, (20, 20))
 
         balls_text = ""
         if len(self.balls) > 1:
             active = sum(1 for b in self.balls if b.launched and b.y + b.radius <= c.WINDOW_HEIGHT)
             balls_text = f"BALLS: {active}"
-            balls_surf = self.small_font.render(balls_text, True, c.PIRATE_TAN)
-            surface.blit(balls_surf, (20, 45))
+            if balls_text != self._cached_balls_text:
+                self._cached_balls_text = balls_text
+                self._cached_balls_surf = self.small_font.render(balls_text, True, c.PIRATE_TAN)
+            surface.blit(self._cached_balls_surf, (20, 45))
 
         wide_timer = self.paddle.wide_timer
         if wide_timer > 0:
             remaining = int(wide_timer)
             wp_text = f"WIDE: {remaining}s"
-            wp_surf = self.small_font.render(wp_text, True, c.PIRATE_TEAL)
-            wp_rect = wp_surf.get_rect()
+            if wp_text != self._cached_wide_text:
+                self._cached_wide_text = wp_text
+                self._cached_wide_surf = self.small_font.render(wp_text, True, c.PIRATE_TEAL)
+            wp_rect = self._cached_wide_surf.get_rect()
             if balls_text:
                 wp_rect.topleft = (20, 65)
             else:
                 wp_rect.topleft = (20, 45)
-            surface.blit(wp_surf, wp_rect)
+            surface.blit(self._cached_wide_surf, wp_rect)
 
         if self.slow_motion_timer > 0:
             remaining = int(self.slow_motion_timer)
             sm_text = f"SLOW: {remaining}s"
-            sm_surf = self.small_font.render(sm_text, True, (100, 255, 100))
-            sm_rect = sm_surf.get_rect()
+            if sm_text != self._cached_slow_text:
+                self._cached_slow_text = sm_text
+                self._cached_slow_surf = self.small_font.render(sm_text, True, (100, 255, 100))
+            sm_rect = self._cached_slow_surf.get_rect()
             y_base = 45
             if balls_text:
                 y_base += 20
             if wide_timer > 0:
                 y_base += 20
             sm_rect.topleft = (20, y_base)
-            surface.blit(sm_surf, sm_rect)
+            surface.blit(self._cached_slow_surf, sm_rect)
 
         if self.flash_timer > 0:
             draw_flash(surface, self.flash_timer)

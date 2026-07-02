@@ -25,6 +25,19 @@ let generated = 0;
 let skipped = 0;
 let changed = 0;
 
+function readArchiveHash(gameId) {
+  const shaPath = resolve(
+    root,
+    "public/play",
+    gameId,
+    gameId + ".tar.gz.sha256",
+  );
+  if (!existsSync(shaPath)) return "";
+  const content = readFileSync(shaPath, "utf-8").trim();
+  // Sidecar format: hex hash optionally followed by filename
+  return content.split(/\s+/)[0] || "";
+}
+
 function computeDiff(oldStr, newStr) {
   if (oldStr === newStr) return "";
   const oldLines = oldStr.split("\n");
@@ -44,7 +57,8 @@ function computeDiff(oldStr, newStr) {
 
 for (const config of PYBAG_GAMES) {
   const indexPath = resolve(root, "public/play", config.id, "index.html");
-  const html = render(config);
+  const archiveHash = readArchiveHash(config.id);
+  const html = render(config, archiveHash);
 
   if (!apply) {
     const committed = existsSync(indexPath)

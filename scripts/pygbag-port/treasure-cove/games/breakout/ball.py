@@ -5,7 +5,9 @@ import random
 
 
 class Ball:
-    def __init__(self):
+    def __init__(self, radius=None):
+        if radius is None:
+            radius = c.BALL_BREAKOUT_SIZE
         self.x = 0
         self.y = 0
         self.px = 0
@@ -15,7 +17,7 @@ class Ball:
         self.speed = 0
         self._underlying_speed = c.BALL_BREAKOUT_SPEED
         self._slow_mult = 1.0
-        self.radius = c.BALL_BREAKOUT_SIZE
+        self.radius = radius
         self.launched = False
         self._build_glow()
         self._build_trail_surfs()
@@ -23,6 +25,16 @@ class Ball:
     @property
     def _slow_active(self):
         return self._slow_mult < 1.0
+
+    def rebuild_visuals(self):
+        self._build_glow()
+        self._build_trail_surfs()
+
+    def set_radius(self, new_radius):
+        if new_radius == self.radius:
+            return
+        self.radius = new_radius
+        self.rebuild_visuals()
 
     def _build_glow(self):
         r = self.radius * 3

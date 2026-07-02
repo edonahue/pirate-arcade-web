@@ -41,14 +41,16 @@ jobs:
         with:
           python-version: "3.12"
           cache: pip
-      - run: pip install -r requirements.txt
+          cache-dependency-path: requirements-test.txt
+      - run: pip install -r requirements-test.txt
       - run: npm run test:python-games
       - name: Upload test logs on failure
         if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: python-test-logs-${{ github.run_id }}
-          path: /tmp/python-game-test-*.log
+          path: test-results/python-games/
+          if-no-files-found: error
           retention-days: 7
 
   # Playwright tests — separate job so a test flake doesn't block the

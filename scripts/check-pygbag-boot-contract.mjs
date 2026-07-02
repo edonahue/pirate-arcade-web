@@ -89,6 +89,24 @@ for (const config of PYBAG_GAMES) {
     fail(config.id + ": shell gameCode not extractable");
   }
 
+  // ── ARCHIVE_HASH constant present ────────────────────────────
+  totalChecks++;
+  const archiveHashPattern = /var\s+ARCHIVE_HASH\s*=\s*"([a-f0-9]{64})"/;
+  const hashMatch = html.match(archiveHashPattern);
+  if (hashMatch) {
+    ok(
+      config.id +
+        ": ARCHIVE_HASH present (" +
+        hashMatch[1].substring(0, 12) +
+        "…)",
+    );
+  } else {
+    fail(
+      config.id +
+        ": ARCHIVE_HASH constant missing or invalid (expected 64-char hex)",
+    );
+  }
+
   // ── Python-side phases (from authoritative renderer) ─────────
 
   const source = rendered.source;

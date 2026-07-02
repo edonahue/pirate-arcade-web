@@ -2,17 +2,19 @@
  * Patch and repack browser game archives from the source directory
  * (scripts/pygbag-port/) into public/play/.
  *
- * Usage:
- *   node scripts/patch-browser-game-archives.mjs              # all games
- *   node scripts/patch-browser-game-archives.mjs --game=pong  # single game
- *   node scripts/patch-browser-game-archives.mjs --game=breakout
- *   node scripts/patch-browser-game-archives.mjs --game=asteroids
+ * Deterministic: same source always produces identical bytes
+ * (sorted entries, fixed mtime, normalized gzip).
  *
- * Run this after modifying any Python source under scripts/pygbag-port/.
- * The source dirs mirror the archive layout: assets/ is the root.
+ * Usage:
+ *   node scripts/patch-browser-game-archives.mjs                    # all
+ *   node scripts/patch-browser-game-archives.mjs --game=cannonball-clash
+ *   node scripts/patch-browser-game-archives.mjs --game=treasure-cove
+ *   node scripts/patch-browser-game-archives.mjs --game=krakens-wake
+ *   node scripts/patch-browser-game-archives.mjs --game=breakout
+ *   node scripts/patch-browser-game-archives.mjs --game=pong
+ *   node scripts/patch-browser-game-archives.mjs --game=asteroids
  */
 
-import { execSync } from "child_process";
 import { createHash } from "crypto";
 import {
   existsSync,
@@ -21,10 +23,14 @@ import {
   rmSync,
   readdirSync,
   readFileSync,
+  statSync,
   writeFileSync,
+  createWriteStream,
 } from "fs";
 import { resolve, dirname } from "path";
 import { fileURLToPath } from "url";
+import { create as tarCreate } from "tar";
+import { PYBAG_GAMES } from "./pygbag-game-config.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, "..");
@@ -32,45 +38,59 @@ const SRC = resolve(ROOT, "scripts/pygbag-port");
 const DEST = resolve(ROOT, "public/play");
 const TMP_ROOT = resolve(ROOT, ".tmp-archive-build");
 
-const KNOWN_GAMES = {
-  "cannonball-clash": { id: "cannonball-clash", srcDir: "cannonball-clash" },
-  "treasure-cove": { id: "treasure-cove", srcDir: "treasure-cove" },
-  "krakens-wake": { id: "krakens-wake", srcDir: "krakens-wake" },
-  pong: { id: "cannonball-clash", srcDir: "cannonball-clash" },
-  breakout: { id: "treasure-cove", srcDir: "treasure-cove" },
-  asteroids: { id: "krakens-wake", srcDir: "krakens-wake" },
+const ALIASES = {
+  "cannonball-clash": "cannonball-clash",
+  "treasure-cove": "treasure-cove",
+  "krakens-wake": "krakens-wake",
+  pong: "cannonball-clash",
+  breakout: "treasure-cove",
+  asteroids: "krakens-wake",
 };
-
-const GAMES = [
-  { id: "cannonball-clash", srcDir: "cannonball-clash" },
-  { id: "treasure-cove", srcDir: "treasure-cove" },
-  { id: "krakens-wake", srcDir: "krakens-wake" },
-];
 
 function parseArgs() {
   const args = process.argv.slice(2);
   const gameFlag = args.find((a) => a.startsWith("--game="));
   if (gameFlag) {
     const alias = gameFlag.split("=")[1];
-    const game = KNOWN_GAMES[alias];
-    if (!game) {
+    const canonical = ALIASES[alias];
+    if (!canonical) {
       console.error(
-        `Unknown game: "${alias}". Valid: ${Object.keys(KNOWN_GAMES).join(", ")}`,
+        `Unknown game: "${alias}". Valid: ${Object.keys(ALIASES).join(", ")}`,
       );
+      process.exit(1);
+    }
+    const game = PYBAG_GAMES.find((g) => g.id === canonical);
+    if (!game) {
+      console.error(`No config for game: "${canonical}"`);
       process.exit(1);
     }
     return [game];
   }
-  return GAMES;
+  return PYBAG_GAMES;
 }
 
-function computeHash(filePath) {
+function computeSha256(filePath) {
   const data = readFileSync(filePath);
-  return createHash("md5").update(data).digest("hex");
+  return createHash("sha256").update(data).digest("hex");
 }
 
-function buildGame(game) {
-  const src = resolve(SRC, game.srcDir);
+function collectFiles(dir, prefix = "") {
+  const entries = [];
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    if (entry.name === "__pycache__" || entry.name === "build") continue;
+    const full = resolve(dir, entry.name);
+    const rel = prefix ? `${prefix}/${entry.name}` : entry.name;
+    if (entry.isDirectory()) {
+      entries.push(...collectFiles(full, rel));
+    } else {
+      entries.push(rel);
+    }
+  }
+  return entries.sort();
+}
+
+async function buildGame(game) {
+  const src = resolve(SRC, game.id);
   const destDir = resolve(DEST, game.id);
   if (!existsSync(src)) {
     console.error(`Source directory not found: ${src}`);
@@ -83,68 +103,87 @@ function buildGame(game) {
   const assetsDir = resolve(tmp, "assets");
   mkdirSync(assetsDir, { recursive: true });
 
-  try {
-    // Copy shared module into assets/
-    const sharedDir = resolve(SRC, "shared");
-    if (existsSync(sharedDir)) {
-      const sharedDest = resolve(assetsDir, "shared");
-      rmSync(sharedDest, { recursive: true, force: true });
-      cpSync(sharedDir, sharedDest, { recursive: true });
-    }
+  const sharedDir = resolve(SRC, "shared");
+  if (existsSync(sharedDir)) {
+    const sharedDest = resolve(assetsDir, "shared");
+    rmSync(sharedDest, { recursive: true, force: true });
+    cpSync(sharedDir, sharedDest, { recursive: true });
+  }
 
-    // Copy all entries from src into assets/ excluding known non-asset items
-    const entries = readdirSync(src, { withFileTypes: true });
-    for (const entry of entries) {
-      if (entry.name === "build" || entry.name === "__pycache__") continue;
-      const s = resolve(src, entry.name);
-      const d = resolve(assetsDir, entry.name);
-      if (entry.isDirectory()) {
-        cpSync(s, d, { recursive: true });
-      } else {
-        cpSync(s, d);
-      }
+  const entries = readdirSync(src, { withFileTypes: true });
+  for (const entry of entries) {
+    if (entry.name === "build" || entry.name === "__pycache__") continue;
+    const s = resolve(src, entry.name);
+    const d = resolve(assetsDir, entry.name);
+    if (entry.isDirectory()) {
+      cpSync(s, d, { recursive: true });
+    } else {
+      cpSync(s, d);
     }
+  }
 
-    // Strip all __pycache__ directories (nested below top-level)
-    const stripPycache = (dir) => {
-      for (const e of readdirSync(dir, { withFileTypes: true })) {
-        const p = resolve(dir, e.name);
-        if (e.isDirectory()) {
-          if (e.name === "__pycache__") {
-            rmSync(p, { recursive: true, force: true });
-          } else {
-            stripPycache(p);
-          }
+  const stripPycache = (dir) => {
+    for (const e of readdirSync(dir, { withFileTypes: true })) {
+      const p = resolve(dir, e.name);
+      if (e.isDirectory()) {
+        if (e.name === "__pycache__") {
+          rmSync(p, { recursive: true, force: true });
+        } else {
+          stripPycache(p);
         }
       }
-    };
-    stripPycache(assetsDir);
+    }
+  };
+  stripPycache(assetsDir);
 
-    // Create tarball with assets/ at root
-    const outFile = resolve(destDir, `${game.id}.tar.gz`);
-    execSync(`tar -czf "${outFile}" -C "${tmp}" assets`, {
-      stdio: "inherit",
-      cwd: ROOT,
-    });
+  const allFiles = collectFiles(tmp);
+  const outFile = resolve(destDir, `${game.id}.tar.gz`);
 
-    // Report hash and size
-    const hash = computeHash(outFile);
-    const stat = execSync(`ls -lh "${outFile}"`, { encoding: "utf8" }).trim();
-    const sizeMatch = stat.match(/([\d.]+[KMG]?)\s/);
-    const sizeStr = sizeMatch ? sizeMatch[1] : "?";
-    console.log(`Repacked ${game.id}: ${sizeStr}  md5=${hash}`);
-  } finally {
-    // Clean up temp for this game
-    rmSync(tmp, { recursive: true, force: true });
+  // Create deterministic tarball using node-tar with file output
+  await tarCreate(
+    {
+      gzip: true,
+      portable: true,
+      cwd: tmp,
+      file: outFile,
+      mtime: new Date(0),
+    },
+    allFiles,
+  );
+
+  const hash = computeSha256(outFile);
+  const size = statSync(outFile).size;
+
+  // Check if this actually changed
+  const existingHashFile = resolve(destDir, `${game.id}.tar.gz.sha256`);
+  let changed = true;
+  if (existsSync(existingHashFile)) {
+    const oldHash = readFileSync(existingHashFile, "utf8").trim();
+    changed = oldHash !== hash;
   }
+
+  // Write hash manifest
+  writeFileSync(existingHashFile, hash, "utf8");
+
+  const sizeStr = (size / 1024).toFixed(1);
+  console.log(
+    `Repacked ${game.id}: ${sizeStr} KB  sha256=${hash}${changed ? "" : " (unchanged)"}`,
+  );
+
+  rmSync(tmp, { recursive: true, force: true });
+  return { id: game.id, sha256: hash };
 }
 
-function main() {
+async function main() {
   const games = parseArgs();
+  const results = [];
   for (const game of games) {
-    buildGame(game);
+    results.push(await buildGame(game));
   }
   console.log("All game archives repacked.");
 }
 
-main();
+main().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});

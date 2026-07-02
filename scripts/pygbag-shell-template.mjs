@@ -68,7 +68,7 @@ const DEBUG_PANEL_VERSION = ASSET_VERSION;
 
 // ── Main render function ──────────────────────────────────────
 
-export function render(config) {
+export function render(config, archiveHash) {
   const overlayFn = TOUCH_OVERLAYS[config.touchOverlay];
   if (!overlayFn) {
     throw new Error("Unknown touchOverlay: " + config.touchOverlay);
@@ -145,6 +145,8 @@ export function render(config) {
 ${CDN_PIN_COMMENT}
     <script>
       console.log('INLINE_SCRIPT: starting');
+
+      var ARCHIVE_HASH = "${archiveHash || ""}";
 
       (function() {
         var _origFetch = window.fetch.bind(window);

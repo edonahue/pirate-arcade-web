@@ -99,7 +99,9 @@ class BreakoutGame:
                 self._update(frame.step_seconds)
                 metrics.record_step()
 
-            draw_key = (self.state, self.paused, self.game_over_state)
+            draw_key = (self.state, self.paused, self.game_over_state,
+                     self.gameplay.score, self.gameplay.stage,
+                     self.gameplay.round, self.gameplay.lives)
             if render_continuous:
                 self._render_after_anim = False
                 self._draw(60)
@@ -201,6 +203,9 @@ class BreakoutGame:
             self.gameplay.last_pickup_type,
             self.gameplay.paddle.wide_timer > 0,
             self.gameplay.slow_motion_timer > 0,
+            self.gameplay.round,
+            tuple(sorted(self.gameplay._brick_destruction_counts.items())),
+            tuple(self.gameplay._pickup_history[-5:]),
         )
 
     def _build_game_state(self):
@@ -250,6 +255,9 @@ class BreakoutGame:
             "slowMotionActive": self.gameplay.slow_motion_timer > 0,
             "slowMotionRemainingMs": int(self.gameplay.slow_motion_timer * 1000),
             "stageTransitionActive": self.gameplay.stage_transition_phase is not None,
+            "round": self.gameplay.round,
+            "brickDestructionCounts": dict(self.gameplay._brick_destruction_counts),
+            "pickupHistory": list(self.gameplay._pickup_history),
         }
 
     def _update(self, dt):

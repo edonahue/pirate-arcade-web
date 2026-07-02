@@ -11,7 +11,7 @@ class Ship:
         self.vy = 0
         self.angle = 0
         self.thrusting = False
-        self.invulnerable = 0.0
+        self.invulnerable = c.SHIP_INVULNERABLE_TIME
         self.alive = True
         self.speed = 0.0
         self._flame_frame = 0
