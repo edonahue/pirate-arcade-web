@@ -141,7 +141,7 @@ def main():
         try:
             import pygame
         except ImportError:
-            print("Hint: pygame is not installed. Run: pip install -r requirements-test.txt")
+            print("Hint: pygame is not installed. Run: pip install -r requirements.txt")
         sys.exit(1)
 
 
