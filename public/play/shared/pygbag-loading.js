@@ -118,27 +118,28 @@
         // If in ready, error, or disposed, do nothing
       }
     },
-    error: function (msg) {
-      if (this.__pirateArcadeOwned && window.PirateArcadeLoading === this) {
-        if (_phase === "loading" || _phase === "ready") {
-          _phase = "error";
-          _lastMessage = msg;
-          var detail = _getDetail();
-          var el = _getEl();
-          if (detail) detail.textContent = msg;
-          if (el) {
-            el.classList.remove("hidden");
-            el.classList.add("game-error");
-          }
-          document.body.classList.add("game-error");
-          if (window.PirateArcadeInput) {
-            window.PirateArcadeInput.releaseAll("error");
-          }
-          _showRetryBtn();
-        }
-        // If in error or disposed, do nothing
-      }
-    },
+error: function (msg) {
+       if (this.__pirateArcadeOwned && window.PirateArcadeLoading === this) {
+         if (_phase === "loading" || _phase === "ready") {
+           _phase = "error";
+           _lastMessage = msg;
+           var detail = _getDetail();
+           var el = _getEl();
+           if (detail) detail.textContent = msg;
+           if (el) {
+             el.classList.remove("hidden");
+             el.classList.add("game-error");
+           }
+           document.body.classList.add("game-error");
+           if (window.PirateArcadeInput) {
+             window.PirateArcadeInput.releaseAll("error");
+           }
+           _showRetryBtn();
+           _clearLoadingWarn();
+         }
+         // If in error or disposed, do nothing
+       }
+     },
     dispose: function (reason) {
       if (this.__pirateArcadeOwned && window.PirateArcadeLoading === this) {
         _phase = "disposed";

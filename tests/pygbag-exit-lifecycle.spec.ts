@@ -107,9 +107,9 @@ test.describe("PirateArcadeLifecycle API", () => {
 
     // Track disposer calls using a variable on window
     await page.evaluate(() => {
-      window.__disposerCallCount = 0;
+      (window as any).__disposerCallCount = 0;
       (window as any).PirateArcadeLifecycle.addDisposer(() => {
-        window.__disposerCallCount++;
+        (window as any).__disposerCallCount++;
       });
     });
 
@@ -126,7 +126,7 @@ test.describe("PirateArcadeLifecycle API", () => {
 
     // Check that disposer was called
     const disposerCalled = await page.evaluate(() => {
-      return window.__disposerCallCount > 0;
+      return (window as any).__disposerCallCount > 0;
     });
 
     expect(disposerCalled).toBe(true);

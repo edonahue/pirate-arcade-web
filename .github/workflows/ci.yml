@@ -79,6 +79,9 @@ jobs:
       - name: Health/smoke tests (chromium-desktop)
         run: npx playwright test tests/browser-games.spec.ts --project=chromium-desktop --reporter=list
         timeout-minutes: 10
+      - name: Lifecycle tests (chromium-desktop)
+        run: npx playwright test tests/pygbag-exit-lifecycle.spec.ts --project=chromium-desktop --reporter=list
+        timeout-minutes: 5
       - name: Gameplay match tests (chromium-desktop)
         run: npx playwright test tests/*-match.spec.ts --project=chromium-desktop --reporter=list
         timeout-minutes: 15
