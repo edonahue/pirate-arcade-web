@@ -2,7 +2,7 @@ import { test, expect } from "@playwright/test";
 import { waitForPygbagRuntime } from "./helpers/browserGame";
 
 test("diagnose TC boot", async ({ page }) => {
-  const errors = [];
+  const errors: string[] = [];
   page.on("console", (msg) => {
     if (msg.type() === "error" || msg.type() === "warning") {
       errors.push(`[${msg.type()}] ${msg.text()}`);

@@ -2,7 +2,7 @@ import { test, expect } from "@playwright/test";
 import { waitForPygbagRuntime } from "./helpers/browserGame";
 
 test("diagnose TC boot extended", async ({ page }) => {
-  const errors = [];
+  const errors: string[] = [];
   page.on("console", (msg) => {
     if (msg.type() === "error" || msg.type() === "warning") {
       errors.push(`[${msg.type()}] ${msg.text()}`);
@@ -23,8 +23,12 @@ test("diagnose TC boot extended", async ({ page }) => {
   try {
     await waitForPygbagRuntime(page);
     console.log("waitForPygbagRuntime completed");
-  } catch (e) {
-    console.log("waitForPygbagRuntime error:", e.message);
+  } catch (e: unknown) {
+    if (e instanceof Error) {
+      console.log("waitForPygbagRuntime error:", e.message);
+    } else {
+      console.log("waitForPygbagRuntime error:", String(e));
+    }
   }
 
   // Check states after runtime
@@ -43,7 +47,7 @@ test("diagnose TC boot extended", async ({ page }) => {
       display: getComputedStyle(el).display,
       visibility: getComputedStyle(el).visibility,
       opacity: getComputedStyle(el).opacity,
-      hidden: el.hidden,
+      hidden: el.hasAttribute("hidden"),
     };
   });
   console.log("Infobox styles:", infoboxStyles);
