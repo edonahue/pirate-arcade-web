@@ -93,8 +93,6 @@ function generateSource(config, archiveHash) {
   // ── Imports ──────────────────────────────────────────────────
   const imports = "import sys, asyncio, tarfile, io, os";
 
-
-
   // ── Boot function ────────────────────────────────────────────
   const bootFn = [
     "",
@@ -313,7 +311,7 @@ function generateSource(config, archiveHash) {
     '            _w.PirateArcadeMetrics.mark("first-frame-presented")',
     "            _w.PirateArcadeMetrics.computeDurations()",
     '            _w.PirateArcadeLoading.ready("' + config.readyMessage + '")',
-    
+
     "        def _pa_flip(*args, **kw):",
     "            r = _display_flip_orig(*args, **kw)",
     "            _on_first_frame()",
@@ -355,13 +353,13 @@ function generateSource(config, archiveHash) {
   ];
 
   return (
-manifest.join("\n") +
-     "\n" +
-     imports +
-     "\n" +
-     bootFn.join("\n") +
-     "\n" +
-     footer.join("\n")
+    manifest.join("\n") +
+    "\n" +
+    imports +
+    "\n" +
+    bootFn.join("\n") +
+    "\n" +
+    footer.join("\n")
   );
 }
 

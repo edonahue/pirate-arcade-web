@@ -407,10 +407,11 @@ ${bootCode
 `;
 }
 function show_infobox() {
-        const infobox = document.getElementById('infobox');
-        if (!infobox) return;
-        infobox.setAttribute('aria-hidden', 'false');
-        const w = infobox.offsetWidth, h = infobox.offsetHeight;
-        infobox.style.left = ((window.innerWidth - w) / 2) + 'px';
-        infobox.style.top = ((window.innerHeight - h) / 2) + 'px';
-      }
+  const infobox = document.getElementById("infobox");
+  if (!infobox) return;
+  infobox.setAttribute("aria-hidden", "false");
+  const w = infobox.offsetWidth,
+    h = infobox.offsetHeight;
+  infobox.style.left = (window.innerWidth - w) / 2 + "px";
+  infobox.style.top = (window.innerHeight - h) / 2 + "px";
+}
