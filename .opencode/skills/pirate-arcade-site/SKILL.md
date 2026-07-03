@@ -1,6 +1,6 @@
 ---
 name: pirate-arcade-site
-description: Pirate Arcade website — Astro 6, Cloudflare Pages, vanilla CSS tokens
+description: Pirate Arcade website — Astro 7, Cloudflare Pages, vanilla CSS tokens
 ---
 
 # Pirate Arcade Site Skill
@@ -37,7 +37,7 @@ Always use `ASSET_VERSION` from `scripts/game-asset-versions.mjs` for archive UR
 
 - Browser-playable: cannonball-clash, treasure-cove, krakens-wake, race-to-treasure-island (from `games.json`)
 - Desktop-only: port-royale-tycoon (linked to GH releases)
-- Race to Treasure Island is web-native Phaser 3 (not Pygbag) — loads instantly, no WASM download
+- Race to Treasure Island is web-native Phaser 4.2 (not Pygbag) — loads instantly, no WASM download
 - Prewarm uses `passive: true` touchstart with no `preventDefault()`
 - Runtime globals in `public/play/shared/`: `__paCanvasLayout`, `__paBootMetrics`, `PirateArcadeInput`
 - Race-to-Treasure-Island has additional globals: `window.game`, `window.testEvents`

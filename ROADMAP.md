@@ -11,10 +11,10 @@
 | Cannonball Clash        | Pygbag / WebAssembly  | Browser + Desktop |
 | Treasure Cove           | Pygbag / WebAssembly  | Browser + Desktop |
 | Kraken's Wake           | Pygbag / WebAssembly  | Browser + Desktop |
-| Race to Treasure Island | Phaser 3 (web-native) | Browser only      |
+| Race to Treasure Island | Phaser 4.2 (web-native) | Browser only      |
 | Port Royale Tycoon      | Python / Pygame       | Desktop only      |
 
-Race to Treasure Island is the first web-native Phaser game — loads instantly,
+Race to Treasure Island is the first web-native Phaser 4.2 game — loads instantly,
 no WASM download. Fortress Siege (3-stage Breakout with 4 brick types and
 falling pickups) and Rally Fever (rally-tier system with Cursed Powder pickup)
 are the latest Pygbag game features on the existing three ports.
@@ -108,7 +108,7 @@ are the latest Pygbag game features on the existing three ports.
 
 ## Phase 6: Race to Treasure Island Polish ✓ (Live)
 
-- [x] First web-native Phaser 3 game (loads instantly, no runtime download)
+- [x] First web-native Phaser 4.2 game (loads instantly, no runtime download)
 - [x] OutRun-style boost/wind mechanic with drain-and-recharge meter
 - [x] Long John Silver AI rival with deterministic seeded paths
 - [x] Obstacle course: barrels, shipwrecks, reefs, debris (cost wind + bump)
@@ -160,7 +160,7 @@ are the latest Pygbag game features on the existing three ports.
 - [x] **budget.json removed** — dead LHCI budget config, never connected in `lighthouserc.cjs`; asset-size budgets remain via `check-performance-budgets.mjs`
 - [x] **Pygbag playable-readiness measurement** — truthful milestones (game-ready, loader-hidden, active-play, first-user-input) via PirateArcadeMetrics.markOnce(); game-state observer in pygame-input-bridge.js
 - [ ] **CRT scanline user-facing toggle** in site settings
-- [ ] **Phaser 4 compatibility spike** — evaluate migration effort, requires focused spike (deferred from Dependabot)
+- [x] **Migrated to Phaser 4.2** — currently using Phaser 4.2 in production; migration complete
 
 ## Non-Goals (Intentionally Not Building)
 

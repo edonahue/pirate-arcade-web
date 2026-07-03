@@ -127,10 +127,10 @@
     "tips": "Boost strategically — steady draining beats running out at the last turn. Obstacles cost 20 wind and bump you off course. Treasure chests give +100 points. Speed increases as you progress. Long John makes occasional mistakes — time your push.",
     "firstPlayTip": "← ▶ to steer, HOLD ⛵ to boost. Dodge everything, collect treasure, and beat Long John!",
     "bestFor": "Instant-load racing — boost management, obstacle dodging, AI rival.",
-    "availabilityNote": "Phaser 3 web-native game. Loads instantly in browser — no runtime download needed.",
-    "seoDescription": "Play Race to Treasure Island, Pirate Arcade's web-native Phaser 3 OutRun-style racer. Dodge obstacles, manage wind boost, and beat Long John to shore.",
+    "availabilityNote": "Phaser 4.2 web-native game. Loads instantly in browser — no runtime download needed.",
+    "seoDescription": "Play Race to Treasure Island, Pirate Arcade's web-native Phaser 4.2 OutRun-style racer. Dodge obstacles, manage wind boost, and beat Long John to shore.",
     "features": [
-      "Web-native (Phaser 3)",
+      "Web-native (Phaser 4.2)",
       "Long John rival",
       "Wind-meter boost",
       "Treasure Island finish",
@@ -138,7 +138,7 @@
       "Best score tracking"
     ],
     "demonstrates": [
-      "Phaser 3 web-native game (no runtime download)",
+      "Phaser 4.2 web-native game (no runtime download)",
       "Deterministic seeded obstacle generation",
       "Wind-meter boost mechanic with risk/reward",
       "AI rival with mistake modeling",

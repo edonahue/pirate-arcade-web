@@ -169,6 +169,41 @@ if (
   error("docs/adr/0002-race-to-treasure-island-phaser.md does not exist");
 }
 
+// 3i. Version string consistency
+const skill = read(join(ROOT, ".opencode/skills/pirate-arcade-site/SKILL.md"));
+const gamesJson = read(join(ROOT, "src/data/games.json"));
+const pkgAll = { ...(pkg.dependencies || {}), ...(pkg.devDependencies || {}) };
+
+const astroVersion = (pkgAll.astro || "").replace(/[^0-9.]/g, "").split(".")[0];
+const phaserRange = pkgAll.phaser || "";
+const phaserMajorMinor = phaserRange.replace(/[^0-9.]/g, "").split(".").slice(0, 2).join(".");
+
+if (astroVersion && skill) {
+  if (!skill.includes(`Astro ${astroVersion}`)) {
+    error(`SKILL.md frontmatter should reference Astro ${astroVersion}`);
+  }
+}
+
+if (phaserMajorMinor && skill) {
+  if (!skill.includes(`Phaser ${phaserMajorMinor}`)) {
+    error(`SKILL.md body should reference Phaser ${phaserMajorMinor}`);
+  }
+}
+
+if (phaserMajorMinor && gamesJson) {
+  const raceEntry = gamesJson.match(/"id":\s*"race-to-treasure-island"[^}]+"demonstrates":\s*\[([^\]]+)\]/s);
+  if (raceEntry && !raceEntry[1].includes(`Phaser ${phaserMajorMinor}`)) {
+    error(`games.json race entry demonstrates should reference Phaser ${phaserMajorMinor}`);
+  }
+}
+
+if (phaserMajorMinor && roadmap) {
+  const roadmapTableLine = roadmap.match(/\| Race to Treasure Island \| [^|]+ \|/);
+  if (roadmapTableLine && !roadmapTableLine[0].includes(`Phaser ${phaserMajorMinor}`)) {
+    error(`ROADMAP.md table should reference Phaser ${phaserMajorMinor}`);
+  }
+}
+
 // --- Summary ---
 console.log(
   `\n${failed ? "FAILED — see errors above" : "All documentation consistency checks passed."}`,

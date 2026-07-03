@@ -139,7 +139,6 @@ class Gameplay:
                 continue
             surf = pg.Surface((c.WINDOW_WIDTH, c.WINDOW_HEIGHT))
             surf.fill(color)
-            r = pg.Rect(0, 0, c.WINDOW_WIDTH, c.WINDOW_HEIGHT)
             stripe_color = (min(255, color[0] + 8), min(255, color[1] + 8), min(255, color[2] + 8))
             for sy in range(60, c.WINDOW_HEIGHT, 80):
                 pg.draw.line(surf, stripe_color, (0, sy), (c.WINDOW_WIDTH, sy), 1)
