@@ -25,7 +25,6 @@ import {
   readFileSync,
   statSync,
   writeFileSync,
-  createWriteStream,
 } from "fs";
 import { resolve, dirname } from "path";
 import { fileURLToPath } from "url";
@@ -39,9 +38,6 @@ const DEST = resolve(ROOT, "public/play");
 const TMP_ROOT = resolve(ROOT, ".tmp-archive-build");
 
 const ALIASES = {
-  "cannonball-clash": "cannonball-clash",
-  "treasure-cove": "treasure-cove",
-  "krakens-wake": "krakens-wake",
   pong: "cannonball-clash",
   breakout: "treasure-cove",
   asteroids: "krakens-wake",
@@ -137,40 +133,45 @@ async function buildGame(game) {
   stripPycache(assetsDir);
 
   const allFiles = collectFiles(tmp);
-  const outFile = resolve(destDir, `${game.id}.tar.gz`);
+  const tmpOut = resolve(tmp, `${game.id}.tar.gz`);
+  const finalPath = resolve(destDir, `${game.id}.tar.gz`);
+  const hashFilePath = resolve(destDir, `${game.id}.tar.gz.sha256`);
 
-  // Create deterministic tarball using node-tar with file output
+  // Create deterministic tarball to temp path
   await tarCreate(
     {
       gzip: true,
       portable: true,
       cwd: tmp,
-      file: outFile,
+      file: tmpOut,
       mtime: new Date(0),
     },
     allFiles,
   );
 
-  const hash = computeSha256(outFile);
-  const size = statSync(outFile).size;
+  const hash = computeSha256(tmpOut);
+  const size = statSync(tmpOut).size;
 
-  // Check if this actually changed
-  const existingHashFile = resolve(destDir, `${game.id}.tar.gz.sha256`);
+  // Compare with existing archive; only overwrite when bytes differ
   let changed = true;
-  if (existsSync(existingHashFile)) {
-    const oldHash = readFileSync(existingHashFile, "utf8").trim();
+  if (existsSync(hashFilePath)) {
+    const oldHash = readFileSync(hashFilePath, "utf8").trim();
     changed = oldHash !== hash;
   }
 
-  // Write hash manifest
-  writeFileSync(existingHashFile, hash, "utf8");
+  if (changed) {
+    mkdirSync(destDir, { recursive: true });
+    writeFileSync(finalPath, readFileSync(tmpOut));
+    writeFileSync(hashFilePath, hash, "utf8");
+  }
+
+  rmSync(tmp, { recursive: true, force: true });
 
   const sizeStr = (size / 1024).toFixed(1);
   console.log(
-    `Repacked ${game.id}: ${sizeStr} KB  sha256=${hash}${changed ? "" : " (unchanged)"}`,
+    `${game.id}: ${sizeStr} KB  sha256=${hash}${changed ? "" : " (unchanged)"}`,
   );
 
-  rmSync(tmp, { recursive: true, force: true });
   return { id: game.id, sha256: hash };
 }
 

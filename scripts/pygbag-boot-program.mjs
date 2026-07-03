@@ -69,8 +69,9 @@ export const CRITICAL_ORDER = [
 
 // ── Renderer ──────────────────────────────────────────────────
 
-export function renderPythonBootProgram(config) {
-  const source = generateSource(config);
+export function renderPythonBootProgram(config, archiveHash) {
+  const source = generateSource(config, archiveHash);
+  const hashParam = archiveHash ? `?h=${archiveHash}` : `?v=${ASSET_VERSION}`;
   const metadata = {
     schemaVersion: GENERATED_SCHEMA_VERSION,
     gameId: config.id,
@@ -79,7 +80,7 @@ export function renderPythonBootProgram(config) {
     caption: config.caption,
     title: config.title,
     readyMessage: config.readyMessage,
-    archiveUrl: `/play/${config.id}/${config.id}.tar.gz?v=${ASSET_VERSION}`,
+    archiveUrl: `/play/${config.id}/${config.id}.tar.gz${hashParam}`,
     hasHighscoresShim: config.hasHighscoresShim,
     bootMarks: [...BOOT_MARKS],
     failureStages: [...FAILURE_STAGES],
@@ -87,7 +88,8 @@ export function renderPythonBootProgram(config) {
   return { source, metadata };
 }
 
-function generateSource(config) {
+function generateSource(config, archiveHash) {
+  const qs = archiveHash ? `?h=${archiveHash}` : `?v=${ASSET_VERSION}`;
   // ── Imports ──────────────────────────────────────────────────
   const imports = "import sys, asyncio, tarfile, io, os";
 
@@ -110,8 +112,8 @@ function generateSource(config) {
       config.id +
       "/" +
       config.id +
-      ".tar.gz?v=" +
-      ASSET_VERSION +
+      ".tar.gz" +
+      qs +
       '"',
     "        _w.PirateArcadeMetrics.setArchiveUrl(url)",
     "",

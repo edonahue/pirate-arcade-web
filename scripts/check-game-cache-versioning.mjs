@@ -69,17 +69,18 @@ for (const game of GAMES) {
   const htmlPath = resolve(ROOT, game.html);
   const html = readFileSync(htmlPath, "utf-8");
 
-  // Archive preload link must have ?v=
+  // Archive preload link must have ?v= or ?h=
   const preloadPattern = new RegExp(
-    `rel="preload"[^>]*href="[^"]*${game.archiveFile}\\?v=`,
+    `rel="preload"[^>]*href="[^"]*${game.archiveFile}\\?(?:v=|h=)`,
   );
   if (!preloadPattern.test(html)) {
-    fail(`${game.id}: archive preload link must have ?v= query`);
+    fail(`${game.id}: archive preload link must have ?v= or ?h= query`);
   }
 
-  // Archive boot fetch URL must have ?v=
-  if (!html.includes(`${game.archiveFile}?v=`)) {
-    fail(`${game.id}: inline boot code archive URL must have ?v= query`);
+  // Archive boot fetch URL must have ?v= or ?h=
+  const bootFetchPattern = new RegExp(`${game.archiveFile}\\?(?:v=|h=)`);
+  if (!bootFetchPattern.test(html)) {
+    fail(`${game.id}: inline boot code archive URL must have ?v= or ?h= query`);
   }
 
   // Shared assets must have ?v=

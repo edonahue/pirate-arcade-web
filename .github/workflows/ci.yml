@@ -73,6 +73,9 @@ jobs:
       - name: Health/smoke tests (chromium-desktop)
         run: npx playwright test tests/browser-games.spec.ts --project=chromium-desktop --reporter=list
         timeout-minutes: 10
+      - name: Gameplay match tests (chromium-desktop)
+        run: npx playwright test tests/*-match.spec.ts --project=chromium-desktop --reporter=list
+        timeout-minutes: 15
       - name: Desktop input tests (chromium-desktop)
         run: npx playwright test tests/game-input-desktop.spec.ts --project=chromium-desktop --reporter=list
         timeout-minutes: 10

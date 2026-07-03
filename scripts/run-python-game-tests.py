@@ -78,6 +78,7 @@ SHARED_TEST_FILES = [
     "test_pa_state.py",
     "test_pa_loop.py",
     "test_game_source_contract.py",
+    "test_runner_self.py",
 ]
 
 BASE_ENV = {
@@ -87,7 +88,10 @@ BASE_ENV = {
     "SDL_AUDIODRIVER": "dummy",
 }
 
-SHARED_PYTHONPATH = str(SCRIPTS_BASE)
+SHARED_PYTHONPATH = os.pathsep.join([
+    str(SCRIPTS_BASE),
+    str(REPO_ROOT / "scripts"),
+])
 
 SUBPROCESS_TIMEOUT = 60
 
@@ -132,18 +136,22 @@ def run_unittest(
         env.update(env_override)
 
     start = time.monotonic()
-    result = subprocess.run(
-        [sys.executable, "-u", "-m", "unittest", "discover", "-s", str(TEST_DIR),
-         "-p", test_file, "-v"],
-        cwd=str(TEST_DIR),
-        env=env,
-        capture_output=True,
-        text=True,
-        timeout=SUBPROCESS_TIMEOUT,
-    )
-    duration = time.monotonic() - start
-    output = result.stdout + result.stderr
-    return result.returncode, output, duration
+    try:
+        result = subprocess.run(
+            [sys.executable, "-u", "-m", "unittest", "discover", "-s", str(TEST_DIR),
+             "-p", test_file, "-v"],
+            cwd=str(TEST_DIR),
+            env=env,
+            capture_output=True,
+            text=True,
+            timeout=SUBPROCESS_TIMEOUT,
+        )
+        duration = time.monotonic() - start
+        output = result.stdout + result.stderr
+        return result.returncode, output, duration
+    except subprocess.TimeoutExpired:
+        duration = time.monotonic() - start
+        return -1, f"TIMEOUT after {SUBPROCESS_TIMEOUT}s", duration
 
 
 def parse_test_counts(output: str) -> dict:
@@ -165,17 +173,20 @@ def parse_test_counts(output: str) -> dict:
         if "FAILED (" in line or "FAILED" == line:
             if "failures=" in line:
                 try:
-                    result["failures"] = int(line.split("failures=")[1].split(")")[0])
+                    val = line.split("failures=")[1].split(",")[0].split(")")[0].strip()
+                    result["failures"] = int(val)
                 except (IndexError, ValueError):
                     result["failures"] = 1
             if "errors=" in line:
                 try:
-                    result["errors"] = int(line.split("errors=")[1].split(")")[0])
+                    val = line.split("errors=")[1].split(",")[0].split(")")[0].strip()
+                    result["errors"] = int(val)
                 except (IndexError, ValueError):
                     result["errors"] = 1
         if "skipped=" in line:
             try:
-                result["skips"] = int(line.split("skipped=")[1].split(")")[0])
+                val = line.split("skipped=")[1].split(",")[0].split(")")[0].strip()
+                result["skips"] = int(val)
             except (IndexError, ValueError):
                 pass
     return result
@@ -309,16 +320,24 @@ def main():
         # Runtime contract test
         if cfg["runtime_contract"]:
             contract_path = TEST_DIR / "test_game_runtime_contract.py"
-            if contract_path.is_file():
-                contract_log = LOG_DIR / f"{cfg['id']}-contract.log"
-                contract_result = run_suite(
-                    "test_game_runtime_contract.py",
-                    pythonpath,
-                    f"{cfg['label']} (contract)",
-                    contract_log,
-                    env_override={"PA_GAME_ID": cfg["id"]},
-                )
-                all_results.append(contract_result)
+            if not contract_path.is_file():
+                all_results.append({
+                    "suite": f"{cfg['label']} (contract)",
+                    "test_file": "test_game_runtime_contract.py",
+                    "process_result": "failed",
+                    "tests_run": 0, "failures": 0, "errors": 0, "skips": 0,
+                    "exit_code": -1, "duration_seconds": 0.0, "log_path": "",
+                })
+                continue
+            contract_log = LOG_DIR / f"{cfg['id']}-contract.log"
+            contract_result = run_suite(
+                "test_game_runtime_contract.py",
+                pythonpath,
+                f"{cfg['label']} (contract)",
+                contract_log,
+                env_override={"PA_GAME_ID": cfg["id"]},
+            )
+            all_results.append(contract_result)
 
     # --- Summary ---
     failures = sum(1 for r in all_results if r["process_result"] != "passed")

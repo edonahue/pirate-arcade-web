@@ -98,8 +98,9 @@ export const PYBAG_GAMES = [
 ];
 
 // Derived helpers
-export function archiveUrl(id) {
-  return `/play/${id}/${id}.tar.gz?v=${ASSET_VERSION}`;
+export function archiveUrl(id, hash) {
+  const qs = hash ? `?h=${hash}` : `?v=${ASSET_VERSION}`;
+  return `/play/${id}/${id}.tar.gz${qs}`;
 }
 
 export function shellPageUrl(id) {

@@ -2,9 +2,11 @@
 /**
  * Check that every shipped source file matches what's in the game archives.
  *
- * Uses recursive file enumeration (not handpicked keyFiles) to compare:
- * - game source tree vs archive tree
- * - shared module files in each archive
+ * Binary-safe, bidirectional: verifies source→archive (every source file
+ * must be in archive with matching content) AND archive→source (no
+ * unexpected extra files).
+ *
+ * Uses spawnSync for extraction (read-only tool, not a build step).
  *
  * Fails on:
  * - missing file in archive
@@ -16,8 +18,8 @@
 import { fileURLToPath } from "url";
 import { dirname, resolve } from "path";
 import { readFileSync, existsSync, readdirSync } from "fs";
-import { execSync } from "child_process";
 import { createHash } from "crypto";
+import { spawnSync } from "child_process";
 import { PYBAG_GAMES } from "./pygbag-game-config.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -25,72 +27,71 @@ const __dirname = dirname(__filename);
 const ROOT = resolve(__dirname, "..");
 const SRC = resolve(ROOT, "scripts/pygbag-port");
 
-const SHARED_FILES = ["__init__.py", "pa_state.py", "pa_loop.py"];
 const EXCLUDE_DIRS = new Set(["build", "__pycache__"]);
-const EXCLUDE_FILES = new Set();
 
 function collectSourceFiles(dir, prefix = "") {
   const entries = [];
-  for (const entry of readdirSyncSafe(dir)) {
-    if (!entry) continue;
-    if (EXCLUDE_DIRS.has(entry.name) || EXCLUDE_FILES.has(entry.name)) continue;
-    const full = resolve(dir, entry.name);
-    const rel = prefix ? `${prefix}/${entry.name}` : entry.name;
-    if (entry.isDirectory()) {
-      entries.push(...collectSourceFiles(full, rel));
-    } else {
-      entries.push(rel);
+  try {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      if (EXCLUDE_DIRS.has(entry.name)) continue;
+      const full = resolve(dir, entry.name);
+      const rel = prefix ? `${prefix}/${entry.name}` : entry.name;
+      if (entry.isDirectory()) {
+        entries.push(...collectSourceFiles(full, rel));
+      } else {
+        entries.push(rel);
+      }
     }
+  } catch {
+    /* directory doesn't exist */
   }
   return entries.sort();
 }
 
-function readdirSyncSafe(dir) {
-  try {
-    const entries = [];
-    const dirEntries = readdirSync(dir, { withFileTypes: true });
-    for (const e of dirEntries) entries.push(e);
-    return entries;
-  } catch {
-    return [];
+function listArchive(archivePath) {
+  const result = spawnSync("tar", ["tzf", archivePath], {
+    timeout: 15000,
+    stdio: ["pipe", "pipe", "pipe"],
+  });
+  if (result.status !== 0) return [];
+  return result.stdout.toString().trim().split("\n").filter(Boolean).sort();
+}
+
+function readArchiveFile(archivePath, filePath) {
+  const result = spawnSync(
+    "tar",
+    ["xzf", archivePath, "--to-stdout", filePath],
+    {
+      timeout: 15000,
+      stdio: ["pipe", "pipe", "pipe"],
+    },
+  );
+  if (result.status !== 0) return null;
+  return result.stdout;
+}
+
+function sha256(buf) {
+  return createHash("sha256").update(buf).digest("hex");
+}
+
+function checkMatch(archivePath, fileInArchive, sourcePath) {
+  const sourceContent = readFileSync(sourcePath);
+  const archiveContent = readArchiveFile(archivePath, fileInArchive);
+  if (archiveContent === null) {
+    return { ok: false, msg: `\u274c MISSING from archive: ${fileInArchive}` };
   }
-}
-
-function getArchiveManifest(archivePath) {
-  try {
-    const output = execSync(`tar tzf "${archivePath}" 2>/dev/null | sort`, {
-      encoding: "utf-8",
-      stdio: ["pipe", "pipe", "ignore"],
-    });
-    return output.trim().split("\n").filter(Boolean).sort();
-  } catch {
-    return [];
+  if (sha256(sourceContent) !== sha256(archiveContent)) {
+    return { ok: false, msg: `\u274c DIFFERS: ${fileInArchive}` };
   }
+  return { ok: true, msg: `  \u2705 ${fileInArchive}` };
 }
-
-function getArchiveFileContent(archivePath, filePath) {
-  try {
-    return execSync(
-      `tar xzf "${archivePath}" --to-stdout "${filePath}" 2>/dev/null`,
-      { encoding: "utf-8", stdio: ["pipe", "pipe", "ignore"] },
-    );
-  } catch {
-    return null;
-  }
-}
-
-function sha256(content) {
-  return createHash("sha256").update(content, "utf8").digest("hex");
-}
-
-console.log("Checking archive/source parity...");
 
 let allPassed = true;
 
 for (const game of PYBAG_GAMES) {
-  console.log(`\n── ${game.id} ──`);
+  console.log(`\n\u2500\u2500 ${game.id} \u2500\u2500`);
 
-  const sourceDir = resolve(ROOT, "scripts/pygbag-port", game.id);
+  const sourceDir = resolve(SRC, game.id);
   const archivePath = resolve(
     ROOT,
     "public/play",
@@ -99,159 +100,89 @@ for (const game of PYBAG_GAMES) {
   );
 
   if (!existsSync(archivePath)) {
-    console.log(`  ❌ Archive not found: ${archivePath}`);
+    console.log(`  \u274c Archive not found: ${archivePath}`);
     allPassed = false;
     continue;
   }
 
-  // Collect source files under games/ subdirectory
+  // Collect source-side manifest
   const gameSourceDir = resolve(sourceDir, "games");
-  let sourceFiles = [];
-  if (existsSync(gameSourceDir)) {
-    sourceFiles = collectSourceFiles(gameSourceDir, "assets/games");
-  }
+  const sourceFiles = existsSync(gameSourceDir)
+    ? collectSourceFiles(gameSourceDir, "assets/games")
+    : [];
 
-  // Collect top-level source files (audio.py, constants.py, etc.)
-  const topSourceFiles = collectSourceFiles(sourceDir).filter(
+  const topFiles = collectSourceFiles(sourceDir).filter(
     (f) =>
       !f.startsWith("games/") &&
       !f.startsWith("build/") &&
       !f.startsWith("__pycache__"),
   );
 
-  // Check shared files
   const sharedDir = resolve(SRC, "shared");
-  let sharedSourceFiles = [];
-  if (existsSync(sharedDir)) {
-    sharedSourceFiles = collectSourceFiles(sharedDir, "assets/shared");
-  }
+  const sharedFiles = existsSync(sharedDir)
+    ? collectSourceFiles(sharedDir, "assets/shared")
+    : [];
 
-  // Source-side manifest
-  const expectedFiles = new Set([
+  const expectedSet = new Set([
     ...sourceFiles,
-    ...topSourceFiles.map((f) => `assets/${f}`),
-    ...sharedSourceFiles,
+    ...topFiles.map((f) => `assets/${f}`),
+    ...sharedFiles,
     "assets/",
     "assets/games/",
     "assets/shared/",
   ]);
 
   // Archive-side manifest
-  const archiveFiles = new Set(getArchiveManifest(archivePath));
+  const archiveEntries = listArchive(archivePath);
+  const archiveSet = new Set(archiveEntries);
 
-  // Check for missing files
-  for (const file of expectedFiles) {
-    if (!archiveFiles.has(file)) {
-      // Skip directory entries
-      if (file.endsWith("/")) continue;
-      console.log(`  ❌ MISSING in archive: ${file}`);
+  // Source → archive: check every expected file exists in archive
+  for (const file of expectedSet) {
+    if (file.endsWith("/")) continue;
+    if (!archiveSet.has(file)) {
+      console.log(`  \u274c MISSING in archive: ${file}`);
       allPassed = false;
     }
   }
 
-  // Check content of every non-directory source file
+  // Archive → source: no unexpected extras
+  for (const file of archiveEntries) {
+    if (file.endsWith("/")) continue;
+    if (!expectedSet.has(file)) {
+      console.log(`  \u274c EXTRA in archive: ${file}`);
+      allPassed = false;
+    }
+  }
+
+  // Content comparison
   for (const file of sourceFiles) {
     if (file.endsWith("/")) continue;
-    const sourceContent = readFileSync(
-      resolve(
-        ROOT,
-        "scripts/pygbag-port",
-        game.id,
-        "games",
-        file.replace("assets/games/", ""),
-      ),
-      "utf8",
-    );
-    const archiveContent = getArchiveFileContent(archivePath, file);
-    if (archiveContent === null) {
-      console.log(`  ❌ Can't extract: ${file}`);
-      allPassed = false;
-      continue;
-    }
-    if (sha256(sourceContent) !== sha256(archiveContent)) {
-      console.log(`  ❌ DIFFERS: ${file}`);
-      allPassed = false;
-    } else {
-      console.log(`  ✅ ${file}`);
-    }
+    const srcPath = resolve(gameSourceDir, file.replace("assets/games/", ""));
+    const r = checkMatch(archivePath, file, srcPath);
+    console.log(r.msg);
+    if (!r.ok) allPassed = false;
   }
 
-  // Check top-level source files
-  for (const file of topSourceFiles) {
+  for (const file of topFiles) {
     if (file.endsWith("/") || file.startsWith("games/")) continue;
-    const sourceContent = readFileSync(resolve(sourceDir, file), "utf8");
-    const archiveContent = getArchiveFileContent(archivePath, `assets/${file}`);
-    if (archiveContent === null) {
-      console.log(`  ❌ Can't extract: assets/${file}`);
-      allPassed = false;
-      continue;
-    }
-    if (sha256(sourceContent) !== sha256(archiveContent)) {
-      console.log(`  ❌ DIFFERS: assets/${file}`);
-      allPassed = false;
-    } else {
-      console.log(`  ✅ assets/${file}`);
-    }
+    const srcPath = resolve(sourceDir, file);
+    const r = checkMatch(archivePath, `assets/${file}`, srcPath);
+    console.log(r.msg);
+    if (!r.ok) allPassed = false;
   }
 
-  // Check shared files in archive
-  for (const file of sharedSourceFiles) {
-    const sourceContent = readFileSync(
-      resolve(SRC, "shared", file.replace("assets/shared/", "")),
-      "utf8",
-    );
-    const archiveContent = getArchiveFileContent(archivePath, file);
-    if (archiveContent === null) {
-      console.log(`  ❌ MISSING from archive: ${file}`);
-      allPassed = false;
-      continue;
-    }
-    if (sha256(sourceContent) !== sha256(archiveContent)) {
-      console.log(`  ❌ DIFFERS: ${file}`);
-      allPassed = false;
-    } else {
-      console.log(`  ✅ ${file}`);
-    }
-  }
-}
-
-// Check shared files in each archive
-console.log(`\n── shared ──`);
-for (const game of PYBAG_GAMES) {
-  const archivePath = resolve(
-    ROOT,
-    "public/play",
-    game.id,
-    `${game.id}.tar.gz`,
-  );
-  if (!existsSync(archivePath)) continue;
-
-  for (const file of SHARED_FILES) {
-    const sourcePath = resolve(SRC, "shared", file);
-    if (!existsSync(sourcePath)) continue;
-    const sourceContent = readFileSync(sourcePath, "utf8");
-    const archiveContent = getArchiveFileContent(
-      archivePath,
-      `assets/shared/${file}`,
-    );
-    if (archiveContent === null) {
-      console.log(
-        `  ❌ ${game.id} assets/shared/${file}: missing from archive`,
-      );
-      allPassed = false;
-    } else if (sha256(sourceContent) !== sha256(archiveContent)) {
-      console.log(`  ❌ ${game.id} assets/shared/${file}: differs!`);
-      allPassed = false;
-    } else {
-      console.log(`  ✅ ${game.id} assets/shared/${file}: matches`);
-    }
+  for (const file of sharedFiles) {
+    const srcPath = resolve(sharedDir, file.replace("assets/shared/", ""));
+    const r = checkMatch(archivePath, file, srcPath);
+    console.log(r.msg);
+    if (!r.ok) allPassed = false;
   }
 }
 
 if (allPassed) {
-  console.log("\n✅ All archive/source parity checks passed!");
+  console.log("\n\u2705 All archive/source parity checks passed!");
   process.exit(0);
 } else {
-  console.log("\n❌ Archive/source parity check failed!");
+  console.log("\n\u274c Archive/source parity check failed!");
   process.exit(1);
 }

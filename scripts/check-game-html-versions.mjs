@@ -83,7 +83,7 @@ for (const gameDir of GAMES) {
 
   // Archive inline URL
   const archiveUrlPattern = new RegExp(
-    `${gameDir}\\.tar\\.gz\\?v=${escapeRegex(ASSET_VERSION)}`,
+    `${gameDir}\\.tar\\.gz\\?(?:h=[0-9a-f]{64}|v=${escapeRegex(ASSET_VERSION)})`,
   );
   if (!archiveUrlPattern.test(html)) {
     fail(`${gameDir}: archive URL missing or wrong version`);
@@ -93,7 +93,7 @@ for (const gameDir of GAMES) {
 
   // Preload link
   const preloadPattern = new RegExp(
-    `rel="preload"[^>]*href="[^"]*${gameDir}\\.tar\\.gz\\?v=${escapeRegex(ASSET_VERSION)}"`,
+    `rel="preload"[^>]*href="[^"]*${gameDir}\\.tar\\.gz\\?(?:h=[0-9a-f]{64}|v=${escapeRegex(ASSET_VERSION)})"`,
   );
   if (!preloadPattern.test(html)) {
     fail(`${gameDir}: preload link missing or wrong version`);

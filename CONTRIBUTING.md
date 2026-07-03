@@ -2,7 +2,7 @@
 
 ## Node Setup
 
-- Node >=22.12.0 (Astro 6 requirement). See `.nvmrc` — use `nvm use`.
+- Node >=22.12.0 (Astro 7 requirement). See `.nvmrc` — use `nvm use`.
 - `npm ci` for install (uses lockfile, matches CI).
 
 ## Local Development

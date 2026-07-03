@@ -38,6 +38,8 @@ class AsteroidsGame:
         self._state_pub = StatePublisher()
         self._present_gate = PresentGate()
         self._timer = FixedStepTimer()
+        self._recovered_error_count = 0
+        self._last_recovered_phase = None
         _ensure_stars()
 
     def _init_fonts(self):
@@ -210,6 +212,7 @@ class AsteroidsGame:
             self.gameplay.score,
             self.gameplay.lives,
             self.state == "menu",
+            self._recovered_error_count,
         )
 
     def _build_game_state(self):
@@ -228,6 +231,8 @@ class AsteroidsGame:
             "actionReady": self.state == "menu",
             "shipAngle": self.gameplay.ship.angle,
             "shipSpeed": self.gameplay.ship.speed,
+            "recoveredErrorCount": self._recovered_error_count,
+            "lastRecoveredPhase": self._last_recovered_phase,
         }
 
     def _update(self, dt):
@@ -242,6 +247,8 @@ class AsteroidsGame:
         except Exception:
             traceback.print_exc()
             print("*** BUG: Uncaught exception in Asteroids _update — recovering to menu ***")
+            self._recovered_error_count += 1
+            self._last_recovered_phase = "update"
             self.state = 'menu'
         active = self.state == 'playing' and not self.paused
         self._state_pub.tick(
@@ -271,6 +278,8 @@ class AsteroidsGame:
         except Exception:
             traceback.print_exc()
             print("*** BUG: Uncaught exception in Asteroids _draw — recovering ***")
+            self._recovered_error_count += 1
+            self._last_recovered_phase = "draw"
             self.surface.fill((0, 0, 0))
 
     def _draw_menu(self):

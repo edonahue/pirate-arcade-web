@@ -41,6 +41,39 @@ npm run generate:pygbag-shells   # regenerate and write shell files
 match what the generator produces. This is included in the fast release
 gate and will fail if someone hand-edits a shell without regenerating.
 
+### Archive hash / cache busting
+
+Game archives are content-addressed via SHA-256. The archive builder
+(`scripts/patch-browser-game-archives.mjs`) writes each tar.gz to a
+temp path first, computes the SHA-256, and only overwrites the committed
+archive when bytes differ. Each archive has a sidecar `.sha256` file.
+
+The generated shell HTML embeds the SHA-256 hash in both the preload
+`<link>` URL and the Python boot `fetch()` URL: `/play/<id>/<id>.tar.gz?h=<hash>`.
+This ensures that any source change produces a new URL, forcing cache
+invalidation on CDN and browser caches.
+
+The `ARCHIVE_HASH` JavaScript variable in the shell is derived from the
+same sidecar file. The boot contract validator checks that the preload
+URL uses the content hash.
+
+**Workflow:**
+
+```sh
+# 1. Build/update game archives (writes to temp, compares hash)
+npm run patch:game-archives
+
+# 2. Regenerate shells with new hash
+npm run generate:pygbag-shells -- --apply
+
+# 3. Verify parity (source ↔ archive, both directions)
+npm run test:archive-parity
+
+# 4. Run boot contract + drift checks
+npm run test:pygbag-boot-contract
+npm run test:pygbag-shell-drift
+```
+
 ### Boot contract
 
 `npm run test:pygbag-boot-contract` validates that each shell contains

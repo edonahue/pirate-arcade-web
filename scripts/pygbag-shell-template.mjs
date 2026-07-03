@@ -49,8 +49,8 @@ const TOUCH_OVERLAYS = {
 
 // ── Python boot code generator ────────────────────────────────
 
-function renderPythonBootCode(config) {
-  return renderPythonBootProgram(config).source;
+function renderPythonBootCode(config, archiveHash) {
+  return renderPythonBootProgram(config, archiveHash).source;
 }
 
 // ── CDN pin comment ───────────────────────────────────────────
@@ -74,7 +74,7 @@ export function render(config, archiveHash) {
     throw new Error("Unknown touchOverlay: " + config.touchOverlay);
   }
 
-  const bootCode = renderPythonBootCode(config);
+  const bootCode = renderPythonBootCode(config, archiveHash);
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -90,7 +90,7 @@ export function render(config, archiveHash) {
     <link rel="preconnect" href="https://pygame-web.github.io">
     <link rel="dns-prefetch" href="https://pygame-web.github.io">
     <link rel="modulepreload" href="https://pygame-web.github.io/cdn/0.9.3/pythons.js" crossorigin="anonymous">
-    <link rel="preload" href="${archiveUrl(config.id)}" as="fetch" crossorigin="anonymous">
+    <link rel="preload" href="${archiveUrl(config.id, archiveHash)}" as="fetch" crossorigin="anonymous">
     <script src="/play/shared/game-boot-metrics.js"></script>
     <script src="/play/shared/pygbag-loading.js?v=${ASSET_VERSION}"></script>
     <style>
@@ -391,7 +391,7 @@ ${bootCode
     <script src="/play/shared/debug-panel.js?v=${DEBUG_PANEL_VERSION}"></script>
     <!--
       GAME: ${config.id}
-      ARCHIVE: ${archiveUrl(config.id)}
+      ARCHIVE: ${archiveUrl(config.id, archiveHash)}
       CONTROL: keyboard + touch
       CDN: pythons.js@0.9.3
       SHARED: pygbag-loading.js, pygame-input-bridge.js, game-viewport.js, mobile-controls.js

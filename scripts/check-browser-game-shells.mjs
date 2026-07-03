@@ -122,19 +122,20 @@ for (const game of pygbagGames) {
   }
 
   const archiveUrlPattern = new RegExp(
-    `${gameDir}\\.tar\\.gz\\?v=${ASSET_VERSION.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`,
+    `${gameDir}\\.tar\\.gz\\?(?:h=[0-9a-f]{64}|v=${ASSET_VERSION.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})`,
   );
   if (archiveUrlPattern.test(html)) {
     ok(`archive URL matches game + version`);
   } else {
-    const found = html.match(new RegExp(`${gameDir}\\.tar\\.gz\\?v=([^"']+)`));
+    const foundH = html.match(new RegExp(`${gameDir}\\.tar\\.gz\\?h=([^"']+)`));
+    const foundV = html.match(new RegExp(`${gameDir}\\.tar\\.gz\\?v=([^"']+)`));
     fail(
-      `${gameDir}: archive URL has wrong version (${found ? "found v" + found[1] : "not found"})`,
+      `${gameDir}: archive URL has wrong version (${foundH ? "found h=" + foundH[1].slice(0, 12) + "..." : foundV ? "found v=" + foundV[1] : "not found"})`,
     );
   }
 
   const preloadPattern = new RegExp(
-    `rel="preload"[^>]*href="[^"]*${gameDir}\\.tar\\.gz\\?v=${ASSET_VERSION.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}"`,
+    `rel="preload"[^>]*href="[^"]*${gameDir}\\.tar\\.gz\\?(?:h=[0-9a-f]{64}|v=${ASSET_VERSION.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})"`,
   );
   if (preloadPattern.test(html)) {
     ok("preload link present");

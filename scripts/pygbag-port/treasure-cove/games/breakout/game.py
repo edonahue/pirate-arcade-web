@@ -101,7 +101,9 @@ class BreakoutGame:
 
             draw_key = (self.state, self.paused, self.game_over_state,
                      self.gameplay.score, self.gameplay.stage,
-                     self.gameplay.round, self.gameplay.lives)
+                     self.gameplay.round, self.gameplay.lives,
+                     self.pause_selection, self.sound_enabled,
+                     self.gameplay.show_fps)
             if render_continuous:
                 self._render_after_anim = False
                 self._draw(60)
@@ -204,6 +206,7 @@ class BreakoutGame:
             self.gameplay.paddle.wide_timer > 0,
             self.gameplay.slow_motion_timer > 0,
             self.gameplay.round,
+            self.gameplay.round_phase,
             tuple(sorted(self.gameplay._brick_destruction_counts.items())),
             tuple(self.gameplay._pickup_history[-5:]),
         )
@@ -256,6 +259,7 @@ class BreakoutGame:
             "slowMotionRemainingMs": int(self.gameplay.slow_motion_timer * 1000),
             "stageTransitionActive": self.gameplay.stage_transition_phase is not None,
             "round": self.gameplay.round,
+            "roundPhase": self.gameplay.round_phase,
             "brickDestructionCounts": dict(self.gameplay._brick_destruction_counts),
             "pickupHistory": list(self.gameplay._pickup_history),
         }

@@ -128,7 +128,7 @@ comma-separated list to submit only changed URLs.
 
 ## Local Development
 
-**Node.js requirement:** >=22.12.0 (Astro 6). The project includes `.nvmrc`
+**Node.js requirement:** >=22.12.0 (Astro 7). The project includes `.nvmrc`
 — use `nvm use` or equivalent to switch.
 
 ```bash

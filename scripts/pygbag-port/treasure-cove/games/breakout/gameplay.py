@@ -108,6 +108,7 @@ class Gameplay:
         self._life_lost_timer = 0.0
         self._life_lost_pending_reset = False
         self._brick_destruction_counts = {"standard": 0, "reinforced": 0, "powder_keg": 0, "treasure": 0}
+        self.round_phase = "serve"
         self._pickup_history = []
         self._hit_bricks_this_frame = set()
 
@@ -129,10 +130,13 @@ class Gameplay:
         self._cached_breached_surf = self.hud_font.render("FORTRESS BREACHED!", True, c.PIRATE_GOLD)
 
         self._backdrop_surfs = {}
+        self._backdrop_stages_built = set()
         self._build_bricks()
 
     def _build_backdrop_surfs(self):
         for stage, color in STAGE_BACKDROP_COLORS.items():
+            if stage in self._backdrop_stages_built:
+                continue
             surf = pg.Surface((c.WINDOW_WIDTH, c.WINDOW_HEIGHT))
             surf.fill(color)
             r = pg.Rect(0, 0, c.WINDOW_WIDTH, c.WINDOW_HEIGHT)
@@ -159,6 +163,7 @@ class Gameplay:
                     pg.draw.circle(surf, (50, 40, 20, 60), (gx, gy), gsize, 1)
                     pg.draw.circle(surf, (60, 50, 25, 40), (gx, gy), gsize // 2, 1)
             self._backdrop_surfs[stage] = surf
+            self._backdrop_stages_built.add(stage)
 
     def _get_stage_speed(self):
         return c.STAGE_START_SPEEDS.get(self.stage, c.BALL_BREAKOUT_SPEED)
@@ -221,6 +226,7 @@ class Gameplay:
         self._pickup_label_surf = None
         self._life_lost_timer = 0.0
         self._life_lost_pending_reset = False
+        self.round_phase = "serve"
 
     def reset_round(self):
         self.reset_ball()
@@ -242,6 +248,7 @@ class Gameplay:
         self.last_pickup_type = None
         self._brick_destruction_counts = {"standard": 0, "reinforced": 0, "powder_keg": 0, "treasure": 0}
         self._pickup_history = []
+        self._backdrop_stages_built = set()
         self._cached_score = -1
         self._cached_score_surf = None
         self._cached_lives = -1
@@ -271,6 +278,7 @@ class Gameplay:
         self.slow_motion_timer = 0.0
         self.paddle.wide_timer = 0.0
         self._remove_all_slow()
+        self._backdrop_stages_built = set()
         self.round = 1
 
     def _remove_all_slow(self):
@@ -324,33 +332,31 @@ class Gameplay:
     def _drop_pickup(self, brick):
         pickup_types = c.PICKUP_TYPES
         pickup_type = random.choice(pickup_types)
-        self.last_pickup_type = pickup_type
         pu = Pickup(brick.x + brick.width // 2, brick.y + brick.height, pickup_type)
         self.falling_pickups.append(pu)
 
     def _collect_pickup(self, pickup):
         if pickup.pickup_type == "multiball":
+            target = max(3, len(self.balls))  # at least 3 balls total
             if len(self.balls) >= c.MAX_BALLS:
                 self.score += c.PICKUP_COLLECT_BONUS
             else:
-                new_balls = []
-                for ball in self.balls:
-                    if len(self.balls) + len(new_balls) >= c.MAX_BALLS:
-                        break
+                to_add = min(target - len(self.balls), c.MAX_BALLS - len(self.balls))
+                for _ in range(to_add):
+                    src = random.choice(self.balls) if self.balls else Ball()
                     nb = Ball()
-                    nb.x = ball.x
-                    nb.y = ball.y
-                    nb.px = ball.px
-                    nb.py = ball.py
-                    nb.vx = -ball.vx
-                    nb.vy = ball.vy
-                    nb.speed = ball.speed
-                    nb._underlying_speed = ball._underlying_speed
-                    nb._slow_mult = ball._slow_mult
+                    nb.x = src.x
+                    nb.y = src.y
+                    nb.px = src.px
+                    nb.py = src.py
+                    nb.vx = -src.vx
+                    nb.vy = src.vy
+                    nb.speed = src.speed
+                    nb._underlying_speed = src._underlying_speed
+                    nb._slow_mult = src._slow_mult
                     nb.launched = True
-                    nb.set_radius(ball.radius)
-                    new_balls.append(nb)
-                self.balls.extend(new_balls)
+                    nb.set_radius(src.radius)
+                    self.balls.append(nb)
         elif pickup.pickup_type == "wide_paddle":
             self.paddle.activate_wide()
         elif pickup.pickup_type == "slow_motion":
@@ -368,12 +374,16 @@ class Gameplay:
         bt = brick.brick_type
         if bt == c.BRICK_STANDARD:
             self._brick_destruction_counts["standard"] += 1
+            self.standard_count -= 1
         elif bt == c.BRICK_REINFORCED:
             self._brick_destruction_counts["reinforced"] += 1
+            self.reinforced_count -= 1
         elif bt == c.BRICK_POWDER_KEG:
             self._brick_destruction_counts["powder_keg"] += 1
+            self.powder_keg_count -= 1
         elif bt == c.BRICK_TREASURE:
             self._brick_destruction_counts["treasure"] += 1
+            self.treasure_count -= 1
 
     def _resolve_brick_swept(self, ball, brick):
         brick_rect = brick.rect
@@ -589,6 +599,14 @@ class Gameplay:
         self._update_pickups(dt)
         self._update_timers(dt)
         self._update_particles(dt)
+
+        # Round phase
+        if self._life_lost_pending_reset:
+            self.round_phase = "life-lost-hold"
+        elif any(b.launched for b in self.balls):
+            self.round_phase = "active"
+        else:
+            self.round_phase = "serve"
 
         return ('playing', None)
 

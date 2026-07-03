@@ -23,6 +23,18 @@ import {
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = resolve(__dirname, "..");
 
+function readArchiveHash(gameId) {
+  const shaPath = resolve(
+    root,
+    "public/play",
+    gameId,
+    gameId + ".tar.gz.sha256",
+  );
+  if (!existsSync(shaPath)) return "";
+  const content = readFileSync(shaPath, "utf-8").trim();
+  return content.split(/\s+/)[0] || "";
+}
+
 // ── Boot contract definition ──────────────────────────────────
 
 // Phases emitted from JS inline script (inline <script> block)
@@ -62,7 +74,8 @@ for (const config of PYBAG_GAMES) {
   }
 
   const html = readFileSync(indexPath, "utf-8");
-  const rendered = renderPythonBootProgram(config);
+  const archiveHash = readArchiveHash(config.id);
+  const rendered = renderPythonBootProgram(config, archiveHash);
 
   // ── JS-side phases (from inline script in shell) ─────────────
 
@@ -105,6 +118,23 @@ for (const config of PYBAG_GAMES) {
       config.id +
         ": ARCHIVE_HASH constant missing or invalid (expected 64-char hex)",
     );
+  }
+
+  // ── Archive preload URL uses content hash ────────────────────
+  totalChecks++;
+  if (archiveHash) {
+    const preloadHash = new RegExp(
+      'rel="preload" href="[^"]*' +
+        config.id +
+        "\\.tar\\.gz\\?h=" +
+        archiveHash +
+        '"',
+    );
+    if (preloadHash.test(html)) {
+      ok(config.id + ": preload URL uses content hash");
+    } else {
+      fail(config.id + ": preload URL missing content hash");
+    }
   }
 
   // ── Python-side phases (from authoritative renderer) ─────────

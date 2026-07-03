@@ -7,7 +7,7 @@ description: Pirate Arcade website — Astro 6, Cloudflare Pages, vanilla CSS to
 
 ## Architecture
 
-- **Framework:** Astro 6 (static output, no SSR)
+- **Framework:** Astro 7 (static output, no SSR)
 - **CSS:** Token-based — `src/styles/tokens.css`, `base.css`, `layout.css`, `components.css`, `content.css`, `utilities.css`, `responsive.css`
 - **Hosting:** Cloudflare Pages free tier
 - **CI:** GitHub Actions — run full validation before pushing

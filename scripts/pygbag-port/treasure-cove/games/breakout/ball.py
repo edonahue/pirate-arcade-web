@@ -70,9 +70,10 @@ class Ball:
     def launch(self):
         self._slow_mult = 1.0
         self.speed = self._underlying_speed * self._slow_mult
-        angle = random.uniform(-60, 60)
+        # Angle relative to straight up (90°), range 30°–150°
+        angle = random.uniform(-60, 60) + 90
         self.vx = cos(radians(angle)) * self.speed
-        self.vy = -abs(sin(radians(angle)) * self.speed)
+        self.vy = -sin(radians(angle)) * self.speed
         if abs(self.vy) < self.speed * 0.15:
             self.vy = -self.speed * 0.15
             norm = (self.vx ** 2 + self.vy ** 2) ** 0.5

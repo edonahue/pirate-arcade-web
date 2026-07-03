@@ -2,7 +2,7 @@
 
 ## Project
 
-Static Astro 6 site on Cloudflare Pages free tier. Python/Pygame desktop games in a separate repo. Everything runs on local hardware, free models, and free-tier infra.
+Static Astro 7 site on Cloudflare Pages free tier. Python/Pygame desktop games in a separate repo. Everything runs on local hardware, free models, and free-tier infra.
 
 ## Brand voice
 
