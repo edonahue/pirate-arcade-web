@@ -131,6 +131,13 @@
     isReady: function () {
       return _booted;
     },
+    getState: function () {
+      return {
+        booted: _booted,
+        errored: _errored,
+        elVisible: !(_getEl() && _getEl().classList.contains('hidden')),
+      };
+    },
     // Ownership marker: identifies this as the canonical PirateArcade implementation
     __pirateArcadeOwned: true,
   };

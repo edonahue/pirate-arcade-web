@@ -492,7 +492,10 @@ describe("mutation tests — defects caught", () => {
 
   it("removed game-loop await allows boot completion", () => {
     const mutated = mutatedSource(ALL_GAMES[0], (s) =>
-      s.replace("await game.run()", "# await game.run()"),
+      s.replace(
+        "_exit_result = await game.run()",
+        "# _exit_result = await game.run()",
+      ),
     );
     const tmpFile = writeTempSource(mutated);
     const result = runHarness(tmpFile);

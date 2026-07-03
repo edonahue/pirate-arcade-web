@@ -93,6 +93,29 @@ function generateSource(config, archiveHash) {
   // ── Imports ──────────────────────────────────────────────────
   const imports = "import sys, asyncio, tarfile, io, os";
 
+  // ── Helper: hide infobox (defensive, works with mock harness) ──
+  const hideInfoboxFn = [
+    "",
+    "def _hide_infobox(w):",
+    "    try:",
+    '        infobox = w.document.getElementById("infobox")',
+    "        if infobox:",
+    '            infobox.setAttribute("aria-hidden", "true")',
+    "    except AttributeError:",
+    "        pass",
+    "    # Fallback for named global (mock harness, older pygbag)",
+    "    try:",
+    '        infobox = getattr(w, "infobox", None)',
+    '        if infobox and hasattr(infobox, "setAttribute"):',
+    '            infobox.setAttribute("aria-hidden", "true")',
+    "        elif infobox:",
+    "            # Mock infobox with innerText setter only",
+    "            pass",
+    "    except AttributeError:",
+    "        pass",
+    "",
+  ];
+
   // ── Boot function ────────────────────────────────────────────
   const bootFn = [
     "",
@@ -311,7 +334,7 @@ function generateSource(config, archiveHash) {
     '            _w.PirateArcadeMetrics.mark("first-frame-presented")',
     "            _w.PirateArcadeMetrics.computeDurations()",
     '            _w.PirateArcadeLoading.ready("' + config.readyMessage + '")',
-    '            _w.infobox.innerText = "' + config.title + ' loaded!"',
+    "            _hide_infobox(_w)",
     "",
     "        def _pa_flip(*args, **kw):",
     "            r = _display_flip_orig(*args, **kw)",
@@ -327,7 +350,12 @@ function generateSource(config, archiveHash) {
     "        pg.display.update = _pa_update",
     "",
     '        _w.PirateArcadeMetrics.setBootStage("first-frame")',
-    "        await game.run()",
+    "        _exit_result = None  # Initialize to default for mutation safety",
+    "        _exit_result = await game.run()",
+    "        _w.PirateArcadeMetrics.mark('game-exit-notice')",
+    "        _w.PirateArcadeMetrics.setBootStage('game-exited')",
+    "        if _exit_result in ('quit', 'menu'):",
+    "            _w.PirateArcadeLifecycle.exitToArcade() if _w.PirateArcadeLifecycle else _w.location.assign('/play/')",
     "    except Exception as e:",
     "        sys.print_exception(e)",
     "        msg = str(e) if str(e) else type(e).__name__",
@@ -352,6 +380,8 @@ function generateSource(config, archiveHash) {
     manifest.join("\n") +
     "\n" +
     imports +
+    "\n" +
+    hideInfoboxFn.join("\n") +
     "\n" +
     bootFn.join("\n") +
     "\n" +

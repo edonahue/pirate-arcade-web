@@ -93,6 +93,7 @@ export function render(config, archiveHash) {
     <link rel="preload" href="${archiveUrl(config.id, archiveHash)}" as="fetch" crossorigin="anonymous">
     <script src="/play/shared/game-boot-metrics.js"></script>
     <script src="/play/shared/pygbag-loading.js?v=${ASSET_VERSION}"></script>
+    <script src="/play/shared/pygbag-lifecycle.js?v=${ASSET_VERSION}"></script>
     <style>
       * { margin: 0; padding: 0; box-sizing: border-box; }
       html, body { width: 100%; height: 100%; overflow: hidden; background: #0a0e17; color: #b8c4d4; }
@@ -123,6 +124,10 @@ export function render(config, archiveHash) {
         box-shadow: 0 4px 24px rgba(0,0,0,0.6);
         top: 50%; left: 50%; transform: translate(-50%,-50%);
         max-width: 80vw; text-align: center;
+        display: none;
+      }
+      #infobox[aria-hidden="false"] {
+        display: block;
       }
       #transfer { text-align: center; }
       #status { display: inline-block; vertical-align: top; margin: 20px 0 0 30px; font-weight: bold; color: #5a6a7e; }
@@ -188,7 +193,6 @@ ${CDN_PIN_COMMENT}
 
         function _clearTimers() {
           if (_crossFileTimer) { clearInterval(_crossFileTimer); _crossFileTimer = null; }
-          if (_pyReadyTimer) { clearInterval(_pyReadyTimer); _pyReadyTimer = null; }
         }
         window.addEventListener('pagehide', _clearTimers);
       })();
@@ -339,7 +343,7 @@ ${bootCode
       width="1280px" height="720px"
       oncontextmenu="event.preventDefault()" tabindex=1 hidden>
     </canvas>
-    <div id="infobox">Loading ${config.title} \u2014 first visit downloads the Python/Pygame runtime (~12 MB). Audio starts after your first click.</div>
+    <div id="infobox" aria-hidden="true">Loading ${config.title} \u2014 first visit downloads the Python/Pygame runtime (~12 MB). Audio starts after your first click.</div>
     <div id="pyconsole"><div id="terminal" tabIndex=1 align="left"></div></div>
 
     ${overlayFn()}
@@ -366,7 +370,7 @@ ${bootCode
     function custom_prerun() { console.log('custom_prerun'); }
     function custom_postrun() { console.log('custom_postrun'); }
     function show_infobox() {
-      infobox.style.display = 'block';
+      infobox.setAttribute('aria-hidden', 'false');
       var w = infobox.offsetWidth, h = infobox.offsetHeight;
       infobox.style.left = ((window.innerWidth - w) / 2) + 'px';
       infobox.style.top = ((window.innerHeight - h) / 2) + 'px';

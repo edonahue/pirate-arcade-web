@@ -301,6 +301,7 @@ class MockTransfer:
 class MockInfobox:
     def __init__(self):
         self.inner_text = ""
+        self.attributes = {}
 
     @property
     def innerText(self):
@@ -309,6 +310,12 @@ class MockInfobox:
     @innerText.setter
     def innerText(self, val):
         self.inner_text = val
+
+    def setAttribute(self, name, value):
+        self.attributes[name] = value
+
+    def getAttribute(self, name):
+        return self.attributes.get(name)
 
 
 class MockPlatformWindow:
@@ -508,12 +515,13 @@ class MockGameBase:
         self.surface = surface
         self.audio = audio
     async def run(self):
-        """Call pg.display.flip to simulate first frame."""
+        """Call pg.display.flip to simulate first frame, then return exit reason."""
         import sys
         pg = sys.modules.get("pygame")
         if pg and hasattr(pg.display, "flip"):
             pg.display.flip()
             pg.display.update()
+        return "exit-to-arcade"
 
 
 def make_game_class(name="MockGame"):
@@ -888,9 +896,26 @@ def run_harness(source_file, inject_failure=None,
     # Detect constructor call from marks
     results["constructorCalled"] = "game-constructor-start" in metrics.marks or "game-constructor-end" in metrics.marks
 
-    # Detect game loop await (mark after game-ready + first-frame stage)
-    if metrics.stages and metrics.stages[-1] == "first-frame":
-        results["gameLoopAwaited"] = True
+    # Detect game loop awaited: we have proceeded beyond the first-frame stage
+    results["gameLoopAwaited"] = False
+    if "first-frame" in metrics.stages:
+        try:
+            # Find the last occurrence of "first-frame" in stages
+            last_first_frame_idx = -1
+            for i in range(len(metrics.stages) - 1, -1, -1):
+                if metrics.stages[i] == "first-frame":
+                    last_first_frame_idx = i
+                    break
+            # If there are any stages after the last "first-frame", we proceeded beyond it
+            if last_first_frame_idx != -1 and len(metrics.stages) > last_first_frame_idx + 1:
+                results["gameLoopAwaited"] = True
+        except (ValueError, AttributeError):
+            # Error processing stages
+            pass
+    # Fallback: if we have game-exited stage, the game loop definitely completed
+    if not results["gameLoopAwaited"]:
+        if "game-exited" in metrics.stages:
+            results["gameLoopAwaited"] = True
 
     return results
 

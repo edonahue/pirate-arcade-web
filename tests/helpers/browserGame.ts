@@ -62,32 +62,30 @@ export async function waitForPygbagRuntime(page: Page): Promise<void> {
     page.waitForSelector("#transfer", { state: "attached", timeout: 15000 }),
   ]);
 
-  // Capture the initial infobox text so we can detect replacement
-  const initialInfobox = (await page.locator("#infobox").textContent()) || "";
-
-  // Now wait for one of the runtime signals
+  // Wait for one of the runtime signals. The infobox is now hidden
+  // by default (aria-hidden="true", display:none) and the boot
+  // program no longer sets "loaded!" text. Instead we rely on:
+  //   1. PirateArcadeLoading.getState().booted (preferred)
+  //   2. Canvas resized to real game dimensions (>10x10)
+  //   3. Error detection via PirateArcadeLoading.getState().errored
   await page.waitForFunction(
-    (initialText: string) => {
+    () => {
       const c = document.getElementById("canvas") as HTMLCanvasElement | null;
       const tr = document.getElementById("transfer");
       const ib = document.getElementById("infobox");
 
       if (!c || !tr || !ib) return false;
 
-      const current = (ib.textContent || "").trim();
-
       // Error state — set a global flag for the outer function to
-      // detect and throw. We do NOT return true here because "error"
-      // is a failure signal, not a ready signal. The previous version
-      // of this helper treated "error" as ready, which meant a game
-      // that failed to start (e.g. "Could not load dynamic lib") would
-      // be treated as "successfully started".
-      if (current && current !== initialText.trim()) {
-        const lower = current.toLowerCase();
-        if (lower.includes("error")) {
-          (window as any).__pygbagError = current;
+      // detect and throw.
+      const pal = (window as any).PirateArcadeLoading;
+      if (pal && typeof pal.getState === "function") {
+        const st = pal.getState();
+        if (st.errored) {
+          (window as any).__pygbagError = "PirateArcadeLoading error state";
           return false;
         }
+        if (st.booted) return true;
       }
 
       // Canvas has been resized to real game dimensions. This is
@@ -98,28 +96,17 @@ export async function waitForPygbagRuntime(page: Page): Promise<void> {
         if (cs.visibility === "visible" && cs.display !== "none") return true;
       }
 
-      // Infobox text REPLACED with runtime copy. Must differ from
-      // the initial "Loading..." template that already contains
-      // the word "click".
-      if (current && current !== initialText.trim()) {
-        const lower = current.toLowerCase();
-        if (lower.includes("loaded") || lower.includes("ready")) {
-          return true;
-        }
-      }
-
       // #transfer hidden = custom_site started. We treat this as
       // a WEAK signal (not sufficient on its own) because Pygbag's
       // custom_onload can set transfer.hidden before the game has
-      // actually started. The canvas size or infobox change must
-      // also happen for the test to proceed.
+      // actually started. The canvas size or loading API must also
+      // happen for the test to proceed.
       return false;
     },
-    initialInfobox,
     { timeout: 180000, polling: 500 },
   );
 
-  // After waitForFunction completes (by canvas size, infobox text,
+  // After waitForFunction completes (by canvas size, loading API,
   // or timeout), check whether it was because of an error state.
   const pygbagError = await page.evaluate(
     () => (window as any).__pygbagError as string | undefined,
