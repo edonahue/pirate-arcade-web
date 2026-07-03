@@ -93,28 +93,7 @@ function generateSource(config, archiveHash) {
   // ── Imports ──────────────────────────────────────────────────
   const imports = "import sys, asyncio, tarfile, io, os";
 
-  // ── Helper: hide infobox (defensive, works with mock harness) ──
-  const hideInfoboxFn = [
-    "",
-    "def _hide_infobox(w):",
-    "    try:",
-    '        infobox = w.document.getElementById("infobox")',
-    "        if infobox:",
-    '            infobox.setAttribute("aria-hidden", "true")',
-    "    except AttributeError:",
-    "        pass",
-    "    # Fallback for named global (mock harness, older pygbag)",
-    "    try:",
-    '        infobox = getattr(w, "infobox", None)',
-    '        if infobox and hasattr(infobox, "setAttribute"):',
-    '            infobox.setAttribute("aria-hidden", "true")',
-    "        elif infobox:",
-    "            # Mock infobox with innerText setter only",
-    "            pass",
-    "    except AttributeError:",
-    "        pass",
-    "",
-  ];
+
 
   // ── Boot function ────────────────────────────────────────────
   const bootFn = [
@@ -334,8 +313,7 @@ function generateSource(config, archiveHash) {
     '            _w.PirateArcadeMetrics.mark("first-frame-presented")',
     "            _w.PirateArcadeMetrics.computeDurations()",
     '            _w.PirateArcadeLoading.ready("' + config.readyMessage + '")',
-    "            _hide_infobox(_w)",
-    "",
+    
     "        def _pa_flip(*args, **kw):",
     "            r = _display_flip_orig(*args, **kw)",
     "            _on_first_frame()",
@@ -377,15 +355,13 @@ function generateSource(config, archiveHash) {
   ];
 
   return (
-    manifest.join("\n") +
-    "\n" +
-    imports +
-    "\n" +
-    hideInfoboxFn.join("\n") +
-    "\n" +
-    bootFn.join("\n") +
-    "\n" +
-    footer.join("\n")
+manifest.join("\n") +
+     "\n" +
+     imports +
+     "\n" +
+     bootFn.join("\n") +
+     "\n" +
+     footer.join("\n")
   );
 }
 

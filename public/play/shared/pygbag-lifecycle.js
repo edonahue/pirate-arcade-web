@@ -1,29 +1,98 @@
+// PirateArcadeLifecycle - Shared API for lifecycle management
+// Provides centralized cleanup, exit handling, and state tracking
 (function () {
-  // PirateArcadeLifecycle — browser exit contract for Pygbag games.
-  // Source of truth: public/play/shared/pygbag-lifecycle.js
-  //
-  // Handles:
-  //   - exitToArcade(): navigate back to /play/ without triggering
-  //     Chrome's leave-page confirmation dialog.
-  //   - BFCache-friendly cleanup on pagehide.
-  //   - Shared contract across all 3 Pygbag games (CC/TC/KW).
+  'use strict';
 
-  if (window.PirateArcadeLifecycle && window.PirateArcadeLifecycle.__pirateArcadeOwned) {
-    return;
+  // Internal state
+  var _disposers = [];
+  var _visibilityChangeHandler = null;
+  var _isInitialized = false;
+
+  // Initialize the lifecycle manager
+  function _init() {
+    if (_isInitialized) {
+      return;
+    }
+    
+    // Set up visibility change handler for automatic cleanup
+    _visibilityChangeHandler = function () {
+      if (document.hidden) {
+        // Page is hidden, dispose of resources
+        dispose();
+      }
+    };
+    
+    document.addEventListener('visibilitychange', _visibilityChangeHandler, false);
+    _isInitialized = true;
   }
 
-  var _exitNavigationDone = false;
-
-  function _exitToArcade() {
-    if (_exitNavigationDone) return;
-    _exitNavigationDone = true;
-    // Use replace instead of assign so there's no history entry for
-    // the exited game — avoids the Chrome "are you sure?" dialog.
-    window.location.replace('/play/');
+  // Add a disposer function to be called when dispose() is invoked
+  function addDisposer(disposerFn) {
+    if (typeof disposerFn === 'function') {
+      _disposers.push(disposerFn);
+    }
   }
 
+  // Remove a disposer function
+  function removeDisposer(disposerFn) {
+    _disposers = _disposers.filter(function (fn) {
+      return fn !== disposerFn;
+    });
+  }
+
+  // Dispose of all resources
+  function dispose() {
+    // Call all disposers in reverse order (LIFO)
+    for (var i = _disposers.length - 1; i >= 0; i--) {
+      try {
+        _disposers[i]();
+      } catch (e) {
+        console.error('Error in disposer function:', e);
+      }
+    }
+    _disposers = [];
+    
+    
+    // Remove event listeners
+    if (_visibilityChangeHandler) {
+      document.removeEventListener('visibilitychange', _visibilityChangeHandler);
+      _visibilityChangeHandler = null;
+    }
+    
+    _isInitialized = false;
+  }
+
+  // Exit to the arcade hub
+  function exitToArcade() {
+    // First dispose of any resources
+    dispose();
+    // Then navigate to the arcade hub
+    if (typeof window !== 'undefined' && window.location) {
+      window.location.assign('/play/');
+    }
+  }
+
+  // Get current lifecycle state
+  function getState() {
+    return {
+      disposersCount: _disposers.length,
+      isInitialized: _isInitialized,
+      hasVisibilityHandler: !!_visibilityChangeHandler
+    };
+  }
+
+  // Public API
   window.PirateArcadeLifecycle = {
-    exitToArcade: _exitToArcade,
-    __pirateArcadeOwned: true,
+    init: _init,
+    addDisposer: addDisposer,
+    removeDisposer: removeDisposer,
+    dispose: dispose,
+    exitToArcade: exitToArcade,
+    getState: getState,
+    // Ownership marker
+    __pirateArcadeOwned: true
   };
+  
+  // Auto-initialize
+  _init();
 })();

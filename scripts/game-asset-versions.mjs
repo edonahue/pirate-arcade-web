@@ -1,7 +1,7 @@
 // Game asset versions - single source of truth for cache busting
 // Update this value when making changes that require cache invalidation
 
-export const ASSET_VERSION = "mobile-v10";
+export const ASSET_VERSION = "mobile-v15";
 export const CACHE_VERSION = "pirate-arcade-games-v14";
 
 // Derived values for convenience

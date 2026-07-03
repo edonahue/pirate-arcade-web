@@ -363,18 +363,19 @@ ${bootCode
 
     async function custom_onload(debug_hidden) {
       console.log('custom_onload');
-      pyconsole.hidden = debug_hidden;
-      transfer.hidden = debug_hidden;
-      show_infobox();
+      document.getElementById(\'pyconsole\').hidden = debug_hidden;
+      document.getElementById('transfer').hidden = debug_hidden;
     }
     function custom_prerun() { console.log('custom_prerun'); }
     function custom_postrun() { console.log('custom_postrun'); }
     function show_infobox() {
-      infobox.setAttribute('aria-hidden', 'false');
-      var w = infobox.offsetWidth, h = infobox.offsetHeight;
-      infobox.style.left = ((window.innerWidth - w) / 2) + 'px';
-      infobox.style.top = ((window.innerHeight - h) / 2) + 'px';
-    }
+  const infobox = document.getElementById('infobox');
+  if (!infobox) return;
+  infobox.setAttribute('aria-hidden', 'false');
+  const w = infobox.offsetWidth, h = infobox.offsetHeight;
+  infobox.style.left = ((window.innerWidth - w) / 2) + 'px';
+  infobox.style.top = ((window.innerHeight - h) / 2) + 'px';
+}
     var _isTouch = window.matchMedia && window.matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window;
     if (!_isTouch) {
       new MutationObserver(function() {
@@ -405,3 +406,11 @@ ${bootCode
 </html>
 `;
 }
+function show_infobox() {
+        const infobox = document.getElementById('infobox');
+        if (!infobox) return;
+        infobox.setAttribute('aria-hidden', 'false');
+        const w = infobox.offsetWidth, h = infobox.offsetHeight;
+        infobox.style.left = ((window.innerWidth - w) / 2) + 'px';
+        infobox.style.top = ((window.innerHeight - h) / 2) + 'px';
+      }

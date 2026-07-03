@@ -19,10 +19,10 @@
   // IIFE runs (loaded in <head>).  Grab the elements on first use.
   var _loadingEl = null;
   var _loadingDetail = null;
-  var _booted = false;
+  var _phase = "loading";   // "loading", "ready", "error", "disposed"
+  var _lastMessage = "";
   var _loadingWarnTimer = null;
   var _retryBtn = null;
-  var _errored = false;
 
   function _getEl() {
     if (!_loadingEl) {
@@ -82,63 +82,94 @@
 
   window.PirateArcadeLoading = {
     set: function (msg) {
-      // Stable error: once errored, progress updates cannot overwrite
-      if (_errored) return;
-      var detail = _getDetail();
-      var el = _getEl();
-      if (detail) detail.textContent = msg;
-      if (el) {
-        el.classList.remove("hidden", "game-error");
+      if (this.__pirateArcadeOwned && window.PirateArcadeLoading === this) {
+        if (_phase === "loading") {
+          _lastMessage = msg;
+          var detail = _getDetail();
+          var el = _getEl();
+          if (detail) detail.textContent = msg;
+          if (el) {
+            el.classList.remove("hidden", "game-error");
+          }
+          _removeRetryBtn();
+          _startLoadingWarn();
+        }
+        // If in ready, error, or disposed, do nothing
       }
-      _removeRetryBtn();
-      _startLoadingWarn();
     },
     ready: function (msg) {
-      // Stable error: once errored, ready cannot overwrite
-      if (_errored) return;
-      _booted = true;
-      _clearLoadingWarn();
-      _removeRetryBtn();
-      var detail = _getDetail();
-      var el = _getEl();
-      if (msg && detail) detail.textContent = msg;
-      if (el) {
-        el.classList.add("hidden");
-        if (window.PirateArcadeMetrics) {
-          window.PirateArcadeMetrics.mark("loader-hidden");
-          window.PirateArcadeMetrics.computeDurations();
+      if (this.__pirateArcadeOwned && window.PirateArcadeLoading === this) {
+        if (_phase === "loading") {
+          _phase = "ready";
+          _lastMessage = msg;
+          var detail = _getDetail();
+          var el = _getEl();
+          if (msg && detail) detail.textContent = msg;
+          if (el) {
+            el.classList.add("hidden");
+            if (window.PirateArcadeMetrics) {
+              window.PirateArcadeMetrics.mark("loader-hidden");
+              window.PirateArcadeMetrics.computeDurations();
+            }
+          }
+          _removeRetryBtn();
+          _clearLoadingWarn();
         }
+        // If in ready, error, or disposed, do nothing
       }
     },
     error: function (msg) {
-      // Double-error guard: no-op if already in error state
-      if (_errored) return;
-      _errored = true;
-      _clearLoadingWarn();
-      var detail = _getDetail();
-      var el = _getEl();
-      if (detail) detail.textContent = msg;
-      if (el) {
-        el.classList.remove("hidden");
-        el.classList.add("game-error");
+      if (this.__pirateArcadeOwned && window.PirateArcadeLoading === this) {
+        if (_phase === "loading" || _phase === "ready") {
+          _phase = "error";
+          _lastMessage = msg;
+          var detail = _getDetail();
+          var el = _getEl();
+          if (detail) detail.textContent = msg;
+          if (el) {
+            el.classList.remove("hidden");
+            el.classList.add("game-error");
+          }
+          document.body.classList.add("game-error");
+          if (window.PirateArcadeInput) {
+            window.PirateArcadeInput.releaseAll("error");
+          }
+          _showRetryBtn();
+        }
+        // If in error or disposed, do nothing
       }
-      document.body.classList.add("game-error");
-      if (window.PirateArcadeInput) {
-        window.PirateArcadeInput.releaseAll("error");
+    },
+    dispose: function (reason) {
+      if (this.__pirateArcadeOwned && window.PirateArcadeLoading === this) {
+        _phase = "disposed";
+        _clearLoadingWarn();
+        _removeRetryBtn();
+        var el = _getEl();
+        if (el) {
+          el.classList.add("hidden");
+        }
+        // Note: we do not remove the game-error class from body here.
+        // The body class is added by the error method and is intended to persist.
+        // If we are disposing from an error state, the body class remains.
+        // If we are disposing from loading or ready, there is no body class to remove.
       }
-      _showRetryBtn();
     },
     isReady: function () {
-      return _booted;
+      return _phase === "ready";
     },
     getState: function () {
+      var el = _getEl();
       return {
-        booted: _booted,
-        errored: _errored,
-        elVisible: !(_getEl() && _getEl().classList.contains('hidden')),
+        phase: _phase,
+        message: _lastMessage,
+        ready: (_phase === "ready"),
+        errored: (_phase === "error"),
+        disposed: (_phase === "disposed"),
+        elementPresent: !!el,
+        elementVisible: !(el && el.classList.contains('hidden'))
       };
     },
     // Ownership marker: identifies this as the canonical PirateArcade implementation
-    __pirateArcadeOwned: true,
+    __pirateArcadeOwned: true
   };
 })();

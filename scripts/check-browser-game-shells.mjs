@@ -51,6 +51,7 @@ const REQUIRED_INVARIANTS = [
 
 const REQUIRED_SHARED_SCRIPTS = [
   "pygbag-loading.js",
+  "pygbag-lifecycle.js",
   "pygame-input-bridge.js",
   "game-viewport.js",
   "mobile-controls.js",
