@@ -21,11 +21,14 @@ test.describe("Treasure Cove match gameplay", () => {
     await page.goto(GAME_PATH, { waitUntil: "domcontentloaded" });
     await waitForPygbagRuntime(page);
 
-    // Launch ball
+    // Start game and launch ball — hold Space long enough for Pygbag to
+    // see it via get_pressed() across at least one frame boundary.
     await page.locator("canvas#canvas").click({ position: { x: 10, y: 10 } });
     await page.locator("canvas#canvas").focus();
     await page.waitForTimeout(300);
-    await page.keyboard.press(ACTION_KEY);
+    await page.keyboard.down(ACTION_KEY);
+    await page.waitForTimeout(500);
+    await page.keyboard.up(ACTION_KEY);
     await page.waitForTimeout(1500);
 
     const state = await readGameState(page);
@@ -74,10 +77,12 @@ test.describe("Treasure Cove match gameplay", () => {
     await page.goto(GAME_PATH, { waitUntil: "domcontentloaded" });
     await waitForPygbagRuntime(page);
 
-    // Launch ball first
+    // Start game and launch ball
     await page.locator("canvas#canvas").click({ position: { x: 10, y: 10 } });
     await page.locator("canvas#canvas").focus();
-    await page.keyboard.press(ACTION_KEY);
+    await page.keyboard.down(ACTION_KEY);
+    await page.waitForTimeout(500);
+    await page.keyboard.up(ACTION_KEY);
     await page.waitForTimeout(1000);
 
     const response = await sendKeysAndRequireResponse(
@@ -101,7 +106,9 @@ test.describe("Treasure Cove match gameplay", () => {
 
     await page.locator("canvas#canvas").click({ position: { x: 10, y: 10 } });
     await page.locator("canvas#canvas").focus();
-    await page.keyboard.press(ACTION_KEY);
+    await page.keyboard.down(ACTION_KEY);
+    await page.waitForTimeout(500);
+    await page.keyboard.up(ACTION_KEY);
     await page.waitForTimeout(1500);
 
     const stage = await page.evaluate(() => {
