@@ -106,8 +106,12 @@ async function run() {
   for (const gameDir of GAMES) {
     const htmlPath = `public/play/${gameDir}/index.html`;
 
-    checkLocalFile(htmlPath, `${gameDir}: correct archive URL version`, (c) =>
-      c.includes(`${gameDir}.tar.gz?h=`) || c.includes(`${gameDir}.tar.gz?v=${ASSET_VERSION}`),
+    checkLocalFile(
+      htmlPath,
+      `${gameDir}: correct archive URL version`,
+      (c) =>
+        c.includes(`${gameDir}.tar.gz?h=`) ||
+        c.includes(`${gameDir}.tar.gz?v=${ASSET_VERSION}`),
     );
     checkLocalFile(
       htmlPath,
@@ -219,7 +223,8 @@ async function run() {
 
     check(
       "CB has correct asset version query",
-      (cbText.includes(`cannonball-clash.tar.gz?h=`) || cbText.includes(`cannonball-clash.tar.gz?v=${ASSET_VERSION}`)) &&
+      (cbText.includes(`cannonball-clash.tar.gz?h=`) ||
+        cbText.includes(`cannonball-clash.tar.gz?v=${ASSET_VERSION}`)) &&
         cbText.includes(`mobile-controls.css?v=${ASSET_VERSION}`) &&
         cbText.includes(`mobile-controls.js?v=${ASSET_VERSION}`) &&
         cbText.includes(`pygame-input-bridge.js?v=${ASSET_VERSION}`) &&
@@ -260,7 +265,8 @@ async function run() {
 
     check(
       "TC has correct asset version query",
-      (tcText.includes(`treasure-cove.tar.gz?h=`) || tcText.includes(`treasure-cove.tar.gz?v=${ASSET_VERSION}`)) &&
+      (tcText.includes(`treasure-cove.tar.gz?h=`) ||
+        tcText.includes(`treasure-cove.tar.gz?v=${ASSET_VERSION}`)) &&
         tcText.includes(`mobile-controls.css?v=${ASSET_VERSION}`) &&
         tcText.includes(`mobile-controls.js?v=${ASSET_VERSION}`) &&
         tcText.includes(`pygame-input-bridge.js?v=${ASSET_VERSION}`) &&
@@ -302,7 +308,8 @@ async function run() {
 
     check(
       "KW has correct asset version query",
-      (kwText.includes(`krakens-wake.tar.gz?h=`) || kwText.includes(`krakens-wake.tar.gz?v=${ASSET_VERSION}`)) &&
+      (kwText.includes(`krakens-wake.tar.gz?h=`) ||
+        kwText.includes(`krakens-wake.tar.gz?v=${ASSET_VERSION}`)) &&
         kwText.includes(`mobile-controls.css?v=${ASSET_VERSION}`) &&
         kwText.includes(`mobile-controls.js?v=${ASSET_VERSION}`) &&
         kwText.includes(`pygame-input-bridge.js?v=${ASSET_VERSION}`) &&

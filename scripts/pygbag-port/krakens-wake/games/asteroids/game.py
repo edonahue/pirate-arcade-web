@@ -121,7 +121,7 @@ class AsteroidsGame:
                 self._update(frame.step_seconds)
                 metrics.record_step()
 
-            draw_key = (self.state, self.paused, self.pause_selection, self.sound_enabled)
+            draw_key = (self.state, self.paused, self.pause_selection, self.sound_enabled, self.gameplay.show_fps, self.game_over_state)
             force_draw = (self.state == 'playing' and not self.paused)
             if force_draw:
                 self._draw(60)

@@ -176,7 +176,11 @@ const pkgAll = { ...(pkg.dependencies || {}), ...(pkg.devDependencies || {}) };
 
 const astroVersion = (pkgAll.astro || "").replace(/[^0-9.]/g, "").split(".")[0];
 const phaserRange = pkgAll.phaser || "";
-const phaserMajorMinor = phaserRange.replace(/[^0-9.]/g, "").split(".").slice(0, 2).join(".");
+const phaserMajorMinor = phaserRange
+  .replace(/[^0-9.]/g, "")
+  .split(".")
+  .slice(0, 2)
+  .join(".");
 
 if (astroVersion && skill) {
   if (!skill.includes(`Astro ${astroVersion}`)) {
@@ -191,15 +195,24 @@ if (phaserMajorMinor && skill) {
 }
 
 if (phaserMajorMinor && gamesJson) {
-  const raceEntry = gamesJson.match(/"id":\s*"race-to-treasure-island"[^}]+"demonstrates":\s*\[([^\]]+)\]/s);
+  const raceEntry = gamesJson.match(
+    /"id":\s*"race-to-treasure-island"[^}]+"demonstrates":\s*\[([^\]]+)\]/s,
+  );
   if (raceEntry && !raceEntry[1].includes(`Phaser ${phaserMajorMinor}`)) {
-    error(`games.json race entry demonstrates should reference Phaser ${phaserMajorMinor}`);
+    error(
+      `games.json race entry demonstrates should reference Phaser ${phaserMajorMinor}`,
+    );
   }
 }
 
 if (phaserMajorMinor && roadmap) {
-  const roadmapTableLine = roadmap.match(/\| Race to Treasure Island \| [^|]+ \|/);
-  if (roadmapTableLine && !roadmapTableLine[0].includes(`Phaser ${phaserMajorMinor}`)) {
+  const roadmapTableLine = roadmap.match(
+    /\| Race to Treasure Island \| [^|]+ \|/,
+  );
+  if (
+    roadmapTableLine &&
+    !roadmapTableLine[0].includes(`Phaser ${phaserMajorMinor}`)
+  ) {
     error(`ROADMAP.md table should reference Phaser ${phaserMajorMinor}`);
   }
 }

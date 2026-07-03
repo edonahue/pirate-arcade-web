@@ -105,8 +105,7 @@ class Gameplay:
         self._pickup_label_timer = 0.0
         self._pickup_label = None
         self._pickup_label_surf = None
-        self._life_lost_timer = 0.0
-        self._life_lost_pending_reset = False
+        self._life_lost_hold_timer = 0.0
         self._brick_destruction_counts = {"standard": 0, "reinforced": 0, "powder_keg": 0, "treasure": 0}
         self.round_phase = "serve"
         self._pickup_history = []
@@ -223,8 +222,7 @@ class Gameplay:
         self._pickup_label_timer = 0.0
         self._pickup_label = None
         self._pickup_label_surf = None
-        self._life_lost_timer = 0.0
-        self._life_lost_pending_reset = False
+        self._life_lost_hold_timer = 0.0
         self.round_phase = "serve"
 
     def reset_round(self):
@@ -260,8 +258,7 @@ class Gameplay:
         self._cached_wide_surf = None
         self._cached_slow_text = None
         self._cached_slow_surf = None
-        self._life_lost_timer = 0.0
-        self._life_lost_pending_reset = False
+        self._life_lost_hold_timer = 0.0
         self._pickup_label = None
         self._pickup_label_surf = None
         self._build_bricks()
@@ -449,20 +446,17 @@ class Gameplay:
         if keys is None:
             return ('playing', None)
 
-        if self._life_lost_pending_reset and self._life_lost_timer <= 0:
-            self._life_lost_pending_reset = False
-            self.reset_ball()
-            self.slow_motion_timer = 0.0
-            self.paddle.wide_timer = 0.0
-            self._remove_all_slow()
-            self._pickup_label = None
-            self._pickup_label_surf = None
-            self._pickup_label_timer = 0.0
-            self._life_lost_timer = -1.0
-            return ('playing', None)
-
-        if self._life_lost_timer > 0:
-            self._life_lost_timer -= dt
+        if self.round_phase == "life-lost-hold":
+            self._life_lost_hold_timer -= dt
+            if self._life_lost_hold_timer <= 0:
+                self._life_lost_hold_timer = 0.0
+                self.reset_ball()
+                self.slow_motion_timer = 0.0
+                self.paddle.wide_timer = 0.0
+                self._remove_all_slow()
+                self._pickup_label = None
+                self._pickup_label_surf = None
+                self._pickup_label_timer = 0.0
             self._update_particles(dt)
             return ('playing', None)
 
@@ -582,8 +576,8 @@ class Gameplay:
             self.audio.play('life_lost')
             if self.lives <= 0:
                 return ('game_over', 'lost')
-            self._life_lost_timer = CREW_LOST_HOLD_DURATION
-            self._life_lost_pending_reset = True
+            self._life_lost_hold_timer = CREW_LOST_HOLD_DURATION
+            self.round_phase = "life-lost-hold"
             self._pickup_label = "CREW LOST!"
             self._pickup_label_surf = self.hud_font.render("CREW LOST!", True, c.PIRATE_RED)
             self._pickup_label_timer = CREW_LOST_HOLD_DURATION + 0.2
@@ -602,9 +596,7 @@ class Gameplay:
         self._update_particles(dt)
 
         # Round phase
-        if self._life_lost_pending_reset:
-            self.round_phase = "life-lost-hold"
-        elif any(b.launched for b in self.balls):
+        if any(b.launched for b in self.balls):
             self.round_phase = "active"
         else:
             self.round_phase = "serve"
@@ -629,8 +621,8 @@ class Gameplay:
                 self.slow_motion_timer = 0.0
                 self._remove_slow_from_all_balls()
 
-        if self._life_lost_timer > 0:
-            self._life_lost_timer -= dt
+        if self._life_lost_hold_timer > 0:
+            self._life_lost_hold_timer -= dt
 
         if self._stage_banner_timer > 0:
             self._stage_banner_timer -= dt

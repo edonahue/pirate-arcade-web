@@ -170,6 +170,12 @@ const CHECKS = {
     cmdParts: ["npm", "run", "test:screenshot-assets"],
     group: "static",
   },
+  python: {
+    name: "Python unit tests",
+    cmd: "npm run test:unit:python",
+    cmdParts: ["npm", "run", "test:unit:python"],
+    group: "static",
+  },
   budgets: {
     name: "Performance budgets",
     cmd: "npm run test:performance-budgets",
@@ -294,6 +300,7 @@ const FAST_IDS = [
   "bootprog",
   "drift",
   "versions",
+  "python",
   "htmlstruct",
   "archivepar",
   "archaudit",

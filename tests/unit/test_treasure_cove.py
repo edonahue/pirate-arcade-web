@@ -319,42 +319,37 @@ class TestGameplayLifeLossHold(unittest.TestCase):
 
     def test_life_lost_sets_timer(self):
         self.gp.lives = 2
-        self.gp._life_lost_timer = 0.0
-        self.gp._life_lost_pending_reset = True
-        self.gp._life_lost_timer = CREW_LOST_HOLD_DURATION
-        self.assertEqual(self.gp._life_lost_timer, CREW_LOST_HOLD_DURATION)
+        self.gp._life_lost_hold_timer = 0.0
+        self.gp._life_lost_hold_timer = CREW_LOST_HOLD_DURATION
+        self.assertEqual(self.gp._life_lost_hold_timer, CREW_LOST_HOLD_DURATION)
 
-    def test_life_lost_timer_counts_down(self):
+    def test_life_lost_hold_timer_counts_down(self):
         self.gp.lives = 2
-        self.gp._life_lost_timer = CREW_LOST_HOLD_DURATION
-        self.gp._life_lost_pending_reset = True
+        self.gp._life_lost_hold_timer = CREW_LOST_HOLD_DURATION
         self.gp._update_timers(0.1)
-        self.assertLess(self.gp._life_lost_timer, CREW_LOST_HOLD_DURATION)
+        self.assertLess(self.gp._life_lost_hold_timer, CREW_LOST_HOLD_DURATION)
 
     def test_reset_clears_life_lost_state(self):
-        self.gp._life_lost_timer = CREW_LOST_HOLD_DURATION
-        self.gp._life_lost_pending_reset = True
+        self.gp._life_lost_hold_timer = CREW_LOST_HOLD_DURATION
         self.gp.reset()
-        self.assertEqual(self.gp._life_lost_timer, 0.0)
-        self.assertFalse(self.gp._life_lost_pending_reset)
+        self.assertEqual(self.gp._life_lost_hold_timer, 0.0)
+        self.assertEqual(self.gp.round_phase, "serve")
 
     def test_reset_round_clears_life_lost_state(self):
-        self.gp._life_lost_timer = CREW_LOST_HOLD_DURATION
-        self.gp._life_lost_pending_reset = True
+        self.gp._life_lost_hold_timer = CREW_LOST_HOLD_DURATION
         self.gp.reset_ball()
-        self.assertEqual(self.gp._life_lost_timer, 0.0)
-        self.assertFalse(self.gp._life_lost_pending_reset)
+        self.assertEqual(self.gp._life_lost_hold_timer, 0.0)
+        self.assertEqual(self.gp.round_phase, "serve")
 
     def test_reset_round_alias_works(self):
-        self.gp._life_lost_timer = CREW_LOST_HOLD_DURATION
-        self.gp._life_lost_pending_reset = True
+        self.gp._life_lost_hold_timer = CREW_LOST_HOLD_DURATION
         self.gp.reset_round()
-        self.assertEqual(self.gp._life_lost_timer, 0.0)
-        self.assertFalse(self.gp._life_lost_pending_reset)
+        self.assertEqual(self.gp._life_lost_hold_timer, 0.0)
+        self.assertEqual(self.gp.round_phase, "serve")
 
     def test_menu_life_lost_state_false_by_default(self):
-        self.assertEqual(self.gp._life_lost_timer, 0.0)
-        self.assertFalse(self.gp._life_lost_pending_reset)
+        self.assertEqual(self.gp._life_lost_hold_timer, 0.0)
+        self.assertEqual(self.gp.round_phase, "serve")
 
 
 class TestGameplayStageBackdrops(unittest.TestCase):
@@ -406,8 +401,8 @@ class TestGameplayLabelCache(unittest.TestCase):
 
     def test_crew_lost_sets_label_and_surf(self):
         self.gp.lives = 2
-        self.gp._life_lost_timer = CREW_LOST_HOLD_DURATION
-        self.gp._life_lost_pending_reset = True
+        self.gp._life_lost_hold_timer = CREW_LOST_HOLD_DURATION
+        self.gp.round_phase = "life-lost-hold"
         self.gp._pickup_label = "CREW LOST!"
         self.gp._pickup_label_surf = self.gp.hud_font.render("CREW LOST!", True, c.PIRATE_RED)
         self.gp._pickup_label_timer = CREW_LOST_HOLD_DURATION + 0.2

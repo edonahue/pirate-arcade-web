@@ -6,13 +6,13 @@
 
 **Four browser-playable games + one desktop-only game:**
 
-| Game                    | Engine                | Platform          |
-| ----------------------- | --------------------- | ----------------- |
-| Cannonball Clash        | Pygbag / WebAssembly  | Browser + Desktop |
-| Treasure Cove           | Pygbag / WebAssembly  | Browser + Desktop |
-| Kraken's Wake           | Pygbag / WebAssembly  | Browser + Desktop |
+| Game                    | Engine                  | Platform          |
+| ----------------------- | ----------------------- | ----------------- |
+| Cannonball Clash        | Pygbag / WebAssembly    | Browser + Desktop |
+| Treasure Cove           | Pygbag / WebAssembly    | Browser + Desktop |
+| Kraken's Wake           | Pygbag / WebAssembly    | Browser + Desktop |
 | Race to Treasure Island | Phaser 4.2 (web-native) | Browser only      |
-| Port Royale Tycoon      | Python / Pygame       | Desktop only      |
+| Port Royale Tycoon      | Python / Pygame         | Desktop only      |
 
 Race to Treasure Island is the first web-native Phaser 4.2 game — loads instantly,
 no WASM download. Fortress Siege (3-stage Breakout with 4 brick types and
