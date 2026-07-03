@@ -146,8 +146,6 @@ ${CDN_PIN_COMMENT}
     <script>
       console.log('INLINE_SCRIPT: starting');
 
-      var ARCHIVE_HASH = "${archiveHash || ""}";
-
       (function() {
         var _origFetch = window.fetch.bind(window);
         var done = false;

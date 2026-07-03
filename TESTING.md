@@ -228,21 +228,27 @@ Pygbag/WASM startups are CPU- and network-heavy. Parallel WASM
 downloads hit CDN rate limits and can be flaky. The total runtime is
 ~1-2 minutes on Chromium for the full suite, which is acceptable.
 
-### Python unit tests (`npm run test:unit`)
+### Python unit tests (`npm run test:unit:python`)
 
-Python publisher and game-source contract tests run via pytest:
+Python publisher, game-source contract, and game-specific tests run via the
+custom test runner (`scripts/run-python-game-tests.py`) using `unittest`:
 
-| File                                      | Tests | Purpose                                                                                                                                                                                                                           |
-| ----------------------------------------- | ----- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `tests/unit/test_pa_state.py`             | 29    | `StatePublisher` lazy API: factory call counting, event-key change detection, active/static heartbeat, dedup, force publish, counter reconciliation, on-demand stats snapshot                                                     |
-| `tests/unit/test_game_source_contract.py` | 33    | Game source ownership (shared publisher import, no direct DOM/JSON/builtins), API pattern (`_state_event_key`, `_build_game_state`, lazy factory), event-key exclusion of continuous values, Breakout scan removal from `_update` |
+| File                                       | Tests | Purpose                                                                                                                                                                                                                           |
+| ------------------------------------------ | ----- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `tests/unit/test_pa_state.py`              | 34    | `StatePublisher` lazy API: factory call counting, event-key change detection, active/static heartbeat, dedup, force publish, counter reconciliation, on-demand stats snapshot                                                     |
+| `tests/unit/test_game_source_contract.py`  | 33    | Game source ownership (shared publisher import, no direct DOM/JSON/builtins), API pattern (`_state_event_key`, `_build_game_state`, lazy factory), event-key exclusion of continuous values, Breakout scan removal from `_update` |
+| `tests/unit/test_runner_self.py`           | 11    | Runner infrastructure self-tests: parse_test_counts, alias resolution                                                                                                                                                             |
+| `tests/unit/test_pa_loop.py`               | 37    | `FixedStepTimer`, `LoopMetrics`, `PageHidden`, `PresentGate`, `should_draw`                                                                                                                                                       |
+| `tests/unit/test_cannonball_clash.py`      | 68    | Cannonball Clash game mechanics                                                                                                                                                                                                   |
+| `tests/unit/test_treasure_cove.py`         | 110   | Treasure Cove game mechanics                                                                                                                                                                                                      |
+| `tests/unit/test_kraken_stress.py`         | 8     | Kraken's Wake stress tests (non-NaN, no crash, phase transitions)                                                                                                                                                                 |
+| `tests/unit/test_game_runtime_contract.py` | 7-11  | Runtime contract per game (instantiation, update, draw, pause, game-over, stage/paddle/ball)                                                                                                                                      |
 
 Run with:
 
 ```sh
-python3 -m pytest tests/unit/test_pa_state.py
-python3 -m pytest tests/unit/test_game_source_contract.py
-npm run test:unit  # all unit tests (JS + Python)
+npm run test:unit:python  # all Python tests
+npm run test:unit          # JS + Python combined
 ```
 
 ---

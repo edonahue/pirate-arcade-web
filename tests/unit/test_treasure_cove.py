@@ -694,38 +694,45 @@ class TestSingleContactDamage(unittest.TestCase):
         self.gp = Gameplay(_MockAudio())
 
     def test_brick_skipped_when_id_in_hit_set(self):
+        ball = self.gp.balls[0]
         brick = self.gp.bricks[0]
         brick.health = 2
-        self.gp._hit_bricks_this_frame.add(id(brick))
-        self.gp._damage_brick(self.gp.balls[0], brick)
+        hit_key = (id(ball), id(brick))
+        self.gp._hit_bricks_this_frame.add(hit_key)
+        self.gp._damage_brick(ball, brick)
         self.assertEqual(brick.health, 2)
 
     def test_no_score_when_brick_skipped(self):
+        ball = self.gp.balls[0]
         brick = self.gp.bricks[0]
         brick.health = 2
-        self.gp._hit_bricks_this_frame.add(id(brick))
+        hit_key = (id(ball), id(brick))
+        self.gp._hit_bricks_this_frame.add(hit_key)
         score_before = self.gp.score
-        self.gp._damage_brick(self.gp.balls[0], brick)
+        self.gp._damage_brick(ball, brick)
         self.assertEqual(self.gp.score, score_before)
 
     def test_hit_tracked_for_each_brick(self):
+        ball = self.gp.balls[0]
         self.gp._hit_bricks_this_frame = set()
         b1 = self.gp.bricks[0]
         b2 = self.gp.bricks[1]
         b1.health = 2
         b2.health = 2
-        self.gp._damage_brick(self.gp.balls[0], b1)
-        self.gp._damage_brick(self.gp.balls[0], b2)
-        self.assertIn(id(b1), self.gp._hit_bricks_this_frame)
-        self.assertIn(id(b2), self.gp._hit_bricks_this_frame)
+        self.gp._damage_brick(ball, b1)
+        self.gp._damage_brick(ball, b2)
+        self.assertIn((id(ball), id(b1)), self.gp._hit_bricks_this_frame)
+        self.assertIn((id(ball), id(b2)), self.gp._hit_bricks_this_frame)
 
     def test_hit_set_cleared_by_update(self):
+        ball = self.gp.balls[0]
         brick = self.gp.bricks[0]
         brick.health = 2
-        self.gp._damage_brick(self.gp.balls[0], brick)
-        self.assertIn(id(brick), self.gp._hit_bricks_this_frame)
+        self.gp._damage_brick(ball, brick)
+        hit_key = (id(ball), id(brick))
+        self.assertIn(hit_key, self.gp._hit_bricks_this_frame)
         self.gp.update(1/60, pg.key.get_pressed())
-        self.assertNotIn(id(brick), self.gp._hit_bricks_this_frame)
+        self.assertNotIn(hit_key, self.gp._hit_bricks_this_frame)
 
 
 class TestBrickDestructionTelemetry(unittest.TestCase):

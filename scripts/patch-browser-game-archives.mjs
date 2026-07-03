@@ -96,76 +96,80 @@ async function buildGame(game) {
   const tmp = resolve(TMP_ROOT, game.id);
   rmSync(tmp, { recursive: true, force: true });
   mkdirSync(tmp, { recursive: true });
-  const assetsDir = resolve(tmp, "assets");
-  mkdirSync(assetsDir, { recursive: true });
 
-  const sharedDir = resolve(SRC, "shared");
-  if (existsSync(sharedDir)) {
-    const sharedDest = resolve(assetsDir, "shared");
-    rmSync(sharedDest, { recursive: true, force: true });
-    cpSync(sharedDir, sharedDest, { recursive: true });
-  }
+  let hash, size, changed;
+  try {
+    const assetsDir = resolve(tmp, "assets");
+    mkdirSync(assetsDir, { recursive: true });
 
-  const entries = readdirSync(src, { withFileTypes: true });
-  for (const entry of entries) {
-    if (entry.name === "build" || entry.name === "__pycache__") continue;
-    const s = resolve(src, entry.name);
-    const d = resolve(assetsDir, entry.name);
-    if (entry.isDirectory()) {
-      cpSync(s, d, { recursive: true });
-    } else {
-      cpSync(s, d);
+    const sharedDir = resolve(SRC, "shared");
+    if (existsSync(sharedDir)) {
+      const sharedDest = resolve(assetsDir, "shared");
+      rmSync(sharedDest, { recursive: true, force: true });
+      cpSync(sharedDir, sharedDest, { recursive: true });
     }
-  }
 
-  const stripPycache = (dir) => {
-    for (const e of readdirSync(dir, { withFileTypes: true })) {
-      const p = resolve(dir, e.name);
-      if (e.isDirectory()) {
-        if (e.name === "__pycache__") {
-          rmSync(p, { recursive: true, force: true });
-        } else {
-          stripPycache(p);
-        }
+    const entries = readdirSync(src, { withFileTypes: true });
+    for (const entry of entries) {
+      if (entry.name === "build" || entry.name === "__pycache__") continue;
+      const s = resolve(src, entry.name);
+      const d = resolve(assetsDir, entry.name);
+      if (entry.isDirectory()) {
+        cpSync(s, d, { recursive: true });
+      } else {
+        cpSync(s, d);
       }
     }
-  };
-  stripPycache(assetsDir);
 
-  const allFiles = collectFiles(tmp);
-  const tmpOut = resolve(tmp, `${game.id}.tar.gz`);
-  const finalPath = resolve(destDir, `${game.id}.tar.gz`);
-  const hashFilePath = resolve(destDir, `${game.id}.tar.gz.sha256`);
+    const stripPycache = (dir) => {
+      for (const e of readdirSync(dir, { withFileTypes: true })) {
+        const p = resolve(dir, e.name);
+        if (e.isDirectory()) {
+          if (e.name === "__pycache__") {
+            rmSync(p, { recursive: true, force: true });
+          } else {
+            stripPycache(p);
+          }
+        }
+      }
+    };
+    stripPycache(assetsDir);
 
-  // Create deterministic tarball to temp path
-  await tarCreate(
-    {
-      gzip: true,
-      portable: true,
-      cwd: tmp,
-      file: tmpOut,
-      mtime: new Date(0),
-    },
-    allFiles,
-  );
+    const allFiles = collectFiles(tmp);
+    const tmpOut = resolve(tmp, `${game.id}.tar.gz`);
+    const finalPath = resolve(destDir, `${game.id}.tar.gz`);
+    const hashFilePath = resolve(destDir, `${game.id}.tar.gz.sha256`);
 
-  const hash = computeSha256(tmpOut);
-  const size = statSync(tmpOut).size;
+    // Create deterministic tarball to temp path
+    await tarCreate(
+      {
+        gzip: true,
+        portable: true,
+        cwd: tmp,
+        file: tmpOut,
+        mtime: new Date(0),
+      },
+      allFiles,
+    );
 
-  // Compare with existing archive; only overwrite when bytes differ
-  let changed = true;
-  if (existsSync(hashFilePath)) {
-    const oldHash = readFileSync(hashFilePath, "utf8").trim();
-    changed = oldHash !== hash;
+    hash = computeSha256(tmpOut);
+    size = statSync(tmpOut).size;
+
+    // Compare with existing archive; only overwrite when bytes differ
+    changed = true;
+    if (existsSync(hashFilePath)) {
+      const oldHash = readFileSync(hashFilePath, "utf8").trim();
+      changed = oldHash !== hash;
+    }
+
+    if (changed) {
+      mkdirSync(destDir, { recursive: true });
+      writeFileSync(finalPath, readFileSync(tmpOut));
+      writeFileSync(hashFilePath, hash + "\n", "utf8");
+    }
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
   }
-
-  if (changed) {
-    mkdirSync(destDir, { recursive: true });
-    writeFileSync(finalPath, readFileSync(tmpOut));
-    writeFileSync(hashFilePath, hash, "utf8");
-  }
-
-  rmSync(tmp, { recursive: true, force: true });
 
   const sizeStr = (size / 1024).toFixed(1);
   console.log(

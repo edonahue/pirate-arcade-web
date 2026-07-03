@@ -220,6 +220,9 @@ class BreakoutGame:
         if launched:
             effective_speed = max(b.speed for b in launched)
             underlying_speed = max(b._underlying_speed for b in launched)
+        elif self.gameplay.balls:
+            effective_speed = max(b.speed for b in self.gameplay.balls)
+            underlying_speed = max(b._underlying_speed for b in self.gameplay.balls)
         else:
             effective_speed = c.BALL_BREAKOUT_SPEED
             underlying_speed = c.BALL_BREAKOUT_SPEED

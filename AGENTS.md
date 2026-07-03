@@ -72,7 +72,7 @@ screenshot — do not capture it from `/play/`.
 
 - Browser-playable: cannonball-clash, treasure-cove, krakens-wake, race-to-treasure-island (from `games.json`)
 - Desktop-only: port-royale-tycoon
-- Race to Treasure Island is web-native Phaser 3 (not Pygbag) — loads instantly, no WASM download
+- Race to Treasure Island is web-native Phaser 4.2 (not Pygbag) — loads instantly, no WASM download
 - Prewarm uses passive touchstart, no `preventDefault()`
 - `__paCanvasLayout`, `__paBootMetrics`, `PirateArcadeInput` are runtime globals from shared scripts
 - Race-to-Treasure-Island has additional globals: `window.game`, `window.testEvents` (Phaser game instance and test hooks)

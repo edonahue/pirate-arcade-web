@@ -33,11 +33,6 @@ SCRIPTS_BASE = REPO_ROOT / "scripts" / "pygbag-port"
 TEST_DIR = REPO_ROOT / "tests" / "unit"
 LOG_DIR = REPO_ROOT / "test-results" / "python-games"
 
-CANONICAL_IDS = {
-    "cannonball-clash": "cannonball-clash",
-    "treasure-cove": "treasure-cove",
-    "krakens-wake": "krakens-wake",
-}
 ALIASES = {
     "cannonball-clash": "cannonball-clash",
     "treasure-cove": "treasure-cove",
@@ -50,7 +45,6 @@ ALIASES = {
 GAME_CONFIGS = [
     {
         "id": "cannonball-clash",
-        "id_alias": "cannonball-clash",
         "label": "Cannonball Clash",
         "game_dir": SCRIPTS_BASE / "cannonball-clash",
         "test_file": "test_cannonball_clash.py",
@@ -58,7 +52,6 @@ GAME_CONFIGS = [
     },
     {
         "id": "treasure-cove",
-        "id_alias": "treasure-cove",
         "label": "Treasure Cove",
         "game_dir": SCRIPTS_BASE / "treasure-cove",
         "test_file": "test_treasure_cove.py",
@@ -66,7 +59,6 @@ GAME_CONFIGS = [
     },
     {
         "id": "krakens-wake",
-        "id_alias": "krakens-wake",
         "label": "Kraken's Wake",
         "game_dir": SCRIPTS_BASE / "krakens-wake",
         "test_file": "test_kraken_stress.py",

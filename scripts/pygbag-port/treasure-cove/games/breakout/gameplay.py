@@ -369,6 +369,8 @@ class Gameplay:
         self._pickup_label_surf = self.hud_font.render(pickup.label, True, c.PIRATE_GOLD)
         self.audio.play('powerup')
         self._pickup_history.append(pickup.pickup_type)
+        if len(self._pickup_history) > 50:
+            self._pickup_history.pop(0)
 
     def _track_brick_destruction(self, brick):
         bt = brick.brick_type
@@ -650,9 +652,10 @@ class Gameplay:
                 self.brick_flashes.remove(f)
 
     def _damage_brick(self, ball, brick):
-        if id(brick) in self._hit_bricks_this_frame:
+        hit_key = (id(ball), id(brick))
+        if hit_key in self._hit_bricks_this_frame:
             return
-        self._hit_bricks_this_frame.add(id(brick))
+        self._hit_bricks_this_frame.add(hit_key)
 
         self.score += brick.points
         self._spawn_brick_particles(brick)

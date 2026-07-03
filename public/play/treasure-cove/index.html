@@ -12,7 +12,7 @@
     <link rel="preconnect" href="https://pygame-web.github.io">
     <link rel="dns-prefetch" href="https://pygame-web.github.io">
     <link rel="modulepreload" href="https://pygame-web.github.io/cdn/0.9.3/pythons.js" crossorigin="anonymous">
-    <link rel="preload" href="/play/treasure-cove/treasure-cove.tar.gz?h=39795eef97b30e4836d309d6a565ff9e4ad74e57a38c5a9546f9811412828520" as="fetch" crossorigin="anonymous">
+    <link rel="preload" href="/play/treasure-cove/treasure-cove.tar.gz?h=0ca3e25428db238b95b86af760771daa6b8ae2dbae8c66f9d5d1c69954f27f15" as="fetch" crossorigin="anonymous">
     <script src="/play/shared/game-boot-metrics.js"></script>
     <script src="/play/shared/pygbag-loading.js?v=mobile-v10"></script>
     <style>
@@ -73,8 +73,6 @@
     -->
     <script>
       console.log('INLINE_SCRIPT: starting');
-
-      var ARCHIVE_HASH = "39795eef97b30e4836d309d6a565ff9e4ad74e57a38c5a9546f9811412828520";
 
       (function() {
         var _origFetch = window.fetch.bind(window);
@@ -180,7 +178,7 @@
               '        # Pre-install pygame wheel from CDN and fetch archive in parallel',
               '        _w.PirateArcadeLoading.set("Installing Pygame and downloading game package…")',
               '        import aio.pep0723',
-              '        url = _w.location.origin + "/play/treasure-cove/treasure-cove.tar.gz?h=39795eef97b30e4836d309d6a565ff9e4ad74e57a38c5a9546f9811412828520"',
+              '        url = _w.location.origin + "/play/treasure-cove/treasure-cove.tar.gz?h=0ca3e25428db238b95b86af760771daa6b8ae2dbae8c66f9d5d1c69954f27f15"',
               '        _w.PirateArcadeMetrics.setArchiveUrl(url)',
               '',
               '        async def install_pygame():',
@@ -527,7 +525,7 @@
     <script src="/play/shared/debug-panel.js?v=mobile-v10"></script>
     <!--
       GAME: treasure-cove
-      ARCHIVE: /play/treasure-cove/treasure-cove.tar.gz?h=39795eef97b30e4836d309d6a565ff9e4ad74e57a38c5a9546f9811412828520
+      ARCHIVE: /play/treasure-cove/treasure-cove.tar.gz?h=0ca3e25428db238b95b86af760771daa6b8ae2dbae8c66f9d5d1c69954f27f15
       CONTROL: keyboard + touch
       CDN: pythons.js@0.9.3
       SHARED: pygbag-loading.js, pygame-input-bridge.js, game-viewport.js, mobile-controls.js

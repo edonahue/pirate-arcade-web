@@ -7,7 +7,7 @@ A pirate-themed arcade collection and a public build experiment exploring zero-c
 
 ## What this demonstrates
 
-- **Product judgment**: Choosing Pygbag for arcade ports vs Phaser 3 for a web-native racer
+- **Product judgment**: Choosing Pygbag for arcade ports vs Phaser for a web-native racer
 - **Design competence**: Dark-first pirate arcade aesthetic, mobile-responsive, accessible
 - **Engineering discipline**: Playwright test suite, multi-step automated release gate, screenshot validation
 - **AI workflow**: OpenCode + free models (DeepSeek V4, Nemotron) on local hardware, no paid subscriptions
@@ -15,17 +15,17 @@ A pirate-themed arcade collection and a public build experiment exploring zero-c
 
 ## The Games
 
-| Game                        | Engine                    | Platform          | Key Tech                               |
-| --------------------------- | ------------------------- | ----------------- | -------------------------------------- |
-| Cannonball Clash            | Pygbag / WebAssembly      | Browser + Desktop | Touch input bridge, procedural audio   |
-| Treasure Cove               | Pygbag / WebAssembly      | Browser + Desktop | Breakout physics, visual feedback      |
-| Kraken's Wake               | Pygbag / WebAssembly      | Browser + Desktop | Momentum-based controls, survival loop |
-| **Race to Treasure Island** | **Phaser 3 (web-native)** | **Browser only**  | **Seeded RNG, wind boost, AI rival**   |
-| Port Royale Tycoon          | Python / Pygame           | Desktop only      | Save/load, turn-based economy          |
+| Game                        | Engine                      | Platform          | Key Tech                               |
+| --------------------------- | --------------------------- | ----------------- | -------------------------------------- |
+| Cannonball Clash            | Pygbag / WebAssembly        | Browser + Desktop | Touch input bridge, procedural audio   |
+| Treasure Cove               | Pygbag / WebAssembly        | Browser + Desktop | Breakout physics, visual feedback      |
+| Kraken's Wake               | Pygbag / WebAssembly        | Browser + Desktop | Momentum-based controls, survival loop |
+| **Race to Treasure Island** | **Phaser 4.2 (web-native)** | **Browser only**  | **Seeded RNG, wind boost, AI rival**   |
+| Port Royale Tycoon          | Python / Pygame             | Desktop only      | Save/load, turn-based economy          |
 
 ## Stack
 
-- **Framework:** [Astro](https://astro.build) 6, static export
+- **Framework:** [Astro](https://astro.build) 7, static export
 - **Language:** TypeScript (strict mode)
 - **Styling:** Vanilla CSS with CSS custom properties (design tokens)
 - **Fonts:** Cinzel (display), Inter (body), IBM Plex Mono (mono)

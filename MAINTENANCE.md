@@ -53,9 +53,8 @@ The generated shell HTML embeds the SHA-256 hash in both the preload
 This ensures that any source change produces a new URL, forcing cache
 invalidation on CDN and browser caches.
 
-The `ARCHIVE_HASH` JavaScript variable in the shell is derived from the
-same sidecar file. The boot contract validator checks that the preload
-URL uses the content hash.
+The boot contract validator checks that the preload URL uses the
+content hash.
 
 **Workflow:**
 
@@ -487,16 +486,17 @@ node scripts/patch-browser-game-archives.mjs --game=asteroids
 The script wraps source files under `scripts/pygbag-port/<id>/` into an
 `assets/` directory, copies the shared publisher module from
 `scripts/pygbag-port/shared/`, strips `__pycache__` dirs, and creates
-a deterministic tarball. Temp files are cleaned up via `try/finally`.
-Prints compressed size and MD5 hash for each archive.
+a deterministic tarball. Temp directory is removed after each build
+(via `rmSync`). Prints compressed size and SHA-256 hash for each archive.
 
 **Validation:**
 
 - `npm run audit:game-archives` — checks archive availability + integrity.
 - `npm run test:archive-parity` — compares local archive hashes against
   published archives.
-- `npm run test:cache-versioning` — asserts `?v=` query on preload links,
-  network-first for archives in SW, `updateViaCache: 'none'`.
+- `npm run test:cache-versioning` — asserts `?v=` or `?h=` query on
+  preload links, network-first for archives in SW,
+  `updateViaCache: 'none'`.
 - `npm run test:game-versions` — checks version consistency in game HTML.
 
 ## Performance budgets
