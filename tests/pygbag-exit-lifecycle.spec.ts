@@ -7,7 +7,7 @@ test.describe("PirateArcadeLifecycle API", () => {
     await waitForPygbagRuntime(page);
 
     const lifecycle = await page.evaluate(() => {
-      return window.PirateArcadeLifecycle;
+      return (window as any).PirateArcadeLifecycle;
     });
 
     expect(lifecycle).toBeTruthy();
@@ -31,12 +31,12 @@ test.describe("PirateArcadeLifecycle API", () => {
     });
 
     const lifecycle = await page.evaluate(() => {
-      return window.PirateArcadeLifecycle;
+      return (window as any).PirateArcadeLifecycle;
     });
 
     // Debug: log what we actually got
     const lifecycleInfo = await page.evaluate(() => {
-      const obj = window.PirateArcadeLifecycle;
+      const obj = (window as any).PirateArcadeLifecycle;
       return {
         exists: !!obj,
         type: typeof obj,
@@ -85,7 +85,7 @@ test.describe("PirateArcadeLifecycle API", () => {
     await waitForPygbagRuntime(page);
 
     const state = await page.evaluate(() => {
-      return window.PirateArcadeLifecycle.getState();
+      return (window as any).PirateArcadeLifecycle.getState();
     });
 
     expect(state).toHaveProperty("disposersCount");
@@ -102,29 +102,29 @@ test.describe("PirateArcadeLifecycle API", () => {
 
     // Get initial state
     const initialState = await page.evaluate(() => {
-      return window.PirateArcadeLifecycle.getState();
+      return (window as any).PirateArcadeLifecycle.getState();
     });
 
-    // Track disposer calls using a variable on window
+// Track disposer calls using a variable on window
     await page.evaluate(() => {
       window.__disposerCallCount = 0;
-      window.PirateArcadeLifecycle.addDisposer(() => {
+      (window as any).PirateArcadeLifecycle.addDisposer(() => {
         window.__disposerCallCount++;
       });
     });
 
     const afterAddState = await page.evaluate(() => {
-      return window.PirateArcadeLifecycle.getState();
+      return (window as any).PirateArcadeLifecycle.getState();
     });
 
     expect(afterAddState.disposersCount).toBe(initialState.disposersCount + 1);
 
     // Call disposers via dispose method
     await page.evaluate(() => {
-      window.PirateArcadeLifecycle.dispose();
+      (window as any).PirateArcadeLifecycle.dispose();
     });
 
-    // Check that disposer was called
+// Check that disposer was called
     const disposerCalled = await page.evaluate(() => {
       return window.__disposerCallCount > 0;
     });
@@ -133,7 +133,7 @@ test.describe("PirateArcadeLifecycle API", () => {
 
     // Get state after dispose
     const afterDisposeState = await page.evaluate(() => {
-      return window.PirateArcadeLifecycle.getState();
+      return (window as any).PirateArcadeLifecycle.getState();
     });
 
     // Should be back to initial count (or less if disposers were cleaned up)
@@ -149,8 +149,8 @@ test.describe("PirateArcadeLifecycle API", () => {
     // Check that exitToArcadeLifecycle has the exitToArcade method
     const hasExitToArcade = await page.evaluate(() => {
       return (
-        window.PirateArcadeLifecycle &&
-        typeof window.PirateArcadeLifecycle.exitToArcade === "function"
+        (window as any).PirateArcadeLifecycle &&
+        typeof (window as any).PirateArcadeLifecycle.exitToArcade === "function"
       );
     });
 
@@ -159,7 +159,7 @@ test.describe("PirateArcadeLifecycle API", () => {
     // We can also verify it's callable without actually navigating
     // by checking that it's a function
     const fnType = await page.evaluate(() => {
-      return typeof window.PirateArcadeLifecycle.exitToArcade;
+      return typeof (window as any).PirateArcadeLifecycle.exitToArcade;
     });
 
     expect(fnType).toBe("function");
