@@ -90,6 +90,7 @@
           if (detail) detail.textContent = msg;
           if (el) {
             el.classList.remove("hidden", "game-error");
+            el.setAttribute("aria-hidden", "false");
           }
           _removeRetryBtn();
           _startLoadingWarn();
@@ -107,6 +108,7 @@
           if (msg && detail) detail.textContent = msg;
           if (el) {
             el.classList.add("hidden");
+            el.setAttribute("aria-hidden", "true");
             if (window.PirateArcadeMetrics) {
               window.PirateArcadeMetrics.mark("loader-hidden");
               window.PirateArcadeMetrics.computeDurations();
@@ -118,7 +120,7 @@
         // If in ready, error, or disposed, do nothing
       }
     },
-error: function (msg) {
+error: function(msg) {
       if (this.__pirateArcadeOwned && window.PirateArcadeLoading === this) {
         if (_phase === "loading" || _phase === "ready") {
           _phase = "error";
@@ -129,6 +131,7 @@ error: function (msg) {
           if (el) {
             el.classList.remove("hidden");
             el.classList.add("game-error");
+            el.setAttribute("aria-hidden", "false");
           }
           document.body.classList.add("game-error");
           if (window.PirateArcadeInput) {
@@ -148,6 +151,7 @@ error: function (msg) {
         var el = _getEl();
         if (el) {
           el.classList.add("hidden");
+          el.setAttribute("aria-hidden", "true");
         }
         // Note: we do not remove the game-error class from body here.
         // The body class is added by the error method and is intended to persist.
