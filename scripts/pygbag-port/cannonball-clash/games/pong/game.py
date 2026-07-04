@@ -132,6 +132,7 @@ class PongGame:
                     self.gameplay.reset()
                     self.particles.reset()
                     self._active_animation = False
+                    return 'menu'
                 return
 
         if key == pg.K_ESCAPE:

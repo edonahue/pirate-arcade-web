@@ -164,7 +164,12 @@ class BreakoutGame:
                 elif self.pause_selection == 3:
                     self.gameplay.show_fps = not self.gameplay.show_fps
                 elif self.pause_selection == 4:
-                    return 'quit'
+                    self.state = 'menu'
+                    self.paused = False
+                    self.gameplay.reset()
+                    self.game_over_state = None
+                    self._active_animation = False
+                    return 'menu'
                 return
 
         if self.state == 'playing' and not self.paused:

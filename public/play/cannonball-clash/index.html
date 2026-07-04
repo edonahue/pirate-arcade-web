@@ -12,7 +12,7 @@
     <link rel="preconnect" href="https://pygame-web.github.io">
     <link rel="dns-prefetch" href="https://pygame-web.github.io">
     <link rel="modulepreload" href="https://pygame-web.github.io/cdn/0.9.3/pythons.js" crossorigin="anonymous">
-    <link rel="preload" href="/play/cannonball-clash/cannonball-clash.tar.gz?h=f87445c2828eb403a1305fa6c16e8bb66cb905f56a2b8c460a0bafc1bd0e04a1" as="fetch" crossorigin="anonymous">
+    <link rel="preload" href="/play/cannonball-clash/cannonball-clash.tar.gz?h=cda0f513fa026b148e8063800fc70c2d73083ad2f216cb7d4b8c26b57311ed34" as="fetch" crossorigin="anonymous">
     <script src="/play/shared/game-boot-metrics.js"></script>
     <script src="/play/shared/pygbag-loading.js?v=mobile-v15"></script>
     <script src="/play/shared/pygbag-lifecycle.js?v=mobile-v15"></script>
@@ -182,7 +182,7 @@
               '        # Pre-install pygame wheel from CDN and fetch archive in parallel',
               '        _w.PirateArcadeLoading.set("Installing Pygame and downloading game package…")',
               '        import aio.pep0723',
-              '        url = _w.location.origin + "/play/cannonball-clash/cannonball-clash.tar.gz?h=f87445c2828eb403a1305fa6c16e8bb66cb905f56a2b8c460a0bafc1bd0e04a1"',
+              '        url = _w.location.origin + "/play/cannonball-clash/cannonball-clash.tar.gz?h=cda0f513fa026b148e8063800fc70c2d73083ad2f216cb7d4b8c26b57311ed34"',
               '        _w.PirateArcadeMetrics.setArchiveUrl(url)',
               '',
               '        async def install_pygame():',
@@ -366,8 +366,11 @@
               '        _exit_result = await game.run()',
               '        _w.PirateArcadeMetrics.mark(\'game-exit-notice\')',
               '        _w.PirateArcadeMetrics.setBootStage(\'game-exited\')',
-              '        if _exit_result in (\'quit\', \'menu\'):',
-              '            _w.PirateArcadeLifecycle.exitToArcade() if _w.PirateArcadeLifecycle else _w.location.assign(\'/play/\')',
+              '        if _exit_result == \'quit\':',
+              '            if hasattr(_w, \'PirateArcadeLifecycle\') and _w.PirateArcadeLifecycle:',
+              '                _w.PirateArcadeLifecycle.exitToArcade()',
+              '            else:',
+              '                _w.location.assign(\'/play/\')',
               '    except Exception as e:',
               '        sys.print_exception(e)',
               '        msg = str(e) if str(e) else type(e).__name__',
@@ -533,7 +536,7 @@
     <script src="/play/shared/debug-panel.js?v=mobile-v15"></script>
     <!--
       GAME: cannonball-clash
-      ARCHIVE: /play/cannonball-clash/cannonball-clash.tar.gz?h=f87445c2828eb403a1305fa6c16e8bb66cb905f56a2b8c460a0bafc1bd0e04a1
+      ARCHIVE: /play/cannonball-clash/cannonball-clash.tar.gz?h=cda0f513fa026b148e8063800fc70c2d73083ad2f216cb7d4b8c26b57311ed34
       CONTROL: keyboard + touch
       CDN: pythons.js@0.9.3
       SHARED: pygbag-loading.js, pygame-input-bridge.js, game-viewport.js, mobile-controls.js

@@ -12,7 +12,7 @@
     <link rel="preconnect" href="https://pygame-web.github.io">
     <link rel="dns-prefetch" href="https://pygame-web.github.io">
     <link rel="modulepreload" href="https://pygame-web.github.io/cdn/0.9.3/pythons.js" crossorigin="anonymous">
-    <link rel="preload" href="/play/treasure-cove/treasure-cove.tar.gz?h=121af4c6a2e1ab2ec1e6a7f996d0ff14ffc683713ac1b7e343fc6aab42cc28bf" as="fetch" crossorigin="anonymous">
+    <link rel="preload" href="/play/treasure-cove/treasure-cove.tar.gz?h=4023d8e97491cbb9fc047f8e10fc576cb0f56cffced16bee1f7953a3d862e54a" as="fetch" crossorigin="anonymous">
     <script src="/play/shared/game-boot-metrics.js"></script>
     <script src="/play/shared/pygbag-loading.js?v=mobile-v15"></script>
     <script src="/play/shared/pygbag-lifecycle.js?v=mobile-v15"></script>
@@ -182,7 +182,7 @@
               '        # Pre-install pygame wheel from CDN and fetch archive in parallel',
               '        _w.PirateArcadeLoading.set("Installing Pygame and downloading game package…")',
               '        import aio.pep0723',
-              '        url = _w.location.origin + "/play/treasure-cove/treasure-cove.tar.gz?h=121af4c6a2e1ab2ec1e6a7f996d0ff14ffc683713ac1b7e343fc6aab42cc28bf"',
+              '        url = _w.location.origin + "/play/treasure-cove/treasure-cove.tar.gz?h=4023d8e97491cbb9fc047f8e10fc576cb0f56cffced16bee1f7953a3d862e54a"',
               '        _w.PirateArcadeMetrics.setArchiveUrl(url)',
               '',
               '        async def install_pygame():',
@@ -366,8 +366,11 @@
               '        _exit_result = await game.run()',
               '        _w.PirateArcadeMetrics.mark(\'game-exit-notice\')',
               '        _w.PirateArcadeMetrics.setBootStage(\'game-exited\')',
-              '        if _exit_result in (\'quit\', \'menu\'):',
-              '            _w.PirateArcadeLifecycle.exitToArcade() if _w.PirateArcadeLifecycle else _w.location.assign(\'/play/\')',
+              '        if _exit_result == \'quit\':',
+              '            if hasattr(_w, \'PirateArcadeLifecycle\') and _w.PirateArcadeLifecycle:',
+              '                _w.PirateArcadeLifecycle.exitToArcade()',
+              '            else:',
+              '                _w.location.assign(\'/play/\')',
               '    except Exception as e:',
               '        sys.print_exception(e)',
               '        msg = str(e) if str(e) else type(e).__name__',
@@ -533,7 +536,7 @@
     <script src="/play/shared/debug-panel.js?v=mobile-v15"></script>
     <!--
       GAME: treasure-cove
-      ARCHIVE: /play/treasure-cove/treasure-cove.tar.gz?h=121af4c6a2e1ab2ec1e6a7f996d0ff14ffc683713ac1b7e343fc6aab42cc28bf
+      ARCHIVE: /play/treasure-cove/treasure-cove.tar.gz?h=4023d8e97491cbb9fc047f8e10fc576cb0f56cffced16bee1f7953a3d862e54a
       CONTROL: keyboard + touch
       CDN: pythons.js@0.9.3
       SHARED: pygbag-loading.js, pygame-input-bridge.js, game-viewport.js, mobile-controls.js

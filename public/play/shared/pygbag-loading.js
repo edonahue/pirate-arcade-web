@@ -119,27 +119,27 @@
       }
     },
 error: function (msg) {
-       if (this.__pirateArcadeOwned && window.PirateArcadeLoading === this) {
-         if (_phase === "loading" || _phase === "ready") {
-           _phase = "error";
-           _lastMessage = msg;
-           var detail = _getDetail();
-           var el = _getEl();
-           if (detail) detail.textContent = msg;
-           if (el) {
-             el.classList.remove("hidden");
-             el.classList.add("game-error");
-           }
-           document.body.classList.add("game-error");
-           if (window.PirateArcadeInput) {
-             window.PirateArcadeInput.releaseAll("error");
-           }
-           _showRetryBtn();
-           _clearLoadingWarn();
-         }
-         // If in error or disposed, do nothing
-       }
-     },
+      if (this.__pirateArcadeOwned && window.PirateArcadeLoading === this) {
+        if (_phase === "loading" || _phase === "ready") {
+          _phase = "error";
+          _lastMessage = msg;
+          var detail = _getDetail();
+          var el = _getEl();
+          if (detail) detail.textContent = msg;
+          if (el) {
+            el.classList.remove("hidden");
+            el.classList.add("game-error");
+          }
+          document.body.classList.add("game-error");
+          if (window.PirateArcadeInput) {
+            window.PirateArcadeInput.releaseAll("error");
+          }
+          _showRetryBtn();
+          _clearLoadingWarn();
+        }
+        // If in error or disposed, do nothing
+      }
+    },
     dispose: function (reason) {
       if (this.__pirateArcadeOwned && window.PirateArcadeLoading === this) {
         _phase = "disposed";
@@ -167,7 +167,7 @@ error: function (msg) {
         errored: (_phase === "error"),
         disposed: (_phase === "disposed"),
         elementPresent: !!el,
-        elementVisible: !(el && el.classList.contains('hidden'))
+        elementVisible: !!(el && !el.classList.contains('hidden'))
       };
     },
     // Ownership marker: identifies this as the canonical PirateArcade implementation

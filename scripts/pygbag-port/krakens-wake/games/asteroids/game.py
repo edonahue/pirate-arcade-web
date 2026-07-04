@@ -155,7 +155,7 @@ class AsteroidsGame:
                 self.game_over_state = None
                 return
             if key == pg.K_ESCAPE:
-                return 'menu'
+                return 'quit'
 
         if self.state == 'playing' and self.paused:
             if key in (pg.K_ESCAPE, pg.K_p):
@@ -184,6 +184,7 @@ class AsteroidsGame:
                     self.paused = False
                     self.gameplay.reset()
                     self.game_over_state = None
+                    return 'menu'
                 return
 
         if self.state == 'playing' and not self.paused:
@@ -203,7 +204,7 @@ class AsteroidsGame:
                 self.game_over_state = None
                 return
             if key == pg.K_ESCAPE:
-                return 'menu'
+                return 'quit'
 
     def _state_event_key(self):
         return (
