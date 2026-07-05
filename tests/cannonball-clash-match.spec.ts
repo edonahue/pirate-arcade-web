@@ -95,12 +95,12 @@ test.describe("Cannonball Clash match gameplay", () => {
     }
 
     await page.keyboard.up("Escape");
-    const ecBefore = state1?.__pa_stats?.eventChanges ?? 0;
+    const ecBefore = (state1 as any)?.__pa_stats?.eventChanges ?? 0;
 
     // Fallback: set up __pa_post_key manually from PyRun_SimpleString
     // (no pygame import, hardcoded K_ESCAPE=27).
     await page.evaluate(() => {
-      window.python.PyRun_SimpleString(
+      (window as any).python.PyRun_SimpleString(
         "import builtins\n" +
           'gi = getattr(builtins, "__pa_game_instance", None)\n' +
           'if gi is not None and hasattr(gi, "_handle_key"):\n' +
@@ -113,7 +113,7 @@ test.describe("Cannonball Clash match gameplay", () => {
 
     const state2 = await readGameState(page);
     if (state2?.phase !== "paused") {
-      const ecAfter = state2?.__pa_stats?.eventChanges ?? 0;
+      const ecAfter = (state2 as any)?.__pa_stats?.eventChanges ?? 0;
       test.skip(
         true,
         `Escape pause untestable in headless chromium. ` +
