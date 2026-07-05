@@ -71,9 +71,7 @@ test.describe("Cannonball Clash match gameplay", () => {
     expect(posAfterUp).toBeLessThan(posAfterDown);
   });
 
-  test(
-    "pause Escape changes to paused phase",
-    async ({ page }, testInfo) => {
+  test("pause Escape changes to paused phase", async ({ page }, testInfo) => {
     test.setTimeout(120000);
     test.skip(
       !["chromium-desktop"].includes(testInfo.project.name),
@@ -103,12 +101,12 @@ test.describe("Cannonball Clash match gameplay", () => {
     // (no pygame import, hardcoded K_ESCAPE=27).
     await page.evaluate(() => {
       window.python.PyRun_SimpleString(
-        'import builtins\n' +
-        'gi = getattr(builtins, "__pa_game_instance", None)\n' +
-        'if gi is not None and hasattr(gi, "_handle_key"):\n' +
-        '  builtins.__pa_post_key = lambda name, down: gi._handle_key(27) if down else None\n' +
-        '  builtins.__pa_post_key_inited = True\n' +
-        '  builtins.__pa_post_key(\'Escape\', True)\n'
+        "import builtins\n" +
+          'gi = getattr(builtins, "__pa_game_instance", None)\n' +
+          'if gi is not None and hasattr(gi, "_handle_key"):\n' +
+          "  builtins.__pa_post_key = lambda name, down: gi._handle_key(27) if down else None\n" +
+          "  builtins.__pa_post_key_inited = True\n" +
+          "  builtins.__pa_post_key('Escape', True)\n",
       );
     });
     await page.waitForTimeout(500);
@@ -119,8 +117,8 @@ test.describe("Cannonball Clash match gameplay", () => {
       test.skip(
         true,
         `Escape pause untestable in headless chromium. ` +
-        `eventChanges: ${ecBefore} → ${ecAfter}. ` +
-        `Game instance not reachable from PyRun_SimpleString in Pygbag WASM sandbox.`,
+          `eventChanges: ${ecBefore} → ${ecAfter}. ` +
+          `Game instance not reachable from PyRun_SimpleString in Pygbag WASM sandbox.`,
       );
       return;
     }

@@ -321,7 +321,12 @@ test.describe("Treasure Cove exit semantics", () => {
 
     // Pause by holding Escape until phase changes.
     // Fall back to DOM keydown if Python bridge is unavailable.
-    await holdKeyUntilState(page, "Escape", "state => state && state.phase === 'paused'", 5000);
+    await holdKeyUntilState(
+      page,
+      "Escape",
+      "state => state && state.phase === 'paused'",
+      5000,
+    );
 
     // Quit to Menu is the 5th pause menu item (0-indexed: 4).
     for (let i = 0; i < 4; i++) {
@@ -332,7 +337,9 @@ test.describe("Treasure Cove exit semantics", () => {
     await page.waitForTimeout(500);
   }
 
-  test.skip("pause Quit to Menu stays in Treasure Cove URL", async ({ page }) => {
+  test.skip("pause Quit to Menu stays in Treasure Cove URL", async ({
+    page,
+  }) => {
     await quitToMenu(page);
 
     const url = page.url();
@@ -363,7 +370,9 @@ test.describe("Treasure Cove exit semantics", () => {
     expect(gs.actionReady).toBe(true);
   });
 
-  test.skip("can restart from menu after pause Quit to Menu", async ({ page }) => {
+  test.skip("can restart from menu after pause Quit to Menu", async ({
+    page,
+  }) => {
     await quitToMenu(page);
 
     await page.keyboard.press("Space");
