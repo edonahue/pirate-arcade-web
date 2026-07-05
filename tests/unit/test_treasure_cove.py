@@ -489,11 +489,11 @@ class TestGameplayLifeLossHold(unittest.TestCase):
         self.assertEqual(self.gp.round_phase, "serve")
 
 
-class TestGameplayStageBackdrops(unittest.TestCase):
+class TestGameplayBackdrops(unittest.TestCase):
     def setUp(self):
         self.gp = Gameplay(_MockAudio())
 
-    def test_backdrops_built_lazily(self):
+    def test_all_backdrops_built_on_build_call(self):
         self.assertEqual(len(self.gp._backdrop_surfs), 0)
         self.gp._build_backdrop_surfs()
         self.assertIn(1, self.gp._backdrop_surfs)
@@ -511,7 +511,7 @@ class TestGameplayStageBackdrops(unittest.TestCase):
         surf = self.gp._backdrop_surfs.get(self.gp.stage)
         self.assertIsNotNone(surf)
 
-    def test_draw_triggers_lazy_build(self):
+    def test_draw_triggers_backdrop_build(self):
         before = len(self.gp._backdrop_surfs)
         self.gp.draw(pg.Surface((c.WINDOW_WIDTH, c.WINDOW_HEIGHT)))
         after = len(self.gp._backdrop_surfs)
@@ -928,7 +928,7 @@ class TestPickupHistory(unittest.TestCase):
         self.assertIn("wide_paddle", state["pickupHistory"])
 
 
-class TestLazyBackdrops(unittest.TestCase):
+class TestBackdropLifecycle(unittest.TestCase):
     def setUp(self):
         self.gp = Gameplay(_MockAudio())
 

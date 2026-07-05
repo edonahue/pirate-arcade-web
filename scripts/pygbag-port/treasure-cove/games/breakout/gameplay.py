@@ -129,13 +129,10 @@ class Gameplay:
         self._cached_breached_surf = self.hud_font.render("FORTRESS BREACHED!", True, c.PIRATE_GOLD)
 
         self._backdrop_surfs = {}
-        self._backdrop_stages_built = set()
         self._build_bricks()
 
     def _build_backdrop_surfs(self):
         for stage, color in STAGE_BACKDROP_COLORS.items():
-            if stage in self._backdrop_stages_built:
-                continue
             surf = pg.Surface((c.WINDOW_WIDTH, c.WINDOW_HEIGHT))
             surf.fill(color)
             stripe_color = (min(255, color[0] + 8), min(255, color[1] + 8), min(255, color[2] + 8))
@@ -161,7 +158,6 @@ class Gameplay:
                     pg.draw.circle(surf, (50, 40, 20, 60), (gx, gy), gsize, 1)
                     pg.draw.circle(surf, (60, 50, 25, 40), (gx, gy), gsize // 2, 1)
             self._backdrop_surfs[stage] = surf
-            self._backdrop_stages_built.add(stage)
 
     def _get_stage_speed(self):
         return c.STAGE_START_SPEEDS.get(self.stage, c.BALL_BREAKOUT_SPEED)
@@ -245,7 +241,6 @@ class Gameplay:
         self.last_pickup_type = None
         self._brick_destruction_counts = {"standard": 0, "reinforced": 0, "powder_keg": 0, "treasure": 0}
         self._pickup_history = []
-        self._backdrop_stages_built = set()
         self._cached_score = -1
         self._cached_score_surf = None
         self._cached_lives = -1
@@ -274,7 +269,6 @@ class Gameplay:
         self.slow_motion_timer = 0.0
         self.paddle.wide_timer = 0.0
         self._remove_all_slow()
-        self._backdrop_stages_built = set()
         self.round = 1
 
     def _remove_all_slow(self):
