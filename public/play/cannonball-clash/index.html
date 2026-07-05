@@ -12,7 +12,7 @@
     <link rel="preconnect" href="https://pygame-web.github.io">
     <link rel="dns-prefetch" href="https://pygame-web.github.io">
     <link rel="modulepreload" href="https://pygame-web.github.io/cdn/0.9.3/pythons.js" crossorigin="anonymous">
-    <link rel="preload" href="/play/cannonball-clash/cannonball-clash.tar.gz?h=cda0f513fa026b148e8063800fc70c2d73083ad2f216cb7d4b8c26b57311ed34" as="fetch" crossorigin="anonymous">
+    <link rel="preload" href="/play/cannonball-clash/cannonball-clash.tar.gz?h=219e7735527b63871158b4a449e48ad4d0ad9081123509053e0ef2b61533b38c" as="fetch" crossorigin="anonymous">
     <script src="/play/shared/game-boot-metrics.js"></script>
     <script src="/play/shared/pygbag-loading.js?v=mobile-v15"></script>
     <script src="/play/shared/pygbag-lifecycle.js?v=mobile-v15"></script>
@@ -182,7 +182,7 @@
               '        # Pre-install pygame wheel from CDN and fetch archive in parallel',
               '        _w.PirateArcadeLoading.set("Installing Pygame and downloading game package…")',
               '        import aio.pep0723',
-              '        url = _w.location.origin + "/play/cannonball-clash/cannonball-clash.tar.gz?h=cda0f513fa026b148e8063800fc70c2d73083ad2f216cb7d4b8c26b57311ed34"',
+              '        url = _w.location.origin + "/play/cannonball-clash/cannonball-clash.tar.gz?h=219e7735527b63871158b4a449e48ad4d0ad9081123509053e0ef2b61533b38c"',
               '        _w.PirateArcadeMetrics.setArchiveUrl(url)',
               '',
               '        async def install_pygame():',
@@ -510,14 +510,6 @@
     }
     function custom_prerun() { console.log('custom_prerun'); }
     function custom_postrun() { console.log('custom_postrun'); }
-    function show_infobox() {
-  const infobox = document.getElementById('infobox');
-  if (!infobox) return;
-  infobox.setAttribute('aria-hidden', 'false');
-  const w = infobox.offsetWidth, h = infobox.offsetHeight;
-  infobox.style.left = ((window.innerWidth - w) / 2) + 'px';
-  infobox.style.top = ((window.innerHeight - h) / 2) + 'px';
-}
     var _isTouch = window.matchMedia && window.matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window;
     if (!_isTouch) {
       new MutationObserver(function() {
@@ -536,7 +528,7 @@
     <script src="/play/shared/debug-panel.js?v=mobile-v15"></script>
     <!--
       GAME: cannonball-clash
-      ARCHIVE: /play/cannonball-clash/cannonball-clash.tar.gz?h=cda0f513fa026b148e8063800fc70c2d73083ad2f216cb7d4b8c26b57311ed34
+      ARCHIVE: /play/cannonball-clash/cannonball-clash.tar.gz?h=219e7735527b63871158b4a449e48ad4d0ad9081123509053e0ef2b61533b38c
       CONTROL: keyboard + touch
       CDN: pythons.js@0.9.3
       SHARED: pygbag-loading.js, pygame-input-bridge.js, game-viewport.js, mobile-controls.js

@@ -12,7 +12,7 @@
     <link rel="preconnect" href="https://pygame-web.github.io">
     <link rel="dns-prefetch" href="https://pygame-web.github.io">
     <link rel="modulepreload" href="https://pygame-web.github.io/cdn/0.9.3/pythons.js" crossorigin="anonymous">
-    <link rel="preload" href="/play/treasure-cove/treasure-cove.tar.gz?h=4023d8e97491cbb9fc047f8e10fc576cb0f56cffced16bee1f7953a3d862e54a" as="fetch" crossorigin="anonymous">
+    <link rel="preload" href="/play/treasure-cove/treasure-cove.tar.gz?h=c01ded835928add37491efae632bee69b4ba1c990251ab0aed41e0dc27ad576a" as="fetch" crossorigin="anonymous">
     <script src="/play/shared/game-boot-metrics.js"></script>
     <script src="/play/shared/pygbag-loading.js?v=mobile-v15"></script>
     <script src="/play/shared/pygbag-lifecycle.js?v=mobile-v15"></script>
@@ -182,7 +182,7 @@
               '        # Pre-install pygame wheel from CDN and fetch archive in parallel',
               '        _w.PirateArcadeLoading.set("Installing Pygame and downloading game package…")',
               '        import aio.pep0723',
-              '        url = _w.location.origin + "/play/treasure-cove/treasure-cove.tar.gz?h=4023d8e97491cbb9fc047f8e10fc576cb0f56cffced16bee1f7953a3d862e54a"',
+              '        url = _w.location.origin + "/play/treasure-cove/treasure-cove.tar.gz?h=c01ded835928add37491efae632bee69b4ba1c990251ab0aed41e0dc27ad576a"',
               '        _w.PirateArcadeMetrics.setArchiveUrl(url)',
               '',
               '        async def install_pygame():',
@@ -510,14 +510,6 @@
     }
     function custom_prerun() { console.log('custom_prerun'); }
     function custom_postrun() { console.log('custom_postrun'); }
-    function show_infobox() {
-  const infobox = document.getElementById('infobox');
-  if (!infobox) return;
-  infobox.setAttribute('aria-hidden', 'false');
-  const w = infobox.offsetWidth, h = infobox.offsetHeight;
-  infobox.style.left = ((window.innerWidth - w) / 2) + 'px';
-  infobox.style.top = ((window.innerHeight - h) / 2) + 'px';
-}
     var _isTouch = window.matchMedia && window.matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window;
     if (!_isTouch) {
       new MutationObserver(function() {
@@ -536,7 +528,7 @@
     <script src="/play/shared/debug-panel.js?v=mobile-v15"></script>
     <!--
       GAME: treasure-cove
-      ARCHIVE: /play/treasure-cove/treasure-cove.tar.gz?h=4023d8e97491cbb9fc047f8e10fc576cb0f56cffced16bee1f7953a3d862e54a
+      ARCHIVE: /play/treasure-cove/treasure-cove.tar.gz?h=c01ded835928add37491efae632bee69b4ba1c990251ab0aed41e0dc27ad576a
       CONTROL: keyboard + touch
       CDN: pythons.js@0.9.3
       SHARED: pygbag-loading.js, pygame-input-bridge.js, game-viewport.js, mobile-controls.js

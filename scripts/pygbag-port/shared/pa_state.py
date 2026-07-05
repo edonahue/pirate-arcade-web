@@ -4,6 +4,43 @@ import builtins
 STATE_HEARTBEAT_HZ = 8
 STATE_PUBLISH_INTERVAL = 1.0 / STATE_HEARTBEAT_HZ
 
+# ── Python-keyboard bridge for PirateArcadeInput ───────────────
+# PirateArcadeInput.keyDown() calls builtins.__pa_post_key(k, down)
+# via PyRun_SimpleString.  We route to the game's _handle_key.
+# (Delayed: the actual bridge is set up in _ensure_pa_post_key
+#  so it can import pygame after the runtime is initialized.)
+
+_PA_POST_KEY_MAP = None
+
+def _ensure_pa_post_key():
+    global _PA_POST_KEY_MAP
+    if getattr(builtins, "__pa_post_key_inited", False):
+        return
+    import pygame as pg  # noqa: E402
+
+    _PA_POST_KEY_MAP = {
+        "Escape": pg.K_ESCAPE,
+        "Space": pg.K_SPACE,
+        "Enter": pg.K_RETURN,
+        "ArrowUp": pg.K_UP,
+        "ArrowDown": pg.K_DOWN,
+        "ArrowLeft": pg.K_LEFT,
+        "ArrowRight": pg.K_RIGHT,
+    }
+
+    def _pa_post_key(key_name, is_down):
+        if not is_down:
+            return
+        game = getattr(builtins, "__pa_game_instance", None)
+        if game is None or not hasattr(game, "_handle_key"):
+            return
+        k = _PA_POST_KEY_MAP.get(key_name)
+        if k is not None:
+            game._handle_key(k)
+
+    builtins.__dict__["__pa_post_key"] = _pa_post_key
+    builtins.__dict__["__pa_post_key_inited"] = True
+
 
 class StatePublisher:
     def __init__(self, heartbeat_hz=STATE_HEARTBEAT_HZ):

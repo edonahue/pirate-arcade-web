@@ -133,6 +133,143 @@ class TestBallMinVy(unittest.TestCase):
         self.assertLess(self.ball.vy, 0)
 
 
+class TestBallLaunchDirection(unittest.TestCase):
+    def setUp(self):
+        self.ball = Ball()
+
+    def test_launch_speed_matches_configured(self):
+        self.ball.launch()
+        speed = (self.ball.vx ** 2 + self.ball.vy ** 2) ** 0.5
+        self.assertAlmostEqual(speed, c.BALL_BREAKOUT_SPEED, delta=1)
+
+    def test_launch_vy_is_upward(self):
+        self.ball.launch()
+        self.assertLess(self.ball.vy, 0)
+
+    def test_launch_can_produce_leftward_vx(self):
+        import random as _random
+        seen_left = False
+        for _ in range(100):
+            self.ball = Ball()
+            self.ball.launch()
+            if self.ball.vx < 0:
+                seen_left = True
+                break
+        self.assertTrue(seen_left, "launch never produced leftward vx")
+
+    def test_launch_can_produce_rightward_vx(self):
+        import random as _random
+        seen_right = False
+        for _ in range(100):
+            self.ball = Ball()
+            self.ball.launch()
+            if self.ball.vx > 0:
+                seen_right = True
+                break
+        self.assertTrue(seen_right, "launch never produced rightward vx")
+
+    def test_launch_vy_minimum_enforced(self):
+        for _ in range(100):
+            self.ball = Ball()
+            self.ball.launch()
+            min_abs_vy = self.ball.speed * 0.15
+            self.assertGreaterEqual(abs(self.ball.vy), min_abs_vy * 0.9,
+                                    f"vy={self.ball.vy} below minimum {min_abs_vy}")
+
+
+class TestMultiballCloneBehavior(unittest.TestCase):
+    def setUp(self):
+        from games.breakout.pickup import Pickup
+        self.gp = Gameplay(_MockAudio())
+        self.Pickup = Pickup
+
+    def _trigger_multiball(self):
+        self.gp.balls = [Ball()]
+        self.gp.balls[0].launched = True
+        self.gp.balls[0].x = 400
+        self.gp.balls[0].y = 300
+        self.gp.balls[0].vx = 200
+        self.gp.balls[0].vy = -300
+        self.gp.balls[0].speed = 360
+        self.gp.balls[0]._underlying_speed = c.BALL_BREAKOUT_SPEED
+        pu = self.Pickup(100, 100, "multiball")
+        pu.x = self.gp.paddle.x
+        pu.y = self.gp.paddle.y
+        self.gp.falling_pickups.append(pu)
+        self.gp._update_pickups(1/60)
+
+    def test_multiball_produces_total_three(self):
+        self._trigger_multiball()
+        self.assertEqual(len(self.gp.balls), 3)
+
+    def test_multiball_new_balls_launched(self):
+        self._trigger_multiball()
+        for b in self.gp.balls:
+            self.assertTrue(b.launched)
+
+    def test_multiball_new_balls_preserve_radius(self):
+        self.gp.balls = [Ball()]
+        self.gp.balls[0].set_radius(20)
+        self.gp.balls[0].launched = True
+        self.gp.balls[0].vx = 200
+        self.gp.balls[0].vy = -300
+        self.gp.balls[0].speed = 360
+        self.gp.balls[0]._underlying_speed = c.BALL_BREAKOUT_SPEED
+        pu = self.Pickup(100, 100, "multiball")
+        pu.x = self.gp.paddle.x
+        pu.y = self.gp.paddle.y
+        self.gp.falling_pickups.append(pu)
+        self.gp._update_pickups(1/60)
+        for b in self.gp.balls:
+            self.assertEqual(b.radius, 20)
+
+    def test_multiball_new_balls_preserve_underlying_speed(self):
+        self._trigger_multiball()
+        for b in self.gp.balls:
+            self.assertEqual(b._underlying_speed, c.BALL_BREAKOUT_SPEED)
+
+    def test_multiball_does_not_exceed_max(self):
+        self.gp.balls = [Ball() for _ in range(c.MAX_BALLS)]
+        for b in self.gp.balls:
+            b.launched = True
+        orig_count = len(self.gp.balls)
+        pu = self.Pickup(100, 100, "multiball")
+        pu.y = self.gp.paddle.y
+        pu.x = self.gp.paddle.x
+        self.gp.falling_pickups.append(pu)
+        self.gp._update_pickups(1/60)
+        self.assertLessEqual(len(self.gp.balls), c.MAX_BALLS)
+
+    def test_multiball_at_max_awards_bonus(self):
+        self.gp.balls = [Ball() for _ in range(c.MAX_BALLS)]
+        for b in self.gp.balls:
+            b.launched = True
+        score_before = self.gp.score
+        pu = self.Pickup(100, 100, "multiball")
+        pu.y = self.gp.paddle.y
+        pu.x = self.gp.paddle.x
+        self.gp.falling_pickups.append(pu)
+        self.gp._update_pickups(1/60)
+        self.assertEqual(self.gp.score, score_before + c.PICKUP_COLLECT_BONUS)
+
+    def test_multiball_new_balls_have_opposite_x_velocity(self):
+        self.gp.balls = [Ball()]
+        src = self.gp.balls[0]
+        src.launched = True
+        src.vx = 200
+        src.vy = -300
+        src.speed = 360
+        src._underlying_speed = c.BALL_BREAKOUT_SPEED
+        pu = self.Pickup(100, 100, "multiball")
+        pu.x = self.gp.paddle.x
+        pu.y = self.gp.paddle.y
+        self.gp.falling_pickups.append(pu)
+        self.gp._update_pickups(1/60)
+        for b in self.gp.balls:
+            if b is not src:
+                self.assertEqual(b.vx, -src.vx)
+
+
 class TestBallTrailCache(unittest.TestCase):
     def setUp(self):
         self.ball = Ball()

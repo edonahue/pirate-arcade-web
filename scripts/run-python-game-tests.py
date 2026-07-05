@@ -61,7 +61,7 @@ GAME_CONFIGS = [
         "id": "krakens-wake",
         "label": "Kraken's Wake",
         "game_dir": SCRIPTS_BASE / "krakens-wake",
-        "test_file": "test_kraken_stress.py",
+        "test_file": "test_krakens_wake.py",
         "runtime_contract": True,
     },
 ]

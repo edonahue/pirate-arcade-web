@@ -1,4 +1,5 @@
 import asyncio
+import builtins
 import pygame as pg
 import constants as c
 import highscores as hs
@@ -41,6 +42,8 @@ class AsteroidsGame:
         self._recovered_error_count = 0
         self._last_recovered_phase = None
         _ensure_stars()
+        builtins.__dict__["__pa_game_instance"] = self
+        from shared.pa_state import _ensure_pa_post_key; _ensure_pa_post_key()
 
     def _init_fonts(self):
         self.title_font = pg.font.Font(c.FONT_NAME, c.FONT_SIZE_TITLE)
@@ -120,6 +123,13 @@ class AsteroidsGame:
             for _ in range(frame.steps):
                 self._update(frame.step_seconds)
                 metrics.record_step()
+
+            self._state_pub.tick(
+                frame.step_seconds,
+                event_key=self._state_event_key(),
+                state_factory=self._build_game_state,
+                active=active,
+            )
 
             draw_key = (self.state, self.paused, self.pause_selection, self.sound_enabled, self.gameplay.show_fps, self.game_over_state)
             force_draw = (self.state == 'playing' and not self.paused)
@@ -251,14 +261,6 @@ class AsteroidsGame:
             self._recovered_error_count += 1
             self._last_recovered_phase = "update"
             self.state = 'menu'
-        active = self.state == 'playing' and not self.paused
-        self._state_pub.tick(
-            dt,
-            event_key=self._state_event_key(),
-            state_factory=self._build_game_state,
-            active=active,
-        )
-
     def _draw(self, fps):
         try:
             if self.state == 'menu':

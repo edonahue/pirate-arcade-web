@@ -163,15 +163,15 @@ error: function(msg) {
       return _phase === "ready";
     },
     getState: function () {
-      var el = _getEl();
+      var el = document.getElementById("game-loading");
       return {
         phase: _phase,
         message: _lastMessage,
         ready: (_phase === "ready"),
         errored: (_phase === "error"),
         disposed: (_phase === "disposed"),
-        elementPresent: !!el,
-        elementVisible: !!(el && !el.classList.contains('hidden'))
+        elementPresent: !!(el && document.body.contains(el)),
+        elementVisible: !!(el && document.body.contains(el) && !el.classList.contains('hidden'))
       };
     },
     // Ownership marker: identifies this as the canonical PirateArcade implementation

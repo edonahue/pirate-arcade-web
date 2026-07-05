@@ -960,6 +960,43 @@ export interface ArcadeGameState {
   lives?: number;
   ballLaunched?: boolean;
   updatedAt?: number;
+  ballSpeed?: number;
+  shipAngle?: number;
+  shipSpeed?: number;
+  stage?: number;
+  recoveredErrorCount?: number;
+  lastRecoveredPhase?: string;
+  maxStage?: number;
+  ballsActive?: number;
+  ballSpeeds?: number[];
+  underlyingBallSpeed?: number;
+  effectiveBallSpeed?: number;
+  initialBallSpeed?: number;
+  maxBallSpeed?: number;
+  bricksRemaining?: number;
+  standardBricksRemaining?: number;
+  reinforcedBricksRemaining?: number;
+  powderKegsRemaining?: number;
+  treasureBricksRemaining?: number;
+  fallingPickupCount?: number;
+  lastPickupType?: string;
+  widePaddleActive?: boolean;
+  widePaddleRemainingMs?: number;
+  slowMotionActive?: boolean;
+  slowMotionRemainingMs?: number;
+  stageTransitionActive?: boolean;
+  round?: number;
+  roundPhase?: string;
+  brickDestructionCounts?: Record<string, number>;
+  pickupHistory?: string[];
+  rallyCount?: number;
+  currentRally?: number;
+  longestRally?: number;
+  rallyTier?: number;
+  powerupType?: string;
+  aiShrinkActive?: boolean;
+  aiShrinkRemainingMs?: number;
+  aiDifficulty?: number;
 }
 
 /**
@@ -1223,6 +1260,214 @@ export async function sendKeysAndObserveResponse(
       after: { gameState: finalState, bridgeCount },
       attemptedKeys: keys,
     };
+  }
+}
+
+// ── State-driven game helpers ──────────────────────────────────
+//
+// These helpers prefer game-state deltas over bridge-count or
+// canvas-digest signals:
+//   - Bridge-count proves input delivery, not game behavior.
+//   - Canvas-digest proves rendering changed, not correct behavior.
+//   - Gameplay tests should prefer explicit game-state deltas.
+
+/**
+ * Wait for the game phase to reach a specific value.
+ * Uses bounded polling on PirateArcadeGameState.
+ * Attaches state on failure for diagnostics.
+ */
+export async function waitForGamePhase(
+  page: Page,
+  expectedPhase: string,
+  timeoutMs: number = 15000,
+): Promise<void> {
+  try {
+    await expect
+      .poll(async () => (await readGameState(page))?.phase, {
+        timeout: timeoutMs,
+        message: `waitForGamePhase: expected "${expectedPhase}"`,
+      })
+      .toBe(expectedPhase);
+  } catch (e) {
+    const gs = await readGameState(page);
+    const ls = await page.evaluate(() =>
+      (window as any).PirateArcadeLoading?.getState?.(),
+    );
+    const lc = await page.evaluate(() =>
+      (window as any).PirateArcadeLifecycle?.getState?.(),
+    );
+    throw new Error(
+      `waitForGamePhase failed. Expected phase "${expectedPhase}". ` +
+        `Current state: ${JSON.stringify(gs)}. ` +
+        `Loading: ${JSON.stringify(ls)}. ` +
+        `Lifecycle: ${JSON.stringify(lc)}. URL: ${page.url()}.`,
+    );
+  }
+}
+
+/**
+ * Wait until a predicate over game state returns true.
+ * predicateSource is a string of JS source that receives
+ * (state) and must return boolean.
+ */
+export async function waitForGameStatePredicate(
+  page: Page,
+  predicateSource: string,
+  timeoutMs: number = 15000,
+): Promise<void> {
+  // Support both arrow-function form ("state => ...") and raw expression ("state.phase === 'paused'").
+  // new Function("state", code) creates function(state) { code } — without "return" the
+  // arrow-function expression is evaluated but not invoked, always returning undefined.
+  let expr = predicateSource;
+  if (expr.startsWith("state =>")) {
+    expr = expr.replace(/^state\s*=>\s*/, "");
+  }
+  const body = "return " + expr;
+  try {
+    await expect
+      .poll(
+        async () => {
+          const state = await readGameState(page);
+          return new Function("state", body)(state) as boolean;
+        },
+        {
+          timeout: timeoutMs,
+          message: `waitForGameStatePredicate: "${predicateSource}"`,
+        },
+      )
+      .toBe(true);
+  } catch (e) {
+    const gs = await readGameState(page);
+    throw new Error(
+      `waitForGameStatePredicate failed. Predicate: "${predicateSource}". ` +
+        `Current state: ${JSON.stringify(gs)}. URL: ${page.url()}.`,
+    );
+  }
+}
+
+/**
+ * Press a key down, wait holdMs, then release the key.
+ * Always releases key in a finally block.
+ */
+export async function pressKeyDownUp(
+  page: Page,
+  key: string,
+  holdMs: number = 200,
+): Promise<void> {
+  await page.keyboard.down(key);
+  try {
+    await page.waitForTimeout(holdMs);
+  } finally {
+    await page.keyboard.up(key);
+  }
+}
+
+/**
+ * Start a game from its menu by pressing actionKey.
+ * Waits for phase === "playing" after the action.
+ */
+export async function startGameFromMenu(
+  page: Page,
+  actionKey: string = "Space",
+  timeoutMs: number = 15000,
+): Promise<void> {
+  await page.locator("canvas#canvas").click({ position: { x: 10, y: 10 } });
+  await page.locator("canvas#canvas").focus();
+  await page.waitForTimeout(200);
+  await pressKeyDownUp(page, actionKey, 300);
+  await waitForGamePhase(page, "playing", timeoutMs);
+}
+
+/**
+ * Hold a key until a game-state predicate becomes true.
+ * Always releases all keys in a finally block.
+ */
+/**
+ * Keys that the DOM event system (page.keyboard.down) fails to
+ * deliver to Pygbag's SDL event queue in headless Playwright.
+ * Use the Python bridge (PirateArcadeInput) instead.
+ */
+const BRIDGE_KEYS = new Set(["Escape"]);
+
+export async function holdKeyUntilState(
+  page: Page,
+  key: string,
+  predicateSource: string,
+  timeoutMs: number = 10000,
+): Promise<void> {
+  await page.evaluate(() => {
+    document.getElementById("canvas")?.focus();
+  });
+
+  const useBridge = BRIDGE_KEYS.has(key);
+
+  if (useBridge) {
+    // Python bridge bypasses DOM event system — call PirateArcadeInput.keyDown
+    await page.evaluate((k) => {
+      if (window.PirateArcadeInput) {
+        window.PirateArcadeInput.keyDown(k);
+      }
+    }, key);
+  } else {
+    await page.keyboard.down(key);
+  }
+
+  try {
+    await waitForGameStatePredicate(page, predicateSource, timeoutMs);
+  } finally {
+    if (useBridge) {
+      await page.evaluate((k) => {
+        if (window.PirateArcadeInput) {
+          window.PirateArcadeInput.keyUp(k);
+        }
+      }, key);
+    } else {
+      await page.keyboard.up(key);
+    }
+  }
+}
+
+/**
+ * Release all currently held keys by keyUp of known primary
+ * game keys. Called automatically after holdKeyUntilState,
+ * but exposed for manual cleanup.
+ */
+export async function releaseAllInputs(page: Page): Promise<void> {
+  const keys = [
+    "ArrowUp",
+    "ArrowDown",
+    "ArrowLeft",
+    "ArrowRight",
+    "Space",
+    "Enter",
+    "Escape",
+    "KeyW",
+    "KeyA",
+    "KeyS",
+    "KeyD",
+    "KeyP",
+    "KeyF",
+  ];
+  for (const key of keys) {
+    await page.keyboard.up(key).catch(() => {});
+  }
+}
+
+/**
+ * Assert that the game has no runtime errors by checking:
+ * - PirateArcadeLoading.errored === false
+ * - recoveredErrorCount === 0 (for Kraken's Wake)
+ * - No page error events (if accessible)
+ */
+export async function expectNoRuntimeErrors(page: Page): Promise<void> {
+  const ls = await page.evaluate(() =>
+    (window as any).PirateArcadeLoading?.getState?.(),
+  );
+  expect(ls?.errored).toBe(false);
+
+  const gs = await readGameState(page);
+  if (gs && "recoveredErrorCount" in gs) {
+    expect((gs as any).recoveredErrorCount).toBe(0);
   }
 }
 

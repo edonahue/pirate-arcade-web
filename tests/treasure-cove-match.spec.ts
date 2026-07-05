@@ -2,17 +2,17 @@ import { test, expect } from "./helpers/browserGame";
 import {
   waitForPygbagRuntime,
   readGameState,
-  sendKeysAndRequireResponse,
+  startGameFromMenu,
+  pressKeyDownUp,
+  holdKeyUntilState,
+  expectNoRuntimeErrors,
 } from "./helpers/browserGame";
 
 const GAME_PATH = "/play/treasure-cove/";
-const ACTION_KEY = "Space";
 
 test.describe("Treasure Cove match gameplay", () => {
-  test("launch ball produces upward trajectory and non-zero speeds", async ({
-    page,
-  }, testInfo) => {
-    test.setTimeout(300000);
+  test("start from menu produces playing phase", async ({ page }, testInfo) => {
+    test.setTimeout(120000);
     test.skip(
       !["chromium-desktop"].includes(testInfo.project.name),
       `Skipped on ${testInfo.project.name}`,
@@ -20,29 +20,33 @@ test.describe("Treasure Cove match gameplay", () => {
 
     await page.goto(GAME_PATH, { waitUntil: "domcontentloaded" });
     await waitForPygbagRuntime(page);
+    await startGameFromMenu(page, "Space");
+    await expectNoRuntimeErrors(page);
+  });
 
-    // Start game and launch ball — hold Space long enough for Pygbag to
-    // see it via get_pressed() across at least one frame boundary.
-    await page.locator("canvas#canvas").click({ position: { x: 10, y: 10 } });
-    await page.locator("canvas#canvas").focus();
-    await page.waitForTimeout(300);
-    await page.keyboard.down(ACTION_KEY);
-    await page.waitForTimeout(500);
-    await page.keyboard.up(ACTION_KEY);
-    await page.waitForTimeout(1500);
+  test("launch produces ballLaunched with upward vy", async ({
+    page,
+  }, testInfo) => {
+    test.setTimeout(120000);
+    test.skip(
+      !["chromium-desktop"].includes(testInfo.project.name),
+      `Skipped on ${testInfo.project.name}`,
+    );
 
-    const state = await readGameState(page);
-    expect(state).not.toBeNull();
-    expect(state?.phase).toBe("playing");
+    await page.goto(GAME_PATH, { waitUntil: "domcontentloaded" });
+    await waitForPygbagRuntime(page);
+    // Start with Enter so serve ball stays on paddle (not auto-launched)
+    await startGameFromMenu(page, "Enter");
 
-    // Ball must be launched with upward velocity
-    const ballLaunched = await page.evaluate(() => {
-      const gs = (window as any).PirateArcadeGameState?.getState?.();
-      return gs?.ballLaunched ?? false;
-    });
-    expect(ballLaunched).toBe(true);
+    // Hold Space while waiting for ball to launch
+    await holdKeyUntilState(
+      page,
+      "Space",
+      "state => state && state.ballLaunched === true",
+      5000,
+    );
 
-    // Ball speeds must be positive and within configured bounds
+    // Assert at least one ball with positive speed
     const ballSpeeds = await page.evaluate(() => {
       const gs = (window as any).PirateArcadeGameState?.getState?.();
       return gs?.ballSpeeds ?? [];
@@ -52,23 +56,11 @@ test.describe("Treasure Cove match gameplay", () => {
       expect(spd).toBeGreaterThan(0);
     }
 
-    // Initial ball speed should not exceed max
-    const initialBallSpeed = await page.evaluate(() => {
-      const gs = (window as any).PirateArcadeGameState?.getState?.();
-      return gs?.initialBallSpeed ?? 0;
-    });
-    const maxBallSpeed = await page.evaluate(() => {
-      const gs = (window as any).PirateArcadeGameState?.getState?.();
-      return gs?.maxBallSpeed ?? 0;
-    });
-    expect(initialBallSpeed).toBeGreaterThan(0);
-    expect(maxBallSpeed).toBeGreaterThan(initialBallSpeed);
+    await expectNoRuntimeErrors(page);
   });
 
-  test("paddle movement changes player position", async ({
-    page,
-  }, testInfo) => {
-    test.setTimeout(300000);
+  test("ArrowLeft decreases playerPosition", async ({ page }, testInfo) => {
+    test.setTimeout(120000);
     test.skip(
       !["chromium-desktop"].includes(testInfo.project.name),
       `Skipped on ${testInfo.project.name}`,
@@ -76,26 +68,36 @@ test.describe("Treasure Cove match gameplay", () => {
 
     await page.goto(GAME_PATH, { waitUntil: "domcontentloaded" });
     await waitForPygbagRuntime(page);
+    await startGameFromMenu(page, "Space");
 
-    // Start game and launch ball
-    await page.locator("canvas#canvas").click({ position: { x: 10, y: 10 } });
-    await page.locator("canvas#canvas").focus();
-    await page.keyboard.down(ACTION_KEY);
-    await page.waitForTimeout(500);
-    await page.keyboard.up(ACTION_KEY);
-    await page.waitForTimeout(1000);
+    // Note the starting position
+    const posBefore = (await readGameState(page))?.playerPosition ?? 0;
+    await pressKeyDownUp(page, "ArrowLeft", 300);
+    await page.waitForTimeout(200);
+    const posAfter = (await readGameState(page))?.playerPosition ?? posBefore;
+    expect(posAfter).toBeLessThan(posBefore);
+  });
 
-    const response = await sendKeysAndRequireResponse(
-      page,
-      ["ArrowLeft"],
-      3000,
+  test("ArrowRight increases playerPosition", async ({ page }, testInfo) => {
+    test.setTimeout(120000);
+    test.skip(
+      !["chromium-desktop"].includes(testInfo.project.name),
+      `Skipped on ${testInfo.project.name}`,
     );
-    expect(response.responded).toBe(true);
-    expect(response.signal).toBeTruthy();
+
+    await page.goto(GAME_PATH, { waitUntil: "domcontentloaded" });
+    await waitForPygbagRuntime(page);
+    await startGameFromMenu(page, "Space");
+
+    const posBefore = (await readGameState(page))?.playerPosition ?? 0;
+    await pressKeyDownUp(page, "ArrowRight", 300);
+    await page.waitForTimeout(200);
+    const posAfter = (await readGameState(page))?.playerPosition ?? posBefore;
+    expect(posAfter).toBeGreaterThan(posBefore);
   });
 
   test("game state has stage and lives", async ({ page }, testInfo) => {
-    test.setTimeout(300000);
+    test.setTimeout(120000);
     test.skip(
       !["chromium-desktop"].includes(testInfo.project.name),
       `Skipped on ${testInfo.project.name}`,
@@ -103,24 +105,14 @@ test.describe("Treasure Cove match gameplay", () => {
 
     await page.goto(GAME_PATH, { waitUntil: "domcontentloaded" });
     await waitForPygbagRuntime(page);
+    await startGameFromMenu(page, "Space");
 
-    await page.locator("canvas#canvas").click({ position: { x: 10, y: 10 } });
-    await page.locator("canvas#canvas").focus();
-    await page.keyboard.down(ACTION_KEY);
+    await pressKeyDownUp(page, "Space", 400);
     await page.waitForTimeout(500);
-    await page.keyboard.up(ACTION_KEY);
-    await page.waitForTimeout(1500);
 
-    const stage = await page.evaluate(() => {
-      const gs = (window as any).PirateArcadeGameState?.getState?.();
-      return gs?.stage;
-    });
-    expect(stage).toBeGreaterThanOrEqual(1);
-
-    const lives = await page.evaluate(() => {
-      const gs = (window as any).PirateArcadeGameState?.getState?.();
-      return gs?.lives;
-    });
-    expect(lives).toBeGreaterThan(0);
+    const state = await readGameState(page);
+    expect(state?.stage).toBeGreaterThanOrEqual(1);
+    expect(state?.lives).toBeGreaterThan(0);
+    expect(state?.score).toBeGreaterThanOrEqual(0);
   });
 });

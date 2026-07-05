@@ -368,14 +368,6 @@ ${bootCode
     }
     function custom_prerun() { console.log('custom_prerun'); }
     function custom_postrun() { console.log('custom_postrun'); }
-    function show_infobox() {
-  const infobox = document.getElementById('infobox');
-  if (!infobox) return;
-  infobox.setAttribute('aria-hidden', 'false');
-  const w = infobox.offsetWidth, h = infobox.offsetHeight;
-  infobox.style.left = ((window.innerWidth - w) / 2) + 'px';
-  infobox.style.top = ((window.innerHeight - h) / 2) + 'px';
-}
     var _isTouch = window.matchMedia && window.matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window;
     if (!_isTouch) {
       new MutationObserver(function() {
@@ -405,13 +397,4 @@ ${bootCode
   </body>
 </html>
 `;
-}
-function show_infobox() {
-  const infobox = document.getElementById("infobox");
-  if (!infobox) return;
-  infobox.setAttribute("aria-hidden", "false");
-  const w = infobox.offsetWidth,
-    h = infobox.offsetHeight;
-  infobox.style.left = (window.innerWidth - w) / 2 + "px";
-  infobox.style.top = (window.innerHeight - h) / 2 + "px";
 }

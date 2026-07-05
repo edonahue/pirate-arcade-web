@@ -338,8 +338,8 @@ class Gameplay:
                 self.score += c.PICKUP_COLLECT_BONUS
             else:
                 to_add = min(target - len(self.balls), c.MAX_BALLS - len(self.balls))
+                src = random.choice(self.balls) if self.balls else Ball()
                 for _ in range(to_add):
-                    src = random.choice(self.balls) if self.balls else Ball()
                     nb = Ball()
                     nb.x = src.x
                     nb.y = src.y
@@ -698,9 +698,6 @@ class Gameplay:
         ball.ensure_min_vy()
 
         self._damage_brick(ball, brick)
-
-    def _handle_debug_hooks(self):
-        pass
 
     def draw(self, surface, fps=0):
         if not self._backdrop_surfs:

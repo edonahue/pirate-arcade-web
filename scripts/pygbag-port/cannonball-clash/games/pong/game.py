@@ -1,4 +1,5 @@
 import asyncio
+import builtins
 import pygame as pg
 import constants as c
 import highscores as hs
@@ -29,6 +30,8 @@ class PongGame:
         self._timer = FixedStepTimer()
         self._active_animation = False
         self._render_after_anim = False
+        builtins.__dict__["__pa_game_instance"] = self
+        from shared.pa_state import _ensure_pa_post_key; _ensure_pa_post_key()
 
     async def run(self):
         while True:
@@ -50,6 +53,14 @@ class PongGame:
             for _ in range(frame.steps):
                 self._update(frame.step_seconds)
                 metrics.record_step()
+
+            sim_active = simulation_active or animation_active
+            self._state_pub.tick(
+                frame.step_seconds,
+                event_key=self._state_event_key(),
+                state_factory=self._build_game_state,
+                active=sim_active,
+            )
 
             draw_key = (self.state, self.paused, self.menu_selection, self.pause_selection, self.sound_enabled, self.game_over_state)
             if render_continuous:
@@ -217,14 +228,6 @@ class PongGame:
             if self.game_over_timer >= c.WIN_ANIMATION_DURATION:
                 self._active_animation = False
                 self._render_after_anim = True
-        active = (self.state == 'playing' and not self.paused) or self._active_animation
-        self._state_pub.tick(
-            dt,
-            event_key=self._state_event_key(),
-            state_factory=self._build_game_state,
-            active=active,
-        )
-
     def _draw(self, fps):
         if self.state == 'menu':
             self.menu.draw(self.surface, self.menu_selection)
