@@ -584,6 +584,226 @@ class TestMuzzleFlashCache(unittest.TestCase):
             self.assertGreater(frame.get_height(), 0)
 
 
+class TestCannonballClashExitSemantics(unittest.TestCase):
+    def setUp(self):
+        self.game = PongGame(None, _MockAudio())
+
+    def _start_match(self):
+        self.game.state = 'menu'
+        self.game.menu_selection = 0
+        self.game._handle_key(pg.K_SPACE)
+
+    def test_playing_escape_pauses(self):
+        self._start_match()
+        self.game.paused = False
+        self.game._handle_key(pg.K_ESCAPE)
+        self.assertTrue(self.game.paused)
+
+    def test_paused_escape_resumes(self):
+        self._start_match()
+        self.game.paused = True
+        self.game._handle_key(pg.K_ESCAPE)
+        self.assertFalse(self.game.paused)
+
+    def test_paused_p_resumes(self):
+        self._start_match()
+        self.game.paused = True
+        self.game._handle_key(pg.K_p)
+        self.assertFalse(self.game.paused)
+
+    def test_pause_quit_to_menu_returns_menu(self):
+        self._start_match()
+        self.game.paused = True
+        self.game.pause_selection = 5
+        result = self.game._handle_key(pg.K_SPACE)
+        self.assertEqual(result, "menu")
+        self.assertEqual(self.game.state, "menu")
+
+    def test_menu_escape_returns_quit(self):
+        self.game.state = "menu"
+        result = self.game._handle_key(pg.K_ESCAPE)
+        self.assertEqual(result, "quit")
+
+    def test_game_over_escape_returns_quit(self):
+        self.game.state = "game_over"
+        result = self.game._handle_key(pg.K_ESCAPE)
+        self.assertEqual(result, "quit")
+
+    def test_game_over_space_restarts(self):
+        self.game.state = "game_over"
+        result = self.game._handle_key(pg.K_SPACE)
+        self.assertIsNone(result)
+        self.assertEqual(self.game.state, "playing")
+
+    def test_menu_space_starts_playing(self):
+        self.game.state = "menu"
+        result = self.game._handle_key(pg.K_SPACE)
+        self.assertIsNone(result)
+        self.assertEqual(self.game.state, "playing")
+
+    def test_pause_resume_returns_no_result(self):
+        self._start_match()
+        self.game.paused = True
+        self.game.pause_selection = 0
+        result = self.game._handle_key(pg.K_SPACE)
+        self.assertIsNone(result)
+        self.assertFalse(self.game.paused)
+
+    def test_pause_restart_clears_scores(self):
+        self._start_match()
+        self.game.gameplay.player_score = 5
+        self.game.gameplay.ai_score = 3
+        self.game.paused = True
+        self.game.pause_selection = 1
+        self.game._handle_key(pg.K_SPACE)
+        self.assertEqual(self.game.gameplay.player_score, 0)
+        self.assertEqual(self.game.gameplay.ai_score, 0)
+
+
+class TestCannonballClashSpeedBounds(unittest.TestCase):
+    def setUp(self):
+        self.gp = Gameplay(_MockAudio())
+
+    def test_ball_speed_within_max(self):
+        self.gp.ball.reset()
+        self.gp.ball.launch()
+        self.assertLessEqual(self.gp.ball.speed, c.BALL_MAX_SPEED)
+
+    def test_ball_speed_starts_at_initial(self):
+        self.gp.ball.reset()
+        self.gp.ball.launch()
+        self.assertAlmostEqual(self.gp.ball.speed, c.BALL_SPEED_INITIAL, delta=1)
+
+    def test_speed_increases_with_rally(self):
+        self.gp.ball.reset()
+        self.gp.ball.launch()
+        speed_before = self.gp.ball.speed
+        for _ in range(5):
+            self.gp.ball.bump_speed()
+        self.assertGreater(self.gp.ball.speed, speed_before)
+        self.assertLessEqual(self.gp.ball.speed, c.BALL_MAX_SPEED)
+
+    def test_reset_restores_initial_speed(self):
+        self.gp.ball.reset()
+        self.gp.ball.launch()
+        for _ in range(10):
+            self.gp.ball.bump_speed()
+        self.gp.ball.reset()
+        self.gp.ball.launch()
+        self.assertAlmostEqual(self.gp.ball.speed, c.BALL_SPEED_INITIAL, delta=1)
+
+
+class TestCannonballClashPaddleMovement(unittest.TestCase):
+    def setUp(self):
+        self.gp = Gameplay(_MockAudio())
+
+    def test_arrow_down_moves_paddle_down(self):
+        y_before = self.gp.player_paddle.y
+        self.gp.update(1/60, {pg.K_w: False, pg.K_s: False, pg.K_UP: False, pg.K_DOWN: True})
+        y_after = self.gp.player_paddle.y
+        self.assertGreater(y_after, y_before)
+
+    def test_arrow_up_moves_paddle_up(self):
+        # Move down first to have room upward
+        for _ in range(10):
+            self.gp.update(1/60, {pg.K_w: False, pg.K_s: False, pg.K_UP: False, pg.K_DOWN: True})
+        y_after_down = self.gp.player_paddle.y
+        self.gp.update(1/60, {pg.K_w: False, pg.K_s: False, pg.K_UP: True, pg.K_DOWN: False})
+        y_after_up = self.gp.player_paddle.y
+        self.assertLess(y_after_up, y_after_down)
+
+    def test_paddle_stays_in_window_down(self):
+        for _ in range(500):
+            self.gp.update(1/60, {pg.K_w: False, pg.K_s: False, pg.K_UP: False, pg.K_DOWN: True})
+        p = self.gp.player_paddle
+        self.assertLessEqual(p.rect.bottom, c.WINDOW_HEIGHT)
+
+    def test_paddle_stays_in_window_up(self):
+        for _ in range(500):
+            self.gp.update(1/60, {pg.K_w: False, pg.K_s: False, pg.K_UP: True, pg.K_DOWN: False})
+        p = self.gp.player_paddle
+        self.assertGreaterEqual(p.rect.top, 0)
+
+    def test_no_input_leaves_paddle_still(self):
+        y_before = self.gp.player_paddle.y
+        self.gp.update(1/60, {pg.K_w: False, pg.K_s: False, pg.K_UP: False, pg.K_DOWN: False})
+        self.assertEqual(self.gp.player_paddle.y, y_before)
+
+
+class TestCannonballClashResetLifecycle(unittest.TestCase):
+    def setUp(self):
+        self.game = PongGame(None, _MockAudio())
+
+    def _start_match(self):
+        self.game.state = 'menu'
+        self.game.menu_selection = 0
+        self.game._handle_key(pg.K_SPACE)
+
+    def test_reset_clears_player_score(self):
+        self._start_match()
+        self.game.gameplay.player_score = 11
+        self.game.gameplay.reset()
+        self.assertEqual(self.game.gameplay.player_score, 0)
+
+    def test_reset_clears_ai_score(self):
+        self._start_match()
+        self.game.gameplay.ai_score = 11
+        self.game.gameplay.reset()
+        self.assertEqual(self.game.gameplay.ai_score, 0)
+
+    def test_reset_clears_game_over_state(self):
+        self.game.state = 'game_over'
+        self.game.game_over_state = 'player'
+        self.game.game_over_timer = 1.0
+        self.game._handle_key(pg.K_SPACE)
+        self.assertEqual(self.game.state, 'playing')
+        self.assertIsNone(self.game.game_over_state)
+
+    def test_reset_clears_active_animation(self):
+        self.game._active_animation = True
+        self.game.state = 'game_over'
+        self.game._handle_key(pg.K_SPACE)
+        self.assertFalse(self.game._active_animation)
+
+    def test_particles_start_empty(self):
+        self.assertEqual(len(self.game.particles.particles), 0)
+
+    def test_particles_reset_populates(self):
+        self.game.particles.reset()
+        self.assertGreater(len(self.game.particles.particles), 0)
+
+
+class TestCannonballClashAiDifficulty(unittest.TestCase):
+    def setUp(self):
+        self.game = PongGame(None, _MockAudio())
+
+    def test_default_difficulty_medium(self):
+        self.assertEqual(self.game.ai_difficulty, 'medium')
+
+    def test_difficulty_published_in_state(self):
+        state = self.game._build_game_state()
+        self.assertIn("aiDifficulty", state)
+        self.assertGreater(state["aiDifficulty"], 0)
+
+    def test_set_difficulty_reflected(self):
+        self.game.ai_difficulty = 'hard'
+        self.game.gameplay.set_difficulty('hard')
+        state = self.game._build_game_state()
+        self.assertGreater(state["aiDifficulty"], 0.5)
+
+    def test_difficulty_changes_speed_factor(self):
+        self.game.gameplay.set_difficulty('hard')
+        self.assertAlmostEqual(self.game.gameplay.ai.speed_factor, 0.85, delta=0.1)
+
+    def test_difficulty_easy_speed_factor(self):
+        self.game.gameplay.set_difficulty('easy')
+        self.assertAlmostEqual(self.game.gameplay.ai.speed_factor, 0.4, delta=0.1)
+
+    def test_difficulty_medium_speed_factor(self):
+        self.game.gameplay.set_difficulty('medium')
+        self.assertAlmostEqual(self.game.gameplay.ai.speed_factor, 0.6, delta=0.1)
+
+
 if __name__ == "__main__":
     result = unittest.main(verbosity=2, exit=False)
     sys.exit(0 if result.result.wasSuccessful() else 1)

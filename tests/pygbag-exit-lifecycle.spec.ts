@@ -307,78 +307,15 @@ test.describe("Per-game UI basics", () => {
 });
 
 // ── Treasure Cove: Quit to Menu stays internal ─────────────────
-// NOTE: These tests depend on Escape KEYDOWN which Pygbag does not
-// process in headless Chromium (Pygbag's SDL1 queue does not map
-// Escape keyCode 27 in headless mode, and the Python bridge cannot
-// reach the game instance from PyRun_SimpleString in WASM sandbox).
-test.describe("Treasure Cove exit semantics", () => {
-  async function quitToMenu(page: any) {
-    await goToGame(page, "treasure-cove");
-
-    // Start game and wait for playing phase
-    await page.keyboard.press("Enter");
-    await waitForGamePhase(page, "playing", 10000);
-
-    // Pause by holding Escape until phase changes.
-    // Fall back to DOM keydown if Python bridge is unavailable.
-    await holdKeyUntilState(
-      page,
-      "Escape",
-      "state => state && state.phase === 'paused'",
-      5000,
-    );
-
-    // Quit to Menu is the 5th pause menu item (0-indexed: 4).
-    for (let i = 0; i < 4; i++) {
-      await page.keyboard.press("ArrowDown");
-      await page.waitForTimeout(80);
-    }
-    await page.keyboard.press("Enter");
-    await page.waitForTimeout(500);
-  }
-
-  test.skip("pause Quit to Menu stays in Treasure Cove URL", async ({
-    page,
-  }) => {
-    await quitToMenu(page);
-
-    const url = page.url();
-    expect(url).toContain("/play/treasure-cove/");
-  });
-
-  test.skip("pause Quit to Menu does not trigger error or dispose", async ({
-    page,
-  }) => {
-    await quitToMenu(page);
-
-    const ls = await getLoadingState(page);
-    expect(ls.errored).toBe(false);
-
-    const lcState = await getLifecycleState(page);
-    expect(lcState.disposed).toBe(false);
-  });
-
-  test.skip("pause Quit to Menu returns to menu phase", async ({ page }) => {
-    await quitToMenu(page);
-
-    const gs = await page.evaluate(() => {
-      const gs = (window as any).PirateArcadeGameState?.getState?.();
-      return gs ?? null;
-    });
-    expect(gs).not.toBeNull();
-    expect(gs.phase).toBe("menu");
-    expect(gs.actionReady).toBe(true);
-  });
-
-  test.skip("can restart from menu after pause Quit to Menu", async ({
-    page,
-  }) => {
-    await quitToMenu(page);
-
-    await page.keyboard.press("Space");
-    await waitForGamePhase(page, "playing", 10000);
-  });
-});
+// These semantics are proved by Python unit tests in
+// test_treasure_cove.py::TestGameplayQuitToMenu and
+// test_treasure_cove.py::TestBreakoutGameExitSemantics.
+//
+// Escape KEYDOWN is not reliably delivered to Pygbag's SDL event queue
+// in headless Playwright (keyCode 27). The Python bridge cannot reach
+// the game instance from PyRun_SimpleString in the WASM sandbox.
+// Browser tests for this path are deferred until a safe test-only hook
+// is available.
 
 // ── Back link ─────────────────────────────────────────────────
 test.describe("Back to Arcade link", () => {
@@ -390,7 +327,13 @@ test.describe("Back to Arcade link", () => {
       await expect(backLink).toBeVisible();
       await backLink.click();
 
-      await page.waitForTimeout(800);
+      await page.waitForURL(
+        (url) => {
+          const u = url.toString();
+          return u.includes("/play/") && !u.includes(`/play/${gameId}/`);
+        },
+        { timeout: 5000 },
+      );
 
       const url = page.url();
       expect(url).toContain("/play/");

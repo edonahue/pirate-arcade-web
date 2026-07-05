@@ -5,10 +5,12 @@ STATE_HEARTBEAT_HZ = 8
 STATE_PUBLISH_INTERVAL = 1.0 / STATE_HEARTBEAT_HZ
 
 # ── Python-keyboard bridge for PirateArcadeInput ───────────────
-# PirateArcadeInput.keyDown() calls builtins.__pa_post_key(k, down)
-# via PyRun_SimpleString.  We route to the game's _handle_key.
-# (Delayed: the actual bridge is set up in _ensure_pa_post_key
-#  so it can import pygame after the runtime is initialized.)
+# PirateArcadeInput.keyDown(key, down) calls
+#   PyRun_SimpleString("__pa_post_key('Escape', true)")
+# which routes to the game's _handle_key.
+# The shell's boot program defines __pa_post_key on builtins;
+# _ensure_pa_post_key() overwrites it after import so it can
+# import pygame (not available during early boot).
 
 _PA_POST_KEY_MAP = None
 

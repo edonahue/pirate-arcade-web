@@ -981,6 +981,514 @@ class TestHudCaching(unittest.TestCase):
         self.assertIsNotNone(self.gp._cached_slow_surf)
 
 
+class TestBreakoutGameExitSemantics(unittest.TestCase):
+    def setUp(self):
+        self.game = BreakoutGame(None, _MockAudio())
+
+    def test_playing_escape_pauses(self):
+        self.game.state = 'playing'
+        self.game.paused = False
+        self.game._handle_key(pg.K_ESCAPE)
+        self.assertTrue(self.game.paused)
+
+    def test_paused_escape_resumes(self):
+        self.game.state = 'playing'
+        self.game.paused = True
+        self.game._handle_key(pg.K_ESCAPE)
+        self.assertFalse(self.game.paused)
+
+    def test_menu_escape_returns_quit(self):
+        self.game.state = 'menu'
+        result = self.game._handle_key(pg.K_ESCAPE)
+        self.assertEqual(result, "quit")
+
+    def test_game_over_escape_returns_quit(self):
+        self.game.state = 'game_over'
+        result = self.game._handle_key(pg.K_ESCAPE)
+        self.assertEqual(result, "quit")
+
+    def test_menu_space_starts_playing(self):
+        self.game.state = 'menu'
+        result = self.game._handle_key(pg.K_SPACE)
+        self.assertIsNone(result)
+        self.assertEqual(self.game.state, 'playing')
+
+    def test_game_over_space_restarts(self):
+        self.game.state = 'game_over'
+        result = self.game._handle_key(pg.K_SPACE)
+        self.assertIsNone(result)
+        self.assertEqual(self.game.state, 'playing')
+
+    def test_pause_resume_returns_none(self):
+        self.game.state = 'playing'
+        self.game.paused = True
+        self.game.pause_selection = 0
+        result = self.game._handle_key(pg.K_SPACE)
+        self.assertIsNone(result)
+        self.assertFalse(self.game.paused)
+
+    def test_pause_quit_to_menu_returns_menu(self):
+        self.game.state = 'playing'
+        self.game.paused = True
+        self.game.pause_selection = 4
+        result = self.game._handle_key(pg.K_SPACE)
+        self.assertEqual(result, "menu")
+        self.assertEqual(self.game.state, "menu")
+
+    def test_pause_restart_resets_score(self):
+        self.game.state = 'playing'
+        self.game.gameplay.score = 500
+        self.game.paused = True
+        self.game.pause_selection = 1
+        self.game._handle_key(pg.K_SPACE)
+        self.assertEqual(self.game.gameplay.score, 0)
+
+    def test_errored_remains_false_after_menu_return(self):
+        self.game.state = 'playing'
+        self.game.paused = True
+        self.game.pause_selection = 4
+        self.game._handle_key(pg.K_SPACE)
+        self.assertFalse(hasattr(self.game, 'errored'))
+
+
+class TestGameplayQuitToMenu(unittest.TestCase):
+    def setUp(self):
+        self.gp = Gameplay(_MockAudio())
+
+    def test_quit_to_menu_sets_state_menu(self):
+        self.gp.game = BreakoutGame(None, _MockAudio())
+        self.gp.game.state = 'playing'
+        self.gp.game.paused = True
+        self.gp.game.pause_selection = 4
+        result = self.gp.game._handle_key(pg.K_SPACE)
+        self.assertEqual(result, "menu")
+        self.assertEqual(self.gp.game.state, "menu")
+        self.assertFalse(self.gp.game.paused)
+        self.assertIsNone(self.gp.game.game_over_state)
+
+    def test_quit_to_menu_resets_gameplay(self):
+        self.gp.game = BreakoutGame(None, _MockAudio())
+        self.gp.game.state = 'playing'
+        self.gp.game.gameplay.score = 1000
+        self.gp.game.paused = True
+        self.gp.game.pause_selection = 4
+        self.gp.game._handle_key(pg.K_SPACE)
+        self.assertEqual(self.gp.game.gameplay.score, 0)
+
+    def test_restart_from_menu_after_quit(self):
+        self.gp.game = BreakoutGame(None, _MockAudio())
+        # Simulate quit to menu
+        self.gp.game.state = 'menu'
+        self.gp.game.paused = False
+        # Start new game
+        self.gp.game._handle_key(pg.K_SPACE)
+        self.assertEqual(self.gp.game.state, 'playing')
+        self.assertEqual(self.gp.game.gameplay.round, 1)
+        self.assertFalse(self.gp.game.paused)
+
+    def test_dispose_not_triggered_by_quit_to_menu(self):
+        self.gp.game = BreakoutGame(None, _MockAudio())
+        self.gp.game.state = 'playing'
+        self.gp.game.paused = True
+        self.gp.game.pause_selection = 4
+        self.gp.game._handle_key(pg.K_SPACE)
+        self.assertEqual(self.gp.game.state, "menu")
+
+
+class TestGameplayLaunchDeterministic(unittest.TestCase):
+    def setUp(self):
+        import random
+        self._orig_uniform = random.uniform
+        self.ball = Ball()
+
+    def tearDown(self):
+        import random
+        random.uniform = self._orig_uniform
+
+    def _launch_with_angle(self, angle_degrees):
+        import random
+        random.uniform = lambda a, b: angle_degrees
+        self.ball.launch()
+
+    def test_plus_60_goes_left(self):
+        """angle = 60 + 90 = 150°, cos negative => leftward vx"""
+        self._launch_with_angle(60)
+        self.assertLess(self.ball.vx, 0)
+
+    def test_minus_60_goes_right(self):
+        """angle = -60 + 90 = 30°, cos positive => rightward vx"""
+        self._launch_with_angle(-60)
+        self.assertGreater(self.ball.vx, 0)
+
+    def test_zero_degrees_near_vertical(self):
+        self._launch_with_angle(0)
+        self.assertAlmostEqual(self.ball.vx, 0, delta=1)
+
+    def test_vy_always_negative(self):
+        for angle in range(-60, 61, 10):
+            self._launch_with_angle(angle)
+            self.assertLess(self.ball.vy, 0, f"vy not negative at angle {angle}")
+
+    def test_speed_matches_configured(self):
+        self._launch_with_angle(0)
+        speed = (self.ball.vx ** 2 + self.ball.vy ** 2) ** 0.5
+        self.assertAlmostEqual(speed, c.BALL_BREAKOUT_SPEED, delta=1)
+
+    def test_min_vy_enforced_after_launch(self):
+        self._launch_with_angle(0)
+        self.assertGreaterEqual(abs(self.ball.vy), 90)
+
+
+class TestMultiballDetailed(unittest.TestCase):
+    def setUp(self):
+        self.gp = Gameplay(_MockAudio())
+        self.Pickup = Pickup
+
+    def _trigger(self, balls=None, src_vx=200, src_vy=-300):
+        if balls is None:
+            self.gp.balls = [Ball()]
+        else:
+            self.gp.balls = balls
+        src = self.gp.balls[0]
+        src.launched = True
+        src.x = 400
+        src.y = 300
+        src.vx = src_vx
+        src.vy = src_vy
+        src.speed = 360
+        src._underlying_speed = c.BALL_BREAKOUT_SPEED
+        pu = self.Pickup(100, 100, "multiball")
+        pu.x = self.gp.paddle.x
+        pu.y = self.gp.paddle.y
+        self.gp.falling_pickups.append(pu)
+        self.gp._update_pickups(1/60)
+
+    def test_multiball_produces_exactly_three(self):
+        self._trigger()
+        self.assertEqual(len(self.gp.balls), 3)
+
+    def test_new_balls_are_launched(self):
+        self._trigger()
+        for b in self.gp.balls:
+            self.assertTrue(b.launched)
+
+    def test_new_balls_preserve_speed(self):
+        self._trigger(src_vx=200, src_vy=-300)
+        for b in self.gp.balls:
+            speed = (b.vx ** 2 + b.vy ** 2) ** 0.5
+            self.assertAlmostEqual(speed, 360, delta=1)
+
+    def test_max_balls_not_exceeded(self):
+        self.gp.balls = [Ball() for _ in range(c.MAX_BALLS)]
+        for b in self.gp.balls:
+            b.launched = True
+        count_before = len(self.gp.balls)
+        pu = self.Pickup(100, 100, "multiball")
+        pu.y = self.gp.paddle.y
+        pu.x = self.gp.paddle.x
+        self.gp.falling_pickups.append(pu)
+        self.gp._update_pickups(1/60)
+        self.assertLessEqual(len(self.gp.balls), c.MAX_BALLS)
+        self.assertEqual(len(self.gp.balls), count_before)
+
+    def test_max_balls_awards_bonus(self):
+        self.gp.balls = [Ball() for _ in range(c.MAX_BALLS)]
+        for b in self.gp.balls:
+            b.launched = True
+        score_before = self.gp.score
+        pu = self.Pickup(100, 100, "multiball")
+        pu.y = self.gp.paddle.y
+        pu.x = self.gp.paddle.x
+        self.gp.falling_pickups.append(pu)
+        self.gp._update_pickups(1/60)
+        self.assertEqual(self.gp.score, score_before + c.PICKUP_COLLECT_BONUS)
+
+    def test_new_balls_have_opposite_vx(self):
+        self._trigger(src_vx=200)
+        for b in self.gp.balls:
+            if b is not self.gp.balls[0]:
+                self.assertEqual(b.vx, -200)
+
+    def test_new_balls_preserve_slow_multiplier(self):
+        # Create gameplay with single ball
+        self.gp.balls = [Ball()]
+        src = self.gp.balls[0]
+        src.launched = True
+        src.x = 400
+        src.y = 300
+        src.vx = 200
+        src.vy = -300
+        src.speed = 360
+        src._underlying_speed = c.BALL_BREAKOUT_SPEED
+        src._slow_mult = 0.5
+        src.speed = src._underlying_speed * src._slow_mult
+        # Add multiball pickup and trigger
+        pu = self.Pickup(100, 100, "multiball")
+        pu.x = self.gp.paddle.x
+        pu.y = self.gp.paddle.y
+        self.gp.falling_pickups.append(pu)
+        self.gp._update_pickups(1/60)
+        # New balls should inherit the slow multiplier
+        for b in self.gp.balls:
+            self.assertEqual(b._slow_mult, 0.5)
+
+
+class TestFallenBallsDetailed(unittest.TestCase):
+    def setUp(self):
+        self.gp = Gameplay(_MockAudio())
+
+    def test_one_fallen_two_remain(self):
+        self.gp.balls = [Ball(), Ball(), Ball()]
+        for b in self.gp.balls:
+            b.launched = True
+        self.gp.balls[0].y = c.WINDOW_HEIGHT + 100
+        self.gp.balls[1].y = 200
+        self.gp.balls[2].y = 300
+        self.gp.paddle.x = c.WINDOW_WIDTH // 2
+        lives_before = self.gp.lives
+        self.gp.update(1/60, pg.key.get_pressed())
+        self.assertEqual(len(self.gp.balls), 2)
+        self.assertEqual(self.gp.lives, lives_before)
+
+    def test_two_fallen_one_remains(self):
+        self.gp.balls = [Ball(), Ball(), Ball()]
+        for b in self.gp.balls:
+            b.launched = True
+        self.gp.balls[0].y = c.WINDOW_HEIGHT + 100
+        self.gp.balls[1].y = c.WINDOW_HEIGHT + 200
+        self.gp.balls[2].y = 300
+        self.gp.paddle.x = c.WINDOW_WIDTH // 2
+        lives_before = self.gp.lives
+        self.gp.update(1/60, pg.key.get_pressed())
+        self.assertEqual(len(self.gp.balls), 1)
+        self.assertEqual(self.gp.lives, lives_before)
+
+    def test_one_launched_ball_falls_loses_life(self):
+        self.gp.lives = 2
+        self.gp.balls = [Ball()]
+        self.gp.balls[0].launched = True
+        self.gp.balls[0].y = c.WINDOW_HEIGHT + 100
+        self.gp.paddle.x = c.WINDOW_WIDTH // 2
+        self.gp.update(1/60, pg.key.get_pressed())
+        self.assertEqual(self.gp.lives, 1)
+
+    def test_final_life_lost_returns_game_over(self):
+        self.gp.lives = 1
+        self.gp.balls = [Ball()]
+        self.gp.balls[0].launched = True
+        self.gp.balls[0].y = c.WINDOW_HEIGHT + 100
+        self.gp.paddle.x = c.WINDOW_WIDTH // 2
+        result = self.gp.update(1/60, pg.key.get_pressed())
+        self.assertEqual(result, ("game_over", "lost"))
+
+    def test_serve_ball_below_screen_no_life_loss(self):
+        self.gp.lives = 3
+        self.gp.balls = [Ball()]
+        self.gp.balls[0].launched = False
+        self.gp.balls[0].y = c.WINDOW_HEIGHT + 100
+        self.gp.paddle.x = c.WINDOW_WIDTH // 2
+        self.gp.update(1/60, pg.key.get_pressed())
+        self.assertEqual(self.gp.lives, 3)
+
+
+class TestPickupSemantics(unittest.TestCase):
+    def setUp(self):
+        self.gp = Gameplay(_MockAudio())
+
+    def test_drop_pickup_does_not_update_last_type(self):
+        self.gp.last_pickup_type = None
+        # A pickup far from paddle
+        pu = Pickup(100, 100, "multiball")
+        pu.y = 0
+        pu.x = 0
+        self.gp.falling_pickups.append(pu)
+        self.gp._update_pickups(1/60)
+        self.assertIsNone(self.gp.last_pickup_type)
+
+    def test_expired_pickup_does_not_update_last_type(self):
+        self.gp.last_pickup_type = None
+        pu = Pickup(100, 100, "wide_paddle")
+        pu.y = c.WINDOW_HEIGHT + 200
+        pu.x = self.gp.paddle.x
+        self.gp.falling_pickups.append(pu)
+        self.gp._update_pickups(1/60)
+        self.assertIsNone(self.gp.last_pickup_type)
+
+    def test_collected_pickup_updates_last_type(self):
+        self.gp.last_pickup_type = None
+        pu = Pickup(100, 100, "slow_motion")
+        pu.y = self.gp.paddle.y
+        pu.x = self.gp.paddle.x
+        self.gp.falling_pickups.append(pu)
+        self.gp._update_pickups(1/60)
+        self.assertEqual(self.gp.last_pickup_type, "slow_motion")
+
+    def test_pickup_history_records_collected(self):
+        pu = Pickup(100, 100, "multiball")
+        pu.y = self.gp.paddle.y
+        pu.x = self.gp.paddle.x
+        self.gp.falling_pickups.append(pu)
+        self.gp._update_pickups(1/60)
+        self.assertIn("multiball", self.gp._pickup_history)
+
+    def test_pickup_history_bounded(self):
+        for _ in range(60):
+            pu = Pickup(100, 100, "wide_paddle")
+            pu.y = self.gp.paddle.y
+            pu.x = self.gp.paddle.x
+            self.gp.falling_pickups.append(pu)
+            self.gp._update_pickups(1/60)
+        self.assertLessEqual(len(self.gp._pickup_history), 50)
+
+
+class TestBrickCounterPrecision(unittest.TestCase):
+    def setUp(self):
+        self.gp = Gameplay(_MockAudio())
+
+    def test_initial_counts_equal_alive(self):
+        alive = sum(1 for b in self.gp.bricks if b.health > 0)
+        self.assertEqual(self.gp.remaining_bricks, alive)
+
+    def test_standard_destruction_decrements(self):
+        brick = None
+        for b in self.gp.bricks:
+            if b.brick_type == c.BRICK_STANDARD and b.health == 1:
+                brick = b
+                break
+        if brick is None:
+            self.skipTest("No standard brick in stage 1")
+        standard_before = self.gp.standard_count
+        brick.health = 1
+        self.gp._damage_brick(self.gp.balls[0], brick)
+        self.assertLess(self.gp.standard_count, standard_before)
+
+    def test_reinforced_first_hit_no_decrement(self):
+        brick = None
+        for b in self.gp.bricks:
+            if b.brick_type == c.BRICK_REINFORCED and b.health == 2:
+                brick = b
+                break
+        if brick is None:
+            self.skipTest("No reinforced brick in stage 1")
+        remaining_before = self.gp.reinforced_count
+        brick.health = 2
+        self.gp._damage_brick(self.gp.balls[0], brick)
+        self.assertEqual(self.gp.reinforced_count, remaining_before)
+
+    def test_reinforced_final_hit_decrements(self):
+        brick = None
+        for b in self.gp.bricks:
+            if b.brick_type == c.BRICK_REINFORCED:
+                brick = b
+                break
+        if brick is None:
+            self.skipTest("No reinforced brick in stage 1")
+        brick.health = 1
+        remaining_before = self.gp.reinforced_count
+        self.gp._damage_brick(self.gp.balls[0], brick)
+        self.assertLess(self.gp.reinforced_count, remaining_before)
+
+    def test_powder_keg_destruction_decrements(self):
+        brick = None
+        for b in self.gp.bricks:
+            if b.brick_type == c.BRICK_POWDER_KEG and b.health == 1:
+                brick = b
+                break
+        if brick is None:
+            self.skipTest("No powder keg in stage 1")
+        pk_before = self.gp.powder_keg_count
+        brick.health = 1
+        self.gp._damage_brick(self.gp.balls[0], brick)
+        self.assertLess(self.gp.powder_keg_count, pk_before)
+
+    def test_treasure_destruction_decrements(self):
+        brick = None
+        for b in self.gp.bricks:
+            if b.brick_type == c.BRICK_TREASURE and b.health == 1:
+                brick = b
+                break
+        if brick is None:
+            self.skipTest("No treasure brick in stage 1")
+        t_before = self.gp.treasure_count
+        brick.health = 1
+        self.gp._damage_brick(self.gp.balls[0], brick)
+        self.assertLess(self.gp.treasure_count, t_before)
+        # Treasure bricks drop a falling pickup (not immediately collected)
+        self.assertGreater(len(self.gp.falling_pickups), 0)
+
+    def test_powder_chain_decrements_each_live_brick_once(self):
+        # Find a powder keg and set up adjacent bricks
+        keg = None
+        for b in self.gp.bricks:
+            if b.brick_type == c.BRICK_POWDER_KEG and b.health == 1:
+                keg = b
+                break
+        if keg is None:
+            self.skipTest("No powder keg in stage 1")
+        # Powder chain triggers _powder_keg_chain which damages adjacent
+        # The chain should decrement each affected type exactly once
+        std_before = self.gp.standard_count
+        reinf_before = self.gp.reinforced_count
+        pk_before = self.gp.powder_keg_count
+        treas_before = self.gp.treasure_count
+        rem_before = self.gp.remaining_bricks
+        keg.health = 1
+        self.gp._damage_brick(self.gp.balls[0], keg)
+        # Powder keg itself decrements
+        self.assertLess(self.gp.powder_keg_count, pk_before)
+        # Adjacent bricks are also destroyed by chain
+        # Each affected type should decrement by the number of bricks of that type in chain
+        self.assertLessEqual(self.gp.standard_count, std_before)
+        self.assertLessEqual(self.gp.reinforced_count, reinf_before)
+        self.assertLessEqual(self.gp.treasure_count, treas_before)
+        self.assertLess(self.gp.remaining_bricks, rem_before)
+
+    def test_no_double_score_same_ball_same_brick_same_frame(self):
+        brick = None
+        for b in self.gp.bricks:
+            if b.brick_type == c.BRICK_STANDARD and b.health == 1:
+                brick = b
+                break
+        if brick is None:
+            self.skipTest("No standard brick in stage 1")
+        brick.health = 1
+        score_before = self.gp.score
+        self.gp._damage_brick(self.gp.balls[0], brick)
+        score_after_first = self.gp.score
+        # Second call with same ball/brick in same frame should be ignored
+        self.gp._damage_brick(self.gp.balls[0], brick)
+        score_after_second = self.gp.score
+        self.assertEqual(score_after_second, score_after_first)
+
+    def test_two_balls_same_reinforced_one_frame(self):
+        brick = None
+        for b in self.gp.bricks:
+            if b.brick_type == c.BRICK_REINFORCED:
+                brick = b
+                break
+        if brick is None:
+            self.skipTest("No reinforced brick in stage 1")
+        # Two different balls hitting same reinforced brick in one frame
+        # should each do damage if that's intended behavior
+        brick.health = 2
+        rem_before = self.gp.remaining_bricks
+        reinf_before = self.gp.reinforced_count
+        # First ball hits
+        self.gp._damage_brick(self.gp.balls[0], brick)
+        # Brick still alive at health=1, no decrement yet
+        self.assertEqual(self.gp.reinforced_count, reinf_before)
+        self.assertEqual(self.gp.remaining_bricks, rem_before)
+        # Second ball hits same brick same frame
+        # Create a second ball if needed
+        if len(self.gp.balls) < 2:
+            from games.breakout.ball import Ball
+            self.gp.balls.append(Ball())
+        self.gp._damage_brick(self.gp.balls[1], brick)
+        # Now brick should be destroyed
+        self.assertLess(self.gp.reinforced_count, reinf_before)
+        self.assertLess(self.gp.remaining_bricks, rem_before)
+
+
 if __name__ == "__main__":
     result = unittest.main(verbosity=2, exit=False)
     sys.exit(0 if result.result.wasSuccessful() else 1)

@@ -28,29 +28,12 @@ test.describe("Kraken's Wake match gameplay", () => {
     expect(state?.phase).toBe("playing");
     expect(typeof state?.shipAngle).toBe("number");
     expect(state?.lives).toBeGreaterThan(0);
+    // recoveredErrorCount should be 0 after clean startup
+    expect(state?.recoveredErrorCount).toBe(0);
     await expectNoRuntimeErrors(page);
   });
 
-  test("ArrowRight changes shipAngle", async ({ page }, testInfo) => {
-    test.setTimeout(120000);
-    test.skip(
-      !["chromium-desktop"].includes(testInfo.project.name),
-      `Skipped on ${testInfo.project.name}`,
-    );
-
-    await page.goto(GAME_PATH, { waitUntil: "domcontentloaded" });
-    await waitForPygbagRuntime(page);
-    await startGameFromMenu(page, "Space");
-
-    const angleBefore = (await readGameState(page))?.shipAngle ?? 0;
-    // Hold ArrowRight to turn starboard
-    await pressKeyDownUp(page, "ArrowRight", 400);
-    await page.waitForTimeout(200);
-    const angleAfter = (await readGameState(page))?.shipAngle ?? angleBefore;
-    expect(angleAfter).not.toBe(angleBefore);
-  });
-
-  test("ArrowLeft changes shipAngle opposite direction", async ({
+  test("ArrowRight changes shipAngle positive (starboard)", async ({
     page,
   }, testInfo) => {
     test.setTimeout(120000);
@@ -63,19 +46,46 @@ test.describe("Kraken's Wake match gameplay", () => {
     await waitForPygbagRuntime(page);
     await startGameFromMenu(page, "Space");
 
-    // First turn right to establish a baseline
+    const angleBefore = (await readGameState(page))?.shipAngle ?? 0;
+    // Hold ArrowRight to turn starboard (positive direction)
+    await pressKeyDownUp(page, "ArrowRight", 400);
+    await page.waitForTimeout(50);
+    const angleAfter = (await readGameState(page))?.shipAngle ?? angleBefore;
+    expect(angleAfter).toBeGreaterThan(angleBefore);
+    // Error count should remain 0
+    const state = await readGameState(page);
+    expect(state?.recoveredErrorCount).toBe(0);
+  });
+
+  test("ArrowLeft changes shipAngle negative (port)", async ({
+    page,
+  }, testInfo) => {
+    test.setTimeout(120000);
+    test.skip(
+      !["chromium-desktop"].includes(testInfo.project.name),
+      `Skipped on ${testInfo.project.name}`,
+    );
+
+    await page.goto(GAME_PATH, { waitUntil: "domcontentloaded" });
+    await waitForPygbagRuntime(page);
+    await startGameFromMenu(page, "Space");
+
+    // First establish baseline
     await pressKeyDownUp(page, "ArrowLeft", 300);
-    await page.waitForTimeout(100);
+    await page.waitForTimeout(50);
     const angleAfterLeft = (await readGameState(page))?.shipAngle ?? 0;
 
-    // Then turn right from that position
+    // Now turn right from that position - should increase angle
     await pressKeyDownUp(page, "ArrowRight", 300);
-    await page.waitForTimeout(100);
+    await page.waitForTimeout(50);
     const angleAfterRight =
       (await readGameState(page))?.shipAngle ?? angleAfterLeft;
 
-    // Turning left then right should produce different angles
-    expect(angleAfterRight).not.toBe(angleAfterLeft);
+    // Turning right should increase angle from left-turned position
+    expect(angleAfterRight).toBeGreaterThan(angleAfterLeft);
+    // Error count should remain 0
+    const state = await readGameState(page);
+    expect(state?.recoveredErrorCount).toBe(0);
   });
 
   test("Space fire increases projectileCount", async ({ page }, testInfo) => {
@@ -97,6 +107,9 @@ test.describe("Kraken's Wake match gameplay", () => {
       "state => state && state.projectileCount > 0",
       5000,
     );
+    // Error count should remain 0 after firing
+    const state = await readGameState(page);
+    expect(state?.recoveredErrorCount).toBe(0);
   });
 
   test("expect no runtime errors", async ({ page }, testInfo) => {

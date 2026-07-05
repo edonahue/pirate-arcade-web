@@ -5,6 +5,7 @@ import {
   startGameFromMenu,
   pressKeyDownUp,
   holdKeyUntilState,
+  waitForGameStatePredicate,
   expectNoRuntimeErrors,
 } from "./helpers/browserGame";
 
@@ -70,10 +71,10 @@ test.describe("Treasure Cove match gameplay", () => {
     await waitForPygbagRuntime(page);
     await startGameFromMenu(page, "Space");
 
-    // Note the starting position
     const posBefore = (await readGameState(page))?.playerPosition ?? 0;
     await pressKeyDownUp(page, "ArrowLeft", 300);
-    await page.waitForTimeout(200);
+    // Brief stabilization after key release (bridge needs a tick to publish)
+    await page.waitForTimeout(50);
     const posAfter = (await readGameState(page))?.playerPosition ?? posBefore;
     expect(posAfter).toBeLessThan(posBefore);
   });
@@ -91,7 +92,7 @@ test.describe("Treasure Cove match gameplay", () => {
 
     const posBefore = (await readGameState(page))?.playerPosition ?? 0;
     await pressKeyDownUp(page, "ArrowRight", 300);
-    await page.waitForTimeout(200);
+    await page.waitForTimeout(50);
     const posAfter = (await readGameState(page))?.playerPosition ?? posBefore;
     expect(posAfter).toBeGreaterThan(posBefore);
   });
@@ -108,7 +109,12 @@ test.describe("Treasure Cove match gameplay", () => {
     await startGameFromMenu(page, "Space");
 
     await pressKeyDownUp(page, "Space", 400);
-    await page.waitForTimeout(500);
+    // Wait for ball to launch so at least one frame of score is settled
+    await waitForGameStatePredicate(
+      page,
+      "state => state && state.ballLaunched === true",
+      3000,
+    );
 
     const state = await readGameState(page);
     expect(state?.stage).toBeGreaterThanOrEqual(1);

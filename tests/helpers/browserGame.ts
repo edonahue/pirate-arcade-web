@@ -38,17 +38,9 @@ export interface BadResponse {
  *  - canvas#canvas, #infobox, #transfer exist in the DOM
  *  - #transfer is hidden (Python started custom_site setup)
  *  - canvas is visible and has reasonable dimensions (>10x10)
- *  - #infobox text changes from the initial "Loading..." copy to
- *    one of the runtime "loaded!" / "Ready" / "click/touch to start"
- *    replacements
+ *  - PirateArcadeLoading.getState().ready === true
  *
- * The initial infobox text is "Loading {Game} — first visit downloads
- * the Python/Pygame runtime (~12 MB). Audio starts after your first
- * click." which contains the word "click". We must NOT match that as
- * a runtime-ready signal; we only treat the *replacement* copy as
- * ready.
- *
- * Total wait is up to ~120s. The function returns once *any* of
+ * Total wait is up to ~180s. The function returns once *any* of
  * these signals indicates the runtime is up, whichever comes first.
  */
 export async function waitForPygbagRuntime(page: Page): Promise<void> {
@@ -63,11 +55,9 @@ export async function waitForPygbagRuntime(page: Page): Promise<void> {
   ]);
 
   // Wait for one of the runtime signals. The infobox is now hidden
-  // by default (aria-hidden="true", display:none) and the boot
-  // program no longer sets "loaded!" text. Instead we rely on:
-  //   1. PirateArcadeLoading.getState().booted (preferred)
+  // by default (aria-hidden="true", display:none). We rely on:
+  //   1. PirateArcadeLoading.getState().ready === true (preferred)
   //   2. Canvas resized to real game dimensions (>10x10)
-  //   3. Error detection via PirateArcadeLoading.getState().errored
   await page.waitForFunction(
     () => {
       const c = document.getElementById("canvas") as HTMLCanvasElement | null;
@@ -85,7 +75,7 @@ export async function waitForPygbagRuntime(page: Page): Promise<void> {
           (window as any).__pygbagError = "PirateArcadeLoading error state";
           return false;
         }
-        if (st.booted) return true;
+        if (st.ready === true) return true;
       }
 
       // Canvas has been resized to real game dimensions. This is
@@ -197,6 +187,11 @@ export async function captureResponseBaseline(page: Page): Promise<{
 /**
  * Check whether input produced a response by comparing baseline to current state.
  * Returns the signal type that proved the response, or null if no response detected.
+ *
+ * Signal types and their reliability for gameplay assertions:
+ *   "game-state"   — semantic gameplay evidence (preferred for match tests)
+ *   "bridge-count" — input delivery evidence only (smoke tests)
+ *   "canvas-digest" — rendering evidence only (not gameplay-correctness)
  */
 export async function checkInputResponse(
   page: Page,

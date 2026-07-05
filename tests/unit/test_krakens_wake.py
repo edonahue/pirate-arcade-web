@@ -372,6 +372,96 @@ class TestKrakensWakeShipWrap(unittest.TestCase):
         self.assertEqual(r.centery, 400)
 
 
+class TestKrakensWakeForcedError(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        pg.init()
+        cls.surface = pg.Surface((c.WINDOW_WIDTH, c.WINDOW_HEIGHT))
+
+    @classmethod
+    def tearDownClass(cls):
+        pg.quit()
+
+    def setUp(self):
+        self.game = AsteroidsGame(self.surface, _MockAudio())
+
+    def test_forced_update_exception_increments_error_count(self):
+        self.game.state = "playing"
+        # Stub gameplay.update to raise
+        orig_update = self.game.gameplay.update
+        def _bad_update(dt, keys):
+            raise RuntimeError("forced update error")
+        self.game.gameplay.update = _bad_update
+        self.game._update(1/60)
+        self.game.gameplay.update = orig_update
+        self.assertGreater(self.game._recovered_error_count, 0)
+        self.assertEqual(self.game._last_recovered_phase, "update")
+        self.assertEqual(self.game.state, "menu")
+
+    def test_forced_draw_exception_increments_error_count(self):
+        self.game.state = "playing"
+        self.game.surface = self.surface
+        # Stub gameplay.draw to raise
+        orig_draw = self.game.gameplay.draw
+        def _bad_draw(surface, fps=0):
+            raise RuntimeError("forced draw error")
+        self.game.gameplay.draw = _bad_draw
+        self.game._draw(60)
+        self.game.gameplay.draw = orig_draw
+        self.assertGreater(self.game._recovered_error_count, 0)
+        self.assertEqual(self.game._last_recovered_phase, "draw")
+
+    def test_normal_update_keeps_error_zero(self):
+        self.game.state = "playing"
+        for _ in range(60):
+            self.game._update(1/60)
+        self.assertEqual(self.game._recovered_error_count, 0)
+
+    def test_normal_draw_keeps_error_zero(self):
+        self.game.state = "playing"
+        self.game.surface = self.surface
+        for _ in range(60):
+            self.game._draw(60)
+        self.assertEqual(self.game._recovered_error_count, 0)
+
+
+class TestKrakensWakeProjectileCleanup(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        pg.init()
+        cls.surface = pg.Surface((c.WINDOW_WIDTH, c.WINDOW_HEIGHT))
+
+    @classmethod
+    def tearDownClass(cls):
+        pg.quit()
+
+    def setUp(self):
+        self.game = AsteroidsGame(self.surface, _MockAudio())
+        self.game.state = "playing"
+
+    def test_projectile_removed_when_life_expired(self):
+        self.game.gameplay.cooldown = 0
+        self.game.gameplay.update(1/60, _key_set(pg.K_SPACE))
+        self.assertGreater(len(self.game.gameplay.cannonballs), 0)
+        # Set life to expire
+        for cb in self.game.gameplay.cannonballs:
+            cb.life = 0.001
+        self.game.gameplay.update(0.002, _KEYS_EMPTY)
+        self.assertEqual(len(self.game.gameplay.cannonballs), 0)
+
+    def test_multiple_fire_increases_count(self):
+        for _ in range(3):
+            self.game.gameplay.cooldown = 0
+            self.game.gameplay.update(1/60, _key_set(pg.K_SPACE))
+        self.assertGreater(len(self.game.gameplay.cannonballs), 1)
+
+    def test_cooldown_blocks_fire(self):
+        self.game.gameplay.cooldown = 10
+        before = len(self.game.gameplay.cannonballs)
+        self.game.gameplay.update(1/60, _key_set(pg.K_SPACE))
+        self.assertEqual(len(self.game.gameplay.cannonballs), before)
+
+
 if __name__ == "__main__":
     result = unittest.main(verbosity=2, exit=False)
     sys.exit(0 if result.result.wasSuccessful() else 1)
