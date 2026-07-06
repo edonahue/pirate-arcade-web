@@ -67,6 +67,15 @@ const isDesktopAvailable = game.status === "desktop-available";
     </div>
 
     {
+      game.firstPlayTip && (
+        <div class="game-detail__quick-start">
+          <span class="game-detail__quick-start-label">Quick start</span>
+          <p class="game-detail__quick-start-text">{game.firstPlayTip}</p>
+        </div>
+      )
+    }
+
+    {
       isBrowserPlayable && game.browserUrl && (
         <div class="game-detail__hero-cta">
           <CTAButton href={game.browserUrl} variant="primary">
@@ -451,6 +460,27 @@ const isDesktopAvailable = game.status === "desktop-available";
     text-decoration: underline;
     text-underline-offset: 2px;
   }
+  .game-detail__quick-start {
+    padding: 0.75rem 1rem;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    border-left: 3px solid var(--accent);
+    margin-bottom: 1.5rem;
+  }
+  .game-detail__quick-start-label {
+    font-family: var(--mono);
+    font-size: 0.6875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--accent);
+  }
+  .game-detail__quick-start-text {
+    font-size: 0.9375rem;
+    color: var(--ink);
+    margin-top: 0.25rem;
+    line-height: 1.6;
+  }
   .game-detail__best-for {
     font-size: 0.9375rem;
     color: var(--ink);
@@ -517,6 +547,15 @@ const isDesktopAvailable = game.status === "desktop-available";
 
     .game-detail__sidebar-value {
       font-size: 0.8125rem;
+    }
+
+    .game-detail__quick-start {
+      padding: 0.625rem 0.875rem;
+      margin-bottom: 1rem;
+    }
+
+    .game-detail__quick-start-text {
+      font-size: 0.875rem;
     }
 
     .game-detail__best-for {
