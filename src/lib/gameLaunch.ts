@@ -1,3 +1,7 @@
+// Build-time / server-side helper only.
+// Reads public/play/*/*.tar.gz.sha256 via Node fs/path.
+// Do not import from browser-bundled scripts; use rendered data-* attrs instead.
+
 import { readFileSync, existsSync } from "fs";
 import { resolve } from "path";
 import type { Game } from "../data/games";

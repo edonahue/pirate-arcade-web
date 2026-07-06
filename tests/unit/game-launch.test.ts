@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { readFileSync, existsSync } from "fs";
-import { resolve } from "path";
+import { readFileSync, existsSync, readdirSync, statSync } from "fs";
+import { resolve, extname, relative, sep } from "path";
 import type { Game } from "../../src/data/games";
 import {
   isBrowserPlayable,
@@ -9,6 +9,43 @@ import {
   getArchiveUrl,
   getLaunchLinkAttrs,
 } from "../../src/lib/gameLaunch";
+
+describe("import boundary: gameLaunch is server-only", () => {
+  function walk(dir: string): string[] {
+    const results: string[] = [];
+    for (const entry of readdirSync(dir)) {
+      const full = resolve(dir, entry);
+      const s = statSync(full);
+      if (s.isDirectory()) {
+        results.push(...walk(full));
+      } else if (s.isFile()) {
+        results.push(full);
+      }
+    }
+    return results;
+  }
+
+  const srcDir = resolve("src");
+  const extOk = new Set([".astro"]);
+  const gameLaunchPattern = /from\s+["'].*gameLaunch["']/;
+
+  const offenders: string[] = [];
+
+  for (const f of walk(srcDir)) {
+    const ext = extname(f);
+    if (extOk.has(ext)) continue;
+    const rel = relative(srcDir, f);
+    if (rel.endsWith("lib/gameLaunch.ts")) continue;
+    const content = readFileSync(f, "utf-8");
+    if (gameLaunchPattern.test(content)) {
+      offenders.push(rel);
+    }
+  }
+
+  it("no non-astro file imports gameLaunch", () => {
+    expect(offenders).toEqual([]);
+  });
+});
 
 const phaserGame: Game = {
   id: "race-to-treasure-island",
