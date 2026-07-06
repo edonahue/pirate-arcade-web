@@ -65,6 +65,11 @@ npm run verify:release:full
 
 Adds accessibility, mobile, iPad, theming, Lighthouse, and all browser game tests. Runs the full Playwright matrix.
 
+## After automated checks
+
+For product/playability QA that automation misses, see
+[docs/manual-playtest.md](./manual-playtest.md).
+
 ## Known caveats
 
 - `verify:release:full` has a flaky `site-theme` test that passes in isolation but fails unpredictably in the full gate. Pre-existing, unrelated to recent changes.
