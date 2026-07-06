@@ -314,16 +314,19 @@ test.describe("Site Game Content", () => {
     await page.goto("/play/");
 
     await expect(
-      page.locator(".recommended-path__label:has-text('Instant Course')"),
+      page.locator(".recommended-path__label:has-text('Instant load')"),
     ).toBeVisible();
     await expect(
-      page.locator(".recommended-path__label:has-text('Best on Touch')"),
+      page.locator(".recommended-path__label:has-text('Best on touch')"),
     ).toBeVisible();
     await expect(
-      page.locator(".recommended-path__label:has-text('Pygbag Classics')"),
+      page.locator(".recommended-path__label:has-text('Classic challenge')"),
     ).toBeVisible();
     await expect(
-      page.locator(".recommended-path__label:has-text('Desktop Collection')"),
+      page.locator(".recommended-path__label:has-text('Harder skill')"),
+    ).toBeVisible();
+    await expect(
+      page.locator(".recommended-path__label:has-text('Desktop collection')"),
     ).toBeVisible();
   });
 
@@ -591,41 +594,40 @@ test.describe("Site Game Content", () => {
   }) => {
     await page.goto("/play/");
 
-    const pygbagClassics = page.locator(
-      '.recommended-path__label:has-text("Pygbag Classics") + a',
-    );
-    await expect(pygbagClassics).toHaveAttribute("href", "#pygbag-games");
-
+    // In-page anchor: desktop collection
     const desktopCollection = page.locator(
-      '.recommended-path__label:has-text("Desktop Collection") + a',
+      '.recommended-path__label:has-text("Desktop collection") + a',
     );
     await expect(desktopCollection).toHaveAttribute(
       "href",
       "#desktop-collection",
     );
-    await expect(desktopCollection).toContainText(
-      "Downloads and Port Royale Tycoon",
-    );
+    await expect(desktopCollection).toContainText("downloads");
 
-    const instantCourse = page.locator(
-      '.recommended-path__label:has-text("Instant Course") + a',
-    );
-    await expect(instantCourse).toHaveAttribute(
-      "href",
-      "/play/race-to-treasure-island/",
-    );
+    // Browser-playable game links
+    const instantGame = browserGames.find((g) => g.engine === "phaser");
+    if (instantGame) {
+      const instantLink = page.locator(
+        '.recommended-path__label:has-text("Instant load") + a',
+      );
+      await expect(instantLink).toHaveAttribute("href", instantGame.browserUrl);
+      await expect(instantLink).toHaveAttribute("data-game-launch", "true");
+    }
 
-    const bestOnTouch = page.locator(
-      '.recommended-path__label:has-text("Best on Touch") + a',
-    );
-    await expect(bestOnTouch).toHaveAttribute(
-      "href",
-      "/play/cannonball-clash/",
-    );
+    const easiestGame = browserGames.find((g) => g.touchDifficulty === "easy");
+    if (easiestGame) {
+      const touchLink = page.locator(
+        '.recommended-path__label:has-text("Best on touch") + a',
+      );
+      await expect(touchLink).toHaveAttribute("href", easiestGame.browserUrl);
+      await expect(touchLink).toHaveAttribute("data-game-launch", "true");
+    }
 
-    // In-page anchor cards should not have target="_blank"
-    await expect(pygbagClassics).not.toHaveAttribute("target", "_blank");
-    await expect(desktopCollection).not.toHaveAttribute("target", "_blank");
+    // In-page anchor should not have launch metadata
+    await expect(desktopCollection).not.toHaveAttribute(
+      "data-game-launch",
+      "true",
+    );
   });
 
   test("engine markers are PY and JS with no emoji", async ({ page }) => {

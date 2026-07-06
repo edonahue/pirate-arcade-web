@@ -34,6 +34,12 @@ const getArchiveUrl = (gameId: string, engine: string) => {
   if (engine === "phaser") return "";
   return `/play/${gameId}/${gameId}.tar.gz?v=${ASSET_VERSION}`;
 };
+
+const instantGame = webNativeGames[0];
+const easiestGame = browserGames.find((g) => g.touchDifficulty === "easy");
+const classicGame = browserGames.find((g) => g.touchDifficulty === "medium");
+const harderGame = browserGames.find((g) => g.touchDifficulty === "harder");
+const desktopGame = desktopGames[0];
 ---
 
 <BaseLayout
@@ -58,6 +64,124 @@ const getArchiveUrl = (gameId: string, engine: string) => {
     artPosition="50% 45%"
   />
 
+  <section class="section" id="start-here">
+    <div class="section__header">
+      <p class="section__eyebrow">Start here</p>
+      <h2 class="section__title">Not Sure What to Play?</h2>
+      <p class="section__description">
+        Pick based on load time, touch difficulty, or arcade style.
+      </p>
+    </div>
+    <div class="recommended-path">
+      {
+        instantGame && (
+          <div class="recommended-path__item">
+            <span class="recommended-path__label">Instant load</span>
+            <a
+              href={instantGame.browserUrl}
+              class="recommended-path__link"
+              data-game-id={instantGame.id}
+              data-game-title={instantGame.title}
+              data-browser-playable="true"
+              data-game-page={instantGame.browserUrl}
+              data-game-archive=""
+              data-game-launch="true"
+              data-captains-log={instantGame.id}
+            >
+              {instantGame.title}
+            </a>
+            <span class="recommended-path__desc">{instantGame.bestFor}</span>
+          </div>
+        )
+      }
+      {
+        easiestGame && (
+          <div class="recommended-path__item">
+            <span class="recommended-path__label">Best on touch</span>
+            <a
+              href={easiestGame.browserUrl}
+              class="recommended-path__link"
+              data-game-id={easiestGame.id}
+              data-game-title={easiestGame.title}
+              data-browser-playable="true"
+              data-game-page={easiestGame.browserUrl}
+              data-game-archive={getArchiveUrl(
+                easiestGame.id,
+                easiestGame.engine ?? "pygbag",
+              )}
+              data-game-launch="true"
+              data-captains-log={easiestGame.id}
+            >
+              {easiestGame.title}
+            </a>
+            <span class="recommended-path__desc">{easiestGame.bestFor}</span>
+          </div>
+        )
+      }
+      {
+        classicGame && (
+          <div class="recommended-path__item">
+            <span class="recommended-path__label">Classic challenge</span>
+            <a
+              href={classicGame.browserUrl}
+              class="recommended-path__link"
+              data-game-id={classicGame.id}
+              data-game-title={classicGame.title}
+              data-browser-playable="true"
+              data-game-page={classicGame.browserUrl}
+              data-game-archive={getArchiveUrl(
+                classicGame.id,
+                classicGame.engine ?? "pygbag",
+              )}
+              data-game-launch="true"
+              data-captains-log={classicGame.id}
+            >
+              {classicGame.title}
+            </a>
+            <span class="recommended-path__desc">{classicGame.bestFor}</span>
+          </div>
+        )
+      }
+      {
+        harderGame && (
+          <div class="recommended-path__item">
+            <span class="recommended-path__label">Harder skill</span>
+            <a
+              href={harderGame.browserUrl}
+              class="recommended-path__link"
+              data-game-id={harderGame.id}
+              data-game-title={harderGame.title}
+              data-browser-playable="true"
+              data-game-page={harderGame.browserUrl}
+              data-game-archive={getArchiveUrl(
+                harderGame.id,
+                harderGame.engine ?? "pygbag",
+              )}
+              data-game-launch="true"
+              data-captains-log={harderGame.id}
+            >
+              {harderGame.title}
+            </a>
+            <span class="recommended-path__desc">{harderGame.bestFor}</span>
+          </div>
+        )
+      }
+      {
+        desktopGame && (
+          <div class="recommended-path__item">
+            <span class="recommended-path__label">Desktop collection</span>
+            <a href="#desktop-collection" class="recommended-path__link">
+              {desktopGame.title} &amp; downloads
+            </a>
+            <span class="recommended-path__desc">
+              Desktop-only strategy and game downloads.
+            </span>
+          </div>
+        )
+      }
+    </div>
+  </section>
+
   <section class="section" id="game-selection">
     <ArcadeFrame label="Game selection" topLabel="GAME SELECT  -  COURSE READY">
       <div class="game-selection__inner">
@@ -68,49 +192,6 @@ const getArchiveUrl = (gameId: string, engine: string) => {
       </div>
     </ArcadeFrame>
   </section>
-
-  <div class="recommended-path">
-    <div class="recommended-path__item">
-      <span class="recommended-path__label">Instant Course</span>
-      <a
-        href="/play/race-to-treasure-island/"
-        class="recommended-path__link"
-        data-game-id="race-to-treasure-island"
-        data-game-title="Race to Treasure Island"
-        data-browser-playable="true"
-        data-game-page="/play/race-to-treasure-island/"
-        data-game-archive=""
-        data-game-launch="true"
-        data-captains-log="race-to-treasure-island">Race to Treasure Island</a
-      >
-    </div>
-    <div class="recommended-path__item">
-      <span class="recommended-path__label">Best on Touch</span>
-      <a
-        href="/play/cannonball-clash/"
-        class="recommended-path__link"
-        data-game-id="cannonball-clash"
-        data-game-title="Cannonball Clash"
-        data-browser-playable="true"
-        data-game-page="/play/cannonball-clash/"
-        data-game-archive={getArchiveUrl("cannonball-clash", "pygbag")}
-        data-game-launch="true"
-        data-captains-log="cannonball-clash">Cannonball Clash</a
-      >
-    </div>
-    <div class="recommended-path__item">
-      <span class="recommended-path__label">Pygbag Classics</span>
-      <a href="#pygbag-games" class="recommended-path__link"
-        >Cannonball, Treasure Cove, Kraken's Wake</a
-      >
-    </div>
-    <div class="recommended-path__item">
-      <span class="recommended-path__label">Desktop Collection</span>
-      <a href="#desktop-collection" class="recommended-path__link"
-        >Downloads and Port Royale Tycoon</a
-      >
-    </div>
-  </div>
 
   <section class="section" id="browser-games">
     <div class="section__header">

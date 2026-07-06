@@ -1152,6 +1152,13 @@
   text-decoration: underline;
 }
 
+.recommended-path__desc {
+  font-size: 0.75rem;
+  color: var(--muted);
+  line-height: 1.4;
+  margin-top: 0.25rem;
+}
+
 .recommended-first__badge--instant {
   border-color: var(--sea);
   color: var(--sea);

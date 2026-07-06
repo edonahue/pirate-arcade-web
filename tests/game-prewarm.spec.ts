@@ -401,21 +401,12 @@ test.describe("Game Prewarm", () => {
 
     // In-page recommendation anchors should not have launch semantics
     await expect(
-      page.locator('a[href="#pygbag-games"][data-game-launch]'),
-    ).toHaveCount(0);
-    await expect(
       page.locator('a[href="#desktop-collection"][data-game-launch]'),
     ).toHaveCount(0);
 
-    // Additional in-page anchors without _blank
-    const inPageAnchors = page.locator(
-      'a[href="#pygbag-games"], a[href="#desktop-collection"]',
-    );
-    const count = await inPageAnchors.count();
-    for (let i = 0; i < count; i++) {
-      const anchor = inPageAnchors.nth(i);
-      await expect(anchor).not.toHaveAttribute("target", "_blank");
-      await expect(anchor).not.toHaveAttribute("data-game-launch", "true");
-    }
+    // In-page anchor without _blank
+    const desktopAnchor = page.locator('a[href="#desktop-collection"]');
+    await expect(desktopAnchor).not.toHaveAttribute("target", "_blank");
+    await expect(desktopAnchor).not.toHaveAttribute("data-game-launch", "true");
   });
 });
