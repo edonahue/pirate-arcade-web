@@ -24,15 +24,6 @@ const DESKTOP_ONLY = games
   .filter((g) => g.status === "desktop-available")
   .map((g) => ({ id: g.id, name: g.title }));
 
-const assetVersionsSrc = readFileSync(
-  join(__dirname, "..", "scripts/game-asset-versions.mjs"),
-  "utf-8",
-);
-const ASSET_VERSION_MATCH = assetVersionsSrc.match(
-  /export\s+const\s+ASSET_VERSION\s*=\s*"([^"]+)"/,
-);
-const ASSET_VERSION = ASSET_VERSION_MATCH ? ASSET_VERSION_MATCH[1] : "unknown";
-
 test.describe("Game Prewarm", () => {
   test.use({ viewport: { width: 1440, height: 900 } });
 
@@ -79,9 +70,7 @@ test.describe("Game Prewarm", () => {
     const archiveUrl = prefetchUrls.find((u) => u.includes(".tar.gz"));
     expect(pageUrl).toBeDefined();
     expect(archiveUrl).toBeDefined();
-    expect(archiveUrl).toMatch(
-      new RegExp(`cannonball-clash\\.tar\\.gz\\?v=${ASSET_VERSION}$`),
-    );
+    expect(archiveUrl).toMatch(/cannonball-clash\.tar\.gz\?h=[a-f0-9]{64}$/);
 
     // Repeated pointerenter creates no additional copies
     await cannonballCta.dispatchEvent("pointerenter");
@@ -118,7 +107,7 @@ test.describe("Game Prewarm", () => {
         const archiveUrl = await cta.getAttribute("data-game-archive");
         if (game.engine === "pygbag") {
           expect(archiveUrl).toMatch(
-            new RegExp(`${game.id}\\.tar\\.gz\\?v=${ASSET_VERSION}$`),
+            new RegExp(`${game.id}\\.tar\\.gz\\?h=[a-f0-9]{64}$`),
           );
         } else {
           expect(archiveUrl).toBe("");
@@ -240,7 +229,7 @@ test.describe("Game Prewarm", () => {
     // Extract page URL and archive URL
     const urls = new Set(msg.urls);
     const gamePageUrl = `/play/cannonball-clash/`;
-    const archiveUrl = `/play/cannonball-clash/cannonball-clash.tar.gz?v=${ASSET_VERSION}`;
+    const archiveUrl = `/play/cannonball-clash/cannonball-clash.tar.gz?h=54da9cdb5e24ce7c6953e446b85a0f0a6e7a6ded9fff1d839be819a562561872`;
 
     expect(urls.has(gamePageUrl)).toBe(true);
     expect(urls.has(archiveUrl)).toBe(true);

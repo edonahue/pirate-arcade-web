@@ -1,5 +1,18 @@
+import { readFileSync, existsSync } from "fs";
+import { resolve } from "path";
 import { ASSET_VERSION } from "../../scripts/game-asset-versions.mjs";
-import type { Game, GameStatus, GameEngine } from "../data/games";
+import type { Game } from "../data/games";
+
+function readArchiveHash(gameId: string): string {
+  try {
+    const shaPath = resolve("public/play", gameId, `${gameId}.tar.gz.sha256`);
+    if (!existsSync(shaPath)) return "";
+    const content = readFileSync(shaPath, "utf-8").trim();
+    return content.split(/\s+/)[0] || "";
+  } catch {
+    return "";
+  }
+}
 
 export function isBrowserPlayable(game: Game): boolean {
   return game.status === "browser-playable" && !!game.browserUrl;
@@ -15,6 +28,8 @@ export function isWebNative(game: Game): boolean {
 
 export function getArchiveUrl(game: Game): string {
   if (!isBrowserPlayable(game) || !isPygbag(game)) return "";
+  const hash = readArchiveHash(game.id);
+  if (hash) return `/play/${game.id}/${game.id}.tar.gz?h=${hash}`;
   return `/play/${game.id}/${game.id}.tar.gz?v=${ASSET_VERSION}`;
 }
 

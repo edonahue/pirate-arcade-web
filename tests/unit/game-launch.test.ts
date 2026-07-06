@@ -1,4 +1,6 @@
 import { describe, it, expect } from "vitest";
+import { readFileSync } from "fs";
+import { resolve } from "path";
 import type { Game } from "../../src/data/games";
 import {
   isBrowserPlayable,
@@ -102,12 +104,12 @@ describe("getArchiveUrl", () => {
     expect(getArchiveUrl(phaserGame)).toBe("");
   });
 
-  it("returns versioned .tar.gz for Pygbag game", () => {
+  it("returns content-hashed .tar.gz for Pygbag game", () => {
     const url = getArchiveUrl(pygbagGame);
     expect(url).toMatch(
-      /^\/play\/cannonball-clash\/cannonball-clash\.tar\.gz\?v=/,
+      /^\/play\/cannonball-clash\/cannonball-clash\.tar\.gz\?h=/,
     );
-    expect(url).toContain("?v=");
+    expect(url).toContain("?h=");
   });
 
   it("returns empty string for desktop-only game", () => {
@@ -141,10 +143,63 @@ describe("getLaunchLinkAttrs", () => {
     expect(attrs!["data-captains-log"]).toBe(phaserGame.id);
   });
 
-  it("returns versioned archive for Pygbag game", () => {
+  it("returns content-hashed archive for Pygbag game", () => {
     const attrs = getLaunchLinkAttrs(pygbagGame);
     expect(attrs).not.toBeNull();
-    expect(attrs!["data-game-archive"]).toContain("?v=");
-    expect(attrs!["data-game-archive"]).toMatch(/\.tar\.gz\?v=.*$/);
+    expect(attrs!["data-game-archive"]).toContain("?h=");
+    expect(attrs!["data-game-archive"]).toMatch(/\.tar\.gz\?h=[a-f0-9]{64}$/);
   });
+});
+
+describe("regression: helper archive URLs match generated shell URLs", () => {
+  const PYG_BROWSER_GAMES: Array<{ id: string; title: string }> = [
+    { id: "cannonball-clash", title: "Cannonball Clash" },
+    { id: "treasure-cove", title: "Treasure Cove" },
+    { id: "krakens-wake", title: "Kraken's Wake" },
+  ];
+
+  const phaserIds = ["race-to-treasure-island"];
+
+  for (const g of PYG_BROWSER_GAMES) {
+    it(`${g.id}: helper archive URL matches generated shell preload URL`, () => {
+      const htmlPath = resolve("public/play", g.id, "index.html");
+      const html = readFileSync(htmlPath, "utf-8");
+
+      const shellMatch = html.match(
+        /<link[^>]*rel="preload"[^>]*href="(\/play\/[^/]+\/[^/]+\.tar\.gz\?h=[a-f0-9]+)"/,
+      );
+      expect(shellMatch).not.toBeNull();
+      const shellUrl = shellMatch![1];
+
+      const game: Game = {
+        id: g.id,
+        title: g.title,
+        classic: "",
+        description: "",
+        status: "browser-playable",
+        statusLabel: "Playable",
+        browserUrl: `/play/${g.id}/`,
+        engine: "pygbag",
+        touchDifficulty: "easy",
+      };
+      expect(getArchiveUrl(game)).toBe(shellUrl);
+    });
+  }
+
+  for (const id of phaserIds) {
+    it(`${id}: helper archive URL is empty for Phaser game`, () => {
+      const game: Game = {
+        id,
+        title: "Race to Treasure Island",
+        classic: "",
+        description: "",
+        status: "browser-playable",
+        statusLabel: "Playable",
+        browserUrl: `/play/${id}/`,
+        engine: "phaser",
+        touchDifficulty: "medium",
+      };
+      expect(getArchiveUrl(game)).toBe("");
+    });
+  }
 });

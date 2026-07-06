@@ -82,7 +82,7 @@ test.describe("Site Game Content", () => {
         if (game.engine === "phaser") {
           expect(archive).toBe("");
         } else {
-          expect(archive).toContain(".tar.gz?v=");
+          expect(archive).toMatch(/\.tar\.gz\?h=[a-f0-9]{64}$/);
         }
       }
     }
