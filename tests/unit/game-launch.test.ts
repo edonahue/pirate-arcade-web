@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { readFileSync } from "fs";
+import { readFileSync, existsSync } from "fs";
 import { resolve } from "path";
 import type { Game } from "../../src/data/games";
 import {
@@ -151,55 +151,126 @@ describe("getLaunchLinkAttrs", () => {
   });
 });
 
-describe("regression: helper archive URLs match generated shell URLs", () => {
-  const PYG_BROWSER_GAMES: Array<{ id: string; title: string }> = [
-    { id: "cannonball-clash", title: "Cannonball Clash" },
-    { id: "treasure-cove", title: "Treasure Cove" },
-    { id: "krakens-wake", title: "Kraken's Wake" },
-  ];
+describe("archive hash contract: data-driven from games.json", () => {
+  const gamesJson = JSON.parse(
+    readFileSync(resolve("src/data/games.json"), "utf-8"),
+  );
 
-  const phaserIds = ["race-to-treasure-island"];
+  const pygbagBrowserGames = gamesJson.filter(
+    (g: any) => g.status === "browser-playable" && g.engine === "pygbag",
+  );
 
-  for (const g of PYG_BROWSER_GAMES) {
-    it(`${g.id}: helper archive URL matches generated shell preload URL`, () => {
-      const htmlPath = resolve("public/play", g.id, "index.html");
-      const html = readFileSync(htmlPath, "utf-8");
+  const phaserBrowserGames = gamesJson.filter(
+    (g: any) => g.status === "browser-playable" && g.engine === "phaser",
+  );
 
-      const shellMatch = html.match(
-        /<link[^>]*rel="preload"[^>]*href="(\/play\/[^/]+\/[^/]+\.tar\.gz\?h=[a-f0-9]+)"/,
-      );
-      expect(shellMatch).not.toBeNull();
-      const shellUrl = shellMatch![1];
+  describe("every Pygbag browser game has a .sha256 sidecar", () => {
+    for (const g of pygbagBrowserGames) {
+      it(`${g.id}: has .sha256 sidecar with 64-char hex hash`, () => {
+        const shaPath = resolve("public/play", g.id, `${g.id}.tar.gz.sha256`);
+        expect(existsSync(shaPath)).toBe(true);
 
-      const game: Game = {
-        id: g.id,
-        title: g.title,
-        classic: "",
-        description: "",
-        status: "browser-playable",
-        statusLabel: "Playable",
-        browserUrl: `/play/${g.id}/`,
-        engine: "pygbag",
-        touchDifficulty: "easy",
-      };
-      expect(getArchiveUrl(game)).toBe(shellUrl);
-    });
-  }
+        const content = readFileSync(shaPath, "utf-8").trim();
+        const hash = content.split(/\s+/)[0];
+        expect(hash).toMatch(/^[a-f0-9]{64}$/);
+      });
+    }
+  });
 
-  for (const id of phaserIds) {
-    it(`${id}: helper archive URL is empty for Phaser game`, () => {
-      const game: Game = {
-        id,
-        title: "Race to Treasure Island",
-        classic: "",
-        description: "",
-        status: "browser-playable",
-        statusLabel: "Playable",
-        browserUrl: `/play/${id}/`,
-        engine: "phaser",
-        touchDifficulty: "medium",
-      };
-      expect(getArchiveUrl(game)).toBe("");
-    });
-  }
+  describe("helper archive URL matches generated shell preload URL", () => {
+    for (const g of pygbagBrowserGames) {
+      it(`${g.id}: getArchiveUrl matches shell <link rel=preload>`, () => {
+        const htmlPath = resolve("public/play", g.id, "index.html");
+        const html = readFileSync(htmlPath, "utf-8");
+
+        const shellMatch = html.match(
+          /<link[^>]*rel="preload"[^>]*href="(\/play\/[^/]+\/[^/]+\.tar\.gz\?h=[a-f0-9]+)"/,
+        );
+        expect(shellMatch).not.toBeNull();
+        const shellUrl = shellMatch![1];
+
+        const game: Game = {
+          id: g.id,
+          title: g.title,
+          classic: "",
+          description: "",
+          status: "browser-playable",
+          statusLabel: "Playable",
+          browserUrl: `/play/${g.id}/`,
+          engine: "pygbag",
+          touchDifficulty: g.touchDifficulty ?? "medium",
+        };
+        expect(getArchiveUrl(game)).toBe(shellUrl);
+
+        const attrs = getLaunchLinkAttrs(game);
+        expect(attrs).not.toBeNull();
+        expect(attrs!["data-game-archive"]).toBe(shellUrl);
+      });
+    }
+  });
+
+  describe("no Pygbag browser launch metadata uses ?v= fallback", () => {
+    for (const g of pygbagBrowserGames) {
+      it(`${g.id}: data-game-archive does not contain ?v=`, () => {
+        const game: Game = {
+          id: g.id,
+          title: g.title,
+          classic: "",
+          description: "",
+          status: "browser-playable",
+          statusLabel: "Playable",
+          browserUrl: `/play/${g.id}/`,
+          engine: "pygbag",
+          touchDifficulty: g.touchDifficulty ?? "medium",
+        };
+        const url = getArchiveUrl(game);
+        expect(url).not.toContain("?v=");
+      });
+    }
+  });
+
+  describe("Phaser games have empty archive metadata", () => {
+    for (const g of phaserBrowserGames) {
+      it(`${g.id}: getArchiveUrl returns ""`, () => {
+        const game: Game = {
+          id: g.id,
+          title: g.title,
+          classic: "",
+          description: "",
+          status: "browser-playable",
+          statusLabel: "Playable",
+          browserUrl: `/play/${g.id}/`,
+          engine: "phaser",
+          touchDifficulty: g.touchDifficulty ?? "medium",
+        };
+        expect(getArchiveUrl(game)).toBe("");
+
+        const attrs = getLaunchLinkAttrs(game);
+        expect(attrs).not.toBeNull();
+        expect(attrs!["data-game-archive"]).toBe("");
+      });
+    }
+  });
+
+  describe("desktop-only games produce no launch metadata", () => {
+    const desktopGames = gamesJson.filter(
+      (g: any) => g.status === "desktop-available",
+    );
+
+    for (const g of desktopGames) {
+      it(`${g.id}: getLaunchLinkAttrs returns null`, () => {
+        const game: Game = {
+          id: g.id,
+          title: g.title,
+          classic: "",
+          description: "",
+          status: "desktop-available",
+          statusLabel: "Desktop",
+          desktopUrl: g.desktopUrl ?? "",
+        };
+        expect(isBrowserPlayable(game)).toBe(false);
+        expect(getLaunchLinkAttrs(game)).toBeNull();
+      });
+    }
+  });
 });

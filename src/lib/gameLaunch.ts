@@ -1,6 +1,5 @@
 import { readFileSync, existsSync } from "fs";
 import { resolve } from "path";
-import { ASSET_VERSION } from "../../scripts/game-asset-versions.mjs";
 import type { Game } from "../data/games";
 
 function readArchiveHash(gameId: string): string {
@@ -26,11 +25,19 @@ export function isWebNative(game: Game): boolean {
   return game.engine === "phaser";
 }
 
+/**
+ * Return the content-hashed archive URL for browser-playable Pygbag games.
+ * Returns "" for Phaser, desktop-only, or games missing their .sha256 sidecar.
+ *
+ * The returned URL must match the generated shell preload URL exactly
+ * (same /play/<id>/<id>.tar.gz?h=<sha256>) so prewarm warms the same
+ * cache entry that the game shell fetches at runtime.
+ */
 export function getArchiveUrl(game: Game): string {
   if (!isBrowserPlayable(game) || !isPygbag(game)) return "";
   const hash = readArchiveHash(game.id);
-  if (hash) return `/play/${game.id}/${game.id}.tar.gz?h=${hash}`;
-  return `/play/${game.id}/${game.id}.tar.gz?v=${ASSET_VERSION}`;
+  if (!hash) return "";
+  return `/play/${game.id}/${game.id}.tar.gz?h=${hash}`;
 }
 
 export interface LaunchLinkAttrs {
