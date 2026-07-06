@@ -186,6 +186,16 @@ test.describe("Site Game Content", () => {
     }
   });
 
+  test("play page game cards show first-play tips", async ({ page }) => {
+    await page.goto("/play/");
+
+    for (const game of browserGames) {
+      if (!game.firstPlayTip) continue;
+      const card = page.locator(`article:has([data-game-id="${game.id}"])`);
+      await expect(card.locator(".game-card__first-play")).toBeVisible();
+    }
+  });
+
   test("build-log post renders and has metadata", async ({ page }) => {
     await page.goto("/build-log/race-to-treasure-island-phaser-polish/");
 

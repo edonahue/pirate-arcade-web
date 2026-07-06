@@ -82,6 +82,14 @@ const touchDifficultyLabel = game.touchDifficulty
         <div class="game-card__classic">{game.classic}</div>
         <p class="game-card__description">{game.description}</p>
         {
+          game.firstPlayTip && (
+            <p class="game-card__first-play">
+              <span class="game-card__first-play-label">First play:</span>{" "}
+              {game.firstPlayTip}
+            </p>
+          )
+        }
+        {
           game.features && game.features.length > 0 && (
             <div class="game-card__features">
               {game.features.map((f) => (

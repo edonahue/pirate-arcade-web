@@ -438,6 +438,21 @@
   margin-bottom: 1.5rem;
 }
 
+.game-card__first-play {
+  font-size: 0.8125rem;
+  color: var(--paper-ink-strong);
+  margin-bottom: 0.75rem;
+  opacity: 0.85;
+}
+
+.game-card__first-play-label {
+  font-family: var(--mono);
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+}
+
 .game-card__features {
   display: flex;
   flex-wrap: wrap;
