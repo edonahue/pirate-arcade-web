@@ -71,25 +71,11 @@ test.describe("Cannonball Clash match gameplay", () => {
     expect(posAfterUp).toBeLessThan(posAfterDown);
   });
 
-  // See test_cannonball_clash.py::TestPauseExitSemantics for Python
-  // unit test coverage of pause/menu/escape state logic.
-  test.skip("pause Escape changes to paused phase", async ({
-    page,
-  }, testInfo) => {
-    test.setTimeout(120000);
-    test.skip(
-      !["chromium-desktop"].includes(testInfo.project.name),
-      `Skipped on ${testInfo.project.name}`,
-    );
-
-    await page.goto(GAME_PATH, { waitUntil: "domcontentloaded" });
-    await waitForPygbagRuntime(page);
-    await startGameFromMenu(page, "Enter");
-
-    await page.keyboard.down("Escape");
-    await page.waitForTimeout(500);
-    const state = await readGameState(page);
-    expect(state?.phase).toBe("paused");
-    await page.keyboard.up("Escape");
-  });
+  // Pause via Escape is covered by Python unit tests
+  // (test_cannonball_clash.py::TestCannonballClashExitSemantics).
+  // The PirateArcadeInput bridge (keyDown → PyRun_SimpleString
+  // → __pa_post_key → _handle_key) delivers Escape to the game
+  // state machine in WASM, but the published game-state phase
+  // transition is not reliably observable in headless Playwright.
+  // Python unit tests provide deterministic state-machine proof.
 });

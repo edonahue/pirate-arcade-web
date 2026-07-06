@@ -1379,8 +1379,15 @@ export async function startGameFromMenu(
  */
 /**
  * Keys that the DOM event system (page.keyboard.down) fails to
- * deliver to Pygbag's SDL event queue in headless Playwright.
- * Use the Python bridge (PirateArcadeInput) instead.
+ * reliably deliver to Pygbag's SDL event queue in headless
+ * Playwright. Use the Python bridge (PirateArcadeInput) instead.
+ *
+ * Note: The bridge delivers the key event to the game's
+ * _handle_key method, but downstream state publication
+ * (PirateArcadeGameState phase changes) is not always
+ * observable in headless Playwright. Use Python unit tests
+ * for deterministic state-machine verification of pause/escape
+ * semantics.
  */
 const BRIDGE_KEYS = new Set(["Escape"]);
 

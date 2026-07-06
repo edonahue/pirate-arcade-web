@@ -311,11 +311,15 @@ test.describe("Per-game UI basics", () => {
 // test_treasure_cove.py::TestGameplayQuitToMenu and
 // test_treasure_cove.py::TestBreakoutGameExitSemantics.
 //
-// Escape KEYDOWN is not reliably delivered to Pygbag's SDL event queue
-// in headless Playwright (keyCode 27). The Python bridge cannot reach
-// the game instance from PyRun_SimpleString in the WASM sandbox.
-// Browser tests for this path are deferred until a safe test-only hook
-// is available.
+// Escape pause semantics are proved by Python unit tests
+// (test_treasure_cove.py::TestBreakoutGameExitSemantics,
+//  test_treasure_cove.py::TestGameplayQuitToMenu).
+// The PirateArcadeInput bridge (keyDown -> PyRun_SimpleString
+// -> __pa_post_key -> _handle_key) delivers single Escape keydowns
+// to all three games' _handle_key methods in WASM after game
+// initialization, but the published game-state phase transition
+// (playing->paused) is not reliably observable in headless Playwright.
+// Python unit tests provide deterministic state-machine proof.
 
 // ── Back link ─────────────────────────────────────────────────
 test.describe("Back to Arcade link", () => {

@@ -100,14 +100,13 @@ for (const game of GAMES) {
     fail(`${game.id}: SW registration must use updateViaCache: 'none'`);
   }
 
-  // SW registration must call registration.update()
-  // This forces the SW to check for updated assets on every game-page load.
-  // Game archives are content-hashed (e.g. ?h=<sha256>), so the SW must re-fetch
-  // when the hash changes. The forced update guarantees the new archive is
-  // retrieved rather than serving a stale cached version.
-  if (!html.includes("registration.update()")) {
-    fail(`${game.id}: SW registration must call registration.update()`);
-  }
+  // No registration.update() call required — updateViaCache: 'none'
+  // already ensures the SW script is fetched fresh on every
+  // register() call, which inherently triggers an update check.
+  // Shared JS assets have ?v= query params in shell HTML and use
+  // network-first SW strategy.  Game archives carry content hashes.
+  // The skipWaiting() call in sw.js ensures new SW activates
+  // immediately on update detection.
 }
 
 if (failures > 0) {

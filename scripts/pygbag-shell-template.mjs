@@ -301,12 +301,15 @@ ${bootCode
           navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' })
             .then(registration => {
               console.log('ServiceWorker registration successful with scope: ', registration.scope);
-              // Forced update on every game-page load ensures the SW cache stays in sync
-              // with content-hashed game archives. The archive URL includes a version hash
-              // (e.g. cannonball-clash.tar.gz?h=<sha256>), so a fresh SW fetch is required
-              // when the game version changes. The validator (check-game-cache-versioning)
-              // enforces this call to guarantee cache consistency.
-              registration.update();
+              // No explicit registration.update() needed — updateViaCache: 'none'
+              // ensures the SW script is fetched fresh on every register() call,
+              // which inherently triggers an update check.  Shared JS assets
+              // (pygbag-loading.js, pygame-input-bridge.js) carry ?v= version
+              // query params in the shell HTML and use network-first in sw.js,
+              // so they resolve fresh on every navigation.  Game archive .tar.gz
+              // URLs carry content hashes (?h=<sha256>) and use cache-first.
+              // The SW's skipWaiting() in install activates the new worker
+              // immediately when an update is detected.
             })
             .catch(err => {
               console.log('ServiceWorker registration failed: ', err);
