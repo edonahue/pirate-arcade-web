@@ -495,7 +495,7 @@ a deterministic tarball. Temp directory is removed after each build
 - `npm run test:archive-parity` — compares local archive hashes against
   published archives.
 - `npm run test:cache-versioning` — asserts `?v=` or `?h=` query on
-  preload links, network-first for archives in SW,
+  preload links, cache-first for archives in SW,
   `updateViaCache: 'none'`.
 - `npm run test:game-versions` — checks version consistency in game HTML.
 

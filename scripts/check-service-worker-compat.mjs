@@ -125,6 +125,24 @@ if (swCode.includes("WARM_CACHE")) {
   }
 }
 
+// Verify .tar.gz archive branch uses cacheFirst (content-hashed archives are immutable)
+const tarGzCacheRegex =
+  /url\.pathname\.endsWith\(["']\.tar\.gz["']\)[\s\S]{0,120}cacheFirst\(event\)/;
+if (!tarGzCacheRegex.test(swCode)) {
+  fail(
+    "sw.js .tar.gz archive branch must use cacheFirst(event) — archives carry ?h= content hashes",
+  );
+}
+
+// Verify ?h= and ?v= are both in the versioned cache-first check
+const versionedCheckRegex =
+  /search\.includes\(["']v=["']\)\s*\|\|\s*url\.search\.includes\(["']h=["']\)/;
+if (!versionedCheckRegex.test(swCode)) {
+  fail(
+    "sw.js versioned cache-first branch must check for both ?v= and ?h= query params",
+  );
+}
+
 // 7. ASSETS_TO_CACHE must include ALL Pygbag browser-playable games (no desktop-only, no web-native)
 const assetsSectionStart = swCode.indexOf("ASSETS_TO_CACHE");
 const assetsSectionEnd = swCode.indexOf("];", assetsSectionStart);

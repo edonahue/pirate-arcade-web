@@ -53,8 +53,20 @@ if (/^\s*import\s/s.test(swCode)) {
   fail("sw.js has top-level import — must be classic service worker");
 }
 
-if (!swCode.includes("cache-first") || !swCode.includes(".tar.gz")) {
-  fail("sw.js must use cache-first for .tar.gz archives");
+// Cache-first branch must check for both ?v= and ?h= versioned params
+const versionedRegex =
+  /search\.includes\(["']v=["']\)\s*\|\|\s*url\.search\.includes\(["']h=["']\)/;
+if (!versionedRegex.test(swCode)) {
+  fail("sw.js cache-first branch must check for both ?v= and ?h= query params");
+}
+
+// .tar.gz branch must call cacheFirst(event)
+const tarGzRegex =
+  /url\.pathname\.endsWith\(["']\.tar\.gz["']\)[\s\S]{0,120}cacheFirst\(event\)/;
+if (!tarGzRegex.test(swCode)) {
+  fail(
+    "sw.js .tar.gz fallback must use cacheFirst(event) — content-hashed archives are immutable",
+  );
 }
 // Check for versioned cache name: either hardcoded or imported from game-asset-versions
 if (
@@ -99,14 +111,6 @@ for (const game of GAMES) {
   ) {
     fail(`${game.id}: SW registration must use updateViaCache: 'none'`);
   }
-
-  // No registration.update() call required — updateViaCache: 'none'
-  // already ensures the SW script is fetched fresh on every
-  // register() call, which inherently triggers an update check.
-  // Shared JS/CSS have ?v= params.  Game archives carry ?h=<sha256>
-  // content hashes.  Both ?v= and ?h= URLs use cache-first in sw.js
-  // (unique per version, safe to cache).  The skipWaiting() call in
-  // sw.js ensures new SW activates immediately on update detection.
 }
 
 if (failures > 0) {
