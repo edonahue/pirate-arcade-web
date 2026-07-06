@@ -158,7 +158,7 @@ if (assetsSectionStart !== -1 && assetsSectionEnd !== -1) {
       }
       if (hasArchive) {
         fail(
-          `ASSETS_TO_CACHE must not contain archive entry: ${archivePath} (archives are on-demand via cache-first)`,
+          `ASSETS_TO_CACHE must not contain archive entry: ${archivePath} (archives are cache-first via ?h= content hashes)`,
         );
       }
     }

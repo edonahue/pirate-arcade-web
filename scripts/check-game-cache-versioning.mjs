@@ -1,12 +1,12 @@
 /**
  * Assert that game archive and critical JS/CSS URLs are versioned and/or
- * use network-first strategy. This prevents stale cache regressions.
+ * use cache-first strategy. This prevents stale cache regressions.
  *
  * Checks:
  *  1. Each game HTML references versioned critical assets (?v=...).
  *  2. Each game HTML uses versioned archive preload URL.
  *  3. Each game HTML inline boot code uses versioned archive fetch URL.
- *  4. sw.js uses network-first for .tar.gz archives.
+ *  4. sw.js uses cache-first for .tar.gz archives.
  *
  * Usage:
  *   node scripts/check-game-cache-versioning.mjs
@@ -53,8 +53,8 @@ if (/^\s*import\s/s.test(swCode)) {
   fail("sw.js has top-level import — must be classic service worker");
 }
 
-if (!swCode.includes("network-first") || !swCode.includes(".tar.gz")) {
-  fail("sw.js must use network-first for .tar.gz archives");
+if (!swCode.includes("cache-first") || !swCode.includes(".tar.gz")) {
+  fail("sw.js must use cache-first for .tar.gz archives");
 }
 // Check for versioned cache name: either hardcoded or imported from game-asset-versions
 if (
@@ -103,10 +103,10 @@ for (const game of GAMES) {
   // No registration.update() call required — updateViaCache: 'none'
   // already ensures the SW script is fetched fresh on every
   // register() call, which inherently triggers an update check.
-  // Shared JS assets have ?v= query params in shell HTML and use
-  // network-first SW strategy.  Game archives carry content hashes.
-  // The skipWaiting() call in sw.js ensures new SW activates
-  // immediately on update detection.
+  // Shared JS/CSS have ?v= params.  Game archives carry ?h=<sha256>
+  // content hashes.  Both ?v= and ?h= URLs use cache-first in sw.js
+  // (unique per version, safe to cache).  The skipWaiting() call in
+  // sw.js ensures new SW activates immediately on update detection.
 }
 
 if (failures > 0) {

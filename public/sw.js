@@ -13,7 +13,8 @@ const CACHE_NAME = CACHE_VERSION;
 
 // Lightweight shell/shared assets to cache on install.
 // Game archives are ~12 MB each and downloaded on demand via
-// cache-first (versioned URLs) during warming / gameplay.
+// cache-first — their URLs carry ?h=<sha256> content hashes,
+// making each version a unique, immutable cache entry.
 // Only assets loaded WITHOUT a version query param are listed here.
 const ASSETS_TO_CACHE = [
   "/play/cannonball-clash/",
@@ -229,16 +230,20 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Cache-first for versioned assets (has ?v= query) — includes
-  // game archives which always carry a version query parameter.
-  if (url.search.includes("v=")) {
+  // Cache-first for versioned assets — ?v= for shared JS/CSS cache-busting
+  // on each deploy, and ?h=<sha256> for content-addressed game archives.
+  // Both produce unique URLs per version, safe to serve from cache indefinitely.
+  if (url.search.includes("v=") || url.search.includes("h=")) {
     event.respondWith(cacheFirst(event));
     return;
   }
 
-  // Network-first for game archives (unversioned fallback)
+  // Cache-first for game archives (unversioned fallback).
+  // Production archives always carry ?h= (caught above), but this
+  // catch-all ensures archived game assets are cached on first fetch
+  // even if the hash parameter is missing.
   if (url.pathname.endsWith(".tar.gz")) {
-    event.respondWith(networkFirst(event));
+    event.respondWith(cacheFirst(event));
     return;
   }
 

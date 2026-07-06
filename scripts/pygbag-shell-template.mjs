@@ -303,11 +303,10 @@ ${bootCode
               console.log('ServiceWorker registration successful with scope: ', registration.scope);
               // No explicit registration.update() needed — updateViaCache: 'none'
               // ensures the SW script is fetched fresh on every register() call,
-              // which inherently triggers an update check.  Shared JS assets
-              // (pygbag-loading.js, pygame-input-bridge.js) carry ?v= version
-              // query params in the shell HTML and use network-first in sw.js,
-              // so they resolve fresh on every navigation.  Game archive .tar.gz
-              // URLs carry content hashes (?h=<sha256>) and use cache-first.
+              // which inherently triggers an update check.  Shared JS/CSS assets
+              // carry ?v= version params in shell HTML.  Game archive .tar.gz
+              // URLs carry ?h=<sha256> content hashes.  Both ?v= and ?h= URLs
+              // use cache-first in sw.js (unique per version, safe to cache).
               // The SW's skipWaiting() in install activates the new worker
               // immediately when an update is detected.
             })
