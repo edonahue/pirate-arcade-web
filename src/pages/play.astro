@@ -7,7 +7,13 @@ import ArcadeStatusPanel from "../components/ArcadeStatusPanel.astro";
 import CaptainsLog from "../components/CaptainsLog.astro";
 import { games } from "../data/games";
 import { webPageNode } from "../lib/schema";
-import { ASSET_VERSION } from "../../scripts/game-asset-versions.mjs";
+import {
+  isBrowserPlayable,
+  isPygbag,
+  isWebNative,
+  getArchiveUrl,
+  getLaunchLinkAttrs,
+} from "../lib/gameLaunch";
 
 const browserGames = games.filter((g) => g.status === "browser-playable");
 const pygbagGames = browserGames.filter((g) => g.engine === "pygbag");
@@ -28,11 +34,6 @@ const getTouchLabel = (difficulty: string) => {
     default:
       return "";
   }
-};
-
-const getArchiveUrl = (gameId: string, engine: string) => {
-  if (engine === "phaser") return "";
-  return `/play/${gameId}/${gameId}.tar.gz?v=${ASSET_VERSION}`;
 };
 
 const instantGame = webNativeGames[0];
@@ -78,15 +79,8 @@ const desktopGame = desktopGames[0];
           <div class="recommended-path__item">
             <span class="recommended-path__label">Instant load</span>
             <a
-              href={instantGame.browserUrl}
               class="recommended-path__link"
-              data-game-id={instantGame.id}
-              data-game-title={instantGame.title}
-              data-browser-playable="true"
-              data-game-page={instantGame.browserUrl}
-              data-game-archive=""
-              data-game-launch="true"
-              data-captains-log={instantGame.id}
+              {...getLaunchLinkAttrs(instantGame)!}
             >
               {instantGame.title}
             </a>
@@ -99,18 +93,8 @@ const desktopGame = desktopGames[0];
           <div class="recommended-path__item">
             <span class="recommended-path__label">Best on touch</span>
             <a
-              href={easiestGame.browserUrl}
               class="recommended-path__link"
-              data-game-id={easiestGame.id}
-              data-game-title={easiestGame.title}
-              data-browser-playable="true"
-              data-game-page={easiestGame.browserUrl}
-              data-game-archive={getArchiveUrl(
-                easiestGame.id,
-                easiestGame.engine ?? "pygbag",
-              )}
-              data-game-launch="true"
-              data-captains-log={easiestGame.id}
+              {...getLaunchLinkAttrs(easiestGame)!}
             >
               {easiestGame.title}
             </a>
@@ -123,18 +107,8 @@ const desktopGame = desktopGames[0];
           <div class="recommended-path__item">
             <span class="recommended-path__label">Classic challenge</span>
             <a
-              href={classicGame.browserUrl}
               class="recommended-path__link"
-              data-game-id={classicGame.id}
-              data-game-title={classicGame.title}
-              data-browser-playable="true"
-              data-game-page={classicGame.browserUrl}
-              data-game-archive={getArchiveUrl(
-                classicGame.id,
-                classicGame.engine ?? "pygbag",
-              )}
-              data-game-launch="true"
-              data-captains-log={classicGame.id}
+              {...getLaunchLinkAttrs(classicGame)!}
             >
               {classicGame.title}
             </a>
@@ -147,18 +121,8 @@ const desktopGame = desktopGames[0];
           <div class="recommended-path__item">
             <span class="recommended-path__label">Harder skill</span>
             <a
-              href={harderGame.browserUrl}
               class="recommended-path__link"
-              data-game-id={harderGame.id}
-              data-game-title={harderGame.title}
-              data-browser-playable="true"
-              data-game-page={harderGame.browserUrl}
-              data-game-archive={getArchiveUrl(
-                harderGame.id,
-                harderGame.engine ?? "pygbag",
-              )}
-              data-game-launch="true"
-              data-captains-log={harderGame.id}
+              {...getLaunchLinkAttrs(harderGame)!}
             >
               {harderGame.title}
             </a>
@@ -230,21 +194,7 @@ const desktopGame = desktopGames[0];
           {
             pygbagGames.map((game) => (
               <li>
-                <a
-                  href={game.browserUrl}
-                  data-game-id={game.id}
-                  data-game-title={game.title}
-                  data-browser-playable="true"
-                  data-game-page={game.browserUrl}
-                  data-game-archive={getArchiveUrl(
-                    game.id,
-                    game.engine ?? "pygbag",
-                  )}
-                  data-game-launch="true"
-                  data-captains-log={game.id}
-                >
-                  {game.title}
-                </a>
+                <a {...getLaunchLinkAttrs(game)!}>{game.title}</a>
                 <span
                   class={
                     "engine-card__tag touch-" +
@@ -275,21 +225,7 @@ const desktopGame = desktopGames[0];
           {
             webNativeGames.map((game) => (
               <li>
-                <a
-                  href={game.browserUrl}
-                  data-game-id={game.id}
-                  data-game-title={game.title}
-                  data-browser-playable="true"
-                  data-game-page={game.browserUrl}
-                  data-game-archive={getArchiveUrl(
-                    game.id,
-                    game.engine ?? "phaser",
-                  )}
-                  data-game-launch="true"
-                  data-captains-log={game.id}
-                >
-                  {game.title}
-                </a>
+                <a {...getLaunchLinkAttrs(game)!}>{game.title}</a>
                 <span
                   class={
                     "engine-card__tag touch-" +
@@ -406,7 +342,7 @@ const desktopGame = desktopGames[0];
 
   <CaptainsLog games={games} />
 
-  <script define:vars={{ ASSET_VERSION }} is:inline>
+  <script is:inline>
     if (!window.__paGamePrewarmInstalled) {
       window.__paGamePrewarmInstalled = true;
 

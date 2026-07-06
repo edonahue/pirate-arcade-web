@@ -1,7 +1,13 @@
 ---
 import type { Game } from "../data/games";
 import StatusBadge from "./StatusBadge.astro";
-import { ASSET_VERSION } from "../../scripts/game-asset-versions.mjs";
+import {
+  isBrowserPlayable,
+  isPygbag,
+  isWebNative,
+  getArchiveUrl,
+  getLaunchLinkAttrs,
+} from "../lib/gameLaunch";
 
 export interface Props {
   game: Game;
@@ -9,24 +15,22 @@ export interface Props {
 
 const { game } = Astro.props;
 const cardHref = `/games/${game.id}/`;
-const isBrowserPlayable =
-  game.status === "browser-playable" && !!game.browserUrl;
-const engine = game.engine || "none";
-const isPygbag = engine === "pygbag";
-const isPhaserNative = engine === "phaser";
+const playable = isBrowserPlayable(game);
 const linkId = `game-card-link-${game.id}`;
-const browserUrl = isBrowserPlayable ? game.browserUrl! : "";
-const archiveUrl = isPygbag
-  ? `${browserUrl}${game.id}.tar.gz?v=${ASSET_VERSION}`
-  : "";
-const engineLabel = isPhaserNative ? "Phaser 3" : isPygbag ? "Pygbag" : null;
-const screenshotCaption = isPhaserNative
+const browserUrl = playable ? game.browserUrl! : "";
+const archiveUrl = getArchiveUrl(game);
+const engineLabel = isWebNative(game)
+  ? "Phaser 3"
+  : isPygbag(game)
+    ? "Pygbag"
+    : null;
+const screenshotCaption = isWebNative(game)
   ? "Instant-load racer"
-  : isPygbag && game.touchDifficulty === "easy"
+  : isPygbag(game) && game.touchDifficulty === "easy"
     ? "Touch-friendly port"
-    : isPygbag && game.touchDifficulty === "harder"
+    : isPygbag(game) && game.touchDifficulty === "harder"
       ? "Harder survival"
-      : isPygbag
+      : isPygbag(game)
         ? "Pygbag port"
         : "Desktop board game";
 const touchDifficultyLabel = game.touchDifficulty
@@ -47,7 +51,7 @@ const touchDifficultyLabel = game.touchDifficulty
         aria-label={`${game.title} screenshot`}
         id={linkId}
         data-game-id={game.id}
-        data-browser-playable={isBrowserPlayable}
+        data-browser-playable={playable}
         data-game-page={browserUrl}
         data-game-archive={archiveUrl}
       >
@@ -68,7 +72,10 @@ const touchDifficultyLabel = game.touchDifficulty
         }
         {
           engineLabel && (
-            <span class="game-card__engine-badge" data-engine={engine}>
+            <span
+              class="game-card__engine-badge"
+              data-engine={game.engine ?? "none"}
+            >
               {engineLabel}
             </span>
           )
@@ -123,18 +130,8 @@ const touchDifficultyLabel = game.touchDifficulty
           }
         </div>
         {
-          game.browserUrl && game.status === "browser-playable" && (
-            <a
-              href={game.browserUrl}
-              class="game-card__play-link"
-              data-game-id={game.id}
-              data-game-title={game.title}
-              data-browser-playable="true"
-              data-game-page={browserUrl}
-              data-game-archive={archiveUrl}
-              data-game-launch="true"
-              data-captains-log={game.id}
-            >
+          playable && (
+            <a class="game-card__play-link" {...getLaunchLinkAttrs(game)!}>
               Play in Browser →
             </a>
           )

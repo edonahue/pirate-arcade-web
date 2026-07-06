@@ -3,7 +3,7 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
 import CTAButton from "../../components/CTAButton.astro";
 import { games } from "../../data/games";
 import { breadcrumbNode, gameNode, webPageNode } from "../../lib/schema";
-import { ASSET_VERSION } from "../../../scripts/game-asset-versions.mjs";
+import { getArchiveUrl, getLaunchLinkAttrs } from "../../lib/gameLaunch";
 
 export function getStaticPaths() {
   return games.map((game) => ({
@@ -24,11 +24,6 @@ const isBrowserPlayable = game.status === "browser-playable";
 const isDesktopAvailable = game.status === "desktop-available";
 
 const browserGames = games.filter((g) => g.status === "browser-playable");
-
-const getArchiveUrl = (g: { id: string; engine?: string }) => {
-  if (g.engine === "phaser") return "";
-  return `/play/${g.id}/${g.id}.tar.gz?v=${ASSET_VERSION}`;
-};
 
 const getNextGame = (current: typeof game): typeof game | undefined => {
   if (current.engine === "phaser")
@@ -330,15 +325,8 @@ const getNextTag = (g: typeof game): string => {
           {
             isBrowserPlayable && game.browserUrl && (
               <a
-                href={game.browserUrl}
                 class="game-detail__keep-playing-link game-detail__keep-playing-link--primary"
-                data-game-id={game.id}
-                data-game-title={game.title}
-                data-browser-playable="true"
-                data-game-page={game.browserUrl}
-                data-game-archive={getArchiveUrl(game)}
-                data-game-launch="true"
-                data-captains-log={game.id}
+                {...getLaunchLinkAttrs(game)!}
               >
                 ▶ Play in Browser
               </a>
@@ -372,15 +360,8 @@ const getNextTag = (g: typeof game): string => {
               </span>
               {nextGame.status === "browser-playable" && nextGame.browserUrl ? (
                 <a
-                  href={nextGame.browserUrl}
                   class="game-detail__keep-playing-link"
-                  data-game-id={nextGame.id}
-                  data-game-title={nextGame.title}
-                  data-browser-playable="true"
-                  data-game-page={nextGame.browserUrl}
-                  data-game-archive={getArchiveUrl(nextGame)}
-                  data-game-launch="true"
-                  data-captains-log={nextGame.id}
+                  {...getLaunchLinkAttrs(nextGame)!}
                 >
                   {nextGame.title}
                 </a>

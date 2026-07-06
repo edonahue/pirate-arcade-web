@@ -1,6 +1,6 @@
 ---
 import { games } from "../data/games";
-import { ASSET_VERSION } from "../../scripts/game-asset-versions.mjs";
+import { getArchiveUrl, getLaunchLinkAttrs } from "../lib/gameLaunch";
 ---
 
 <section class="section status-panel">
@@ -32,19 +32,8 @@ import { ASSET_VERSION } from "../../scripts/game-asset-versions.mjs";
               <td>
                 {game.status === "browser-playable" ? (
                   <a
-                    href={game.browserUrl!}
                     class="status-panel__play-link"
-                    data-game-id={game.id}
-                    data-game-title={game.title}
-                    data-browser-playable="true"
-                    data-game-page={game.browserUrl!}
-                    data-game-archive={
-                      game.engine === "pygbag"
-                        ? `/play/${game.id}/${game.id}.tar.gz?v=${ASSET_VERSION}`
-                        : ""
-                    }
-                    data-game-launch="true"
-                    data-captains-log={game.id}
+                    {...getLaunchLinkAttrs(game)!}
                   >
                     In browser
                   </a>
