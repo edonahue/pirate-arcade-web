@@ -38,18 +38,52 @@ test.describe("Site Game Content", () => {
       const playBtn = page.locator(
         'a.cta--primary:has-text("Play in Browser")',
       );
-      const downloadBtn = page.locator(
-        'a.cta--gold:has-text("Download Desktop")',
+      const keepPlayBtn = page.locator(
+        '.game-detail__keep-playing-link--primary:has-text("Play in Browser")',
       );
+      const dlLink = page.locator('a:has-text("Desktop download")');
 
       if (isBrowser) {
         await expect(playBtn.first()).toBeVisible();
-      } else {
-        await expect(playBtn.first()).toBeHidden();
+        await expect(keepPlayBtn.first()).toBeVisible();
       }
 
       if (game.desktopUrl) {
-        await expect(downloadBtn.first()).toBeVisible();
+        await expect(dlLink.first()).toBeVisible();
+      } else {
+        await expect(dlLink.first()).toBeHidden();
+      }
+    }
+  });
+
+  test("game detail pages have keep-playing section with try-next", async ({
+    page,
+  }) => {
+    for (const game of games) {
+      await page.goto(`/games/${game.id}/`);
+
+      await expect(page.locator(".game-detail__keep-playing")).toBeVisible();
+
+      await expect(
+        page.locator(
+          '.game-detail__keep-playing-link:has-text("See all games")',
+        ),
+      ).toBeVisible();
+
+      // Only browser-playable games should have launch metadata on play link
+      const playLink = page.locator(
+        `.game-detail__keep-playing-link--primary[data-game-launch="true"]`,
+      );
+      if (game.status === "browser-playable") {
+        await expect(playLink.first()).toBeVisible();
+        const archive = await playLink
+          .first()
+          .getAttribute("data-game-archive");
+        if (game.engine === "phaser") {
+          expect(archive).toBe("");
+        } else {
+          expect(archive).toContain(".tar.gz?v=");
+        }
       }
     }
   });

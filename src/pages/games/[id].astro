@@ -3,6 +3,7 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
 import CTAButton from "../../components/CTAButton.astro";
 import { games } from "../../data/games";
 import { breadcrumbNode, gameNode, webPageNode } from "../../lib/schema";
+import { ASSET_VERSION } from "../../../scripts/game-asset-versions.mjs";
 
 export function getStaticPaths() {
   return games.map((game) => ({
@@ -21,6 +22,36 @@ const isPhaser = game.engine === "phaser";
 const isPygbag = game.engine === "pygbag";
 const isBrowserPlayable = game.status === "browser-playable";
 const isDesktopAvailable = game.status === "desktop-available";
+
+const browserGames = games.filter((g) => g.status === "browser-playable");
+
+const getArchiveUrl = (g: { id: string; engine?: string }) => {
+  if (g.engine === "phaser") return "";
+  return `/play/${g.id}/${g.id}.tar.gz?v=${ASSET_VERSION}`;
+};
+
+const getNextGame = (current: typeof game): typeof game | undefined => {
+  if (current.engine === "phaser")
+    return browserGames.find((g) => g.touchDifficulty === "easy");
+  if (current.touchDifficulty === "easy")
+    return browserGames.find((g) => g.touchDifficulty === "medium");
+  if (current.touchDifficulty === "medium")
+    return browserGames.find((g) => g.touchDifficulty === "harder");
+  if (current.touchDifficulty === "harder")
+    return browserGames.find((g) => g.engine === "phaser");
+  // Desktop-only: first browser-playable
+  return browserGames[0];
+};
+
+const nextGame = getNextGame(game);
+
+const getNextTag = (g: typeof game): string => {
+  if (g.engine === "phaser") return "Instant web-native";
+  if (g.touchDifficulty === "easy") return "Easiest on touch";
+  if (g.touchDifficulty === "medium") return "Medium on touch";
+  if (g.touchDifficulty === "harder") return "Harder on touch";
+  return "";
+};
 ---
 
 <BaseLayout
@@ -291,22 +322,83 @@ const isDesktopAvailable = game.status === "desktop-available";
       )
     }
 
-    <div class="text-center mt-2">
-      {
-        game.browserUrl && (
-          <CTAButton href={game.browserUrl} variant="primary">
-            Play in Browser
-          </CTAButton>
-        )
-      }
-      {
-        game.desktopUrl && (
-          <CTAButton href={game.desktopUrl} variant="gold">
-            Download Desktop Release
-          </CTAButton>
-        )
-      }
-      <CTAButton href="/play" variant="outline">All Games</CTAButton>
+    <div class="game-detail__keep-playing">
+      <h2 class="game-detail__keep-playing-title">Keep playing</h2>
+      <div class="game-detail__keep-playing-grid">
+        <div class="game-detail__keep-playing-card">
+          <span class="game-detail__keep-playing-heading">Play this game</span>
+          {
+            isBrowserPlayable && game.browserUrl && (
+              <a
+                href={game.browserUrl}
+                class="game-detail__keep-playing-link game-detail__keep-playing-link--primary"
+                data-game-id={game.id}
+                data-game-title={game.title}
+                data-browser-playable="true"
+                data-game-page={game.browserUrl}
+                data-game-archive={getArchiveUrl(game)}
+                data-game-launch="true"
+                data-captains-log={game.id}
+              >
+                ▶ Play in Browser
+              </a>
+            )
+          }
+          {
+            game.desktopUrl && (
+              <a
+                href={game.desktopUrl}
+                class="game-detail__keep-playing-link"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Desktop download →
+              </a>
+            )
+          }
+        </div>
+        <div class="game-detail__keep-playing-card">
+          <span class="game-detail__keep-playing-heading">Back to arcade</span>
+          <a href="/play/" class="game-detail__keep-playing-link">
+            See all games →
+          </a>
+        </div>
+        {
+          nextGame && (
+            <div class="game-detail__keep-playing-card">
+              <span class="game-detail__keep-playing-heading">Try next</span>
+              <span class="game-detail__keep-playing-tag">
+                {getNextTag(nextGame)}
+              </span>
+              {nextGame.status === "browser-playable" && nextGame.browserUrl ? (
+                <a
+                  href={nextGame.browserUrl}
+                  class="game-detail__keep-playing-link"
+                  data-game-id={nextGame.id}
+                  data-game-title={nextGame.title}
+                  data-browser-playable="true"
+                  data-game-page={nextGame.browserUrl}
+                  data-game-archive={getArchiveUrl(nextGame)}
+                  data-game-launch="true"
+                  data-captains-log={nextGame.id}
+                >
+                  {nextGame.title}
+                </a>
+              ) : (
+                <a
+                  href={`/games/${nextGame.id}/`}
+                  class="game-detail__keep-playing-link"
+                >
+                  {nextGame.title}
+                </a>
+              )}
+              {nextGame.bestFor && (
+                <p class="game-detail__keep-playing-desc">{nextGame.bestFor}</p>
+              )}
+            </div>
+          )
+        }
+      </div>
     </div>
   </article>
 </BaseLayout>
@@ -579,5 +671,95 @@ const isDesktopAvailable = game.status === "desktop-available";
     .game-detail__art-figure figcaption {
       font-size: 0.625rem;
     }
+
+    .game-detail__keep-playing-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .game-detail__keep-playing {
+    margin-top: 3rem;
+    padding-top: 2rem;
+    border-top: 1px solid var(--line);
+  }
+
+  .game-detail__keep-playing-title {
+    font-family: var(--display);
+    font-size: 1.25rem;
+    color: var(--ink);
+    margin-bottom: 1.25rem;
+  }
+
+  .game-detail__keep-playing-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 1rem;
+  }
+
+  .game-detail__keep-playing-card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .game-detail__keep-playing-heading {
+    font-family: var(--mono);
+    font-size: 0.625rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--accent);
+  }
+
+  .game-detail__keep-playing-link {
+    font-size: 0.875rem;
+    color: var(--accent);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    line-height: 1.4;
+  }
+
+  .game-detail__keep-playing-link:hover {
+    color: var(--ink);
+  }
+
+  .game-detail__keep-playing-link--primary {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 0.8125rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--paper-cta-fg);
+    background: var(--paper-cta-bg);
+    border: 1px solid var(--paper-cta-border);
+    border-radius: var(--radius);
+    padding: 0.5rem 1rem;
+    text-decoration: none;
+    text-align: center;
+  }
+
+  .game-detail__keep-playing-link--primary:hover {
+    background: var(--paper-cta-border);
+  }
+
+  .game-detail__keep-playing-tag {
+    font-family: var(--mono);
+    font-size: 0.625rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 0.125rem 0.375rem;
+    border: 1px solid var(--sea);
+    color: var(--sea);
+    border-radius: 3px;
+    align-self: flex-start;
+  }
+
+  .game-detail__keep-playing-desc {
+    font-size: 0.8125rem;
+    color: var(--muted);
+    line-height: 1.4;
   }
 </style>
