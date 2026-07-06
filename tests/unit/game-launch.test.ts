@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync, existsSync, readdirSync, statSync } from "fs";
-import { resolve, extname, relative, sep } from "path";
+import { resolve, extname, relative } from "path";
 import type { Game } from "../../src/data/games";
 import {
   isBrowserPlayable,
@@ -25,9 +25,16 @@ describe("import boundary: gameLaunch is server-only", () => {
     return results;
   }
 
+  function importsGameLaunch(content: string): boolean {
+    return (
+      /from\s+["'][^"']*gameLaunch["']/.test(content) ||
+      /import\s*\(\s*["'][^"']*gameLaunch["']\s*\)/.test(content) ||
+      /require\s*\(\s*["'][^"']*gameLaunch["']\s*\)/.test(content)
+    );
+  }
+
   const srcDir = resolve("src");
   const extOk = new Set([".astro"]);
-  const gameLaunchPattern = /from\s+["'].*gameLaunch["']/;
 
   const offenders: string[] = [];
 
@@ -37,13 +44,16 @@ describe("import boundary: gameLaunch is server-only", () => {
     const rel = relative(srcDir, f);
     if (rel.endsWith("lib/gameLaunch.ts")) continue;
     const content = readFileSync(f, "utf-8");
-    if (gameLaunchPattern.test(content)) {
+    if (importsGameLaunch(content)) {
       offenders.push(rel);
     }
   }
 
   it("no non-astro file imports gameLaunch", () => {
-    expect(offenders).toEqual([]);
+    expect(
+      offenders,
+      `gameLaunch is server-only; offending imports:\n${offenders.join("\n")}`,
+    ).toEqual([]);
   });
 });
 
