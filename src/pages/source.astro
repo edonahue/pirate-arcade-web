@@ -39,14 +39,20 @@ const webNativeGames = browserGames.filter((g) => g.engine === "phaser");
     <ul class="source-list">
       <li class="source-list__item">
         <div class="source-list__item-badges">
-          <img
-            src="https://img.shields.io/github/actions/workflow/status/edonahue/pirate-arcade/ci.yml?label=desktop+CI&style=flat-square"
-            alt="Desktop CI status"
-          />
-          <img
-            src="https://img.shields.io/github/v/release/edonahue/pirate-arcade?style=flat-square&label=release"
-            alt="Latest release"
-          />
+          <a
+            href="https://github.com/edonahue/pirate-arcade/actions/workflows/ci.yml"
+            class="badge"
+            aria-label="Desktop CI status"
+          >
+            CI
+          </a>
+          <a
+            href="https://github.com/edonahue/pirate-arcade/releases"
+            class="badge"
+            aria-label="Latest release"
+          >
+            Release
+          </a>
         </div>
         <h2 class="source-list__item-title">Desktop Game Repository</h2>
         <p class="source-list__item-description">
@@ -66,14 +72,20 @@ const webNativeGames = browserGames.filter((g) => g.engine === "phaser");
 
       <li class="source-list__item">
         <div class="source-list__item-badges">
-          <img
-            src="https://img.shields.io/github/actions/workflow/status/edonahue/pirate-arcade-web/ci.yml?label=website+CI&style=flat-square"
-            alt="Website CI status"
-          />
-          <img
-            src="https://img.shields.io/github/v/release/edonahue/pirate-arcade-web?style=flat-square&label=release"
-            alt="Latest website release"
-          />
+          <a
+            href="https://github.com/edonahue/pirate-arcade-web/actions/workflows/ci.yml"
+            class="badge"
+            aria-label="Website CI status"
+          >
+            CI
+          </a>
+          <a
+            href="https://github.com/edonahue/pirate-arcade-web/releases"
+            class="badge"
+            aria-label="Latest website release"
+          >
+            Release
+          </a>
         </div>
         <h2 class="source-list__item-title">Website Repository</h2>
         <p class="source-list__item-description">
@@ -459,6 +471,24 @@ const webNativeGames = browserGames.filter((g) => g.engine === "phaser");
     p.text-center.mt-2 a {
       text-decoration: underline;
       text-underline-offset: 2px;
+    }
+    .badge {
+      display: inline-block;
+      padding: 2px 6px;
+      font-size: 11px;
+      font-weight: 600;
+      line-height: 1.4;
+      color: #fff;
+      background-color: #007ec6;
+      border-radius: 4px;
+      text-decoration: none;
+      white-space: nowrap;
+      vertical-align: baseline;
+      margin-right: 4px;
+    }
+    .badge:hover,
+    .badge:focus {
+      background-color: #005a9e;
     }
   </style>
 </BaseLayout>

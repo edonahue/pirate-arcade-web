@@ -162,6 +162,30 @@ test.describe("Site Game Content", () => {
         `text=All code is open source under the ${projectLicense} license`,
       ),
     ).toBeVisible();
+
+    // Check for the badges (replaced remote images with accessible links)
+    // Desktop repository badges
+    await expect(
+      page.locator(
+        '.source-list__item:nth-child(1) .source-list__item-badges >> a[aria-label="Desktop CI status"]',
+      ),
+    ).toBeVisible();
+    await expect(
+      page.locator(
+        '.source-list__item:nth-child(1) .source-list__item-badges >> a[aria-label="Latest release"]',
+      ),
+    ).toBeVisible();
+    // Website repository badges
+    await expect(
+      page.locator(
+        '.source-list__item:nth-child(2) .source-list__item-badges >> a[aria-label="Website CI status"]',
+      ),
+    ).toBeVisible();
+    await expect(
+      page.locator(
+        '.source-list__item:nth-child(2) .source-list__item-badges >> a[aria-label="Latest website release"]',
+      ),
+    ).toBeVisible();
   });
 
   test("play page desktop section does not show browser language for Port Royale", async ({
