@@ -421,3 +421,74 @@ test.describe("Game Detail Page", () => {
     expect(href).toBe("/play/race-to-treasure-island/");
   });
 });
+
+test.describe("Theme Toggle Accessible Name", () => {
+  test.use({ viewport: { width: 1440, height: 900 } });
+
+  test("Default dark state has correct accessible name", async ({ page }) => {
+    await page.goto("/");
+    const toggle = page.locator("[data-theme-toggle]");
+    await expect(toggle).toHaveAttribute("aria-label", "Switch to light theme");
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+  });
+
+  test("Persisted light state has correct accessible name", async ({
+    page,
+  }) => {
+    // Set theme to light before navigation
+    await page.goto("/");
+    await page.evaluate(() => {
+      window.localStorage.setItem("pirate-arcade-theme", "light");
+    });
+    await page.reload();
+    const toggle = page.locator("[data-theme-toggle]");
+    await expect(toggle).toHaveAttribute("aria-label", "Switch to dark theme");
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+  });
+
+  test("Activation toggles theme and updates accessible name", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    const toggle = page.locator("[data-theme-toggle]");
+
+    // Start in dark, toggle to light
+    await expect(toggle).toHaveAttribute("aria-label", "Switch to light theme");
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+
+    await toggle.click();
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+    await expect(toggle).toHaveAttribute("aria-label", "Switch to dark theme");
+
+    // Toggle back to dark
+    await toggle.click();
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+    await expect(toggle).toHaveAttribute("aria-label", "Switch to light theme");
+  });
+
+  test("Accessible name updates on each toggle without reload", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    const toggle = page.locator("[data-theme-toggle]");
+
+    // Multiple rapid toggles - accessible name should track each state
+    for (let i = 0; i < 4; i++) {
+      const currentTheme = await page
+        .locator("html")
+        .getAttribute("data-theme");
+      const expectedLabel =
+        currentTheme === "light"
+          ? "Switch to dark theme"
+          : "Switch to light theme";
+      await expect(toggle).toHaveAttribute("aria-label", expectedLabel);
+
+      await toggle.click();
+      await page.waitForTimeout(50); // Allow DOM update
+    }
+
+    // Final state should be back to dark (even number of toggles)
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+    await expect(toggle).toHaveAttribute("aria-label", "Switch to light theme");
+  });
+});

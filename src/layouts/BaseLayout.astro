@@ -107,6 +107,15 @@ const jsonLd = jsonLdGraph([
         const stored = window.localStorage.getItem(key);
         const theme = stored === "light" ? "light" : "dark";
         document.documentElement.dataset.theme = theme;
+        const toggle = document.querySelector("[data-theme-toggle]");
+        if (toggle) {
+          toggle.setAttribute(
+            "aria-label",
+            theme === "light"
+              ? "Switch to dark theme"
+              : "Switch to light theme",
+          );
+        }
       })();
     </script>
     <title>{pageTitle}</title>
@@ -184,10 +193,23 @@ const jsonLd = jsonLdGraph([
         const toggle = document.querySelector("[data-theme-toggle]");
         if (!toggle) return;
 
+        const updateAriaLabel = (theme) => {
+          toggle.setAttribute(
+            "aria-label",
+            theme === "light"
+              ? "Switch to dark theme"
+              : "Switch to light theme",
+          );
+        };
+
+        // Set initial aria-label based on current theme
+        updateAriaLabel(root.dataset.theme);
+
         toggle.addEventListener("click", () => {
           const next = root.dataset.theme === "light" ? "dark" : "light";
           root.dataset.theme = next;
           window.localStorage.setItem(key, next);
+          updateAriaLabel(next);
         });
       })();
     </script>
