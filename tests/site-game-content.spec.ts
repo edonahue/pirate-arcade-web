@@ -16,6 +16,7 @@ const browserGames = games.filter((g: any) => g.status === "browser-playable");
 const desktopGames = games.filter((g: any) => g.status === "desktop-available");
 const pygbagGames = browserGames.filter((g: any) => g.engine === "pygbag");
 const phaserGames = browserGames.filter((g: any) => g.engine === "phaser");
+const instantGame = phaserGames[0];
 
 type Rect = { x: number; y: number; width: number; height: number };
 function rectanglesDoNotOverlap(a: Rect, b: Rect): boolean {
@@ -386,6 +387,57 @@ test.describe("Site Game Content", () => {
     await expect(
       page.locator(".recommended-path__label:has-text('Desktop collection')"),
     ).toBeVisible();
+  });
+
+  test("play page hero has primary Play Instantly action with derived instant game", async ({
+    page,
+  }) => {
+    await page.goto("/play/");
+
+    const primaryCta = page.locator(
+      '.hero__actions .cta--primary:has-text("Play Instantly:")',
+    );
+    await expect(primaryCta.first()).toBeVisible();
+    await expect(primaryCta.first()).toHaveAttribute(
+      "href",
+      instantGame.browserUrl,
+    );
+    await expect(primaryCta.first()).toContainText(
+      `Play Instantly: ${instantGame.title}`,
+    );
+  });
+
+  test("play page hero has secondary Help Me Choose action linking to start-here", async ({
+    page,
+  }) => {
+    await page.goto("/play/");
+
+    const secondaryCta = page.locator(
+      '.hero__actions .cta--outline:has-text("Help Me Choose")',
+    );
+    await expect(secondaryCta.first()).toBeVisible();
+    await expect(secondaryCta.first()).toHaveAttribute("href", "#start-here");
+  });
+
+  test("play page hero actions work on mobile viewport", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/play/");
+
+    const primaryCta = page.locator(
+      '.hero__actions .cta--primary:has-text("Play Instantly:")',
+    );
+    const secondaryCta = page.locator(
+      '.hero__actions .cta--outline:has-text("Help Me Choose")',
+    );
+
+    await expect(primaryCta.first()).toBeVisible();
+    await expect(secondaryCta.first()).toBeVisible();
+
+    await expect(primaryCta.first()).toHaveAttribute(
+      "href",
+      instantGame.browserUrl,
+    );
+    await expect(secondaryCta.first()).toHaveAttribute("href", "#start-here");
   });
 
   test("homepage quick-start labels are text-only", async ({ page }) => {

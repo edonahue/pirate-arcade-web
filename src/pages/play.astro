@@ -5,6 +5,7 @@ import GameCard from "../components/GameCard.astro";
 import ArcadeFrame from "../components/ArcadeFrame.astro";
 import ArcadeStatusPanel from "../components/ArcadeStatusPanel.astro";
 import CaptainsLog from "../components/CaptainsLog.astro";
+import CTAButton from "../components/CTAButton.astro";
 import { games } from "../data/games";
 import { webPageNode } from "../lib/schema";
 import {
@@ -63,7 +64,12 @@ const desktopGame = desktopGames[0];
     eyebrow="Find Your Game"
     backgroundImage="/images/art/pyle-blackbeard-buries-treasure.webp"
     artPosition="50% 45%"
-  />
+  >
+    <CTAButton href={instantGame.browserUrl!} variant="primary">
+      Play Instantly: {instantGame.title}
+    </CTAButton>
+    <CTAButton href="#start-here" variant="outline"> Help Me Choose </CTAButton>
+  </Hero>
 
   <section class="section" id="start-here">
     <div class="section__header">
