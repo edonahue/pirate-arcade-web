@@ -247,6 +247,14 @@ function main() {
           csp.includes("https://cdn.jsdelivr.net"),
           `"${pat}" CSP includes https://cdn.jsdelivr.net in script-src`,
         );
+        assert(
+          csp.includes("https://static.cloudflareinsights.com"),
+          `"${pat}" CSP includes https://static.cloudflareinsights.com in script-src`,
+        );
+        assert(
+          csp.includes("connect-src 'self'"),
+          `"${pat}" CSP retains 'self' in connect-src`,
+        );
       }
     }
   }
@@ -283,6 +291,14 @@ function main() {
       assert(
         csp.includes("'wasm-unsafe-eval'"),
         '"/*" CSP includes wasm-unsafe-eval',
+      );
+      assert(
+        csp.includes("https://static.cloudflareinsights.com"),
+        '"/*" CSP includes https://static.cloudflareinsights.com in script-src',
+      );
+      assert(
+        csp.includes("connect-src 'self'"),
+        "\"/*\" CSP retains 'self' in connect-src",
       );
     }
   }
@@ -335,6 +351,17 @@ function main() {
     const csp = effective.get("content-security-policy") || "";
 
     assert(effective.size > 0, `${tc.desc} (${tc.url}) has headers`);
+
+    // All effective CSPs must allow Cloudflare Insights script origin
+    assert(
+      csp.includes("https://static.cloudflareinsights.com"),
+      `${tc.desc} (${tc.url}) effective CSP includes https://static.cloudflareinsights.com in script-src`,
+    );
+    // All effective CSPs must retain 'self' in connect-src
+    assert(
+      csp.includes("connect-src 'self'"),
+      `${tc.desc} (${tc.url}) effective CSP retains 'self' in connect-src`,
+    );
 
     if (tc.expectUnsafeEval) {
       assert(
