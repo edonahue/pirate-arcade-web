@@ -1,6 +1,7 @@
 ---
 import StatusBadge from "./StatusBadge.astro";
 import type { PostMeta } from "../data/posts";
+import { formatDateShort, formatDateTimeISO } from "../lib/date";
 
 export interface Props {
   post: PostMeta;
@@ -12,14 +13,8 @@ const { post } = Astro.props;
 <article class="build-log-card">
   <a href={`/build-log/${post.slug}`}>
     <div class="build-log-card__meta">
-      <time datetime={post.pubDate.toISOString()}>
-        {
-          post.pubDate.toLocaleDateString("en-US", {
-            year: "numeric",
-            month: "short",
-            day: "numeric",
-          })
-        }
+      <time datetime={formatDateTimeISO(post.pubDate)}>
+        {formatDateShort(post.pubDate)}
       </time>
       <StatusBadge variant="post" label="Build Note" />
     </div>
