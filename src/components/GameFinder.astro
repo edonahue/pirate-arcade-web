@@ -1,0 +1,291 @@
+---
+import type { Game } from "../data/games";
+import { recommendGame } from "../scripts/game-finder";
+import { getLaunchLinkAttrs } from "../lib/gameLaunch";
+
+interface Props {
+  games: readonly Game[];
+}
+const { games } = Astro.props;
+const { game: initialGame, reason } = recommendGame(games, { load: "instant" });
+const initialLaunchAttrs = getLaunchLinkAttrs(initialGame)!;
+---
+
+<section class="game-finder" aria-labelledby="gf-heading">
+  <h2 id="gf-heading" class="game-finder__heading">Choose Your Voyage</h2>
+  <p class="game-finder__intro">
+    Pick your preferences and we'll match you with a game you can play right
+    now.
+  </p>
+
+  <form class="game-finder__form" data-pref>
+    <fieldset class="game-finder__field">
+      <legend>Control scheme</legend>
+      <select name="control" class="game-finder__select" data-pref="control">
+        <option value="any">No preference</option>
+        <option value="touch">Touch</option>
+        <option value="keyboard">Keyboard / mouse</option>
+      </select>
+    </fieldset>
+
+    <fieldset class="game-finder__field">
+      <legend>Load speed</legend>
+      <select name="load" class="game-finder__select" data-pref="load">
+        <option value="any">No preference</option>
+        <option value="instant">Start instantly</option>
+        <option value="runtime-ok">Runtime download is fine</option>
+      </select>
+    </fieldset>
+
+    <fieldset class="game-finder__field">
+      <legend>Challenge</legend>
+      <select
+        name="challenge"
+        class="game-finder__select"
+        data-pref="challenge"
+      >
+        <option value="any">No preference</option>
+        <option value="easier">Easier</option>
+        <option value="balanced">Balanced</option>
+        <option value="harder">Harder</option>
+      </select>
+    </fieldset>
+  </form>
+
+  <div class="game-finder__result" aria-live="polite">
+    <h3 class="game-finder__title" data-title>{initialGame.title}</h3>
+    <p class="game-finder__reason" data-reason>{reason}</p>
+    <p class="game-finder__bestfor" data-bestfor hidden={!initialGame.bestFor}>
+      {initialGame.bestFor}
+    </p>
+    <a class="game-finder__cta" data-cta {...initialLaunchAttrs}>
+      Play {initialGame.title}
+    </a>
+  </div>
+
+  <script
+    is:inline
+    type="application/json"
+    data-game-finder-launches
+    set:html={JSON.stringify(
+      Object.fromEntries(
+        games.flatMap((game) => {
+          const attrs = getLaunchLinkAttrs(game);
+          return attrs ? [[game.id, attrs]] : [];
+        }),
+      ),
+    )}
+  />
+</section>
+
+<script>
+  import { games } from "../data/games";
+  import { recommendGame } from "../scripts/game-finder";
+  import type {
+    ControlPreference,
+    LoadPreference,
+    ChallengePreference,
+  } from "../scripts/game-finder";
+
+  const finders = document.querySelectorAll<HTMLElement>(".game-finder");
+  finders.forEach((finder) => {
+    const script = finder.querySelector<HTMLScriptElement>(
+      "script[data-game-finder-launches]",
+    );
+    if (!script?.textContent) return;
+    const metadata = JSON.parse(script.textContent) as Record<
+      string,
+      Record<string, string>
+    >;
+
+    const form = finder.querySelector<HTMLFormElement>("[data-pref]");
+    const titleEl = finder.querySelector<HTMLHeadingElement>("[data-title]");
+    const reasonEl =
+      finder.querySelector<HTMLParagraphElement>("[data-reason]");
+    const bestforEl =
+      finder.querySelector<HTMLParagraphElement>("[data-bestfor]");
+    const ctaEl = finder.querySelector<HTMLAnchorElement>("[data-cta]");
+    if (!form || !titleEl || !reasonEl || !bestforEl || !ctaEl) return;
+
+    form.addEventListener("change", () => {
+      const formData = new FormData(form);
+      const control = formData.get("control") as ControlPreference | null;
+      const load = formData.get("load") as LoadPreference | null;
+      const challenge = formData.get("challenge") as ChallengePreference | null;
+      const { game, reason: newReason } = recommendGame(games, {
+        control: control ?? undefined,
+        load: load ?? undefined,
+        challenge: challenge ?? undefined,
+      });
+
+      titleEl.textContent = game.title;
+      reasonEl.textContent = newReason;
+
+      if (game.bestFor) {
+        bestforEl.textContent = game.bestFor;
+        bestforEl.removeAttribute("hidden");
+      } else {
+        bestforEl.setAttribute("hidden", "");
+      }
+
+      ctaEl.textContent = `Play ${game.title}`;
+      const attrs = metadata[game.id];
+      if (attrs) {
+        [
+          "href",
+          "data-game-id",
+          "data-game-title",
+          "data-browser-playable",
+          "data-game-page",
+          "data-game-archive",
+          "data-game-launch",
+          "data-captains-log",
+        ].forEach((attr) => {
+          ctaEl.removeAttribute(attr);
+        });
+        for (const [key, value] of Object.entries(attrs)) {
+          ctaEl.setAttribute(key, value);
+        }
+      }
+    });
+  });
+</script>
+
+<style>
+  .game-finder {
+    --gap: 1rem;
+    --field-gap: 0.5rem;
+    display: grid;
+    gap: var(--gap);
+    padding: 1.5rem;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+  }
+
+  .game-finder__heading {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--ink-strong);
+  }
+
+  .game-finder__intro {
+    margin: 0;
+    font-size: 0.875rem;
+    color: var(--muted);
+  }
+
+  .game-finder__form {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--gap);
+    align-items: end;
+  }
+
+  .game-finder__field {
+    margin: 0;
+    padding: 0;
+    border: none;
+    display: grid;
+    gap: var(--field-gap);
+  }
+
+  .game-finder__field legend {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--muted);
+  }
+
+  .game-finder__select {
+    appearance: none;
+    width: 100%;
+    padding: 0.5rem 2rem 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    line-height: 1.4;
+    color: var(--ink);
+    background: var(--surface-soft);
+    border: 1px solid var(--line);
+    border-radius: 0.375rem;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.5rem center;
+    background-size: 1rem;
+  }
+
+  .game-finder__select:focus {
+    outline: none;
+    border-color: var(--focus);
+    box-shadow: 0 0 0 2px var(--focus);
+  }
+
+  .game-finder__result {
+    display: grid;
+    gap: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid var(--line);
+  }
+
+  .game-finder__title {
+    margin: 0;
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--ink-strong);
+  }
+
+  .game-finder__reason {
+    margin: 0;
+    font-size: 0.875rem;
+    color: var(--muted);
+  }
+
+  .game-finder__bestfor {
+    margin: 0;
+    font-size: 0.8125rem;
+    font-style: italic;
+    color: var(--accent);
+  }
+
+  .game-finder__cta {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 0.25rem;
+    padding: 0.75rem 1rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--surface);
+    background: var(--accent);
+    border: none;
+    border-radius: 0.375rem;
+    text-decoration: none;
+    transition: background 0.15s ease;
+  }
+
+  .game-finder__cta:hover,
+  .game-finder__cta:focus {
+    background: var(--accent-strong);
+  }
+
+  .game-finder__cta:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--focus);
+  }
+
+  @media (max-width: 640px) {
+    .game-finder {
+      padding: 1rem;
+    }
+
+    .game-finder__form {
+      grid-template-columns: 1fr;
+    }
+
+    .game-finder__cta {
+      width: 100%;
+      min-height: 44px;
+    }
+  }
+</style>

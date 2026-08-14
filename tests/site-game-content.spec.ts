@@ -106,9 +106,9 @@ test.describe("Site Game Content", () => {
     await page.goto("/play/");
 
     const pygbagSection = page.locator("text=Pygbag / WebAssembly");
-    const phaserSection = page.locator("text=Web Native (Phaser 3)");
+    const webNativeSection = page.locator("text=Web Native (Phaser)");
     await expect(pygbagSection).toBeVisible();
-    await expect(phaserSection).toBeVisible();
+    await expect(webNativeSection).toBeVisible();
 
     for (const game of pygbagGames) {
       await expect(

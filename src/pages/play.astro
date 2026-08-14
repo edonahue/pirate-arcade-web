@@ -7,6 +7,7 @@ import ArcadeStatusPanel from "../components/ArcadeStatusPanel.astro";
 import CaptainsLog from "../components/CaptainsLog.astro";
 import CTAButton from "../components/CTAButton.astro";
 import { games } from "../data/games";
+import GameFinder from "../components/GameFinder.astro";
 import { webPageNode } from "../lib/schema";
 import {
   isBrowserPlayable,
@@ -46,13 +47,13 @@ const desktopGame = desktopGames[0];
 
 <BaseLayout
   title="Play"
-  description={`Play ${browserGames.length} pirate-themed arcade games in your browser now — including a Phaser 3 web-native racer and ${pygbagGames.length} Pygbag/WebAssembly ports. No install required.`}
+  description={`Play ${browserGames.length} pirate-themed arcade games in your browser now — including a web-native racer and ${pygbagGames.length} Pygbag/WebAssembly ports. No install required.`}
   current="play"
   jsonLd={[
     webPageNode(
       "/play/",
       "Play Pirate Arcade",
-      `Play ${browserGames.length} pirate-themed arcade games in your browser now — including a Phaser 3 web-native racer and ${pygbagGames.length} Pygbag/WebAssembly ports. No install required.`,
+      `Play ${browserGames.length} pirate-themed arcade games in your browser now — including a web-native racer and ${pygbagGames.length} Pygbag/WebAssembly ports. No install required.`,
       "CollectionPage",
     ),
   ]}
@@ -79,6 +80,7 @@ const desktopGame = desktopGames[0];
         Pick based on load time, touch difficulty, or arcade style.
       </p>
     </div>
+    <GameFinder games={browserGames} />
     <div class="recommended-path">
       {
         instantGame && (
@@ -220,10 +222,10 @@ const desktopGame = desktopGames[0];
             class="engine-card__marker engine-card__marker--javascript"
             aria-hidden="true">JS</span
           >
-          <h3 class="engine-card__title">Web Native (Phaser 3)</h3>
+          <h3 class="engine-card__title">Web Native (Phaser)</h3>
         </div>
         <p class="engine-card__desc">
-          JavaScript game built with Phaser 3. Loads instantly — no runtime
+          JavaScript game built with Phaser. Loads instantly — no runtime
           download. Seeded obstacle courses, deterministic AI, and real-time
           wind boost mechanics.
         </p>
@@ -409,55 +411,74 @@ const desktopGame = desktopGames[0];
         "a[data-game-id][data-browser-playable=true]",
       );
       allLinks.forEach(function (link) {
-        var gameId = link.getAttribute("data-game-id");
-        var pageUrl = link.getAttribute("data-game-page") || "";
-        var archiveUrl = link.getAttribute("data-game-archive") || "";
-        if (!pageUrl) return;
-
         link.addEventListener("pointerenter", function () {
-          triggerGamePrewarm(gameId, pageUrl, archiveUrl);
+          var gameId = link.getAttribute("data-game-id");
+          var pageUrl = link.getAttribute("data-game-page");
+          var archiveUrl = link.getAttribute("data-game-archive");
+          if (gameId && pageUrl) {
+            triggerGamePrewarm(gameId, pageUrl, archiveUrl);
+          }
         });
         link.addEventListener("pointerleave", function () {
-          cancelGamePrewarm(gameId);
+          var gameId = link.getAttribute("data-game-id");
+          if (gameId) {
+            cancelGamePrewarm(gameId);
+          }
         });
         link.addEventListener("focus", function () {
-          triggerGamePrewarm(gameId, pageUrl, archiveUrl);
-        });
-        link.addEventListener("blur", function () {
-          cancelGamePrewarm(gameId);
+          var gameId = link.getAttribute("data-game-id");
+          var pageUrl = link.getAttribute("data-game-page");
+          var archiveUrl = link.getAttribute("data-game-archive");
+          if (gameId && pageUrl) {
+            triggerGamePrewarm(gameId, pageUrl, archiveUrl);
+          }
         });
         link.addEventListener(
           "touchstart",
           function () {
-            triggerGamePrewarm(gameId, pageUrl, archiveUrl);
+            var gameId = link.getAttribute("data-game-id");
+            var pageUrl = link.getAttribute("data-game-page");
+            var archiveUrl = link.getAttribute("data-game-archive");
+            if (gameId && pageUrl) {
+              triggerGamePrewarm(gameId, pageUrl, archiveUrl);
+            }
           },
           { passive: true },
         );
+        link.addEventListener("blur", function () {
+          var gameId = link.getAttribute("data-game-id");
+          if (gameId) {
+            cancelGamePrewarm(gameId);
+          }
+        });
       });
 
       // Launch behavior only for actual launch links
       var launchLinks = document.querySelectorAll("a[data-game-launch=true]");
       launchLinks.forEach(function (link) {
-        var gameId = link.getAttribute("data-game-id");
-        var pageUrl = link.getAttribute("data-game-page") || "";
-        var title = link.getAttribute("data-game-title") || gameId;
-        var captainsLogId = link.getAttribute("data-captains-log");
-
-        // Open in new tab on desktop (fine pointer); same tab on mobile (coarse pointer)
+        // Captain's Log: record launch on click (before navigation)
+        // Desktop target/rel initialization outside click as before
         if (isDesktop) {
           link.setAttribute("target", "_blank");
           link.setAttribute("rel", "noopener noreferrer");
         }
+        link.addEventListener("click", function () {
+          var gameId = link.getAttribute("data-game-id");
+          var pageUrl = link.getAttribute("data-game-page");
+          var title = link.getAttribute("data-game-title");
+          var captainsLogId = link.getAttribute("data-captains-log");
 
-        // Captain's Log: record launch on click (before navigation)
-        if (captainsLogId) {
-          link.addEventListener("click", function () {
+          if (captainsLogId) {
             if (window.__paCaptainsLog && window.__paCaptainsLog.addEntry) {
-              window.__paCaptainsLog.addEntry(captainsLogId, title, pageUrl);
+              window.__paCaptainsLog.addEntry(
+                captainsLogId,
+                title || gameId || "",
+                pageUrl || "",
+              );
               window.__paCaptainsLog.incrementLaunchCount(captainsLogId);
             }
-          });
-        }
+          }
+        });
       });
     }
   </script>
