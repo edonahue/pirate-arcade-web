@@ -50,6 +50,25 @@ test.describe("Game Finder", () => {
     await expect(page.locator(".recommended-path")).toBeVisible();
   });
 
+  test("initial visible load preference matches instant-load recommendation", async ({
+    page,
+  }) => {
+    await page.goto("/play/");
+    const finder = page.locator("#start-here section.game-finder");
+
+    // Verify the load speed selector initially shows "Start instantly" (value="instant")
+    const loadSelect = finder.locator('select[name="load"]');
+    await expect(loadSelect).toHaveValue("instant");
+
+    // Verify the initial recommendation matches instant-load preference
+    const result = finder.locator(".game-finder__result");
+    const title = result.locator(".game-finder__title");
+    const cta = result.locator(".game-finder__cta");
+    await expect(title).toHaveText(instantGame!.title);
+    await expect(cta).toHaveAttribute("href", instantGame!.browserUrl);
+    await expect(cta).toHaveAttribute("data-game-id", instantGame!.id);
+  });
+
   test("updates deterministic recommendations and launch metadata", async ({
     page,
   }) => {
@@ -59,6 +78,9 @@ test.describe("Game Finder", () => {
     const title = result.locator(".game-finder__title");
     const cta = result.locator(".game-finder__cta");
 
+    // Explicitly set load to "any" (No preference) before testing touch-only
+    // since the initial default is now "instant"
+    await finder.locator('select[name="load"]').selectOption("any");
     await finder.locator('select[name="control"]').selectOption("touch");
     await expect(title).toHaveText(touchGame!.title);
     await expect(cta).toHaveAttribute("href", touchGame!.browserUrl);
@@ -78,6 +100,8 @@ test.describe("Game Finder", () => {
     );
 
     await page.reload();
+    // Explicitly set load to "any" so challenge=harder is tested in isolation
+    await finder.locator('select[name="load"]').selectOption("any");
     await finder.locator('select[name="challenge"]').selectOption("harder");
     await expect(title).toHaveText(harderGame!.title);
     await expect(cta).toHaveAttribute("href", harderGame!.browserUrl);
@@ -93,6 +117,10 @@ test.describe("Game Finder", () => {
     const result = finder.locator(".game-finder__result");
     const title = result.locator(".game-finder__title");
     const cta = result.locator(".game-finder__cta");
+
+    // Explicitly set load to "any" (No preference) before testing touch-only
+    // since the initial default is now "instant"
+    await finder.locator('select[name="load"]').selectOption("any");
 
     const controlSelect = finder.locator('select[name="control"]');
     await controlSelect.focus();
