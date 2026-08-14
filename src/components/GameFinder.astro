@@ -8,13 +8,13 @@ interface Props {
 }
 const { games } = Astro.props;
 const { game: initialGame, reason } = recommendGame(games, { load: "instant" });
-const launchAttrs = getLaunchLinkAttrs(initialGame)!;
+const initialLaunchAttrs = getLaunchLinkAttrs(initialGame)!;
 ---
 
 <section class="game-finder" aria-labelledby="gf-heading">
   <h2 id="gf-heading" class="game-finder__heading">Choose Your Voyage</h2>
   <p class="game-finder__intro">
-    Pick your preferences and we’ll match you with a game you can play right
+    Pick your preferences and we'll match you with a game you can play right
     now.
   </p>
 
@@ -58,11 +58,98 @@ const launchAttrs = getLaunchLinkAttrs(initialGame)!;
     <p class="game-finder__bestfor" data-bestfor hidden={!initialGame.bestFor}>
       {initialGame.bestFor}
     </p>
-    <a {...launchAttrs} class="game-finder__cta" data-cta
-      >Play {initialGame.title}</a
-    >
+    <a class="game-finder__cta" data-cta {...initialLaunchAttrs}>
+      Play {initialGame.title}
+    </a>
   </div>
+
+  <script
+    is:inline
+    type="application/json"
+    data-game-finder-launches
+    set:html={JSON.stringify(
+      Object.fromEntries(
+        games.flatMap((game) => {
+          const attrs = getLaunchLinkAttrs(game);
+          return attrs ? [[game.id, attrs]] : [];
+        }),
+      ),
+    )}
+  />
 </section>
+
+<script>
+  import { games } from "../data/games";
+  import { recommendGame } from "../scripts/game-finder";
+  import type {
+    ControlPreference,
+    LoadPreference,
+    ChallengePreference,
+  } from "../scripts/game-finder";
+
+  const finders = document.querySelectorAll<HTMLElement>(".game-finder");
+  finders.forEach((finder) => {
+    const script = finder.querySelector<HTMLScriptElement>(
+      "script[data-game-finder-launches]",
+    );
+    if (!script?.textContent) return;
+    const metadata = JSON.parse(script.textContent) as Record<
+      string,
+      Record<string, string>
+    >;
+
+    const form = finder.querySelector<HTMLFormElement>("[data-pref]");
+    const titleEl = finder.querySelector<HTMLHeadingElement>("[data-title]");
+    const reasonEl =
+      finder.querySelector<HTMLParagraphElement>("[data-reason]");
+    const bestforEl =
+      finder.querySelector<HTMLParagraphElement>("[data-bestfor]");
+    const ctaEl = finder.querySelector<HTMLAnchorElement>("[data-cta]");
+    if (!form || !titleEl || !reasonEl || !bestforEl || !ctaEl) return;
+
+    form.addEventListener("change", () => {
+      const formData = new FormData(form);
+      const control = formData.get("control") as ControlPreference | null;
+      const load = formData.get("load") as LoadPreference | null;
+      const challenge = formData.get("challenge") as ChallengePreference | null;
+      const { game, reason: newReason } = recommendGame(games, {
+        control: control ?? undefined,
+        load: load ?? undefined,
+        challenge: challenge ?? undefined,
+      });
+
+      titleEl.textContent = game.title;
+      reasonEl.textContent = newReason;
+
+      if (game.bestFor) {
+        bestforEl.textContent = game.bestFor;
+        bestforEl.removeAttribute("hidden");
+      } else {
+        bestforEl.setAttribute("hidden", "");
+      }
+
+      ctaEl.textContent = `Play ${game.title}`;
+      const attrs = metadata[game.id];
+      if (attrs) {
+        [
+          "href",
+          "data-game-id",
+          "data-game-title",
+          "data-browser-playable",
+          "data-game-page",
+          "data-game-archive",
+          "data-game-launch",
+          "data-captains-log",
+        ].forEach((attr) => {
+          ctaEl.removeAttribute(attr);
+        });
+        for (const [key, value] of Object.entries(attrs)) {
+          ctaEl.setAttribute(key, value);
+        }
+      }
+    });
+  });
+</script>
 
 <style>
   .game-finder {
