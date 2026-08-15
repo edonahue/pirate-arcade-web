@@ -15,13 +15,13 @@ const webNativeGames = browserGames.filter((g) => g.engine === "phaser");
 
 <BaseLayout
   title="Source"
-  description="Source code and engineering proof for Pirate Arcade. Two repos, automated release gate, Pygbag + Phaser 3 engines, screenshot validation, and deterministic test hooks."
+  description="Source code and engineering proof for Pirate Arcade. Two repos, automated release gate, Pygbag + Phaser 4 engines, screenshot validation, and deterministic test hooks."
   current="source"
   jsonLd={[
     webPageNode(
       "/source/",
       "Source Code and Releases — Pirate Arcade",
-      "Source code and engineering proof for Pirate Arcade. Two repos, automated release gate, Pygbag + Phaser 3 engines, screenshot validation, and deterministic test hooks.",
+      "Source code and engineering proof for Pirate Arcade. Two repos, automated release gate, Pygbag + Phaser 4 engines, screenshot validation, and deterministic test hooks.",
       "WebPage",
     ),
   ]}
@@ -166,7 +166,7 @@ const webNativeGames = browserGames.filter((g) => g.engine === "phaser");
       <div class="engineering-proof__card">
         <h3 class="engineering-proof__title">Static Site + Edge</h3>
         <p class="engineering-proof__desc">
-          Astro 6 static output deployed to Cloudflare Pages free tier. No
+          Astro 7 static output deployed to Cloudflare Pages free tier. No
           server, no database, no runtime.
         </p>
       </div>
@@ -174,7 +174,7 @@ const webNativeGames = browserGames.filter((g) => g.engine === "phaser");
         <h3 class="engineering-proof__title">Two Browser Engines</h3>
         <p class="engineering-proof__desc">
           {pygbagGames.length} Pygbag/WebAssembly ports (~12 MB runtime) plus
-          {webNativeGames.length} web-native Phaser 3 game
+          {webNativeGames.length} web-native Phaser 4 game
           {webNativeGames.length === 1 ? "" : "s"} (instant load, no download).
         </p>
       </div>
@@ -233,7 +233,7 @@ const webNativeGames = browserGames.filter((g) => g.engine === "phaser");
         Every tool used to build this project was free-to-use: open-source
         frameworks, free-tier cloud services, and local hardware. No paid AI
         models, no cloud compute, no subscriptions. The project now includes a
-        web-native Phaser 3 game alongside the Pygbag/WebAssembly ports.
+        web-native Phaser 4 game alongside the Pygbag/WebAssembly ports.
       </p>
     </div>
 

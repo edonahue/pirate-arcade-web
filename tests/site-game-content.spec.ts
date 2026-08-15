@@ -539,6 +539,52 @@ test.describe("Site Game Content", () => {
     await expect(registryCard).not.toContainText("SW cache");
   });
 
+  test("source page framework/engine majors reflect package.json", async ({
+    page,
+  }) => {
+    // Derive majors from package.json, tolerating semver prefixes (^, ~, >=, etc.)
+    const astroVersion = pkg.devDependencies.astro as string;
+    const phaserVersion = pkg.dependencies.phaser as string;
+    const astroMajor = astroVersion.replace(/^[\^~>=<]*/, "").split(".")[0];
+    const phaserMajor = phaserVersion.replace(/^[\^~>=<]*/, "").split(".")[0];
+
+    await page.goto("/source/");
+
+    // Hidden meta description — assert via attribute, not visibility
+    await expect(page.locator('meta[name="description"]')).toHaveAttribute(
+      "content",
+      `Source code and engineering proof for Pirate Arcade. Two repos, automated release gate, Pygbag + Phaser ${phaserMajor} engines, screenshot validation, and deterministic test hooks.`,
+    );
+
+    // JSON-LD — assert content without requiring script element to be visible
+    const jsonLdScript = page.locator('script[type="application/ld+json"]');
+    const jsonLdText = await jsonLdScript.textContent();
+    expect(jsonLdText).toBeTruthy();
+    const jsonLd = JSON.parse(jsonLdText!);
+    const webPage = jsonLd["@graph"].find((n: any) => n["@type"] === "WebPage");
+    expect(webPage).toBeTruthy();
+    expect(webPage.description).toContain(`Phaser ${phaserMajor}`);
+
+    // Three current visible claims in their scoped /source/ sections
+    // 1. Static Site + Edge card
+    const staticSiteCard = page
+      .locator(".engineering-proof__card:has-text('Static Site + Edge')")
+      .locator(".engineering-proof__desc");
+    await expect(staticSiteCard).toContainText(`Astro ${astroMajor}`);
+
+    // 2. Two Browser Engines card
+    const twoEnginesCard = page
+      .locator(".engineering-proof__card:has-text('Two Browser Engines')")
+      .locator(".engineering-proof__desc");
+    await expect(twoEnginesCard).toContainText(`Phaser ${phaserMajor}`);
+
+    // 3. AI Development Stack current-summary sentence
+    const aiStackSection = page.locator(
+      "section:has-text('AI Development Stack')",
+    );
+    await expect(aiStackSection).toContainText(`Phaser ${phaserMajor} game`);
+  });
+
   test("game detail pages show What this demonstrates", async ({ page }) => {
     for (const game of games) {
       await page.goto(`/games/${game.id}/`);
