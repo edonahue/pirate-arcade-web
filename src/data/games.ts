@@ -9,6 +9,8 @@ export type ControlMode = "pong" | "breakout" | "asteroids" | "racer";
 
 export type TouchDifficulty = "easy" | "medium" | "harder";
 
+export type ChallengeLevel = "easier" | "balanced" | "harder";
+
 export interface Game {
   id: string;
   title: string;
@@ -22,6 +24,7 @@ export interface Game {
   controlMode?: ControlMode;
   engine?: GameEngine;
   touchDifficulty?: TouchDifficulty;
+  challenge?: ChallengeLevel;
   features?: string[];
   touchControls?: string;
   keyboardControls?: string;

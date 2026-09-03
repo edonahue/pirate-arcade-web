@@ -24,6 +24,7 @@ const VALID_STATUSES = [
 const VALID_ENGINES = ["pygbag", "phaser"];
 const VALID_CONTROL_MODES = ["pong", "breakout", "asteroids", "racer"];
 const VALID_TOUCH_DIFFICULTIES = ["easy", "medium", "harder"];
+const VALID_CHALLENGES = ["easier", "balanced", "harder"];
 
 /** Fields required for every game */
 const REQUIRED_FIELDS = [
@@ -44,6 +45,7 @@ const BROWSER_REQUIRED = [
   "controlMode",
   "touchDifficulty",
   "touchDifficultyLabel",
+  "challenge",
   "touchControls",
   "keyboardControls",
   "howToPlay",
@@ -202,6 +204,15 @@ for (const game of games) {
     if (!VALID_TOUCH_DIFFICULTIES.includes(game.touchDifficulty)) {
       fail(
         `${prefix} invalid touchDifficulty '${game.touchDifficulty}'. Valid: ${VALID_TOUCH_DIFFICULTIES.join(", ")}`,
+      );
+    }
+  }
+
+  /** Check challenge (gameplay challenge, distinct from touchDifficulty) if present */
+  if (game.challenge !== undefined && game.challenge !== null) {
+    if (!VALID_CHALLENGES.includes(game.challenge)) {
+      fail(
+        `${prefix} invalid challenge '${game.challenge}'. Valid: ${VALID_CHALLENGES.join(", ")}`,
       );
     }
   }

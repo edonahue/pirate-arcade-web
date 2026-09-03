@@ -40,8 +40,8 @@ const getTouchLabel = (difficulty: string) => {
 
 const instantGame = webNativeGames[0];
 const easiestGame = browserGames.find((g) => g.touchDifficulty === "easy");
-const classicGame = browserGames.find((g) => g.touchDifficulty === "medium");
-const harderGame = browserGames.find((g) => g.touchDifficulty === "harder");
+const classicGame = browserGames.find((g) => g.challenge === "balanced");
+const harderGame = browserGames.find((g) => g.challenge === "harder");
 const desktopGame = desktopGames[0];
 ---
 

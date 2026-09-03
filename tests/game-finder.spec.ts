@@ -12,7 +12,7 @@ const games: any[] = JSON.parse(
 const browserGames = games.filter((g) => g.status === "browser-playable");
 const instantGame = browserGames.find((g) => g.engine === "phaser");
 const touchGame = browserGames.find((g) => g.touchDifficulty === "easy");
-const harderGame = browserGames.find((g) => g.touchDifficulty === "harder");
+const harderGame = browserGames.find((g) => g.challenge === "harder");
 
 for (const [name, game] of Object.entries({
   instantGame,
@@ -63,8 +63,10 @@ test.describe("Game Finder", () => {
     // Verify the initial recommendation matches instant-load preference
     const result = finder.locator(".game-finder__result");
     const title = result.locator(".game-finder__title");
+    const reason = result.locator(".game-finder__reason");
     const cta = result.locator(".game-finder__cta");
     await expect(title).toHaveText(instantGame!.title);
+    await expect(reason).toContainText("instant load");
     await expect(cta).toHaveAttribute("href", instantGame!.browserUrl);
     await expect(cta).toHaveAttribute("data-game-id", instantGame!.id);
   });
@@ -76,6 +78,7 @@ test.describe("Game Finder", () => {
     const finder = page.locator("#start-here section.game-finder");
     const result = finder.locator(".game-finder__result");
     const title = result.locator(".game-finder__title");
+    const reason = result.locator(".game-finder__reason");
     const cta = result.locator(".game-finder__cta");
 
     // Explicitly set load to "any" (No preference) before testing touch-only
@@ -83,6 +86,7 @@ test.describe("Game Finder", () => {
     await finder.locator('select[name="load"]').selectOption("any");
     await finder.locator('select[name="control"]').selectOption("touch");
     await expect(title).toHaveText(touchGame!.title);
+    await expect(reason).toContainText("easiest touch controls");
     await expect(cta).toHaveAttribute("href", touchGame!.browserUrl);
     await expect(cta).toHaveAttribute("data-game-id", touchGame!.id);
     await expect(cta).toHaveAttribute("data-game-launch", "true");
@@ -104,6 +108,7 @@ test.describe("Game Finder", () => {
     await finder.locator('select[name="load"]').selectOption("any");
     await finder.locator('select[name="challenge"]').selectOption("harder");
     await expect(title).toHaveText(harderGame!.title);
+    await expect(reason).toContainText("harder challenge");
     await expect(cta).toHaveAttribute("href", harderGame!.browserUrl);
     await expect(cta).toHaveAttribute("data-game-id", harderGame!.id);
     await expect(cta).toHaveAttribute("data-game-launch", "true");
