@@ -466,6 +466,24 @@ test.describe("Theme Toggle Accessible Name", () => {
     await expect(toggle).toHaveAttribute("aria-label", "Switch to light theme");
   });
 
+  test("Toggle icon matches the action", async ({ page }) => {
+    await page.goto("/");
+    const toggle = page.locator("[data-theme-toggle]");
+    const sun = toggle.locator(".theme-toggle__icon--sun");
+    const moon = toggle.locator(".theme-toggle__icon--moon");
+
+    // Dark theme: action is switching to light, so the sun shows
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+    await expect(sun).toBeVisible();
+    await expect(moon).toBeHidden();
+
+    // Light theme: action is switching to dark, so the moon shows
+    await toggle.click();
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+    await expect(moon).toBeVisible();
+    await expect(sun).toBeHidden();
+  });
+
   test("Accessible name updates on each toggle without reload", async ({
     page,
   }) => {

@@ -138,7 +138,24 @@
   outline-offset: 2px;
 }
 
-/* Light theme toggle shows moon icon in dark mode, sun in light mode */
+/* Theme toggle icon follows the action: sun in dark mode (switch to
+   light), moon in light mode (switch to dark). */
+.theme-toggle__icon {
+  display: inline-flex;
+}
+
+.theme-toggle__icon--moon {
+  display: none;
+}
+
+:root[data-theme="light"] .theme-toggle__icon--moon {
+  display: inline-flex;
+}
+
+:root[data-theme="light"] .theme-toggle__icon--sun {
+  display: none;
+}
+
 :root[data-theme="light"] .theme-toggle {
   border-color: var(--sea);
   color: var(--sea);
