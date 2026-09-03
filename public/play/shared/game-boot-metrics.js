@@ -284,9 +284,27 @@
     },
 
     // ── Boot stage management ──────────────────────────────────
+    // setBootStage() is the single source of truth for boot progress.
+    // It also notifies UI listeners (e.g. the loading overlay) via a
+    // narrow "pa-boot-stage" CustomEvent carrying { stage }. This is a
+    // one-event bridge for a single consumer, not a general observable.
     setBootStage: function (stage) {
       _bootStage = stage;
       writeStageContext();
+      try {
+        if (
+          typeof window.dispatchEvent === "function" &&
+          typeof window.CustomEvent === "function"
+        ) {
+          window.dispatchEvent(
+            new window.CustomEvent("pa-boot-stage", {
+              detail: { stage: stage },
+            }),
+          );
+        }
+      } catch (e) {
+        /* never break boot telemetry on event delivery */
+      }
     },
 
     getBootStage: function () {

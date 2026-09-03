@@ -13,15 +13,34 @@
   font-size: 20px; font-weight: bold;
   color: #d4af37; margin-bottom: 1.5rem;
 }
-#game-loading .loader-spinner {
-  width: 40px; height: 40px;
-  border: 3px solid #2a3142;
-  border-top-color: #d4af37;
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
+#game-loading .loader-stages {
+  display: flex; gap: 8px;
   margin-bottom: 1rem;
 }
-@keyframes spin { to { transform: rotate(360deg); } }
+#game-loading .loader-stage {
+  width: 28px; height: 4px;
+  border-radius: 2px;
+  background: transparent;
+  border: 1px solid #2a3142;
+}
+#game-loading .loader-stage.is-done {
+  background: #d4af37;
+  border-color: #d4af37;
+}
+#game-loading .loader-stage.is-current {
+  background: #2aa6a1;
+  border-color: #2aa6a1;
+  animation: stage-pulse 1.6s ease-in-out infinite;
+}
+@keyframes stage-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #game-loading .loader-stage.is-current {
+    animation: none;
+  }
+}
 #game-loading #game-loading-detail {
   font-size: 13px; color: #8a9ab0; margin-bottom: 0.5rem;
   min-height: 1.4em;
@@ -36,8 +55,9 @@
 #game-loading.game-error .loader-title {
   color: #e05050;
 }
-#game-loading.game-error .loader-spinner {
-  border-top-color: #e05050;
+#game-loading.game-error .loader-stage {
+  background: transparent;
+  border-color: #5a2a2a;
   animation: none;
 }
 #game-loading.game-error #game-loading-detail {

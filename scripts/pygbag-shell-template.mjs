@@ -321,9 +321,14 @@ ${bootCode
     <div id="rotate-device"><div class="icon">\u21bb</div><div>Rotate your device to landscape</div><div style="margin-top:0.5rem;font-size:13px;color:#6b7a8f;">This game is designed for landscape orientation.</div></div>
     <div id="game-loading" role="status" aria-live="polite">
       <div class="loader-title">Loading ${config.title}</div>
-      <div class="loader-spinner" aria-hidden="true"></div>
+      <div class="loader-stages" aria-hidden="true">
+        <span class="loader-stage is-current" data-stage="0"></span>
+        <span class="loader-stage" data-stage="1"></span>
+        <span class="loader-stage" data-stage="2"></span>
+        <span class="loader-stage" data-stage="3"></span>
+      </div>
       <div id="game-loading-detail">Starting game engine</div>
-      <div class="loader-note">First visit downloads ~12 MB. Repeat visits should be faster.</div>
+      <div class="loader-note">First launch loads the Python game runtime. Future launches are cached.</div>
     </div>
     <div id="game-wrap"
       data-control-mode="${config.controlsMode}"

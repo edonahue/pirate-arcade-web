@@ -277,6 +277,17 @@ describe("game-boot-metrics", () => {
     expect(m.getBootStage()).toBe("display-init");
   });
 
+  it("setBootStage dispatches pa-boot-stage with the stage", () => {
+    loadMetrics();
+    const m = getMetrics();
+    const seen: Array<string | undefined> = [];
+    window.addEventListener("pa-boot-stage", (event) => {
+      seen.push((event as CustomEvent).detail?.stage);
+    });
+    m.setBootStage("archive-fetch");
+    expect(seen).toEqual(["archive-fetch"]);
+  });
+
   it("setFailedStage records failed stage", () => {
     loadMetrics();
     const m = getMetrics();

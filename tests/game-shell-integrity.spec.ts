@@ -88,7 +88,7 @@ test.describe("Pygbag shell static integrity", () => {
 
         const note = await page.locator(".loader-note").textContent();
         expect(note).toBe(
-          "First visit downloads ~12 MB. Repeat visits should be faster.",
+          "First launch loads the Python game runtime. Future launches are cached.",
         );
       });
 
@@ -174,6 +174,50 @@ test.describe("Loading API behavior", () => {
         const note = await page.locator(".loader-note").textContent();
         expect(note).toContain("Still working");
         expect(note).not.toContain("iPad");
+      });
+
+      test("stage indicator advances on boot stages without regressing", async ({
+        page,
+      }) => {
+        await page.goto(game.path, { waitUntil: "domcontentloaded" });
+        await page.waitForFunction(
+          () => typeof (window as any).PirateArcadeLoading !== "undefined",
+        );
+
+        const spans = page.locator("#game-loading .loader-stage");
+        await expect(spans).toHaveCount(4);
+        await expect(
+          page.locator("#game-loading .loader-stages"),
+        ).toHaveAttribute("aria-hidden", "true");
+
+        const states = () =>
+          page.evaluate(() =>
+            Array.from(
+              document.querySelectorAll("#game-loading .loader-stage"),
+            ).map((el) =>
+              el.classList.contains("is-current")
+                ? "current"
+                : el.classList.contains("is-done")
+                  ? "done"
+                  : "todo",
+            ),
+          );
+        const emit = (stage: string) =>
+          page.evaluate((s) => {
+            window.dispatchEvent(
+              new window.CustomEvent("pa-boot-stage", { detail: { stage: s } }),
+            );
+          }, stage);
+
+        // Late-stage event advances to the final stage regardless of
+        // whatever the real concurrent boot has already reported.
+        await emit("game-ready");
+        expect(await states()).toEqual(["done", "done", "done", "current"]);
+
+        // Earlier or unknown stages never move the indicator backward.
+        await emit("python-ready");
+        await emit("not-a-real-stage");
+        expect(await states()).toEqual(["done", "done", "done", "current"]);
       });
 
       test("ready() hides the loading overlay", async ({ page }) => {

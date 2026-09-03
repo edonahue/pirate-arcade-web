@@ -23,6 +23,51 @@
   var _lastMessage = "";
   var _loadingWarnTimer = null;
   var _retryBtn = null;
+  // User-visible stage index (0-3). Advanced only by pa-boot-stage events
+  // while _phase === "loading"; never regresses. Segments are positional
+  // only — phase copy continues to come from set()/ready()/error().
+  var _stageIdx = 0;
+
+  // Boot stage -> user stage. Unknown stages return -1 (ignored).
+  // pygame-install and archive-fetch overlap by design and share one label.
+  function stageIndexForBootStage(stage) {
+    switch (stage) {
+      case "bootstrap":
+      case "runtime-script-requested":
+      case "runtime-script-loaded":
+      case "python-ready":
+        return 0;
+      case "boot-start":
+      case "pygame-install":
+      case "archive-fetch":
+      case "dependencies-ready":
+        return 1;
+      case "archive-extract":
+      case "path-setup":
+      case "pygame-import":
+      case "display-init":
+      case "game-module-import":
+      case "game-constructor":
+        return 2;
+      case "game-ready":
+      case "first-frame":
+      case "loader-hidden":
+      case "active-play":
+        return 3;
+      default:
+        return -1;
+    }
+  }
+
+  function _syncStageSegments() {
+    var el = _getEl();
+    if (!el) return;
+    var spans = el.querySelectorAll(".loader-stage");
+    for (var i = 0; i < spans.length; i++) {
+      spans[i].classList.toggle("is-done", i < _stageIdx);
+      spans[i].classList.toggle("is-current", i === _stageIdx);
+    }
+  }
 
   function _getEl() {
     if (!_loadingEl) {
@@ -159,6 +204,15 @@ error: function(msg) {
         // If we are disposing from loading or ready, there is no body class to remove.
       }
     },
+    // React to authoritative boot-stage changes without keeping an
+    // independent boot-state machine. Frozen once loading ends or errors.
+    onBootStage: function (stage) {
+      if (_phase !== "loading") return;
+      var idx = stageIndexForBootStage(stage);
+      if (idx < 0 || idx <= _stageIdx) return;
+      _stageIdx = idx;
+      _syncStageSegments();
+    },
     isReady: function () {
       return _phase === "ready";
     },
@@ -166,6 +220,7 @@ error: function(msg) {
       var el = document.getElementById("game-loading");
       return {
         phase: _phase,
+        stage: _stageIdx,
         message: _lastMessage,
         ready: (_phase === "ready"),
         errored: (_phase === "error"),
@@ -177,4 +232,21 @@ error: function(msg) {
     // Ownership marker: identifies this as the canonical PirateArcade implementation
     __pirateArcadeOwned: true
   };
+
+  // Single consumer of the pa-boot-stage bridge. Registered once: the
+  // double-setup guard above returns early on repeat evaluation.
+  if (typeof window.addEventListener === "function") {
+    window.addEventListener("pa-boot-stage", function (event) {
+      var api = window.PirateArcadeLoading;
+      var stage =
+        event && event.detail ? event.detail.stage : undefined;
+      if (
+        api &&
+        api.__pirateArcadeOwned &&
+        typeof api.onBootStage === "function"
+      ) {
+        api.onBootStage(stage);
+      }
+    });
+  }
 })();

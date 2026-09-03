@@ -16,7 +16,12 @@ describe("pygbag-loading (PirateArcadeLoading)", () => {
     document.body.innerHTML = `
       <div id="game-loading" role="status" aria-live="polite" class="hidden">
         <div class="loader-title">Loading</div>
-        <div class="loader-spinner"></div>
+        <div class="loader-stages" aria-hidden="true">
+          <span class="loader-stage is-current" data-stage="0"></span>
+          <span class="loader-stage" data-stage="1"></span>
+          <span class="loader-stage" data-stage="2"></span>
+          <span class="loader-stage" data-stage="3"></span>
+        </div>
         <div id="game-loading-detail">Starting</div>
         <div class="loader-note">Initial</div>
       </div>`;
@@ -338,6 +343,75 @@ describe("pygbag-loading (PirateArcadeLoading)", () => {
       expect(() => {
         (window as any).PirateArcadeLoading.error("fail");
       }).not.toThrow();
+    });
+  });
+
+  describe("boot stage progress", () => {
+    beforeEach(() => {
+      loadLoadingScript();
+    });
+
+    function stageStates(): string[] {
+      return Array.from(
+        document.querySelectorAll("#game-loading .loader-stage"),
+      ).map((el) =>
+        el.classList.contains("is-current")
+          ? "current"
+          : el.classList.contains("is-done")
+            ? "done"
+            : "todo",
+      );
+    }
+
+    function emitStage(stage: string): void {
+      window.dispatchEvent(
+        new window.CustomEvent("pa-boot-stage", { detail: { stage } }),
+      );
+    }
+
+    it("starts with the first stage current", () => {
+      expect(stageStates()).toEqual(["current", "todo", "todo", "todo"]);
+    });
+
+    it("groups known boot stages into four user stages", () => {
+      const api = (window as any).PirateArcadeLoading;
+      emitStage("python-ready");
+      expect(stageStates()[0]).toBe("current");
+      emitStage("archive-fetch");
+      expect(stageStates()).toEqual(["done", "current", "todo", "todo"]);
+      emitStage("display-init");
+      expect(stageStates()).toEqual(["done", "done", "current", "todo"]);
+      emitStage("game-ready");
+      expect(stageStates()).toEqual(["done", "done", "done", "current"]);
+      expect(api.getState().stage).toBe(3);
+    });
+
+    it("never regresses on out-of-order or unknown stages", () => {
+      emitStage("game-ready");
+      emitStage("python-ready");
+      emitStage("not-a-real-stage");
+      expect(stageStates()).toEqual(["done", "done", "done", "current"]);
+    });
+
+    it("freezes stages on error and keeps them frozen", () => {
+      const api = (window as any).PirateArcadeLoading;
+      emitStage("archive-fetch");
+      api.error("fail");
+      emitStage("game-ready");
+      expect(stageStates()).toEqual(["done", "current", "todo", "todo"]);
+      expect(api.getState().stage).toBe(1);
+    });
+
+    it("ignores stage events after ready", () => {
+      const api = (window as any).PirateArcadeLoading;
+      api.ready("Done");
+      emitStage("game-ready");
+      expect(stageStates()).toEqual(["current", "todo", "todo", "todo"]);
+    });
+
+    it("decorative segments stay hidden from assistive tech", () => {
+      const stages = document.querySelector(".loader-stages");
+      expect(stages!.getAttribute("aria-hidden")).toBe("true");
     });
   });
 });
