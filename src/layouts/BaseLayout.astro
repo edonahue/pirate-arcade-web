@@ -107,15 +107,6 @@ const jsonLd = jsonLdGraph([
         const stored = window.localStorage.getItem(key);
         const theme = stored === "light" ? "light" : "dark";
         document.documentElement.dataset.theme = theme;
-        const toggle = document.querySelector("[data-theme-toggle]");
-        if (toggle) {
-          toggle.setAttribute(
-            "aria-label",
-            theme === "light"
-              ? "Switch to dark theme"
-              : "Switch to light theme",
-          );
-        }
       })();
     </script>
     <title>{pageTitle}</title>

@@ -130,6 +130,12 @@ for (const config of PYBAG_GAMES) {
     if (pattern.test(source)) {
       ok(config.id + ": Python phase " + phase);
       totalPhases++;
+    } else if (
+      phase === "first-frame-presented" &&
+      source.includes("markFirstFramePresented()")
+    ) {
+      ok(config.id + ": Python phase " + phase);
+      totalPhases++;
     } else {
       fail(config.id + ": missing Python phase " + phase);
     }
@@ -140,8 +146,13 @@ for (const config of PYBAG_GAMES) {
   let orderOk = true;
   for (const phase of BOOT_MARKS) {
     totalChecks++;
-    const pattern = new RegExp('mark\\("' + phase + '"\\)');
-    const phaseIdx = source.search(pattern);
+    let phaseIdx;
+    if (phase === "first-frame-presented") {
+      phaseIdx = source.indexOf("markFirstFramePresented()");
+    } else {
+      const pattern = new RegExp('mark\\("' + phase + '"\\)');
+      phaseIdx = source.search(pattern);
+    }
     if (phaseIdx === -1) {
       fail(config.id + ": Python phase " + phase + " not in source");
       continue;

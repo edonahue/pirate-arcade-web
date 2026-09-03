@@ -308,7 +308,7 @@ function generateSource(config, archiveHash) {
     "            if _first_frame_done:",
     "                return",
     "            _first_frame_done.append(True)",
-    '            _w.PirateArcadeMetrics.mark("first-frame-presented")',
+    "            _w.PirateArcadeMetrics.markFirstFramePresented()",
     "            _w.PirateArcadeMetrics.computeDurations()",
     '            _w.PirateArcadeLoading.ready("' + config.readyMessage + '")',
 

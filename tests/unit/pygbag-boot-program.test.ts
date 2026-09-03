@@ -84,7 +84,13 @@ describe("renderPythonBootProgram", () => {
     for (const config of ALL_GAMES) {
       const { source } = getSourceFor(config);
       for (const mark of BOOT_MARKS) {
-        expect(source).toContain(`PirateArcadeMetrics.mark("${mark}")`);
+        if (mark === "first-frame-presented") {
+          expect(source).toContain(
+            "PirateArcadeMetrics.markFirstFramePresented()",
+          );
+        } else {
+          expect(source).toContain(`PirateArcadeMetrics.mark("${mark}")`);
+        }
       }
     }
   });
@@ -252,7 +258,7 @@ print(ast.dump(tree, indent=2))
     for (const config of ALL_GAMES) {
       const { source } = getSourceFor(config);
       const readyCallIdx = source.indexOf("PirateArcadeLoading.ready(");
-      const firstFrameIdx = source.indexOf('mark("first-frame-presented"');
+      const firstFrameIdx = source.indexOf("markFirstFramePresented()");
       expect(readyCallIdx).toBeGreaterThan(firstFrameIdx);
     }
   });
