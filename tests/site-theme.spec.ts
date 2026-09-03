@@ -492,3 +492,32 @@ test.describe("Theme Toggle Accessible Name", () => {
     await expect(toggle).toHaveAttribute("aria-label", "Switch to light theme");
   });
 });
+
+test.describe("Theme Color", () => {
+  test.use({ viewport: { width: 1440, height: 900 } });
+
+  test("theme-color follows active theme on load and toggle", async ({
+    page,
+  }) => {
+    const themeColor = page.locator('meta[name="theme-color"]');
+
+    // Default dark state
+    await page.goto("/");
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+    await expect(themeColor).toHaveAttribute("content", "#071016");
+
+    // Persisted light state on initial load
+    await page.evaluate(() => {
+      window.localStorage.setItem("pirate-arcade-theme", "light");
+    });
+    await page.reload();
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+    await expect(themeColor).toHaveAttribute("content", "#f8f6f3");
+
+    // Toggle updates both document theme and browser metadata
+    const toggle = page.locator("[data-theme-toggle]");
+    await toggle.click();
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+    await expect(themeColor).toHaveAttribute("content", "#071016");
+  });
+});

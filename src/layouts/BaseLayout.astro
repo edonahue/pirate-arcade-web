@@ -60,7 +60,7 @@ const jsonLd = jsonLdGraph([
     <meta name="description" content={description} />
     <meta name="author" content={site.author} />
     <meta name="robots" content="index, follow" />
-    <meta name="theme-color" content="#2dd4bf" />
+    <meta name="theme-color" content="#071016" />
     <link rel="canonical" href={canonicalUrl} />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="manifest" href="/site.webmanifest" />
@@ -107,6 +107,9 @@ const jsonLd = jsonLdGraph([
         const stored = window.localStorage.getItem(key);
         const theme = stored === "light" ? "light" : "dark";
         document.documentElement.dataset.theme = theme;
+        const colors = { dark: "#071016", light: "#f8f6f3" };
+        const meta = document.querySelector('meta[name="theme-color"]');
+        if (meta) meta.setAttribute("content", colors[theme]);
       })();
     </script>
     <title>{pageTitle}</title>
@@ -184,6 +187,8 @@ const jsonLd = jsonLdGraph([
         const toggle = document.querySelector("[data-theme-toggle]");
         if (!toggle) return;
 
+        const themeColors = { dark: "#071016", light: "#f8f6f3" };
+
         const updateAriaLabel = (theme) => {
           toggle.setAttribute(
             "aria-label",
@@ -193,14 +198,21 @@ const jsonLd = jsonLdGraph([
           );
         };
 
-        // Set initial aria-label based on current theme
+        const syncThemeColor = (theme) => {
+          const meta = document.querySelector('meta[name="theme-color"]');
+          if (meta) meta.setAttribute("content", themeColors[theme]);
+        };
+
+        // Set initial aria-label and theme-color based on current theme
         updateAriaLabel(root.dataset.theme);
+        syncThemeColor(root.dataset.theme);
 
         toggle.addEventListener("click", () => {
           const next = root.dataset.theme === "light" ? "dark" : "light";
           root.dataset.theme = next;
           window.localStorage.setItem(key, next);
           updateAriaLabel(next);
+          syncThemeColor(next);
         });
       })();
     </script>
