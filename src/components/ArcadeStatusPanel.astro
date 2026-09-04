@@ -1,6 +1,11 @@
 ---
 import { games } from "../data/games";
-import { getArchiveUrl, getLaunchLinkAttrs } from "../lib/gameLaunch";
+
+const challengeLabels: Record<string, string> = {
+  easier: "Easier",
+  balanced: "Balanced",
+  harder: "Harder",
+};
 ---
 
 <section class="section status-panel">
@@ -14,9 +19,8 @@ import { getArchiveUrl, getLaunchLinkAttrs } from "../lib/gameLaunch";
       <thead>
         <tr>
           <th>Game</th>
-          <th>Play</th>
           <th>Load</th>
-          <th>Keyboard</th>
+          <th>Challenge</th>
           <th>Touch</th>
           <th>Audio</th>
         </tr>
@@ -30,34 +34,13 @@ import { getArchiveUrl, getLaunchLinkAttrs } from "../lib/gameLaunch";
                 <span class="status-panel__classic">{game.classic}</span>
               </td>
               <td>
-                {game.status === "browser-playable" ? (
-                  <a
-                    class="status-panel__play-link"
-                    {...getLaunchLinkAttrs(game)!}
-                  >
-                    In browser
-                  </a>
-                ) : (
-                  <a
-                    href={game.desktopUrl!}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    class="status-panel__download-link"
-                  >
-                    Desktop
-                  </a>
-                )}
-              </td>
-              <td>
                 {(() => {
                   if (game.engine === "phaser") return "Instant";
-                  if (game.engine === "pygbag") return "~12 MB";
+                  if (game.engine === "pygbag") return "Runtime load";
                   return "Install";
                 })()}
               </td>
-              <td>
-                <span aria-label="Supported">✓</span>
-              </td>
+              <td>{game.challenge ? challengeLabels[game.challenge] : "—"}</td>
               <td>
                 {game.status === "browser-playable" ? (
                   <span aria-label="Available">✓</span>
@@ -82,8 +65,8 @@ import { getArchiveUrl, getLaunchLinkAttrs } from "../lib/gameLaunch";
   </div>
 
   <p class="status-panel__footnote">
-    Load: Pygbag games download a ~12 MB CPython runtime on first visit (cached
-    on repeat). Web-native Phaser games load instantly. Desktop games require
+    Load: Pygbag games load the Python game runtime on first visit (cached on
+    repeat). Web-native Phaser games load instantly. Desktop games require
     native install. Audio in browser games unlocks after first click or tap
     (autoplay policy). Mobile tested via simulated viewports — real device
     behavior may vary.
@@ -130,44 +113,6 @@ import { getArchiveUrl, getLaunchLinkAttrs } from "../lib/gameLaunch";
     color: var(--muted);
   }
 
-  .status-panel__play-link {
-    font-family: var(--mono);
-    font-size: 0.75rem;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: var(--accent);
-    text-decoration: none;
-    white-space: nowrap;
-  }
-
-  .status-panel__play-link:hover {
-    text-decoration: underline;
-  }
-
-  .status-panel__play-link:focus-visible {
-    outline: 2px solid var(--focus);
-    outline-offset: 2px;
-  }
-
-  .status-panel__download-link {
-    font-family: var(--mono);
-    font-size: 0.75rem;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: var(--muted);
-    text-decoration: none;
-    white-space: nowrap;
-  }
-
-  .status-panel__download-link:hover {
-    color: var(--accent);
-  }
-
-  .status-panel__download-link:focus-visible {
-    outline: 2px solid var(--focus);
-    outline-offset: 2px;
-  }
-
   .status-panel__footnote {
     max-width: 560px;
     margin: 1.5rem auto 0;
@@ -196,11 +141,6 @@ import { getArchiveUrl, getLaunchLinkAttrs } from "../lib/gameLaunch";
     }
 
     .status-panel__classic {
-      font-size: 0.625rem;
-    }
-
-    .status-panel__play-link,
-    .status-panel__download-link {
       font-size: 0.625rem;
     }
 

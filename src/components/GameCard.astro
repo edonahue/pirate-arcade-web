@@ -20,16 +20,21 @@ const linkId = `game-card-link-${game.id}`;
 const browserUrl = playable ? game.browserUrl! : "";
 const archiveUrl = getArchiveUrl(game);
 const engineLabel = isWebNative(game)
-  ? "Phaser 3"
+  ? "Phaser"
   : isPygbag(game)
     ? "Pygbag"
+    : null;
+const loadBadge = isWebNative(game)
+  ? { text: "Instant start", modifier: "instant" }
+  : isPygbag(game)
+    ? { text: "Runtime load", modifier: "runtime" }
     : null;
 const screenshotCaption = isWebNative(game)
   ? "Instant-load racer"
   : isPygbag(game) && game.touchDifficulty === "easy"
     ? "Touch-friendly port"
     : isPygbag(game) && game.touchDifficulty === "harder"
-      ? "Harder survival"
+      ? "Touch-demanding survival"
       : isPygbag(game)
         ? "Pygbag port"
         : "Desktop board game";
@@ -125,6 +130,15 @@ const touchDifficultyLabel = game.touchDifficulty
                 class={`game-card__touch-difficulty game-card__touch-difficulty--${game.touchDifficulty}`}
               >
                 {touchDifficultyLabel}
+              </span>
+            )
+          }
+          {
+            playable && loadBadge && (
+              <span
+                class={`game-card__load-badge game-card__load-badge--${loadBadge.modifier}`}
+              >
+                {loadBadge.text}
               </span>
             )
           }

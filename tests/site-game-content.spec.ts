@@ -14,7 +14,6 @@ const projectLicense = pkg.license || "MIT";
 
 const browserGames = games.filter((g: any) => g.status === "browser-playable");
 const desktopGames = games.filter((g: any) => g.status === "desktop-available");
-const pygbagGames = browserGames.filter((g: any) => g.engine === "pygbag");
 const phaserGames = browserGames.filter((g: any) => g.engine === "phaser");
 const instantGame = phaserGames[0];
 
@@ -102,21 +101,17 @@ test.describe("Site Game Content", () => {
     }
   });
 
-  test("play page engine split is accurate", async ({ page }) => {
+  test("play page explains how browser games run", async ({ page }) => {
     await page.goto("/play/");
 
-    const pygbagSection = page.locator("text=Pygbag / WebAssembly");
-    const webNativeSection = page.locator("text=Web Native (Phaser)");
-    await expect(pygbagSection).toBeVisible();
-    await expect(webNativeSection).toBeVisible();
+    const section = page.locator("#browser-games");
+    await expect(section).toBeVisible();
+    await expect(section).toContainText("How browser games run");
+    await expect(section).toContainText("loads instantly");
+    await expect(section).toContainText("cached");
+    await expect(section).not.toContainText("12 MB");
 
-    for (const game of pygbagGames) {
-      await expect(
-        page.locator(`a[href="${game.browserUrl}"]`).first(),
-      ).toBeVisible();
-    }
-
-    for (const game of phaserGames) {
+    for (const game of browserGames) {
       await expect(
         page.locator(`a[href="${game.browserUrl}"]`).first(),
       ).toBeVisible();
@@ -369,24 +364,29 @@ test.describe("Site Game Content", () => {
     await expect(primaryCta.first()).toBeVisible();
   });
 
-  test("play page has recommended path strip", async ({ page }) => {
+  test("play page game grid shows every browser game with a launch CTA", async ({
+    page,
+  }) => {
     await page.goto("/play/");
 
+    const grid = page.locator("#game-selection .game-grid");
+    await expect(grid).toBeVisible();
+
+    for (const game of browserGames) {
+      const card = grid.locator("article", { hasText: game.title });
+      await expect(card).toBeVisible();
+      const playLink = card.locator(
+        `a.game-card__play-link[data-game-id="${game.id}"]`,
+      );
+      await expect(playLink).toBeVisible();
+      await expect(playLink).toHaveAttribute("href", game.browserUrl);
+      await expect(playLink).toHaveAttribute("data-game-launch", "true");
+    }
+
+    // Desktop-only game is not in the browser grid
     await expect(
-      page.locator(".recommended-path__label:has-text('Instant load')"),
-    ).toBeVisible();
-    await expect(
-      page.locator(".recommended-path__label:has-text('Best on touch')"),
-    ).toBeVisible();
-    await expect(
-      page.locator(".recommended-path__label:has-text('Classic challenge')"),
-    ).toBeVisible();
-    await expect(
-      page.locator(".recommended-path__label:has-text('Harder skill')"),
-    ).toBeVisible();
-    await expect(
-      page.locator(".recommended-path__label:has-text('Desktop collection')"),
-    ).toBeVisible();
+      grid.locator("article", { hasText: "Port Royale Tycoon" }),
+    ).toHaveCount(0);
   });
 
   test("play page hero has primary Play Instantly action with derived instant game", async ({
@@ -721,8 +721,6 @@ test.describe("Site Game Content", () => {
     const ids = [
       "game-selection",
       "browser-games",
-      "pygbag-games",
-      "web-native-games",
       "desktop-collection",
       "roadmap",
       "captains-log",
@@ -745,67 +743,25 @@ test.describe("Site Game Content", () => {
     await expect(browserGames.locator("#captains-log")).toHaveCount(0);
   });
 
-  test("recommendation-strip anchors point to correct destinations", async ({
+  test("status matrix compares load, challenge, touch, and audio", async ({
     page,
   }) => {
     await page.goto("/play/");
 
-    // In-page anchor: desktop collection
-    const desktopCollection = page.locator(
-      '.recommended-path__label:has-text("Desktop collection") + a',
-    );
-    await expect(desktopCollection).toHaveAttribute(
-      "href",
-      "#desktop-collection",
-    );
-    await expect(desktopCollection).toContainText("downloads");
+    const table = page.locator(".status-panel__table");
+    await expect(table).toBeVisible();
 
-    // Browser-playable game links
-    const instantGame = browserGames.find((g) => g.engine === "phaser");
-    if (instantGame) {
-      const instantLink = page.locator(
-        '.recommended-path__label:has-text("Instant load") + a',
-      );
-      await expect(instantLink).toHaveAttribute("href", instantGame.browserUrl);
-      await expect(instantLink).toHaveAttribute("data-game-launch", "true");
+    for (const header of ["Game", "Load", "Challenge", "Touch", "Audio"]) {
+      await expect(table.locator("th", { hasText: header })).toBeVisible();
     }
 
-    const easiestGame = browserGames.find((g) => g.touchDifficulty === "easy");
-    if (easiestGame) {
-      const touchLink = page.locator(
-        '.recommended-path__label:has-text("Best on touch") + a',
-      );
-      await expect(touchLink).toHaveAttribute("href", easiestGame.browserUrl);
-      await expect(touchLink).toHaveAttribute("data-game-launch", "true");
-    }
-
-    // In-page anchor should not have launch metadata
-    await expect(desktopCollection).not.toHaveAttribute(
-      "data-game-launch",
-      "true",
-    );
-  });
-
-  test("engine markers are PY and JS with no emoji", async ({ page }) => {
-    await page.goto("/play/");
-
-    await expect(page.locator(".engine-card__marker--python")).toContainText(
-      "PY",
-    );
-    await expect(
-      page.locator(".engine-card__marker--javascript"),
-    ).toContainText("JS");
-
-    // No snake or lightning emoji in any engine card header
-    const headers = page.locator(".engine-card__header");
-    const headerCount = await headers.count();
-    for (let i = 0; i < headerCount; i++) {
-      await expect(headers.nth(i)).not.toContainText("🐍");
-      await expect(headers.nth(i)).not.toContainText("⚡");
-    }
-
-    // .engine-card__icon should not exist
-    await expect(page.locator(".engine-card__icon")).toHaveCount(0);
+    const bodyText = (await table.textContent()) || "";
+    expect(bodyText).toContain("Instant");
+    expect(bodyText).toContain("Runtime load");
+    expect(bodyText).toContain("Easier");
+    expect(bodyText).toContain("Balanced");
+    expect(bodyText).toContain("Harder");
+    expect(bodyText).not.toContain("12 MB");
   });
 
   test("play page no horizontal overflow on mobile", async ({ page }) => {
@@ -820,10 +776,12 @@ test.describe("Site Game Content", () => {
     });
     expect(hasOverflow).toBe(false);
 
-    // Engine markers remain visible
-    await expect(page.locator(".engine-card__marker--python")).toBeVisible();
+    // Load badges remain visible on game cards
     await expect(
-      page.locator(".engine-card__marker--javascript"),
+      page.locator(".game-card__load-badge--instant").first(),
+    ).toBeVisible();
+    await expect(
+      page.locator(".game-card__load-badge--runtime").first(),
     ).toBeVisible();
 
     // Game-selection inner padding does not force overflow
@@ -833,7 +791,7 @@ test.describe("Site Game Content", () => {
 
     // In-page anchor destinations retain positive scroll-margin-top
     const scrollMargin = await page
-      .locator("#pygbag-games")
+      .locator("#browser-games")
       .evaluate((el) => window.getComputedStyle(el).scrollMarginTop);
     expect(parseFloat(scrollMargin)).toBeGreaterThan(0);
   });

@@ -47,7 +47,7 @@ test.describe("Game Finder", () => {
     await expect(cta).toHaveAttribute("href", instantGame!.browserUrl);
     await expect(cta).toHaveAttribute("data-game-id", instantGame!.id);
 
-    await expect(page.locator(".recommended-path")).toBeVisible();
+    await expect(page.locator("#game-selection .game-grid")).toBeVisible();
   });
 
   test("initial visible load preference matches instant-load recommendation", async ({

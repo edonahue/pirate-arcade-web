@@ -577,6 +577,29 @@
   border-color: var(--paper-badge-harder-border);
 }
 
+.game-card__load-badge {
+  font-family: var(--mono);
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid currentColor;
+  border-radius: 4px;
+  opacity: 0.9;
+  white-space: nowrap;
+  margin-left: 0.5rem;
+}
+
+.game-card__load-badge--instant {
+  color: var(--sea);
+  border-color: var(--sea);
+}
+
+.game-card__load-badge--runtime {
+  color: var(--gold);
+  border-color: var(--gold);
+}
+
 /* Add subtle scanline effect for CRT feel - only if not reducing motion */
 @media (prefers-reduced-motion: no-preference) {
   .game-card__image::after {

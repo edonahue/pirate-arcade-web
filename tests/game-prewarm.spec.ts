@@ -388,14 +388,14 @@ test.describe("Game Prewarm", () => {
     expect(rel).toContain("noopener");
     expect(rel).toContain("noreferrer");
 
-    // In-page recommendation anchors should not have launch semantics
-    await expect(
-      page.locator('a[href="#desktop-collection"][data-game-launch]'),
-    ).toHaveCount(0);
-
-    // In-page anchor without _blank
-    const desktopAnchor = page.locator('a[href="#desktop-collection"]');
-    await expect(desktopAnchor).not.toHaveAttribute("target", "_blank");
-    await expect(desktopAnchor).not.toHaveAttribute("data-game-launch", "true");
+    // Game detail links are not launch links and carry no launch semantics
+    const detailLinks = page.locator(
+      'a.game-card__image[data-game-id="cannonball-clash"]',
+    );
+    await expect(detailLinks.first()).toBeVisible();
+    await expect(detailLinks.first()).not.toHaveAttribute(
+      "data-game-launch",
+      "true",
+    );
   });
 });

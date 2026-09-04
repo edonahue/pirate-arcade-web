@@ -127,7 +127,8 @@
     margin-bottom: 0.5rem;
   }
 
-  .game-card__touch-difficulty {
+  .game-card__touch-difficulty,
+  .game-card__load-badge {
     white-space: normal;
     margin-left: 0;
   }
