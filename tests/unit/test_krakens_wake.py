@@ -462,6 +462,19 @@ class TestKrakensWakeProjectileCleanup(unittest.TestCase):
         self.assertEqual(len(self.game.gameplay.cannonballs), before)
 
 
+class TestKrakenStarfield(unittest.TestCase):
+    def test_gameplay_star_count_preserves_density(self):
+        from games.asteroids import gameplay as gameplay_module
+        gameplay_module._STARS = None
+        gameplay_module._init_stars()
+        self.assertEqual(len(gameplay_module._STARS), 200)
+
+    def test_no_fullscreen_additive_star_layer(self):
+        import games.asteroids.game as game_module
+        self.assertFalse(hasattr(game_module, "_BG_STARS"))
+        self.assertFalse(hasattr(game_module, "_ensure_stars"))
+
+
 if __name__ == "__main__":
     result = unittest.main(verbosity=2, exit=False)
     sys.exit(0 if result.result.wasSuccessful() else 1)

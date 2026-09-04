@@ -8,22 +8,7 @@ from renderer import _OVERLAY, _VIGNETTE, draw_composite_overlay
 from util import toggle_fullscreen
 from shared.pa_state import StatePublisher
 from shared.pa_loop import FixedStepTimer, PresentGate, page_hidden
-import random
 import traceback
-
-_BG_STARS = None
-def _ensure_stars():
-    global _BG_STARS
-    if _BG_STARS is not None:
-        return
-    rng = random.Random(0xCAFEBABE)
-    _BG_STARS = pg.Surface((c.WINDOW_WIDTH, c.WINDOW_HEIGHT), pg.SRCALPHA)
-    for _ in range(200):
-        x = rng.randint(0, c.WINDOW_WIDTH)
-        y = rng.randint(0, c.WINDOW_HEIGHT)
-        b = rng.randint(100, 220)
-        _BG_STARS.set_at((x, y), (b, b, b, b))
-
 
 class AsteroidsGame:
     def __init__(self, surface, audio):
@@ -41,7 +26,6 @@ class AsteroidsGame:
         self._timer = FixedStepTimer()
         self._recovered_error_count = 0
         self._last_recovered_phase = None
-        _ensure_stars()
         builtins.__dict__["__pa_game_instance"] = self
         from shared.pa_state import _ensure_pa_post_key; _ensure_pa_post_key()
 
@@ -269,8 +253,6 @@ class AsteroidsGame:
                 self.gameplay.draw(self.surface, fps=fps)
             elif self.state == 'game_over':
                 self.gameplay.draw(self.surface, fps=fps)
-
-            self.surface.blit(_BG_STARS, (0, 0), special_flags=pg.BLEND_ADD)
 
             if self.state == 'playing' and self.paused:
                 self._draw_pause()

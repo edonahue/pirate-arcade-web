@@ -23,7 +23,7 @@ def _init_stars():
         return
     rng = random.Random(0xDEADBEEF)
     _STARS = []
-    for _ in range(120):
+    for _ in range(200):
         x = rng.randint(0, c.WINDOW_WIDTH)
         y = rng.randint(0, c.WINDOW_HEIGHT)
         brightness = rng.randint(60, 200)
