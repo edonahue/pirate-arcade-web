@@ -9,17 +9,16 @@ import { webPageNode } from "../lib/schema";
 const browserGames = games.filter((g) => g.status === "browser-playable");
 const pygbagGames = browserGames.filter((g) => g.engine === "pygbag");
 const webNativeGames = browserGames.filter((g) => g.engine === "phaser");
-const browserEngines = new Set(browserGames.map((g) => g.engine));
 ---
 
 <BaseLayout
   current="home"
-  description={`A pirate-themed arcade collection and public build experiment. Play ${browserGames.length} browser games — ${webNativeGames.length} Phaser 3 web-native ${webNativeGames.length === 1 ? "racer" : "racers"} and ${pygbagGames.length} Pygbag/WebAssembly ports, zero-cost AI-assisted.`}
+  description={`A pirate-themed arcade collection and public build experiment. Play ${browserGames.length} browser games — ${webNativeGames.length} Phaser web-native ${webNativeGames.length === 1 ? "racer" : "racers"} and ${pygbagGames.length} Pygbag/WebAssembly ports, zero-cost AI-assisted.`}
   jsonLd={[
     webPageNode(
       "/",
       "Pirate Arcade",
-      `A pirate-themed arcade collection and public build experiment. Play ${browserGames.length} browser games — ${webNativeGames.length} Phaser 3 web-native ${webNativeGames.length === 1 ? "racer" : "racers"} and ${pygbagGames.length} Pygbag/WebAssembly ports, zero-cost AI-assisted.`,
+      `A pirate-themed arcade collection and public build experiment. Play ${browserGames.length} browser games — ${webNativeGames.length} Phaser web-native ${webNativeGames.length === 1 ? "racer" : "racers"} and ${pygbagGames.length} Pygbag/WebAssembly ports, zero-cost AI-assisted.`,
       "CollectionPage",
     ),
   ]}
@@ -33,7 +32,6 @@ const browserEngines = new Set(browserGames.map((g) => g.engine));
   >
     <CTAButton href="/play" variant="primary">Enter the Arcade</CTAButton>
     <CTAButton href="/build-log" variant="gold">Read the Build Log</CTAButton>
-    <CTAButton href="/source" variant="outline">View Source</CTAButton>
   </Hero>
 
   <p class="hero__credit">
@@ -68,41 +66,21 @@ const browserEngines = new Set(browserGames.map((g) => g.engine));
         <span class="stats-strip__label">Play in Browser</span>
       </div>
       <div class="stats-strip__item">
-        <span class="stats-strip__count">{browserEngines.size}</span>
-        <span class="stats-strip__label">Browser Engines</span>
+        <span class="stats-strip__count"
+          >{games.length - browserGames.length}</span
+        >
+        <span class="stats-strip__label">Desktop Only</span>
       </div>
     </div>
 
     <div class="game-grid">
-      {games.map((game) => <GameCard game={game} />)}
+      {browserGames.map((game) => <GameCard game={game} />)}
     </div>
 
-    <div class="start-here mt-2">
-      <div class="start-here__item">
-        <span class="start-here__badge start-here__badge--instant"
-          >Instant Load</span
-        >
-        <a href="/play/race-to-treasure-island/" class="start-here__link"
-          >Race to Treasure Island</a
-        >
-      </div>
-      <div class="start-here__item">
-        <span class="start-here__badge start-here__badge--touch"
-          >Best on Touch</span
-        >
-        <a href="/play/cannonball-clash/" class="start-here__link"
-          >Cannonball Clash</a
-        >
-      </div>
-      <div class="start-here__item">
-        <span class="start-here__badge start-here__badge--desktop"
-          >Desktop Only</span
-        >
-        <a href="/games/port-royale-tycoon/" class="start-here__link"
-          >Port Royale Tycoon</a
-        >
-      </div>
-    </div>
+    <p class="desktop-callout">
+      Plus <a href="/games/port-royale-tycoon/">Port Royale Tycoon</a>, a
+      strategy game for desktop only.
+    </p>
 
     <!-- Treasure Island cover vignette — edge fragment like old chart plate -->
     <img
@@ -115,130 +93,6 @@ const browserEngines = new Set(browserGames.map((g) => g.engine));
       width="400"
       height="600"
     />
-  </section>
-
-  <div class="section-divider" aria-hidden="true">
-    <span class="section-divider__line"></span>
-    <span class="section-divider__dot"></span>
-    <span class="section-divider__line"></span>
-  </div>
-
-  <section class="section">
-    <div class="section__header">
-      <p class="section__eyebrow">Featured</p>
-      <h2 class="section__title">Race to Treasure Island</h2>
-      <p class="section__description">
-        OutRun-style pirate chase — hold BOOST to surge past Long John, dodge
-        obstacles that cost wind and bump you off course, and reach Treasure
-        Island first. Loads instantly with no runtime download. Built with
-        Phaser 3.
-      </p>
-    </div>
-
-    <div class="featured-game">
-      <div class="featured-game__screenshot">
-        <img
-          src="/images/screenshot-race-to-treasure-island.png"
-          alt="Race to Treasure Island gameplay screenshot"
-          width="1280"
-          height="720"
-          loading="lazy"
-        />
-      </div>
-      <div class="featured-game__info">
-        <div class="featured-game__stat">
-          <span class="featured-game__stat-label">Engine</span>
-          <span class="featured-game__stat-value">Web-native Phaser 3</span>
-        </div>
-        <div class="featured-game__stat">
-          <span class="featured-game__stat-label">Load</span>
-          <span class="featured-game__stat-value">Instant — no download</span>
-        </div>
-        <div class="featured-game__stat">
-          <span class="featured-game__stat-label">Course</span>
-          <span class="featured-game__stat-value">Seeded obstacle course</span>
-        </div>
-        <div class="featured-game__stat">
-          <span class="featured-game__stat-label">Rival</span>
-          <span class="featured-game__stat-value">Long John Silver</span>
-        </div>
-        <a
-          href="/play/race-to-treasure-island/"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="cta cta--primary featured-game__cta"
-        >
-          Play Race to Treasure Island
-        </a>
-      </div>
-    </div>
-  </section>
-
-  <div class="section-divider" aria-hidden="true">
-    <span class="section-divider__line"></span>
-    <span class="section-divider__dot"></span>
-    <span class="section-divider__line"></span>
-  </div>
-
-  <section class="section">
-    <div class="section__header">
-      <p class="section__eyebrow">Find Your Game</p>
-      <h2 class="section__title">Play in Browser Now</h2>
-      <p class="section__description">
-        {browserGames.length} browser-playable games — {pygbagGames.length}
-        Pygbag/WebAssembly ports and {webNativeGames.length} web-native Phaser
-        {webNativeGames.length === 1 ? "racer" : "racers"}. Pygbag games load a
-        ~12 MB CPython runtime on first visit (cached on repeat); web-native
-        games load instantly.
-      </p>
-    </div>
-
-    <div class="recommended-first mt-4">
-      <div class="recommended-first__card">
-        <span class="recommended-first__badge recommended-first__badge--instant"
-          >Instant Load</span
-        >
-        <h3 class="recommended-first__title">Race to Treasure Island</h3>
-        <p class="recommended-first__desc">
-          OutRun-style pirate chase — boost past Long John, dodge obstacles, and
-          reach the island first. Phaser 3, loads instantly.
-        </p>
-        <a href="/play/race-to-treasure-island/" class="cta cta--primary">
-          Play Race →
-        </a>
-      </div>
-      <div class="recommended-first__card">
-        <span class="recommended-first__badge">Recommended first</span>
-        <h3 class="recommended-first__title">Cannonball Clash</h3>
-        <p class="recommended-first__desc">
-          Naval cannon duel — slide your ship up/down, tap START. Easiest on
-          touch.
-        </p>
-        <a href="/play/cannonball-clash/" class="cta cta--primary">
-          Play Cannonball Clash
-        </a>
-      </div>
-      <div class="recommended-first__card">
-        <span class="recommended-first__badge">Best on Touch</span>
-        <h3 class="recommended-first__title">Treasure Cove</h3>
-        <p class="recommended-first__desc">
-          Pirate Breakout — smash fortress walls. Medium on touch.
-        </p>
-        <a href="/play/treasure-cove/" class="cta cta--gold">
-          Play Treasure Cove
-        </a>
-      </div>
-      <div class="recommended-first__card">
-        <span class="recommended-first__badge">Harder on Touch</span>
-        <h3 class="recommended-first__title">Kraken's Wake</h3>
-        <p class="recommended-first__desc">
-          Asteroids-style sea monster survival. Turn, thrust, fire.
-        </p>
-        <a href="/play/krakens-wake/" class="cta cta--outline">
-          Play Kraken's Wake
-        </a>
-      </div>
-    </div>
   </section>
 
   <div class="section-divider" aria-hidden="true">
@@ -263,7 +117,7 @@ const browserEngines = new Set(browserGames.map((g) => g.engine));
     <div class="proof-strip">
       <div class="proof-strip__item">
         <span class="proof-strip__label">Engines</span>
-        <span class="proof-strip__value">Pygbag + Phaser 3</span>
+        <span class="proof-strip__value">Pygbag + Phaser</span>
       </div>
       <div class="proof-strip__item">
         <span class="proof-strip__label">Tests</span>

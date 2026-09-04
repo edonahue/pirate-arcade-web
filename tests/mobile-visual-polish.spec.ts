@@ -432,7 +432,7 @@ test.describe("CTA button fit on mobile", () => {
       }
     });
 
-    test(`${viewport.name} - recommended-first cards stack without overflow`, async ({
+    test(`${viewport.name} - homepage game cards stack without overflow`, async ({
       page,
     }) => {
       await page.setViewportSize({
@@ -441,9 +441,9 @@ test.describe("CTA button fit on mobile", () => {
       });
       await page.goto("/", { waitUntil: "domcontentloaded" });
 
-      const cards = page.locator(".recommended-first__card");
+      const cards = page.locator(".section--games .game-grid article");
       const count = await cards.count();
-      expect(count).toBeGreaterThanOrEqual(1);
+      expect(count).toBeGreaterThanOrEqual(4);
 
       for (let i = 0; i < count; i++) {
         const card = cards.nth(i);

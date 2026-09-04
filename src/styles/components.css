@@ -346,7 +346,7 @@
   position: absolute;
   right: 0;
   bottom: 0;
-  width: 260px;
+  width: 240px;
   height: auto;
   opacity: 0.12;
   pointer-events: none;
@@ -904,201 +904,19 @@
   }
 }
 
-/* Featured game panel — homepage */
-.featured-game {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-  max-width: 680px;
-  margin: 0 auto;
-  background: var(--surface-card);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-lg);
-  overflow: hidden;
-  box-shadow: var(--shadow-soft), var(--glow-sea);
-}
-
-.featured-game__screenshot img {
-  width: 100%;
-  height: auto;
-  display: block;
-  border-bottom: 1px solid var(--line);
-}
-
-.featured-game__info {
-  padding: 0 1.5rem 1.5rem;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.75rem;
-}
-
-.featured-game__stat {
-  display: flex;
-  flex-direction: column;
-  gap: 0.125rem;
-}
-
-.featured-game__stat-label {
-  font-family: var(--mono);
-  font-size: 0.625rem;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--accent);
-}
-
-.featured-game__stat-value {
-  font-size: 0.875rem;
-  color: var(--ink);
-}
-
-.featured-game__cta {
-  grid-column: 1 / -1;
+/* Desktop-only callout below the homepage game grid */
+.desktop-callout {
+  max-width: 640px;
+  margin: 1.5rem auto 0;
   text-align: center;
-  margin-top: 0.5rem;
-}
-
-@media (min-width: 640px) {
-  .featured-game {
-    flex-direction: row;
-    max-width: 780px;
-  }
-
-  .featured-game__screenshot {
-    flex: 0 0 50%;
-  }
-
-  .featured-game__screenshot img {
-    height: 100%;
-    object-fit: cover;
-    border-bottom: none;
-    border-right: 1px solid var(--line);
-  }
-
-  .featured-game__info {
-    flex: 1;
-    padding: 1.5rem;
-  }
-}
-
-/* Recommended-first cards */
-.recommended-first {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1rem;
-  justify-content: center;
-}
-
-.recommended-first__card {
-  flex: 1 1 260px;
-  min-width: 0;
-  max-width: 360px;
-  padding: 1.5rem 2rem;
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-lg);
-  border-left: 4px solid var(--sea);
-  text-align: center;
-}
-
-.recommended-first__badge {
-  display: inline-block;
-  font-family: var(--mono);
-  font-size: 0.625rem;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--sea);
-  background: rgba(42, 166, 161, 0.1);
-  border: 1px solid var(--sea);
-  border-radius: 999px;
-  padding: 0.25rem 0.75rem;
-  margin-bottom: 0.75rem;
-}
-
-.recommended-first__title {
-  font-family: var(--display);
-  font-size: 1.5rem;
-  color: var(--gold);
-  margin-bottom: 0.5rem;
-}
-
-.recommended-first__desc {
   font-size: 0.9375rem;
   color: var(--muted);
-  margin-bottom: 1rem;
-  line-height: 1.5;
 }
 
-/* Homepage quick-start strip */
-.start-here {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-  justify-content: center;
-  max-width: 640px;
-  margin-left: auto;
-  margin-right: auto;
-}
-
-.start-here__item {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 1rem;
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  font-size: 0.8125rem;
-  white-space: nowrap;
-}
-
-.start-here__badge {
-  font-family: var(--mono);
-  font-size: 0.625rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  padding: 0.125rem 0.375rem;
-  border-radius: 3px;
-  border: 1px solid currentColor;
-}
-
-.start-here__badge--instant {
-  color: var(--sea);
-}
-
-.start-here__badge--touch {
-  color: var(--gold);
-}
-
-.start-here__badge--desktop {
-  color: var(--muted);
-}
-
-.start-here__link {
+.desktop-callout a {
   color: var(--accent);
-  text-decoration: none;
-}
-
-.start-here__link:hover {
-  color: var(--ink);
   text-decoration: underline;
-}
-
-.recommended-first__badge--instant {
-  border-color: var(--sea);
-  color: var(--sea);
-  background: rgba(42, 166, 161, 0.1);
-}
-
-.recommended-first__badge--gold {
-  border-color: var(--gold);
-  color: var(--gold);
-  background: rgba(201, 164, 92, 0.1);
-}
-
-.recommended-first__badge--rum {
-  border-color: var(--rum);
-  color: var(--rum);
-  background: rgba(140, 52, 40, 0.1);
+  text-underline-offset: 2px;
 }
 
 /* Maker card — author attribution card */

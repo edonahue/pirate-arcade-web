@@ -132,7 +132,9 @@ test.describe("Site Game Content", () => {
     const statsItems = page.locator(".stats-strip__item");
     await expect(statsItems).toHaveCount(3);
 
-    const engines = new Set(browserGames.map((g: any) => g.engine));
+    const desktopOnly = games.filter(
+      (g: any) => g.status !== "browser-playable",
+    );
 
     const totalLabel = page.locator(
       '.stats-strip__item:has-text("Total Games")',
@@ -148,11 +150,11 @@ test.describe("Site Game Content", () => {
       String(browserGames.length),
     );
 
-    const enginesLabel = page.locator(
-      '.stats-strip__item:has-text("Browser Engines")',
+    const desktopLabel = page.locator(
+      '.stats-strip__item:has-text("Desktop Only")',
     );
-    await expect(enginesLabel.locator(".stats-strip__count")).toHaveText(
-      String(engines.size),
+    await expect(desktopLabel.locator(".stats-strip__count")).toHaveText(
+      String(desktopOnly.length),
     );
   });
 
@@ -330,14 +332,11 @@ test.describe("Site Game Content", () => {
       }
     }
 
-    // Start-here links also not overlapped
-    const startHere = page.locator(".start-here__link");
-    const startHereCount = await startHere.count();
-    for (let i = 0; i < startHereCount; i++) {
-      const linkBox = await startHere.nth(i).boundingBox();
-      if (linkBox) {
-        expect(rectanglesDoNotOverlap(vignetteBox!, linkBox)).toBe(true);
-      }
+    // Desktop callout link also not overlapped
+    const callout = page.locator(".desktop-callout a");
+    const calloutBox = await callout.boundingBox();
+    if (calloutBox) {
+      expect(rectanglesDoNotOverlap(vignetteBox!, calloutBox)).toBe(true);
     }
 
     // Section title and description not overlapped
@@ -465,18 +464,42 @@ test.describe("Site Game Content", () => {
     await expect(secondaryCta.first()).toHaveAttribute("href", "#start-here");
   });
 
-  test("homepage quick-start labels are text-only", async ({ page }) => {
+  test("homepage has no stale engine or runtime claims", async ({ page }) => {
+    await page.goto("/");
+    const bodyText = (await page.locator("main").textContent()) || "";
+    expect(bodyText).not.toContain("Phaser 3");
+    expect(bodyText).not.toContain("12 MB");
+  });
+
+  test("homepage shows four browser games plus a desktop callout", async ({
+    page,
+  }) => {
     await page.goto("/");
 
+    const grid = page.locator(".section--games .game-grid");
+    await expect(grid).toBeVisible();
+
+    for (const game of browserGames) {
+      await expect(
+        grid.locator("article", { hasText: game.title }),
+      ).toBeVisible();
+    }
+
+    // Desktop-only game lives in the callout, not the grid
     await expect(
-      page.locator(".start-here__badge:has-text('Instant Load')"),
-    ).toBeVisible();
+      grid.locator("article", { hasText: "Port Royale Tycoon" }),
+    ).toHaveCount(0);
+    const callout = page.locator(".desktop-callout");
+    await expect(callout).toBeVisible();
+    await expect(callout).toContainText("Port Royale Tycoon");
     await expect(
-      page.locator(".start-here__badge:has-text('Best on Touch')"),
+      callout.locator('a[href="/games/port-royale-tycoon/"]'),
     ).toBeVisible();
-    await expect(
-      page.locator(".start-here__badge:has-text('Desktop Only')"),
-    ).toBeVisible();
+
+    // No duplicate recommendation surfaces remain
+    await expect(page.locator(".recommended-first")).toHaveCount(0);
+    await expect(page.locator(".featured-game")).toHaveCount(0);
+    await expect(page.locator(".start-here")).toHaveCount(0);
   });
 
   test("Rhead vignette does not intersect content at tablet width", async ({

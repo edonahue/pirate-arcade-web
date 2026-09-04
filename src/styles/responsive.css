@@ -212,18 +212,6 @@
   .section__header {
     margin-bottom: 1.5rem;
   }
-
-  .recommended-first__card {
-    padding: 1rem 1.25rem;
-  }
-
-  .recommended-first__title {
-    font-size: 1.25rem;
-  }
-
-  .recommended-first__desc {
-    font-size: 0.875rem;
-  }
 }
 
 /* Hero spacing on mobile */
