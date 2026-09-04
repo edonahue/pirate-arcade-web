@@ -15,6 +15,7 @@ import { modelRuns } from "../data/experiment";
         <th>Model</th>
         <th>Task</th>
         <th>Observations</th>
+        <th>Era</th>
       </tr>
     </thead>
     <tbody>
@@ -30,6 +31,7 @@ import { modelRuns } from "../data/experiment";
                 ))}
               </ul>
             </td>
+            <td class="model-obs-table__era">{run.era}</td>
           </tr>
         ))
       }

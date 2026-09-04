@@ -6,8 +6,6 @@ import { games } from "../data/games";
 import { webPageNode } from "../lib/schema";
 
 const browserGames = games.filter((g) => g.status === "browser-playable");
-const pygbagGames = browserGames.filter((g) => g.engine === "pygbag");
-const webNativeGames = browserGames.filter((g) => g.engine === "phaser");
 ---
 
 <BaseLayout
@@ -31,109 +29,16 @@ const webNativeGames = browserGames.filter((g) => g.engine === "phaser");
 
     <div class="prose">
       <p>
-        Pirate Arcade is a collection of five classic arcade games reimagined
-        with a pirate nautical theme. It's also a public workbench — an
-        experiment in how far a zero-cost AI-assisted development workflow can
-        go when you combine free coding tools, local hardware, and open source
-        infrastructure.
+        Pirate Arcade is a collection of {games.length} classic arcade games reimagined
+        with a pirate nautical theme. It's also a public workbench — an experiment
+        in how far a zero-cost AI-assisted development workflow can go when you combine
+        free coding tools, local hardware, and open source infrastructure.
       </p>
-    </div>
-  </section>
-
-  <section class="section">
-    <div class="section__header">
-      <p class="section__eyebrow">The Games</p>
-      <h2 class="section__title">Five Games, Two Platforms</h2>
-    </div>
-    <div class="about-games">
-      <div class="about-games__card">
-        <h3 class="about-games__card-title">
-          Browser ({browserGames.length} games)
-        </h3>
-        <ul class="about-games__list">
-          <li>
-            <strong>{pygbagGames.length} Pygbag/WebAssembly ports</strong> — {
-              pygbagGames.map((g) => g.title).join(", ")
-            }. Python games compiled to WebAssembly via Pygbag. ~12 MB CPython
-            runtime downloads on first visit; cached on repeat.
-          </li>
-          <li>
-            <strong
-              >{webNativeGames.length} web-native Phaser 3
-              {webNativeGames.length === 1 ? "racer" : "racers"}</strong
-            > — {webNativeGames.map((g) => g.title).join(", ")}. JavaScript with
-            Phaser 3, loads instantly. Deterministic seeded courses, real-time
-            wind boost, AI rival.
-          </li>
-        </ul>
-      </div>
-      <div class="about-games__card">
-        <h3 class="about-games__card-title">Desktop ({games.length} games)</h3>
-        <ul class="about-games__list">
-          <li>
-            All {browserGames.length} browser games plus Port Royale Tycoon (a turn-based
-            property-trading board game, desktop-only). Built with Python and Pygame.
-            Cross-platform: Windows .exe, Linux .deb, macOS build from source.
-          </li>
-        </ul>
-      </div>
     </div>
     <p class="text-center mt-1">
       <CTAButton href="/play" variant="primary">Play in Browser</CTAButton>
-      <CTAButton href={site.desktopRepoUrl + "/releases"} variant="gold">
-        Download Desktop
-      </CTAButton>
+      <CTAButton href="/source" variant="outline"> How It's Built </CTAButton>
     </p>
-  </section>
-
-  <section class="section">
-    <div class="section__header">
-      <p class="section__eyebrow">The Stack</p>
-      <h2 class="section__title">Built on Free Infrastructure</h2>
-      <p class="section__description">
-        Every tool, service, and model used to build this project was free to
-        use. No paid subscriptions, no cloud compute credits, no SaaS lock-in.
-      </p>
-    </div>
-
-    <div class="about-stack">
-      <div class="about-stack__item">
-        <span class="about-stack__label">AI Assistance</span>
-        <span class="about-stack__value"
-          >OpenCode terminal agent, free-to-use models, local Ollama</span
-        >
-      </div>
-      <div class="about-stack__item">
-        <span class="about-stack__label">Desktop Games</span>
-        <span class="about-stack__value"
-          >Python, Pygame, NumPy (procedural audio)</span
-        >
-      </div>
-      <div class="about-stack__item">
-        <span class="about-stack__label">Browser Games</span>
-        <span class="about-stack__value"
-          >Pygbag/WebAssembly (Python ports), Phaser 3 (web-native)</span
-        >
-      </div>
-      <div class="about-stack__item">
-        <span class="about-stack__label">Website</span>
-        <span class="about-stack__value"
-          >Astro 6, TypeScript, vanilla CSS tokens</span
-        >
-      </div>
-      <div class="about-stack__item">
-        <span class="about-stack__label">Hosting &amp; CI</span>
-        <span class="about-stack__value"
-          >Cloudflare Pages (free tier), GitHub Actions</span
-        >
-      </div>
-      <div class="about-stack__item">
-        <span class="about-stack__label">Hardware</span>
-        <span class="about-stack__value"
-          >Local X600 workstation, no cloud compute</span
-        >
-      </div>
-    </div>
   </section>
 
   <section class="section">
@@ -142,10 +47,9 @@ const webNativeGames = browserGames.filter((g) => g.engine === "phaser");
       <h2 class="section__title">Product-Minded Engineering</h2>
       <p class="section__description">
         This project demonstrates decision-making across the product stack:
-        choosing the right abstraction (Phaser vs Pygbag), designing for
-        constraints (free infrastructure, mobile touch), and shipping with
-        automated gates (Playwright suite, screenshot validation, release
-        checks).
+        choosing the right abstraction (Phaser vs Pygbag) and designing for
+        constraints (free infrastructure, mobile touch). The engineering
+        evidence lives on the <a href="/source/">Source</a> page.
       </p>
     </div>
     <div class="prose">
@@ -243,87 +147,6 @@ const webNativeGames = browserGames.filter((g) => g.engine === "phaser");
 </BaseLayout>
 
 <style>
-  .about-games {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 1rem;
-    max-width: 48rem;
-    margin-top: 1rem;
-  }
-
-  .about-games__card {
-    background: var(--surface);
-    border: 1px solid var(--line);
-    border-radius: var(--radius-lg);
-    padding: 1.5rem;
-  }
-
-  .about-games__card-title {
-    font-family: var(--display);
-    font-size: 1.125rem;
-    color: var(--ink);
-    margin-bottom: 0.75rem;
-  }
-
-  .about-games__list {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-  }
-
-  .about-games__list li {
-    font-size: 0.9375rem;
-    color: var(--muted);
-    line-height: 1.6;
-    padding-left: 1rem;
-    position: relative;
-  }
-
-  .about-games__list li::before {
-    content: "\25B8";
-    position: absolute;
-    left: 0;
-    color: var(--accent);
-  }
-
-  .about-games__list li strong {
-    color: var(--ink);
-  }
-
-  .about-stack {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 0.5rem;
-    max-width: 48rem;
-    margin-top: 1rem;
-  }
-
-  .about-stack__item {
-    display: flex;
-    gap: 0.75rem;
-    padding: 0.75rem 1rem;
-    background: var(--surface);
-    border: 1px solid var(--line);
-    border-radius: var(--radius);
-    font-size: 0.875rem;
-  }
-
-  .about-stack__label {
-    flex: 0 0 120px;
-    font-family: var(--mono);
-    font-size: 0.75rem;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: var(--accent);
-  }
-
-  .about-stack__value {
-    color: var(--muted);
-  }
-
   .maker-card {
     max-width: 36rem;
     margin-top: 1.5rem;
@@ -363,51 +186,7 @@ const webNativeGames = browserGames.filter((g) => g.engine === "phaser");
     color: var(--muted);
   }
 
-  @media (min-width: 640px) {
-    .about-games {
-      grid-template-columns: 1fr 1fr;
-    }
-
-    .about-stack {
-      grid-template-columns: 1fr 1fr;
-    }
-
-    .about-stack__item {
-      flex-direction: column;
-      gap: 0.25rem;
-    }
-  }
-
   @media (max-width: 640px) {
-    .about-games__card {
-      padding: 1rem;
-    }
-
-    .about-games__card-title {
-      font-size: 1rem;
-    }
-
-    .about-games__list li {
-      font-size: 0.875rem;
-      padding-left: 0.75rem;
-    }
-
-    .about-stack__item {
-      flex-direction: column;
-      gap: 0.25rem;
-      padding: 0.625rem 0.75rem;
-    }
-
-    .about-stack__label {
-      flex: none;
-      font-size: 0.625rem;
-      margin-bottom: 0.125rem;
-    }
-
-    .about-stack__value {
-      font-size: 0.8125rem;
-    }
-
     .maker-card {
       padding: 1.25rem 1.25rem;
     }
@@ -427,19 +206,6 @@ const webNativeGames = browserGames.filter((g) => g.engine === "phaser");
   }
 
   @media (max-width: 380px) {
-    .about-games__card {
-      padding: 0.75rem;
-    }
-
-    .about-games__list li {
-      font-size: 0.8125rem;
-      padding-left: 0.5rem;
-    }
-
-    .about-stack__item {
-      padding: 0.5rem 0.625rem;
-    }
-
     .maker-card {
       padding: 1rem;
     }

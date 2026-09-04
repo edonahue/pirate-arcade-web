@@ -654,6 +654,35 @@ test.describe("Site Game Content", () => {
     }
   });
 
+  test("about page has no stale framework or runtime claims", async ({
+    page,
+  }) => {
+    await page.goto("/about/");
+    const bodyText = (await page.locator("main").textContent()) || "";
+    expect(bodyText).not.toContain("Phaser 3");
+    expect(bodyText).not.toContain("Astro 6");
+    expect(bodyText).not.toContain("12 MB");
+    expect(bodyText).not.toContain("20-step");
+  });
+
+  test("source page keeps stale claims inside historical rows only", async ({
+    page,
+  }) => {
+    await page.goto("/source/");
+    const mainText = (await page.locator("main").textContent()) || "";
+    expect(mainText).not.toContain("Astro 6");
+    expect(mainText).not.toContain("12 MB");
+    expect(mainText).not.toContain("20-step");
+    expect(mainText).toContain("29-check");
+    // "Phaser 3" survives only in explicitly historical model-run rows.
+    const tableText =
+      (await page.locator(".model-obs-table").textContent()) || "";
+    const countAll = mainText.split("Phaser 3").length - 1;
+    const countTable = tableText.split("Phaser 3").length - 1;
+    expect(countTable).toBeGreaterThan(0);
+    expect(countAll).toBe(countTable);
+  });
+
   test("try-next suggests a different challenge with an explanatory tag", async ({
     page,
   }) => {

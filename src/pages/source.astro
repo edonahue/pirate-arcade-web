@@ -150,8 +150,9 @@ const webNativeGames = browserGames.filter((g) => g.engine === "phaser");
       <p class="section__eyebrow">Proof</p>
       <h2 class="section__title">Engineering Discipline</h2>
       <p class="section__description">
-        The project uses a 20-step automated release gate. Every check must pass
-        before deployment. Below are the key engineering practices in place.
+        The project uses a 29-check automated fast gate, extended for full
+        releases. Every check must pass before deployment. Below are the key
+        engineering practices in place.
       </p>
     </div>
 
@@ -173,7 +174,7 @@ const webNativeGames = browserGames.filter((g) => g.engine === "phaser");
       <div class="engineering-proof__card">
         <h3 class="engineering-proof__title">Two Browser Engines</h3>
         <p class="engineering-proof__desc">
-          {pygbagGames.length} Pygbag/WebAssembly ports (~12 MB runtime) plus
+          {pygbagGames.length} Pygbag/WebAssembly ports (cached Python runtime) plus
           {webNativeGames.length} web-native Phaser 4 game
           {webNativeGames.length === 1 ? "" : "s"} (instant load, no download).
         </p>
@@ -243,7 +244,8 @@ const webNativeGames = browserGames.filter((g) => g.engine === "phaser");
       <h2 class="section__title">Model Run Observations</h2>
       <p class="section__description">
         Notes on what each model was asked to generate and how well it
-        performed. These are session notes, not benchmarks.
+        performed. These are historical session notes, not benchmarks — they
+        cover the initial game and website work, not later site sessions.
       </p>
     </div>
 

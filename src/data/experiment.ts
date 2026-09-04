@@ -1,3 +1,6 @@
+export type ToolingStatus = "current" | "historical";
+export type ModelRunEra = "historical" | "current";
+
 export interface ToolingEntry {
   name: string;
   category:
@@ -11,12 +14,20 @@ export interface ToolingEntry {
   usedFor: string[];
   cost: "free" | "free-tier" | "already-owned";
   notes: string;
+  /** Whether this row describes the current stack ("current") or a
+   *  past session's tooling ("historical"). Every row must declare it. */
+  status: ToolingStatus;
+  /** YYYY-MM when the status was last verified, where known. */
+  asOf?: string;
 }
 
 export interface ModelRun {
   model: string;
   task: string;
   observed: string[];
+  /** Session notes are historical records. New rows may use "current"
+   *  only for actively ongoing model usage. */
+  era: ModelRunEra;
 }
 
 export const tooling: ToolingEntry[] = [
@@ -30,7 +41,9 @@ export const tooling: ToolingEntry[] = [
     ],
     cost: "free",
     notes:
-      "Terminal coding agent. Used as the primary AI interface for all code generation across both the desktop game repo and this website.",
+      "Terminal coding agent. Primary interface for the initial desktop-game and website work covered in the session log below; later site sessions are not yet covered by this log.",
+    status: "current",
+    asOf: "2026-09",
   },
   {
     name: "DeepSeek V4 Flash Free",
@@ -43,6 +56,7 @@ export const tooling: ToolingEntry[] = [
     cost: "free",
     notes:
       "Primary model used during desktop game development. Provided clean, idiomatic code for well-known game patterns. Required human review for edge cases and game-specific logic.",
+    status: "historical",
   },
   {
     name: "Nemotron 3 Super Free",
@@ -55,6 +69,7 @@ export const tooling: ToolingEntry[] = [
     cost: "free",
     notes:
       "Tested as alternative to DeepSeek. Output quality was comparable for simple patterns but showed more variance on complex multi-file tasks.",
+    status: "historical",
   },
   {
     name: "Big Pickle OpenCode Zen",
@@ -67,6 +82,20 @@ export const tooling: ToolingEntry[] = [
     cost: "free",
     notes:
       "Used primarily for Astro/website work and documentation tasks. Strong on structure and boilerplate; weaker on game-specific logic.",
+    status: "historical",
+  },
+  {
+    name: "Ollama (local inference)",
+    category: "ai-model",
+    usedFor: [
+      "Local free-model inference on the builder workstation",
+      "Narrow documented patches",
+    ],
+    cost: "free",
+    notes:
+      "Local inference tier. Documented use: Nemotron narrow patches on the Race Phaser game (see build log). Coverage beyond that is not recorded here.",
+    status: "current",
+    asOf: "2026-09",
   },
   {
     name: "GitHub",
@@ -80,6 +109,8 @@ export const tooling: ToolingEntry[] = [
     cost: "free-tier",
     notes:
       "Free tier handles everything needed: unlimited public repos, 2000 CI minutes/month, 500MB release storage, issue tracking.",
+    status: "current",
+    asOf: "2026-09",
   },
   {
     name: "Cloudflare Pages",
@@ -88,6 +119,8 @@ export const tooling: ToolingEntry[] = [
     cost: "free-tier",
     notes:
       "Free tier includes unlimited static sites, 500 builds/month, 1GB storage, unlimited bandwidth, and global CDN. No Worker scripts needed for a static Astro site.",
+    status: "current",
+    asOf: "2026-09",
   },
   {
     name: "X600 Workstation",
@@ -96,6 +129,8 @@ export const tooling: ToolingEntry[] = [
     cost: "already-owned",
     notes:
       "Local consumer workstation. No cloud compute, no GPU instances, no paid compute used for any development or AI inference task in this project.",
+    status: "current",
+    asOf: "2026-09",
   },
   {
     name: "Astro",
@@ -107,7 +142,9 @@ export const tooling: ToolingEntry[] = [
     ],
     cost: "free",
     notes:
-      "Astro 6 with static output. Content collections for the build log, component islands where needed, zero client JS on most pages.",
+      "Astro 7 with static output. Content collections for the build log, component islands where needed, zero client JS on most pages.",
+    status: "current",
+    asOf: "2026-09",
   },
   {
     name: "Python + Pygame",
@@ -121,6 +158,8 @@ export const tooling: ToolingEntry[] = [
     cost: "free",
     notes:
       "All four games built with Python 3.10+ and Pygame 2.5.0+. All graphics and audio are generated procedurally at runtime — no external asset files required.",
+    status: "current",
+    asOf: "2026-09",
   },
   {
     name: "NumPy",
@@ -132,6 +171,8 @@ export const tooling: ToolingEntry[] = [
     cost: "free",
     notes:
       "Used to synthesize all game audio: paddle hits, explosions, coin jingles, ship horns, and ambient sounds. Zero audio files needed.",
+    status: "current",
+    asOf: "2026-09",
   },
   {
     name: "PyInstaller",
@@ -140,16 +181,23 @@ export const tooling: ToolingEntry[] = [
     cost: "free",
     notes:
       "Packages the Python game collection into standalone Windows and macOS executables. The .spec file required manual hidden import configuration.",
+    status: "current",
+    asOf: "2026-09",
   },
 ];
 
 // Observations are based on session notes and recollection, not
 // controlled measurement. They capture what stood out during development
 // rather than formal evaluation metrics.
+//
+// Coverage ends with the initial game implementations, the website
+// scaffold, and early Race polish work. Later site sessions are not yet
+// recorded here — do not backfill provenance from guesswork.
 export const modelRuns: ModelRun[] = [
   {
     model: "DeepSeek V4 Flash Free",
     task: "Cannonball Clash (Pong variant) — full game implementation",
+    era: "historical",
     observed: [
       "First-pass implementation was functional but lacked collision edge cases",
       "Required 3 intervention cycles for paddle/top-wall collision fix",
@@ -159,6 +207,7 @@ export const modelRuns: ModelRun[] = [
   {
     model: "DeepSeek V4 Flash Free",
     task: "Treasure Cove (Breakout variant) — brick layout and ball physics",
+    era: "historical",
     observed: [
       "Solid first-pass brick generation and collision detection",
       "Ball-angle-on-paddle logic needed manual correction",
@@ -168,6 +217,7 @@ export const modelRuns: ModelRun[] = [
   {
     model: "Nemotron 3 Super Free",
     task: "Kraken's Wake (Asteroids variant) — ship movement and enemy AI",
+    era: "historical",
     observed: [
       "Ship movement was functional but acceleration curve felt wrong",
       "Enemy barrel spawning logic had an off-by-one error",
@@ -177,6 +227,7 @@ export const modelRuns: ModelRun[] = [
   {
     model: "DeepSeek V4 Flash Free",
     task: "Port Royale Tycoon (property-trading game) — board and game rules",
+    era: "historical",
     observed: [
       "Generated plausible board structure but incorrect game-state transitions",
       "Human had to redesign the entire game-flow state machine",
@@ -187,6 +238,7 @@ export const modelRuns: ModelRun[] = [
   {
     model: "Big Pickle OpenCode Zen",
     task: "Astro website scaffold — layout, components, styles",
+    era: "historical",
     observed: [
       "Clean component structure and CSS generation",
       "Theme toggle and layout patterns were correct on first pass",
@@ -196,6 +248,7 @@ export const modelRuns: ModelRun[] = [
   {
     model: "Big Pickle OpenCode Zen",
     task: "Build log post and documentation",
+    era: "historical",
     observed: [
       "Generated reasonable first-draft markdown structure",
       "Tone needed human adjustment — AI defaulted to marketing language",
@@ -205,6 +258,7 @@ export const modelRuns: ModelRun[] = [
   {
     model: "DeepSeek V4 Flash Free",
     task: "Race to Treasure Island (Phaser racer) — game scene, physics, AI rival",
+    era: "historical",
     observed: [
       "Generated a functional Phaser 3 scene with boost/wind/overtake mechanics",
       "Rival AI path and deterministic seed logic needed manual refinement",
@@ -215,6 +269,7 @@ export const modelRuns: ModelRun[] = [
   {
     model: "DeepSeek V4 Flash Free",
     task: "Race to Treasure Island — HUD, overlays, finish, touch controls",
+    era: "historical",
     observed: [
       "HUD layout and boost meter generation were solid on first attempt",
       "Touch input handling needed the most iteration (button sizing, coordinate mapping)",

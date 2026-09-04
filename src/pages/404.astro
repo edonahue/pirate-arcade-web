@@ -14,8 +14,19 @@ import BaseLayout from "../layouts/BaseLayout.astro";
       </p>
     </div>
 
-    <div class="text-center mt-4">
+    <div class="lost-at-sea__actions text-center mt-4">
       <a href="/" class="cta cta--primary"> Back to Shore </a>
+      <a href="/play/" class="cta cta--gold"> Enter the Arcade </a>
+      <a href="/build-log/" class="cta cta--outline"> Read the Build Log </a>
     </div>
   </section>
 </BaseLayout>
+
+<style>
+  .lost-at-sea__actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+</style>

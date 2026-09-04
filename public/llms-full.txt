@@ -8,20 +8,20 @@ The project asks how much of a complete, inspectable, public software project on
 
 ## Games
 
-Total: 5 games. 4 browser-playable (3 Pygbag/WebAssembly ports, 1 web-native Phaser 3 racer). 1 desktop-only.
+Total: 5 games. 4 browser-playable (3 Pygbag/WebAssembly ports, 1 web-native Phaser racer). 1 desktop-only.
 
 - Cannonball Clash: a naval Pong riff with power-ups, procedural audio, AI opponent support, and browser play at https://pirate-arcade.com/play/cannonball-clash/. Pygbag/WebAssembly port.
 - Treasure Cove: a treasure-hunt brick breaker with score combos, paddle power-up, procedural audio, and browser play at https://pirate-arcade.com/play/treasure-cove/. Pygbag/WebAssembly port.
 - Kraken's Wake: an Asteroids-style sea-monster survival game, playable in browser at https://pirate-arcade.com/play/krakens-wake/. Pygbag/WebAssembly port.
-- Race to Treasure Island: a top-down pirate ship racer with AI rivals, wind boost, and deterministic seeded obstacle course, playable in browser at https://pirate-arcade.com/play/race-to-treasure-island/. Web-native Phaser 3 — loads instantly, no runtime download.
+- Race to Treasure Island: a top-down pirate ship racer with AI rivals, wind boost, and deterministic seeded obstacle course, playable in browser at https://pirate-arcade.com/play/race-to-treasure-island/. Web-native Phaser — loads instantly, no runtime download.
 - Port Royale Tycoon: a pirate property-trading board game, desktop-only release.
 
 ## Technology
 
 - Desktop games: Python, Pygame, NumPy, procedural audio.
 - Browser ports: Pygbag, WebAssembly, Web Audio API bridge.
-- Web-native games: Phaser 3, Vite.
-- Website: Astro 6, TypeScript, vanilla CSS, Cloudflare Pages.
+- Web-native games: Phaser, Vite.
+- Website: Astro 7, TypeScript, vanilla CSS, Cloudflare Pages.
 - Distribution: GitHub repositories, CI, and releases.
 - Development constraint: local X600 workstation, free-to-use AI models, no paid AI subscriptions, no cloud compute.
 

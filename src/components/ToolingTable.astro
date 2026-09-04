@@ -10,6 +10,7 @@ import { tooling } from "../data/experiment";
         <th>Category</th>
         <th>Used for</th>
         <th>Cost</th>
+        <th>Status</th>
       </tr>
     </thead>
     <tbody>
@@ -26,6 +27,7 @@ import { tooling } from "../data/experiment";
             </td>
             <td class="tooling-table__used-for">{entry.usedFor.join("; ")}</td>
             <td class="tooling-table__cost">{entry.cost}</td>
+            <td class="tooling-table__status">{entry.status}</td>
           </tr>
         ))
       }
