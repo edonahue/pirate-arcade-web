@@ -2,11 +2,19 @@
 export interface Props {
   href: string;
   variant?: "primary" | "gold" | "outline";
+  target?: string;
+  rel?: string;
 }
 
-const { href, variant = "primary" } = Astro.props;
+const { href, variant = "primary", target, rel } = Astro.props;
 ---
 
-<a href={href} class={`cta cta--${variant}`} data-variant={variant}>
+<a
+  href={href}
+  class={`cta cta--${variant}`}
+  data-variant={variant}
+  target={target}
+  rel={rel}
+>
   <slot />
 </a>

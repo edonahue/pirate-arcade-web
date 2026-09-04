@@ -50,8 +50,14 @@ test.describe("Site Visual Theme", () => {
       page.locator('article:has-text("Treasure Cove") h3 a'),
     ).toBeVisible();
 
-    // Check for desktop-only labels — only Port Royale Tycoon is desktop-only
-    await expect(page.locator("text=Desktop app available")).toHaveCount(1);
+    // Desktop-only game appears in the status matrix and Desktop Collection,
+    // not in the browser grid
+    await expect(
+      page.locator(".status-panel__table", { hasText: "Port Royale Tycoon" }),
+    ).toBeVisible();
+    await expect(page.locator("#desktop-collection")).toContainText(
+      "Port Royale Tycoon",
+    );
   });
 
   test("Play page prewarm fires on game card interaction", async ({ page }) => {
@@ -324,9 +330,10 @@ test.describe("Game Detail Page", () => {
     await expect(heroCta).toBeVisible();
     await expect(heroCta).toHaveText(/Play in Browser/i);
 
-    // Verify it's above the screenshot (above fold)
+    // Verify it's above the screenshot (above fold; the quick-start
+    // facts line adds measured height above the CTA)
     const ctaBox = await heroCta.boundingBox();
-    expect(ctaBox?.y).toBeLessThan(500);
+    expect(ctaBox?.y).toBeLessThan(600);
   });
 
   test("Race detail screenshot is clickable", async ({ page }) => {
@@ -350,19 +357,25 @@ test.describe("Game Detail Page", () => {
     await expect(screenshotLink).toBeVisible();
   });
 
-  test("Desktop-only game has no hero Play CTA or clickable screenshot", async ({
+  test("Desktop-only game has download hero CTA and no browser launch", async ({
     page,
   }) => {
     await page.goto("/games/port-royale-tycoon/");
 
-    const heroCta = page.locator(".game-detail__hero-cta");
-    await expect(heroCta).toHaveCount(0);
+    const heroCta = page.locator(
+      '.game-detail__hero-cta a:has-text("Download Desktop Release")',
+    );
+    await expect(heroCta).toBeVisible();
+    await expect(page.locator(".game-detail__hero-cta")).toHaveCount(1);
+
+    // No browser Play action anywhere on the page
+    await expect(page.locator('a:has-text("Play in Browser")')).toHaveCount(0);
 
     const screenshotLink = page.locator(".game-detail__screenshot-link");
     await expect(screenshotLink).toHaveCount(0);
   });
 
-  test("Game detail screenshot has play overlay for browser games", async ({
+  test("Game detail screenshot links to the game with launch metadata", async ({
     page,
   }) => {
     await page.goto("/games/race-to-treasure-island/");
@@ -370,55 +383,31 @@ test.describe("Game Detail Page", () => {
     const screenshotLink = page.locator(".game-detail__screenshot-link");
     await expect(screenshotLink).toBeVisible();
 
-    const overlay = screenshotLink.locator(".game-detail__screenshot-overlay");
-    await expect(overlay).toBeVisible();
-    await expect(overlay).toHaveText(/Play in Browser/i);
+    // No overlay pill: the screenshot itself is the launch surface
+    await expect(
+      screenshotLink.locator(".game-detail__screenshot-overlay"),
+    ).toHaveCount(0);
 
-    // Verify it's inside the link
     const href = await screenshotLink.getAttribute("href");
     expect(href).toBe("/play/race-to-treasure-island/");
+    await expect(screenshotLink).toHaveAttribute("data-game-launch", "true");
+    await expect(screenshotLink).toHaveAttribute(
+      "aria-label",
+      "Race to Treasure Island screenshot — play in browser",
+    );
   });
 
-  test("Game detail screenshot overlay works for Pygbag games too", async ({
+  test("Game detail screenshot link works for Pygbag games too", async ({
     page,
   }) => {
     await page.goto("/games/cannonball-clash/");
 
     const screenshotLink = page.locator(".game-detail__screenshot-link");
     await expect(screenshotLink).toBeVisible();
-
-    const overlay = screenshotLink.locator(".game-detail__screenshot-overlay");
-    await expect(overlay).toBeVisible();
-    await expect(overlay).toHaveText(/Play in Browser/i);
-  });
-
-  test("Screenshot overlay is visible by default on browser games", async ({
-    page,
-  }) => {
-    await page.goto("/games/race-to-treasure-island/");
-
-    const screenshotLink = page.locator(".game-detail__screenshot-link");
-    await expect(screenshotLink).toBeVisible();
-
-    const overlay = screenshotLink.locator(".game-detail__screenshot-overlay");
-    await expect(overlay).toBeVisible();
-
-    // Should be visible without hover (opacity > 0)
-    const opacity = await overlay.evaluate(
-      (el) => window.getComputedStyle(el).opacity,
-    );
-    expect(parseFloat(opacity)).toBeGreaterThan(0.5);
-
-    // Hover should increase opacity
-    await screenshotLink.hover();
-    await page.waitForTimeout(100);
-    const hoverOpacity = await overlay.evaluate(
-      (el) => window.getComputedStyle(el).opacity,
-    );
-    expect(parseFloat(hoverOpacity)).toBeGreaterThanOrEqual(0.9);
+    await expect(screenshotLink).toHaveAttribute("data-game-launch", "true");
 
     const href = await screenshotLink.getAttribute("href");
-    expect(href).toBe("/play/race-to-treasure-island/");
+    expect(href).toBe("/play/cannonball-clash/");
   });
 });
 

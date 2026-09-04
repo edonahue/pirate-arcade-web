@@ -46,6 +46,12 @@ test.describe("Site Game Content", () => {
       if (isBrowser) {
         await expect(playBtn.first()).toBeVisible();
         await expect(keepPlayBtn.first()).toBeVisible();
+      } else {
+        const heroDownload = page.locator(
+          '.game-detail__hero-cta a.cta--primary:has-text("Download Desktop Release")',
+        );
+        await expect(heroDownload).toBeVisible();
+        await expect(heroDownload).toHaveAttribute("href", game.desktopUrl);
       }
 
       if (game.desktopUrl) {
@@ -205,12 +211,31 @@ test.describe("Site Game Content", () => {
     }
   });
 
-  test("game detail pages have Load sidebar card", async ({ page }) => {
+  test("game detail pages show labeled challenge and touch facts", async ({
+    page,
+  }) => {
+    const challengeLabels: Record<string, string> = {
+      easier: "Easier",
+      balanced: "Balanced",
+      harder: "Harder",
+    };
     for (const game of games) {
       await page.goto(`/games/${game.id}/`);
-
-      const loadCard = page.locator("text=Load").first();
-      await expect(loadCard).toBeVisible();
+      const facts = page.locator(".game-detail__quick-start-facts");
+      if (game.challenge || game.touchDifficultyLabel) {
+        await expect(facts).toBeVisible();
+        const text = (await facts.textContent()) || "";
+        if (game.challenge) {
+          expect(text).toContain(
+            `Challenge: ${challengeLabels[game.challenge]}`,
+          );
+        }
+        if (game.touchDifficultyLabel) {
+          expect(text).toContain(`Touch: ${game.touchDifficultyLabel}`);
+        }
+      } else {
+        await expect(facts).toHaveCount(0);
+      }
     }
   });
 
@@ -232,11 +257,11 @@ test.describe("Site Game Content", () => {
     ).toBeVisible();
   });
 
-  test("game detail pages show Best for line", async ({ page }) => {
+  test("game detail pages do not duplicate Best for line", async ({ page }) => {
+    // bestFor lives on cards and Finder results, not detail prose.
     for (const game of games) {
-      if (!game.bestFor) continue;
       await page.goto(`/games/${game.id}/`);
-      await expect(page.locator("text=Best for:").first()).toBeVisible();
+      await expect(page.locator("text=Best for:")).toHaveCount(0);
     }
   });
 
@@ -585,13 +610,55 @@ test.describe("Site Game Content", () => {
     await expect(aiStackSection).toContainText(`Phaser ${phaserMajor} game`);
   });
 
-  test("game detail pages show What this demonstrates", async ({ page }) => {
+  test("game detail pages show Behind the build", async ({ page }) => {
     for (const game of games) {
       await page.goto(`/games/${game.id}/`);
 
       if (game.demonstrates && game.demonstrates.length > 0) {
-        await expect(page.locator("text=What this demonstrates")).toBeVisible();
+        await expect(page.locator("text=Behind the build")).toBeVisible();
       }
+    }
+  });
+
+  test("game detail pages have no stale engine or runtime claims", async ({
+    page,
+  }) => {
+    for (const game of games) {
+      await page.goto(`/games/${game.id}/`);
+      const bodyText = (await page.locator("main").textContent()) || "";
+      expect(bodyText).not.toContain("Phaser 3");
+      expect(bodyText).not.toContain("12 MB");
+    }
+  });
+
+  test("try-next suggests a different challenge with an explanatory tag", async ({
+    page,
+  }) => {
+    const challengeLabels: Record<string, string> = {
+      easier: "Easier",
+      balanced: "Balanced",
+      harder: "Harder",
+    };
+    const browserPlayable = games.filter(
+      (g: any) => g.status === "browser-playable",
+    );
+    for (const game of browserPlayable) {
+      await page.goto(`/games/${game.id}/`);
+      const card = page.locator(".game-detail__keep-playing-card", {
+        hasText: "Try next",
+      });
+      await expect(card).toBeVisible();
+      const tag = await card
+        .locator(".game-detail__keep-playing-tag")
+        .textContent();
+      expect(tag).toContain("Different challenge:");
+      const link = card.locator("a.game-detail__keep-playing-link");
+      const title = (await link.textContent()) || "";
+      const next = browserPlayable.find((g: any) => title.includes(g.title));
+      expect(next).toBeTruthy();
+      expect(next!.id).not.toBe(game.id);
+      expect(next!.challenge).not.toBe(game.challenge);
+      expect(tag).toContain(challengeLabels[next!.challenge]);
     }
   });
 
@@ -700,19 +767,19 @@ test.describe("Site Game Content", () => {
     }
   });
 
-  test("game detail sidebar stacks below main content on mobile", async ({
+  test("game detail quick-start facts stay readable on mobile", async ({
     page,
   }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto("/games/cannonball-clash/");
 
-    const layout = page.locator(".game-detail__layout");
-    const box = await layout.boundingBox();
+    const facts = page.locator(".game-detail__quick-start-facts");
+    await expect(facts).toBeVisible();
+    const box = await facts.boundingBox();
     expect(box?.width).toBeLessThanOrEqual(390);
 
-    // Sidebar should be visible and not overflow
-    const sidebar = page.locator(".game-detail__sidebar");
-    await expect(sidebar).toBeVisible();
+    // No sidebar element should remain to stack or overflow
+    await expect(page.locator(".game-detail__sidebar")).toHaveCount(0);
   });
 
   test("play page section IDs exist and are not nested", async ({ page }) => {

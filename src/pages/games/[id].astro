@@ -25,26 +25,28 @@ const isDesktopAvailable = game.status === "desktop-available";
 
 const browserGames = games.filter((g) => g.status === "browser-playable");
 
+const challengeLabels: Record<string, string> = {
+  easier: "Easier",
+  balanced: "Balanced",
+  harder: "Harder",
+};
+
+// Next game offers a different gameplay challenge (registry order
+// tie-break). Desktop-only falls back to the first browser-playable game.
 const getNextGame = (current: typeof game): typeof game | undefined => {
-  if (current.engine === "phaser")
-    return browserGames.find((g) => g.touchDifficulty === "easy");
-  if (current.touchDifficulty === "easy")
-    return browserGames.find((g) => g.touchDifficulty === "medium");
-  if (current.touchDifficulty === "medium")
-    return browserGames.find((g) => g.touchDifficulty === "harder");
-  if (current.touchDifficulty === "harder")
-    return browserGames.find((g) => g.engine === "phaser");
-  // Desktop-only: first browser-playable
-  return browserGames[0];
+  if (current.status !== "browser-playable") return browserGames[0];
+  return (
+    browserGames.find(
+      (g) => g.id !== current.id && g.challenge !== current.challenge,
+    ) ?? browserGames.find((g) => g.id !== current.id)
+  );
 };
 
 const nextGame = getNextGame(game);
 
 const getNextTag = (g: typeof game): string => {
-  if (g.engine === "phaser") return "Instant web-native";
-  if (g.touchDifficulty === "easy") return "Easiest on touch";
-  if (g.touchDifficulty === "medium") return "Medium on touch";
-  if (g.touchDifficulty === "harder") return "Harder on touch";
+  if (g.challenge && g.challenge !== game.challenge)
+    return `Different challenge: ${challengeLabels[g.challenge] ?? g.challenge}`;
   return "";
 };
 ---
@@ -73,8 +75,14 @@ const getNextTag = (g: typeof game): string => {
     </div>
 
     <div class="game-detail__chips">
-      {isPhaser && <span class="chip chip--phaser">Web-native (Phaser 3)</span>}
-      {isPygbag && <span class="chip chip--pygbag">Pygbag / WebAssembly</span>}
+      {
+        isBrowserPlayable &&
+          (isPhaser ? (
+            <span class="chip chip--phaser">Instant start</span>
+          ) : (
+            <span class="chip chip--pygbag">Runtime load</span>
+          ))
+      }
       {
         isBrowserPlayable && (
           <span class="chip chip--browser">Playable in browser</span>
@@ -85,11 +93,6 @@ const getNextTag = (g: typeof game): string => {
           <span class="chip chip--desktop">Desktop download</span>
         )
       }
-      {
-        game.controlMode && (
-          <span class="chip chip--control">{game.controlMode}</span>
-        )
-      }
     </div>
 
     {
@@ -97,17 +100,45 @@ const getNextTag = (g: typeof game): string => {
         <div class="game-detail__quick-start">
           <span class="game-detail__quick-start-label">Quick start</span>
           <p class="game-detail__quick-start-text">{game.firstPlayTip}</p>
+          {(game.challenge || game.touchDifficultyLabel) && (
+            <p class="game-detail__quick-start-facts">
+              {game.challenge && (
+                <span>
+                  Challenge: {challengeLabels[game.challenge] ?? game.challenge}
+                </span>
+              )}
+              {game.challenge && game.touchDifficultyLabel && (
+                <span aria-hidden="true"> · </span>
+              )}
+              {game.touchDifficultyLabel && (
+                <span>Touch: {game.touchDifficultyLabel}</span>
+              )}
+            </p>
+          )}
         </div>
       )
     }
 
     {
-      isBrowserPlayable && game.browserUrl && (
+      isBrowserPlayable && game.browserUrl ? (
         <div class="game-detail__hero-cta">
           <CTAButton href={game.browserUrl} variant="primary">
             ▶ Play in Browser
           </CTAButton>
         </div>
+      ) : (
+        game.desktopUrl && (
+          <div class="game-detail__hero-cta">
+            <CTAButton
+              href={game.desktopUrl}
+              variant="primary"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              ⬇ Download Desktop Release
+            </CTAButton>
+          </div>
+        )
       )
     }
 
@@ -115,7 +146,11 @@ const getNextTag = (g: typeof game): string => {
       game.screenshot && (
         <figure class="game-detail__figure">
           {isBrowserPlayable && game.browserUrl ? (
-            <a href={game.browserUrl} class="game-detail__screenshot-link">
+            <a
+              class="game-detail__screenshot-link"
+              aria-label={`${game.title} screenshot — play in browser`}
+              {...getLaunchLinkAttrs(game)!}
+            >
               <img
                 src={game.screenshot}
                 alt={`${game.title} gameplay screenshot`}
@@ -123,9 +158,6 @@ const getNextTag = (g: typeof game): string => {
                 height="720"
                 loading="eager"
               />
-              <span class="game-detail__screenshot-overlay">
-                Play in Browser
-              </span>
             </a>
           ) : (
             <img
@@ -140,141 +172,67 @@ const getNextTag = (g: typeof game): string => {
       )
     }
 
-    <div class="game-detail__layout">
-      <div class="prose">
-        <h2>What it is</h2>
-        <p>
-          {game.title} is Pirate Arcade's nautical take on {game.classic}.
-          {
-            isPhaser
-              ? " It is the first web-native Phaser 3 game in the collection — loads instantly in your browser with no runtime download."
-              : isBrowserPlayable
-                ? " It is a Pygbag/WebAssembly port of the original Python game — playable in browser after a one-time ~12 MB download."
-                : " It is part of the Python and Pygame arcade collection built as a zero-cost AI-assisted development experiment."
-          }
-        </p>
+    <div class="prose">
+      <h2>How to play</h2>
+      <p>{game.howToPlay}</p>
 
-        {
-          game.bestFor && (
-            <p class="game-detail__best-for">
-              <span class="game-detail__best-for-label">Best for:</span>{" "}
-              {game.bestFor}
-            </p>
-          )
-        }
+      {
+        game.touchControls && (
+          <>
+            <h2>Touch controls</h2>
+            <p class="controls-summary">{game.touchControls}</p>
+          </>
+        )
+      }
 
-        {
-          game.demonstrates && game.demonstrates.length > 0 && (
-            <>
-              <h2>What this demonstrates</h2>
-              <ul class="game-detail__demonstrates">
-                {game.demonstrates.map((item) => (
-                  <li>{item}</li>
-                ))}
-              </ul>
-            </>
-          )
-        }
+      {
+        game.keyboardControls && (
+          <>
+            <h2>Keyboard controls</h2>
+            <p class="controls-summary">{game.keyboardControls}</p>
+          </>
+        )
+      }
 
-        <h2>How to play</h2>
-        <p>{game.howToPlay}</p>
+      <h2>Tips</h2>
+      <p>{game.tips}</p>
 
-        {
-          game.touchControls && (
-            <>
-              <h2>Touch controls</h2>
-              <p class="controls-summary">{game.touchControls}</p>
-            </>
-          )
-        }
+      {
+        game.features && game.features.length > 0 && (
+          <>
+            <h2>Features</h2>
+            <ul>
+              {game.features.map((feature) => (
+                <li>{feature}</li>
+              ))}
+            </ul>
+          </>
+        )
+      }
 
-        {
-          game.keyboardControls && (
-            <>
-              <h2>Keyboard controls</h2>
-              <p class="controls-summary">{game.keyboardControls}</p>
-            </>
-          )
-        }
-
-        <h2>Tips</h2>
-        <p>{game.tips}</p>
-
-        <h2>Availability</h2>
-        <p>{game.availabilityNote}</p>
-
-        {
-          game.features && game.features.length > 0 && (
-            <>
-              <h2>Features</h2>
-              <ul>
-                {game.features.map((feature) => (
-                  <li>{feature}</li>
-                ))}
-              </ul>
-            </>
-          )
-        }
-      </div>
-
-      <aside class="game-detail__sidebar">
-        <div class="game-detail__sidebar-card">
-          <span class="game-detail__sidebar-heading">Engine</span>
-          <span class="game-detail__sidebar-value">
-            {
-              isPhaser
-                ? "Phaser 3 (JavaScript)"
+      {
+        game.demonstrates && game.demonstrates.length > 0 && (
+          <>
+            <h2>Behind the build</h2>
+            <p>
+              {game.title} is{" "}
+              {isPhaser
+                ? "built as a web-native Phaser game that runs directly in your browser."
                 : isPygbag
-                  ? "Pygbag / WebAssembly (Python)"
-                  : "Python / Pygame"
-            }
-          </span>
-        </div>
-        <div class="game-detail__sidebar-card">
-          <span class="game-detail__sidebar-heading">Platform</span>
-          <span class="game-detail__sidebar-value">
-            {
-              isPhaser
-                ? "Browser (web-native)"
-                : isBrowserPlayable
-                  ? "Browser + Desktop"
-                  : "Desktop only"
-            }
-          </span>
-        </div>
-        <div class="game-detail__sidebar-card">
-          <span class="game-detail__sidebar-heading">Load</span>
-          <span class="game-detail__sidebar-value">
-            {
-              isPhaser
-                ? "Instant (web-native)"
-                : isBrowserPlayable
-                  ? "~12 MB runtime (cached)"
-                  : "Desktop install"
-            }
-          </span>
-        </div>
-        {
-          game.touchDifficulty && (
-            <div class="game-detail__sidebar-card">
-              <span class="game-detail__sidebar-heading">Touch</span>
-              <span class="game-detail__sidebar-value">
-                {game.touchDifficultyLabel}
-              </span>
-            </div>
-          )
-        }
-        {
-          game.availabilityNote && (
-            <div class="game-detail__sidebar-card">
-              <span class="game-detail__sidebar-heading">Note</span>
-              <span class="game-detail__sidebar-value">
-                {game.availabilityNote}
-              </span>
-            </div>
-          )
-        }
-      </aside>
+                  ? "a Pygbag/WebAssembly port of the original Python game."
+                  : "part of the Python and Pygame desktop collection."}
+            </p>
+            <ul class="game-detail__demonstrates">
+              {game.demonstrates.map((item) => (
+                <li>{item}</li>
+              ))}
+            </ul>
+          </>
+        )
+      }
+
+      <h2>Availability</h2>
+      <p>{game.availabilityNote}</p>
     </div>
 
     {
@@ -405,29 +363,6 @@ const getNextTag = (g: typeof game): string => {
   .game-detail__screenshot-link img {
     cursor: pointer;
   }
-  .game-detail__screenshot-overlay {
-    position: absolute;
-    bottom: 0.75rem;
-    left: 50%;
-    transform: translateX(-50%);
-    padding: 0.4rem 1rem;
-    background: rgba(0, 0, 0, 0.85);
-    border-radius: 999px;
-    color: #ffd700;
-    font-family: var(--mono);
-    font-size: 0.7rem;
-    text-align: center;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    opacity: 0.92;
-    transition: opacity 0.2s;
-    pointer-events: none;
-    white-space: nowrap;
-  }
-  .game-detail__screenshot-link:hover .game-detail__screenshot-overlay,
-  .game-detail__screenshot-link:focus .game-detail__screenshot-overlay {
-    opacity: 1;
-  }
   .game-detail__screenshot-link:focus-visible {
     outline: 2px solid var(--accent);
     outline-offset: 2px;
@@ -461,13 +396,6 @@ const getNextTag = (g: typeof game): string => {
   .chip--desktop {
     opacity: 0.6;
   }
-  .chip--control {
-    color: var(--muted);
-    border-color: var(--line);
-    font-style: italic;
-    text-transform: none;
-    letter-spacing: 0.05em;
-  }
   .game-detail__figure {
     margin-bottom: 2rem;
   }
@@ -476,41 +404,6 @@ const getNextTag = (g: typeof game): string => {
     height: auto;
     border-radius: var(--radius-lg);
     border: 1px solid var(--line);
-  }
-  .game-detail__layout {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 2rem;
-  }
-  @media (min-width: 640px) {
-    .game-detail__layout {
-      grid-template-columns: 1fr 220px;
-    }
-  }
-  .game-detail__sidebar {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-  }
-  .game-detail__sidebar-card {
-    background: var(--surface);
-    border: 1px solid var(--line);
-    border-radius: var(--radius);
-    padding: 1rem;
-  }
-  .game-detail__sidebar-heading {
-    display: block;
-    font-family: var(--mono);
-    font-size: 0.625rem;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    color: var(--accent);
-    margin-bottom: 0.25rem;
-  }
-  .game-detail__sidebar-value {
-    font-size: 0.875rem;
-    color: var(--muted);
-    line-height: 1.5;
   }
   .game-detail__art-figure {
     margin: 1.5rem 0;
@@ -554,22 +447,12 @@ const getNextTag = (g: typeof game): string => {
     margin-top: 0.25rem;
     line-height: 1.6;
   }
-  .game-detail__best-for {
-    font-size: 0.9375rem;
-    color: var(--ink);
-    padding: 0.75rem 1rem;
-    background: var(--surface);
-    border: 1px solid var(--line);
-    border-radius: var(--radius);
-    border-left: 3px solid var(--accent);
-    margin-bottom: 1.5rem;
-  }
-  .game-detail__best-for-label {
+  .game-detail__quick-start-facts {
     font-family: var(--mono);
-    font-size: 0.6875rem;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: var(--accent);
+    font-size: 0.75rem;
+    color: var(--muted);
+    margin-top: 0.5rem;
+    line-height: 1.6;
   }
   .game-detail__demonstrates {
     list-style: none;
@@ -602,26 +485,6 @@ const getNextTag = (g: typeof game): string => {
       border-radius: var(--radius);
     }
 
-    .game-detail__layout {
-      gap: 1.5rem;
-    }
-
-    .game-detail__sidebar {
-      gap: 0.5rem;
-    }
-
-    .game-detail__sidebar-card {
-      padding: 0.75rem;
-    }
-
-    .game-detail__sidebar-heading {
-      font-size: 0.5625rem;
-    }
-
-    .game-detail__sidebar-value {
-      font-size: 0.8125rem;
-    }
-
     .game-detail__quick-start {
       padding: 0.625rem 0.875rem;
       margin-bottom: 1rem;
@@ -629,15 +492,6 @@ const getNextTag = (g: typeof game): string => {
 
     .game-detail__quick-start-text {
       font-size: 0.875rem;
-    }
-
-    .game-detail__best-for {
-      font-size: 0.875rem;
-      padding: 0.625rem 0.875rem;
-    }
-
-    .game-detail__best-for-label {
-      font-size: 0.625rem;
     }
 
     .game-detail__demonstrates li {
