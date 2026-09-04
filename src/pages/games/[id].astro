@@ -4,8 +4,6 @@ import CTAButton from "../../components/CTAButton.astro";
 import { games } from "../../data/games";
 import { breadcrumbNode, gameNode, webPageNode } from "../../lib/schema";
 import {
-  isBrowserPlayable,
-  isDesktopAvailable,
   isPygbag,
   isWebNative,
   getBrowserLoadLabel,
@@ -85,21 +83,27 @@ const getNextTag = (g: typeof game): string => {
     </div>
 
     <div class="game-detail__chips">
-        {isBrowserPlayable && (
+      {
+        game.status === "browser-playable" && (
           <>
             <span class="chip chip--phaser">Instant start</span>
-            {isBrowserPlayable && !isWebNative(game) && (
+            {game.status === "browser-playable" && !isWebNative(game) && (
               <span class="chip chip--pygbag">Runtime load</span>
             )}
           </>
-        )}
-        {isBrowserPlayable && (
+        )
+      }
+      {
+        game.status === "browser-playable" && (
           <span class="chip chip--browser">Playable in browser</span>
-        )}
-        {isDesktopAvailable && (
+        )
+      }
+      {
+        game.status === "desktop-available" && (
           <span class="chip chip--desktop">Desktop download</span>
-        )}
-      </div>
+        )
+      }
+    </div>
 
     {
       game.firstPlayTip && (
@@ -125,31 +129,31 @@ const getNextTag = (g: typeof game): string => {
       )
     }
 
-{
-  isBrowserPlayable && game.browserUrl ? (
-    <div class="game-detail__hero-cta">
-      <CTAButton href={game.browserUrl} variant="primary">
-        ▶ Play in Browser
-      </CTAButton>
-    </div>
-  ) : (
-    <div class="game-detail__hero-cta">
-      <CTAButton
-        href={getDesktopReleaseUrl(game)}
-        variant="primary"
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        ⬇ Download Desktop Release
-      </CTAButton>
-    </div>
-  )
-}
+    {
+      game.status === "browser-playable" && game.browserUrl ? (
+        <div class="game-detail__hero-cta">
+          <CTAButton href={game.browserUrl} variant="primary">
+            ▶ Play in Browser
+          </CTAButton>
+        </div>
+      ) : (
+        <div class="game-detail__hero-cta">
+          <CTAButton
+            href={getDesktopReleaseUrl(game)}
+            variant="primary"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            ⬇ Download Desktop Release
+          </CTAButton>
+        </div>
+      )
+    }
 
     {
       game.screenshot && (
         <figure class="game-detail__figure">
-          {isBrowserPlayable && game.browserUrl ? (
+          {game.status === "browser-playable" && game.browserUrl ? (
             <a
               class="game-detail__screenshot-link"
               aria-label={`${game.title} screenshot — play in browser`}
@@ -284,28 +288,28 @@ const getNextTag = (g: typeof game): string => {
       <div class="game-detail__keep-playing-grid">
         <div class="game-detail__keep-playing-card">
           <span class="game-detail__keep-playing-heading">Play this game</span>
-{
-  isBrowserPlayable && game.browserUrl && (
-    <a
-      class="game-detail__keep-playing-link game-detail__keep-playing-link--primary"
-      {...getLaunchLinkAttrs(game)!}
-    >
-      ▶ Play in Browser
-    </a>
-  )
-}
-{
-  isDesktopAvailable(game) && (
-    <a
-      href={getDesktopReleaseUrl(game)}
-      class="game-detail__keep-playing-link"
-      target="_blank"
-      rel="noopener noreferrer"
-    >
-      Desktop download →
-    </a>
-  )
-}
+          {
+            game.status === "browser-playable" && game.browserUrl && (
+              <a
+                class="game-detail__keep-playing-link game-detail__keep-playing-link--primary"
+                {...getLaunchLinkAttrs(game)!}
+              >
+                ▶ Play in Browser
+              </a>
+            )
+          }
+          {
+            game.desktopUrl && (
+              <a
+                href={getDesktopReleaseUrl(game)}
+                class="game-detail__keep-playing-link"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Desktop download →
+              </a>
+            )
+          }
         </div>
         <div class="game-detail__keep-playing-card">
           <span class="game-detail__keep-playing-heading">Back to arcade</span>

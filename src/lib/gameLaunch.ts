@@ -57,7 +57,9 @@ export function getDesktopReleaseUrl(game: Game): string {
 }
 
 /** Player-facing load behavior derived from the browser engine. */
-export function getBrowserLoadLabel(game: Game): "Instant" | "Runtime load" | null {
+export function getBrowserLoadLabel(
+  game: Game,
+): "Instant" | "Runtime load" | null {
   if (isWebNative(game)) return "Instant";
   if (isPygbag(game)) return "Runtime load";
   return null;
@@ -71,7 +73,9 @@ export function getBrowserEngineLabel(game: Game): "Phaser" | "Pygbag" | null {
 }
 
 /** Player-facing challenge label derived from explicit challenge metadata. */
-export function getChallengeLabel(game: Game): "Easier" | "Balanced" | "Harder" | null {
+export function getChallengeLabel(
+  game: Game,
+): "Easier" | "Balanced" | "Harder" | null {
   if (game.challenge === "easier") return "Easier";
   if (game.challenge === "balanced") return "Balanced";
   if (game.challenge === "harder") return "Harder";

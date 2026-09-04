@@ -42,18 +42,20 @@ const challengeLabels: Record<string, string> = {
                 <strong>{game.title}</strong>
                 <span class="status-panel__classic">{game.classic}</span>
               </td>
-<td>
-  {getBrowserLoadLabel(game)?.text ?? "Install"}
-</td>
+              <td>{getBrowserLoadLabel(game) ?? "Install"}</td>
               <td>{game.challenge ? challengeLabels[game.challenge] : "—"}</td>
-<td>
-  {isDesktopAvailable(game) ? "Desktop-native" : "Not available"}
-</td>
-<td>
-  <span aria-label="Needs user gesture">
-    {isBrowserPlayable(game) ? "Tap to start" : isDesktopAvailable(game) ? "Desktop-native" : "Not available"}
-  </span>
-</td>
+              <td>
+                {isDesktopAvailable(game) ? "Desktop-native" : "Not available"}
+              </td>
+              <td>
+                <span aria-label="Needs user gesture">
+                  {isBrowserPlayable(game)
+                    ? "Tap to start"
+                    : isDesktopAvailable(game)
+                      ? "Desktop-native"
+                      : "Not available"}
+                </span>
+              </td>
             </tr>
           ))
         }

@@ -320,10 +320,7 @@ for (const game of games) {
   // an explicit desktopUrl, or the shared releases index for Pygbag ports
   // and desktop-available titles.
   if (hasDesktopCapability && !game.desktopUrl) {
-    if (
-      game.status !== "desktop-available" &&
-      game.engine !== "pygbag"
-    ) {
+    if (game.status !== "desktop-available" && game.engine !== "pygbag") {
       fail(`${prefix} desktop-capable game has no resolvable release URL`);
     }
   }
