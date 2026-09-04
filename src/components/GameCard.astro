@@ -5,8 +5,12 @@ import {
   isBrowserPlayable,
   isPygbag,
   isWebNative,
+  isDesktopAvailable,
   getArchiveUrl,
   getLaunchLinkAttrs,
+  getBrowserLoadLabel,
+  getBrowserEngineLabel,
+  getChallengeLabel,
 } from "../lib/gameLaunch";
 
 export interface Props {
@@ -19,23 +23,16 @@ const playable = isBrowserPlayable(game);
 const linkId = `game-card-link-${game.id}`;
 const browserUrl = playable ? game.browserUrl! : "";
 const archiveUrl = getArchiveUrl(game);
-const engineLabel = isWebNative(game)
-  ? "Phaser"
-  : isPygbag(game)
-    ? "Pygbag"
-    : null;
-const loadBadge = isWebNative(game)
-  ? { text: "Instant start", modifier: "instant" }
-  : isPygbag(game)
-    ? { text: "Runtime load", modifier: "runtime" }
-    : null;
-const screenshotCaption = isWebNative(game)
+const engineLabel = getBrowserEngineLabel(game);
+const loadLabel = getBrowserLoadLabel(game);
+const challengeLabel = getChallengeLabel(game);
+const screenshotCaption = loadLabel === "Instant"
   ? "Instant-load racer"
-  : isPygbag(game) && game.touchDifficulty === "easy"
+  : loadLabel === "Runtime load" && game.touchDifficulty === "easy"
     ? "Touch-friendly port"
-    : isPygbag(game) && game.touchDifficulty === "harder"
+    : loadLabel === "Runtime load" && game.touchDifficulty === "harder"
       ? "Touch-demanding survival"
-      : isPygbag(game)
+      : loadLabel === "Runtime load"
         ? "Pygbag port"
         : "Desktop board game";
 const touchDifficultyLabel = game.touchDifficulty
@@ -113,35 +110,29 @@ const touchDifficultyLabel = game.touchDifficulty
       </div>
       <div class="game-card__footer">
         <div class="game-card__footer-badges">
-          <StatusBadge
-            variant={game.status === "desktop-available"
-              ? "available"
-              : game.status === "browser-playable"
-                ? "available"
-                : game.status === "browser-planned"
-                  ? "planned"
-                  : "experimental"}
-            label={game.statusLabel}
-            context="paper"
-          />
-          {
-            game.touchDifficulty && touchDifficultyLabel && (
-              <span
-                class={`game-card__touch-difficulty game-card__touch-difficulty--${game.touchDifficulty}`}
-              >
-                {touchDifficultyLabel}
-              </span>
-            )
-          }
-          {
-            playable && loadBadge && (
-              <span
-                class={`game-card__load-badge game-card__load-badge--${loadBadge.modifier}`}
-              >
-                {loadBadge.text}
-              </span>
-            )
-          }
+<StatusBadge
+  variant={isDesktopAvailable(game) ? "available" : game.status === "browser-playable" ? "available" : game.status === "browser-planned" ? "planned" : "experimental"}
+  label={game.statusLabel}
+  context="paper"
+/>
+  {
+    game.touchDifficulty && touchDifficultyLabel && (
+      <span
+        class={`game-card__touch-difficulty game-card__touch-difficulty--${game.touchDifficulty}`}
+      >
+        {touchDifficultyLabel}
+      </span>
+    )
+  }
+  {
+    playable && loadLabel && (
+      <span
+        class={`game-card__load-badge game-card__load-badge--${loadLabel === "Runtime load" ? "runtime" : "instant"}`}
+      >
+        {loadLabel}
+      </span>
+    )
+  }
         </div>
         {
           playable && (

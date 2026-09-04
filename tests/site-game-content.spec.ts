@@ -875,11 +875,16 @@ test.describe("Site Game Content", () => {
     }
 
     const bodyText = (await table.textContent()) || "";
-    expect(bodyText).toContain("Instant");
-    expect(bodyText).toContain("Runtime load");
+    // Load labels derived from isDesktopAvailable / isBrowserPlayable capability model
+    expect(bodyText).toContain("Desktop-native");
+    expect(bodyText).toContain("Tap to start");
+    expect(bodyText).toContain("Not available");
+    // Challenge labels from explicit challenge metadata
     expect(bodyText).toContain("Easier");
     expect(bodyText).toContain("Balanced");
     expect(bodyText).toContain("Harder");
+    // Old engine-based labels (Instant / Runtime load) no longer appear;
+    // they have been replaced by the capability-derived labels above.
     expect(bodyText).not.toContain("12 MB");
   });
 

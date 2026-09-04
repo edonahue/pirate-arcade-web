@@ -3,7 +3,18 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
 import CTAButton from "../../components/CTAButton.astro";
 import { games } from "../../data/games";
 import { breadcrumbNode, gameNode, webPageNode } from "../../lib/schema";
-import { getArchiveUrl, getLaunchLinkAttrs } from "../../lib/gameLaunch";
+import {
+  isBrowserPlayable,
+  isDesktopAvailable,
+  isPygbag,
+  isWebNative,
+  getBrowserLoadLabel,
+  getBrowserEngineLabel,
+  getChallengeLabel,
+  getDesktopReleaseUrl,
+  getArchiveUrl,
+  getLaunchLinkAttrs,
+} from "../../lib/gameLaunch";
 
 export function getStaticPaths() {
   return games.map((game) => ({
@@ -18,10 +29,9 @@ const title = `${game.title} — Pirate Arcade`;
 const description =
   game.seoDescription ??
   `${game.title} is a pirate-themed ${game.classic} arcade game in Pirate Arcade. ${game.description}`;
-const isPhaser = game.engine === "phaser";
-const isPygbag = game.engine === "pygbag";
-const isBrowserPlayable = game.status === "browser-playable";
-const isDesktopAvailable = game.status === "desktop-available";
+const engineLabel = getBrowserEngineLabel(game);
+const loadLabel = getBrowserLoadLabel(game);
+const challengeLabel = getChallengeLabel(game);
 
 const browserGames = games.filter((g) => g.status === "browser-playable");
 
@@ -75,25 +85,21 @@ const getNextTag = (g: typeof game): string => {
     </div>
 
     <div class="game-detail__chips">
-      {
-        isBrowserPlayable &&
-          (isPhaser ? (
+        {isBrowserPlayable && (
+          <>
             <span class="chip chip--phaser">Instant start</span>
-          ) : (
-            <span class="chip chip--pygbag">Runtime load</span>
-          ))
-      }
-      {
-        isBrowserPlayable && (
+            {isBrowserPlayable && !isWebNative(game) && (
+              <span class="chip chip--pygbag">Runtime load</span>
+            )}
+          </>
+        )}
+        {isBrowserPlayable && (
           <span class="chip chip--browser">Playable in browser</span>
-        )
-      }
-      {
-        isDesktopAvailable && (
+        )}
+        {isDesktopAvailable && (
           <span class="chip chip--desktop">Desktop download</span>
-        )
-      }
-    </div>
+        )}
+      </div>
 
     {
       game.firstPlayTip && (
@@ -119,28 +125,26 @@ const getNextTag = (g: typeof game): string => {
       )
     }
 
-    {
-      isBrowserPlayable && game.browserUrl ? (
-        <div class="game-detail__hero-cta">
-          <CTAButton href={game.browserUrl} variant="primary">
-            ▶ Play in Browser
-          </CTAButton>
-        </div>
-      ) : (
-        game.desktopUrl && (
-          <div class="game-detail__hero-cta">
-            <CTAButton
-              href={game.desktopUrl}
-              variant="primary"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              ⬇ Download Desktop Release
-            </CTAButton>
-          </div>
-        )
-      )
-    }
+{
+  isBrowserPlayable && game.browserUrl ? (
+    <div class="game-detail__hero-cta">
+      <CTAButton href={game.browserUrl} variant="primary">
+        ▶ Play in Browser
+      </CTAButton>
+    </div>
+  ) : (
+    <div class="game-detail__hero-cta">
+      <CTAButton
+        href={getDesktopReleaseUrl(game)}
+        variant="primary"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        ⬇ Download Desktop Release
+      </CTAButton>
+    </div>
+  )
+}
 
     {
       game.screenshot && (
@@ -216,9 +220,9 @@ const getNextTag = (g: typeof game): string => {
             <h2>Behind the build</h2>
             <p>
               {game.title} is{" "}
-              {isPhaser
+              {isWebNative(game)
                 ? "built as a web-native Phaser game that runs directly in your browser."
-                : isPygbag
+                : isPygbag(game)
                   ? "a Pygbag/WebAssembly port of the original Python game."
                   : "part of the Python and Pygame desktop collection."}
             </p>
@@ -280,28 +284,28 @@ const getNextTag = (g: typeof game): string => {
       <div class="game-detail__keep-playing-grid">
         <div class="game-detail__keep-playing-card">
           <span class="game-detail__keep-playing-heading">Play this game</span>
-          {
-            isBrowserPlayable && game.browserUrl && (
-              <a
-                class="game-detail__keep-playing-link game-detail__keep-playing-link--primary"
-                {...getLaunchLinkAttrs(game)!}
-              >
-                ▶ Play in Browser
-              </a>
-            )
-          }
-          {
-            game.desktopUrl && (
-              <a
-                href={game.desktopUrl}
-                class="game-detail__keep-playing-link"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Desktop download →
-              </a>
-            )
-          }
+{
+  isBrowserPlayable && game.browserUrl && (
+    <a
+      class="game-detail__keep-playing-link game-detail__keep-playing-link--primary"
+      {...getLaunchLinkAttrs(game)!}
+    >
+      ▶ Play in Browser
+    </a>
+  )
+}
+{
+  isDesktopAvailable(game) && (
+    <a
+      href={getDesktopReleaseUrl(game)}
+      class="game-detail__keep-playing-link"
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      Desktop download →
+    </a>
+  )
+}
         </div>
         <div class="game-detail__keep-playing-card">
           <span class="game-detail__keep-playing-heading">Back to arcade</span>

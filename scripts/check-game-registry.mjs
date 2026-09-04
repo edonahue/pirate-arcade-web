@@ -277,23 +277,62 @@ for (const game of games) {
   }
 }
 
-/** Browser-playable games without Phaser engine should have desktopUrl */
+/**
+ * Platform capability matrix (declarative invariants over status/engine/URLs).
+ * Desktop capability is: status "desktop-available", OR an explicit
+ * desktopUrl, OR a Pygbag engine (all Pygbag ports ship in the shared
+ * desktop release). This single matrix replaces the old engine-based rule;
+ * see isDesktopAvailable()/getDesktopReleaseUrl() in src/lib/gameLaunch.ts
+ * for the matching runtime-side rule. Deep artifact guarantees (generated
+ * shells, archive/hash agreement, preload parity) live in their dedicated
+ * validators and are referenced here, not duplicated.
+ */
 for (const game of games) {
-  if (game.status === "browser-playable" && game.engine !== "phaser") {
-    if (!game.desktopUrl) {
-      fail(`[${game.id}] browser-playable Pygbag game missing desktopUrl`);
+  const prefix = `[${game.id}]`;
+  const isBrowser = game.status === "browser-playable";
+  const hasDesktopCapability =
+    game.status === "desktop-available" ||
+    !!game.desktopUrl ||
+    game.engine === "pygbag";
+
+  // browser+phaser: browser URL required, no archive expected.
+  if (isBrowser && game.engine === "phaser" && !game.browserUrl) {
+    fail(`${prefix} browser-playable Phaser game missing 'browserUrl'`);
+  }
+
+  // browser+pygbag: browser URL required; archive/hash/shell agreement is
+  // enforced by check-browser-game-shells, check-game-cache-versioning,
+  // check-game-html-versions, and check-archive-parity.
+  if (isBrowser && game.engine === "pygbag" && !game.browserUrl) {
+    fail(`${prefix} browser-playable Pygbag game missing 'browserUrl'`);
+  }
+
+  // desktop-only (no browserUrl): must omit browser control metadata.
+  if (!game.browserUrl) {
+    for (const field of ["controlMode", "touchDifficulty", "touchControls"]) {
+      if (game[field]) {
+        fail(`${prefix} non-browser game must not have '${field}'`);
+      }
     }
   }
-}
 
-/** desktop-available games should have a valid desktopUrl */
-for (const game of games) {
-  if (game.status === "desktop-available" && game.desktopUrl) {
-    if (!game.desktopUrl.startsWith("https://")) {
-      fail(
-        `[${game.id}] desktopUrl should start with https://, got '${game.desktopUrl}'`,
-      );
+  // Any game with desktop capability must resolve to a release destination:
+  // an explicit desktopUrl, or the shared releases index for Pygbag ports
+  // and desktop-available titles.
+  if (hasDesktopCapability && !game.desktopUrl) {
+    if (
+      game.status !== "desktop-available" &&
+      game.engine !== "pygbag"
+    ) {
+      fail(`${prefix} desktop-capable game has no resolvable release URL`);
     }
+  }
+
+  // Any explicit desktopUrl must be a valid https URL.
+  if (game.desktopUrl && !game.desktopUrl.startsWith("https://")) {
+    fail(
+      `${prefix} desktopUrl should start with https://, got '${game.desktopUrl}'`,
+    );
   }
 }
 

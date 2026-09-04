@@ -5,6 +5,7 @@
 import { readFileSync, existsSync } from "fs";
 import { resolve } from "path";
 import type { Game } from "../data/games";
+import { site } from "../data/profile";
 
 function readArchiveHash(gameId: string): string {
   try {
@@ -27,6 +28,54 @@ export function isPygbag(game: Game): boolean {
 
 export function isWebNative(game: Game): boolean {
   return game.engine === "phaser";
+}
+
+/**
+ * Single home for the desktop-availability rule. A game ships on desktop
+ * when it is explicitly desktop-only, carries an explicit desktop URL, or
+ * is a Pygbag port (all Pygbag ports ship in the shared desktop release).
+ * Do NOT reimplement this inference in pages, components, schema, tests,
+ * or validators — call this helper so the rule stays in one tested place.
+ */
+export function isDesktopAvailable(game: Game): boolean {
+  return (
+    game.status === "desktop-available" ||
+    !!game.desktopUrl ||
+    game.engine === "pygbag"
+  );
+}
+
+/**
+ * Resolve where a desktop-capable game is obtained. An explicit per-game
+ * desktopUrl wins; otherwise the shared desktop releases index is used.
+ * Returns "" when the game has no desktop release.
+ */
+export function getDesktopReleaseUrl(game: Game): string {
+  if (game.desktopUrl) return game.desktopUrl;
+  if (isDesktopAvailable(game)) return `${site.desktopRepoUrl}/releases`;
+  return "";
+}
+
+/** Player-facing load behavior derived from the browser engine. */
+export function getBrowserLoadLabel(game: Game): "Instant" | "Runtime load" | null {
+  if (isWebNative(game)) return "Instant";
+  if (isPygbag(game)) return "Runtime load";
+  return null;
+}
+
+/** Player-facing engine label derived from the browser engine. */
+export function getBrowserEngineLabel(game: Game): "Phaser" | "Pygbag" | null {
+  if (isWebNative(game)) return "Phaser";
+  if (isPygbag(game)) return "Pygbag";
+  return null;
+}
+
+/** Player-facing challenge label derived from explicit challenge metadata. */
+export function getChallengeLabel(game: Game): "Easier" | "Balanced" | "Harder" | null {
+  if (game.challenge === "easier") return "Easier";
+  if (game.challenge === "balanced") return "Balanced";
+  if (game.challenge === "harder") return "Harder";
+  return null;
 }
 
 /**
