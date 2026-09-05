@@ -56,7 +56,25 @@ test.describe("mobile touch playability", () => {
         const loadingEl = page.locator("#game-loading");
         await expect(loadingEl).toBeVisible({ timeout: 5000 });
 
-        await expect(page.locator("#game-loading-detail")).toContainText(/./);
+        // B. Loader state/progress is observable via existing PirateArcadeLoading API
+        const loaderState = await page.evaluate(() =>
+          (window as any).PirateArcadeLoading?.getState?.(),
+        );
+        expect(loaderState).toBeTruthy();
+        expect(["loading", "ready"]).toContain(loaderState.phase);
+        expect(typeof loaderState.stage).toBe("number");
+
+        // C. A boot-stage/readiness transition occurs (isReady flips true)
+        await page.waitForFunction(
+          () =>
+            !!(
+              (window as any).PirateArcadeLoading &&
+              (window as any).PirateArcadeLoading.isReady &&
+              (window as any).PirateArcadeLoading.isReady()
+            ),
+          undefined,
+          { timeout: 30000 },
+        );
 
         await page.waitForFunction(
           () => {

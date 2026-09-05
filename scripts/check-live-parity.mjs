@@ -1,640 +1,224 @@
 #!/usr/bin/env node
 /*
- * Live/Repo Parity Checker
- * Verifies that live site matches expected repo state.
+ * Live/Repo Parity Checker (post-deploy only).
  *
- * Performs blocking local checks (sw.js validity, game HTML versions)
- * that must pass before any release.
+ * Owns deployed-production verification:
+ * - deployed commit identity (/build-info.json vs EXPECTED_COMMIT)
+ * - route availability + registry topology
+ * - essential remote shell/runtime markers
+ * - semantic parity that can go stale after deploy
  *
- * Non-blocking parity checks (live site) use ALLOW_STALE_LIVE to bypass
- * failures during deployment propagation.
+ * Local deterministic correctness belongs to `verify:release:fast`.
+ * This script reads local manifests (games.json, asset versions) only
+ * as expected-value inputs for remote comparison.
  *
- * Registry-driven: game lists derived from src/data/games.json,
- * not hardcoded. Coverage: core routes, detail routes, browser routes,
- * Pygbag, Phaser, desktop-only.
+ * Registry-driven: game groups derived from src/data/games.json.
  */
 
 import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
-import { dirname } from "node:path";
+import { dirname, resolve } from "node:path";
 
 const __filename = new URL(import.meta.url).pathname;
 const __dirname = dirname(__filename);
 
-// Load version manifest (same directory as this script)
 const { ASSET_VERSION, CACHE_VERSION } =
   await import("./game-asset-versions.mjs");
 
-// Load game registry
-const gamesList = JSON.parse(
+const games = JSON.parse(
   readFileSync(resolve(__dirname, "..", "src", "data", "games.json"), "utf-8"),
 );
-const games = gamesList;
 
-// Derive game categories from registry (NOT hardcoded)
-const BROWSER_GAMES = games.filter((g) => g.status === "browser-playable");
+// Topology derived from registry fields (same capability truth as the app):
+// - browser-capable: has browserUrl (4 games)
+// - desktop-capable: has desktopUrl (cannonball, treasure, kraken, port)
+// - desktop-only: no browserUrl (port only)
+const BROWSER_GAMES = games.filter((g) => g.browserUrl);
 const PYGBAG_GAMES = games.filter((g) => g.engine === "pygbag");
 const PHASER_GAMES = BROWSER_GAMES.filter((g) => g.engine === "phaser");
-const DESKTOP_GAMES = games.filter((g) => g.status === "desktop-available");
-const ALL_GAMES = games;
+const DESKTOP_CAPABLE_GAMES = games.filter((g) => g.desktopUrl);
+const DESKTOP_ONLY_GAMES = games.filter((g) => !g.browserUrl);
 
-const ROOT = resolve(__dirname, "..");
 const LIVE_BASE = process.env.LIVE_BASE || "https://pirate-arcade.com";
 const ALLOW_STALE_LIVE = process.env.ALLOW_STALE_LIVE === "1";
+const EXPECTED_COMMIT = process.env.EXPECTED_COMMIT || "";
 
-const checks = [];
 let passed = 0;
 let failed = 0;
 
-function check(name, condition, details) {
-  checks.push({ name, passed: condition, details });
+function check(name, condition, details = "") {
   if (condition) {
     passed++;
-    console.log("RT" + "RT" + "RT" + "RT" + "RT" + "RT" + "✅ " + name);
+    console.log(`✅ ${name}`);
   } else {
     failed++;
-    console.log("RT" + "RT" + "RT" + "RT" + "RT" + "RT" + "❌ " + name);
-    if (details)
-      console.log("RT" + "RT" + "RT" + "RT" + "RT" + "RT" + "   " + details);
-  }
-}
-
-function fail(name, details) {
-  check(name, false, details);
-}
-
-function checkLocalFile(filePath, name, predicate, details) {
-  try {
-    const content = readFileSync(resolve(ROOT, filePath), "utf-8");
-    check(name, predicate(content), details);
-  } catch (err) {
-    fail(name, "Error reading " + filePath + ": " + err.message);
+    console.log(`❌ ${name}`);
+    if (details) console.log(`   ${details}`);
   }
 }
 
 async function fetchText(url) {
   const response = await fetch(url);
   if (!response.ok) {
-    throw new Error("HTTP " + response.status + ": " + response.statusText);
+    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
   }
   return await response.text();
 }
 
-// ———————————————————————————————
-// LOCAL (blocking) checks — must pass for release
-// ———————————————————————————————
-console.log(
-  "RT" +
-    "RT" +
-    "RT" +
-    "RT" +
-    "RT" +
-    "RT" +
-    "RT" +
-    "RT" +
-    "RT" +
-    "RT" +
-    "RT" +
-    "RT" +
-    "RT" +
-    "RT" +
-    "RT" +
-    "RT" +
-    "RT" +
-    "RT",
-);
-
-// 1. sw.js: no top-level imports, correct cache version
-checkLocalFile(
-  "public/sw.js",
-  "SW: no top-level import",
-  function (c) {
-    return !/^\s*import\s/s.test(c);
-  },
-  "Do not use import in classic SW",
-);
-checkLocalFile(
-  "public/sw.js",
-  "SW: has correct CACHE_VERSION",
-  function (c) {
-    return c.includes('const CACHE_VERSION = "' + CACHE_VERSION + '"');
-  },
-  "Expected: " + CACHE_VERSION,
-);
-
-// 2. Game HTML: version consistency for every Pygbag game
-for (var _i = 0; _i < PYGBAG_GAMES.length; _i++) {
-  var gamePygbag = PYGBAG_GAMES[_i];
-  var gameDir = gamePygbag.id;
-  var htmlPath = "public/play/" + gameDir + "/index.html";
-
-  checkLocalFile(
-    htmlPath,
-    gameDir + ": correct archive URL version",
-    function (c) {
-      return (
-        c.includes(gameDir + ".tar.gz?h=") ||
-        c.includes(gameDir + ".tar.gz?v=" + ASSET_VERSION)
-      );
-    },
-  );
-  checkLocalFile(
-    htmlPath,
-    gameDir + ": correct mobile-controls.css version",
-    function (c) {
-      return c.includes("mobile-controls.css?v=" + ASSET_VERSION);
-    },
-  );
-  checkLocalFile(
-    htmlPath,
-    gameDir + ": correct shared JS versions",
-    function (c) {
-      return (
-        c.includes("pygame-input-bridge.js?v=" + ASSET_VERSION) &&
-        c.includes("game-viewport.js?v=" + ASSET_VERSION) &&
-        c.includes("mobile-controls.js?v=" + ASSET_VERSION)
-      );
-    },
-  );
-  checkLocalFile(
-    htmlPath,
-    gameDir + ": SW registration uses updateViaCache: none",
-    function (c) {
-      return (
-        c.includes("updateViaCache: 'none'") ||
-        c.includes('updateViaCache: "none"')
-      );
-    },
-  );
-  checkLocalFile(
-    htmlPath,
-    gameDir + ": SW registration is classic (no type: module)",
-    function (c) {
-      return !c.includes("type: 'module'") && !c.includes('type: "module"');
-    },
-  );
-  checkLocalFile(
-    htmlPath,
-    gameDir + ": loading overlay uses PirateArcadeLoading",
-    function (c) {
-      return c.includes("PirateArcadeLoading") && c.includes("game-ready");
-    },
-  );
-  checkLocalFile(
-    htmlPath,
-    gameDir + ": loading overlay shows phase details",
-    function (c) {
-      return (
-        c.includes("game-loading-detail") && c.includes("_detailEl.textContent")
-      );
-    },
-  );
-  checkLocalFile(
-    htmlPath,
-    gameDir + ": data-no-touch-control on back link",
-    function (c) {
-      return c.includes("data-no-touch-control");
-    },
-  );
+async function fetchJson(url) {
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+  }
+  return await response.json();
 }
 
-// 3. game-viewport.js: exposes canvas-bottom-offset
-checkLocalFile(
-  "public/play/shared/game-viewport.js",
-  "game-viewport.js: uses visualViewport.offsetLeft/offsetTop",
-  function (c) {
-    return c.includes("visualViewport") && c.includes("offsetLeft");
-  },
-);
-checkLocalFile(
-  "public/play/shared/game-viewport.js",
-  "game-viewport.js: exposes --game-canvas-bottom-offset",
-  function (c) {
-    return c.includes("--game-canvas-bottom-offset");
-  },
-);
-
-// 4. mobile-controls.css: drag zones use correct bottom coordinate
-checkLocalFile(
-  "public/play/shared/mobile-controls.css",
-  "mobile-controls.css: touch-drag-x uses bottom-offset",
-  function (c) {
-    return (
-      !c.includes("bottom: var(--game-canvas-bottom,") &&
-      c.includes("bottom: var(--game-canvas-bottom-offset,")
-    );
-  },
-);
-
-// 5. game-asset-versions.js (shared runtime): matches manifest
-checkLocalFile(
-  "public/play/shared/game-asset-versions.js",
-  "Shared game-asset-versions.js matches manifest",
-  function (c) {
-    return (
-      c.includes('"' + ASSET_VERSION + '"') &&
-      c.includes('"' + CACHE_VERSION + '"')
-    );
-  },
-);
-
-// ———————————————————————————————
-// LIVE checks — informational, allow-stale-able
-// ———————————————————————————————
+console.log(`🔍 Live parity check`);
+console.log(`   Live base: ${LIVE_BASE}`);
+console.log(`   Asset version: ${ASSET_VERSION}, cache: ${CACHE_VERSION}`);
 console.log(
-  "RT" + "RT" + "RT" + "RT" + "RT" + "RT" + "RT" + "RT" + "RT" + "RT",
+  `   Registry: ${games.length} games, ` +
+    `${BROWSER_GAMES.length} browser, ` +
+    `${DESKTOP_CAPABLE_GAMES.length} desktop-capable, ` +
+    `${DESKTOP_ONLY_GAMES.length} desktop-only`,
 );
+if (EXPECTED_COMMIT) console.log(`   Expected commit: ${EXPECTED_COMMIT}`);
 
-// Check service worker
+// ——— Deployed build identity ———
+console.log(`\n─── Build identity ───`);
 try {
-  var swText = await fetchText(LIVE_BASE + "/sw.js");
-  var swCacheCheck = swText.includes(
-    'const CACHE_NAME = "' + CACHE_VERSION + '";',
-  );
-  var swArchiveCheck =
-    swText.includes('if (url.pathname.endsWith(".tar.gz"))') &&
-    swText.includes("event.respondWith(networkFirst(event);)");
+  const info = await fetchJson(`${LIVE_BASE}/build-info.json`);
   check(
-    "SW has correct cache name",
-    swCacheCheck,
-    "Expected: " + CACHE_VERSION,
+    "/build-info.json responds with schemaVersion 1",
+    info && info.schemaVersion === 1,
+    JSON.stringify(info).slice(0, 200),
+  );
+  const deployed = typeof info.commit === "string" ? info.commit : "";
+  if (EXPECTED_COMMIT) {
+    check(
+      "deployed commit matches EXPECTED_COMMIT",
+      deployed === EXPECTED_COMMIT,
+      `expected ${EXPECTED_COMMIT}, deployed ${deployed} (branch ${info.branch})`,
+    );
+  } else {
+    console.log(`   deployed commit: ${deployed} (branch ${info.branch})`);
+    check("deployed commit is a non-empty string", deployed.length > 0);
+  }
+} catch (err) {
+  check("/build-info.json fetch", false, err.message);
+}
+
+// ——— Service worker (remote) ———
+console.log(`\n─── Service worker ───`);
+try {
+  const swText = await fetchText(`${LIVE_BASE}/sw.js`);
+  check(
+    "SW has correct CACHE_VERSION",
+    swText.includes(`const CACHE_VERSION = "${CACHE_VERSION}"`),
+    `Expected: ${CACHE_VERSION}`,
   );
   check(
     "SW has correct archive strategy",
-    swArchiveCheck,
+    swText.includes('if (url.pathname.endsWith(".tar.gz"))') &&
+      swText.includes("event.respondWith(networkFirst(event))"),
     "Should use network-first for archives",
   );
 } catch (err) {
   check("SW fetch", false, err.message);
 }
 
-// Core site routes
-var coreRoutes = ["/", "/play/", "/about/", "/source/", "/build-log/"];
-for (var _i2 = 0; _i2 < coreRoutes.length; _i2++) {
-  var route = coreRoutes[_i2];
+// ——— Core routes ———
+console.log(`\n─── Core routes ───`);
+for (const route of ["/", "/play/", "/about/", "/source/", "/build-log/"]) {
   try {
-    var txt = await fetchText(LIVE_BASE + route);
-    check(
-      route + " responds",
-      txt.length > 1000,
-      "Should have substantial content",
-    );
+    const txt = await fetchText(LIVE_BASE + route);
+    check(`${route} responds`, txt.length > 1000);
   } catch (err) {
-    check(route + " fetch", false, err.message);
+    check(`${route} fetch`, false, err.message);
   }
 }
 
-// Game detail routes for every registry game
-for (var _i3 = 0; _i3 < ALL_GAMES.length; _i3++) {
-  var gameDetail = ALL_GAMES[_i3];
-  var gameIdDetail = gameDetail.id;
+// ——— Detail routes (all registry games) ———
+console.log(`\n─── Detail routes ───`);
+for (const game of games) {
   try {
-    var txtDetail = await fetchText(LIVE_BASE + "/games/" + gameIdDetail + "/");
-    check(
-      "/games/" + gameIdDetail + "/ responds",
-      txtDetail.length > 1000,
-      "Detail page should respond",
-    );
-    if (gameDetail.engine === "pygbag") {
+    const txt = await fetchText(LIVE_BASE + `/games/${game.id}/`);
+    check(`/games/${game.id}/ responds`, txt.length > 1000);
+    if (game.engine === "pygbag") {
       check(
-        gameIdDetail + " archive hash present",
-        txtDetail.includes(gameIdDetail + ".tar.gz?h="),
-        "Archive URL hash should be present",
+        `${game.id} archive hash present`,
+        txt.includes(`${game.id}.tar.gz?h=`),
       );
     }
-    if (gameDetail.engine === "phaser") {
-      check(
-        gameIdDetail + " has Instant start",
-        txtDetail.includes("Instant start"),
-        "Phaser game should have Instant start",
-      );
+    if (game.engine === "phaser") {
+      check(`${game.id} has Instant start`, txt.includes("Instant start"));
     }
-    if (gameDetail.status === "desktop-available") {
+    if (game.desktopUrl) {
       check(
-        gameIdDetail + " desktop destination",
-        txtDetail.includes("Desktop download") ||
-          txtDetail.includes("github.com/edonahue/pirate-arcade/releases"),
-        "Desktop download link should appear",
+        `${game.id} desktop destination`,
+        txt.includes("Desktop download") ||
+          txt.includes("github.com/edonahue/pirate-arcade/releases"),
       );
     }
   } catch (err) {
-    check("/games/" + gameIdDetail + "/ fetch", false, err.message);
+    check(`/games/${game.id}/ fetch`, false, err.message);
   }
 }
 
-// Browser routes for every browser-playable game
-for (var _i4 = 0; _i4 < BROWSER_GAMES.length; _i4++) {
-  var gameBrowser = BROWSER_GAMES[_i4];
+// ——— Browser routes (single fetch per game) ———
+console.log(`\n─── Browser routes ───`);
+for (const game of BROWSER_GAMES) {
   try {
-    var txtBrowser = await fetchText(
-      LIVE_BASE + "/play/" + gameBrowser.id + "/",
-    );
-    check(
-      "/play/" + gameBrowser.id + "/ responds",
-      txtBrowser.length > 1000,
-      "Game detail page should respond",
-    );
-    if (gameBrowser.engine === "pygbag") {
+    const txt = await fetchText(LIVE_BASE + `/play/${game.id}/`);
+    check(`/play/${game.id}/ responds`, txt.length > 1000);
+    if (game.engine === "pygbag") {
+      check(`${game.id} has Runtime load`, txt.includes("Runtime load"));
+      check(`${game.id} has no Instant start`, !txt.includes("Instant start"));
       check(
-        gameBrowser.id + " has Runtime load",
-        txtBrowser.includes("Runtime load"),
-        "Pygbag game should have Runtime load",
+        `${game.id} has data-no-touch-control on back link`,
+        txt.includes('<a id="back-link" href="/play/" data-no-touch-control>'),
       );
+      check(`${game.id} has game-ready marker`, txt.includes("game-ready"));
       check(
-        gameBrowser.id + " has no Instant start",
-        !txtBrowser.includes("Instant start"),
-        "Pygbag game should not have Instant start",
+        `${game.id} has game-loading-detail`,
+        txt.includes("game-loading-detail"),
       );
     }
-    if (gameBrowser.engine === "phaser") {
-      check(
-        gameBrowser.id + " has Instant start",
-        txtBrowser.includes("Instant start"),
-        "Phaser game should have Instant start",
-      );
-      check(
-        gameBrowser.id + " has no Runtime load",
-        !txtBrowser.includes("Runtime load"),
-        "Phaser game should not have Runtime load",
-      );
+    if (game.engine === "phaser") {
+      check(`${game.id} has Instant start`, txt.includes("Instant start"));
+      check(`${game.id} has no Runtime load`, !txt.includes("Runtime load"));
+      check(`${game.id} has game-ready marker`, txt.includes("game-ready"));
     }
   } catch (err) {
-    check("/play/" + gameBrowser.id + "/ fetch", false, err.message);
+    check(`/play/${game.id}/ fetch`, false, err.message);
   }
 }
 
-// Pygbag game detailed checks
-for (var _i5 = 0; _i5 < PYGBAG_GAMES.length; _i5++) {
-  var gamePygbagDetail = PYGBAG_GAMES[_i5];
+// ——— Desktop-only contract ———
+console.log(`\n─── Desktop-only ───`);
+for (const game of DESKTOP_ONLY_GAMES) {
   try {
-    var txtPygbagDetail = await fetchText(
-      LIVE_BASE + "/play/" + gamePygbagDetail.id + "/",
-    );
+    const txt = await fetchText(LIVE_BASE + `/games/${game.id}/`);
     check(
-      gamePygbagDetail.id + " has data-no-touch-control",
-      txtPygbagDetail.includes(
-        '<a id="back-link" href="/play/" data-no-touch-control>',
-      ),
-      "Should have data-no-touch-control attribute",
-    );
-    check(
-      gamePygbagDetail.id + " has game-ready event",
-      txtPygbagDetail.includes("game-ready"),
-      "Should reference game-ready event",
-    );
-    check(
-      gamePygbagDetail.id + " has game-loading-detail",
-      txtPygbagDetail.includes("game-loading-detail"),
-      "Should show phase details during load",
+      `${game.id} detail page has desktop destination`,
+      txt.includes("Desktop download") ||
+        txt.includes("github.com/edonahue/pirate-arcade/releases"),
     );
   } catch (err) {
-    check(gamePygbagDetail.id + " detailed fetch", false, err.message);
+    check(`${game.id} desktop fetch`, false, err.message);
   }
 }
 
-// Phaser game checks
-if (PHASER_GAMES.length > 0) {
-  var gamePhaser = PHASER_GAMES[0];
-  try {
-    var txtPhaser = await fetchText(LIVE_BASE + "/play/" + gamePhaser.id + "/");
-    check(
-      gamePhaser.id + " has no Runtime load badge",
-      !txtPhaser.includes("Runtime load"),
-      "Phaser game should not have Runtime load",
-    );
-    check(
-      gamePhaser.id + " has game-ready event",
-      txtPhaser.includes("game-ready"),
-      "Phaser game should have game-ready event",
-    );
-  } catch (err) {
-    check(gamePhaser.id + " Phaser fetch", false, err.message);
-  }
-}
-
-// Desktop-only game checks
-if (DESKTOP_GAMES.length > 0) {
-  var gameDesktop = DESKTOP_GAMES[0];
-  try {
-    var txtDesktop = await fetchText(
-      LIVE_BASE + "/games/" + gameDesktop.id + "/",
-    );
-    check(
-      gameDesktop.id + " detail page has desktop destination",
-      txtDesktop.includes("Desktop download") ||
-        txtDesktop.includes("github.com/edonahue/pirate-arcade/releases"),
-      "Desktop download link should appear in detail page",
-    );
-  } catch (err) {
-    check(gameDesktop.id + " desktop fetch", false, err.message);
-  }
-}
-
-// Homepage
-try {
-  var homeText = await fetchText(LIVE_BASE + "/");
-  check(
-    "Homepage loads",
-    homeText.length > 1000,
-    "Should have substantial content",
-  );
-} catch (err) {
-  check("Homepage fetch", false, err.message);
-}
-
-// data-no-touch-control check for every Pygbag game
-for (var _i6 = 0; _i6 < PYGBAG_GAMES.length; _i6++) {
-  var gamePygbagD = PYGBAG_GAMES[_i6];
-  try {
-    var cbText = await fetchText(LIVE_BASE + "/play/" + gamePygbagD.id + "/");
-    check(
-      gamePygbagD.id + " has data-no-touch-control on back link",
-      cbText.includes(
-        '\'<a id="back-link" href="/play/" data-no-touch-control>',
-      ),
-      "Should have data-no-touch-control attribute",
-    );
-  } catch (err) {
-    check(gamePygbagD.id + " data-no-touch-control fetch", false, err.message);
-  }
-}
-
-console.log(
-  "RT" +
-    "RT" +
-    "RT" +
-    "RT" +
-    "RT" +
-    "RT" +
-    "RT" +
-    "RT" +
-    "RT" +
-    "RT" +
-    "Results: " +
-    passed +
-    " passed, " +
-    failed +
-    " failed",
-);
+console.log(`\nResults: ${passed} passed, ${failed} failed`);
 
 if (failed > 0 && !ALLOW_STALE_LIVE) {
-  console.log(
-    "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "❌ Parity check failed. Live site is stale or misconfigured.",
-  );
-  console.log(
-    "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "To allow stale live (e.g., during propagation), run:",
-  );
-  console.log(
-    "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "ALLOW_STALE_LIVE=1 npm run test:live-parity",
-  );
+  console.log(`\n❌ Parity check failed. Live site is stale or misconfigured.`);
+  console.log(`   To allow stale live (e.g., during propagation), run:`);
+  console.log(`   ALLOW_STALE_LIVE=1 npm run test:live-parity`);
   process.exit(1);
 } else if (failed > 0) {
   console.log(
-    "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "⚠️  Parity check had issues but continuing due to ALLOW_STALE_LIVE=1",
+    `\n⚠️  Parity check had issues but continuing due to ALLOW_STALE_LIVE=1`,
   );
 } else {
-  console.log(
-    "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "RT" +
-      "✅ All parity checks passed. Live site matches repo expectations.",
-  );
+  console.log(`\n✅ All parity checks passed.`);
 }

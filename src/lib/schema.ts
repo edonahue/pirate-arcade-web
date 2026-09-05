@@ -90,7 +90,9 @@ export function getSchemaGamePlatforms(game: Game): string[] {
   if (game.status === "browser-playable") {
     return ["Web browser", "Windows", "Linux"];
   }
-  return ["Windows", "Linux", "macOS"];
+  // Desktop-only: claim only proven packaged releases (no macOS without
+  // evidence of a real macOS distribution).
+  return ["Windows", "Linux"];
 }
 
 export function gameNode(game: Game): JsonLdNode {
