@@ -2944,7 +2944,9 @@ for (const game of GAMES) {
       expect(typeof state?.playerTint).toBe("number");
     });
 
-    test("best score saves on win only", async ({ page }, testInfo) => {
+    test("best score saves on win and record-setting loss", async ({
+      page,
+    }, testInfo) => {
       test.skip(
         !DESKTOP_PROJECTS.includes(testInfo.project.name),
         "Best score test skipped on non-desktop",
@@ -3009,9 +3011,44 @@ for (const game of GAMES) {
       );
       expect(lossState?.finished).toBe(true);
       expect(lossState?.playerWon).toBe(false);
-      // Best score should still be 500 — not overwritten by the 999 on loss
-      expect(lossState?.bestScore).toBe(500);
-      expect(lossState?.isNewBest).toBe(false);
+      // A record-setting loss updates the best and flags NEW BEST.
+      expect(lossState?.bestScore).toBe(999);
+      expect(lossState?.isNewBest).toBe(true);
+
+      // A worse loss leaves the best untouched and unflagged.
+      await page.evaluate(() => {
+        if (typeof (window as any).__paRaceDebugRestart === "function") {
+          (window as any).__paRaceDebugRestart();
+        }
+      });
+      await page.waitForFunction(
+        () => (window as any).__paRaceToTreasureIslandState?.finished === false,
+        { timeout: 10000, polling: 50 },
+      );
+      await page.waitForTimeout(2500); // let countdown finish
+
+      await page.evaluate(() => {
+        if (typeof (window as any).__paRaceDebugSetScore === "function") {
+          (window as any).__paRaceDebugSetScore(100);
+        }
+        if (
+          typeof (window as any).__paRaceDebugSetRivalProgress === "function"
+        ) {
+          (window as any).__paRaceDebugSetRivalProgress(10000);
+        }
+      });
+      await page.waitForFunction(
+        () => (window as any).__paRaceToTreasureIslandState?.finished === true,
+        { timeout: 5000, polling: 50 },
+      );
+
+      const worseLossState = await page.evaluate(
+        () => (window as any).__paRaceToTreasureIslandState,
+      );
+      expect(worseLossState?.finished).toBe(true);
+      expect(worseLossState?.playerWon).toBe(false);
+      expect(worseLossState?.bestScore).toBe(999);
+      expect(worseLossState?.isNewBest).toBe(false);
     });
 
     test("countdown phase completes after waitForPhaserReady", async ({
