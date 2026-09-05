@@ -126,6 +126,40 @@ class Audio:
         tone = (tone * env * 32767).astype(np.int16)
         return pygame.sndarray.make_sound(tone)
 
+    def _make_kraken_roar(self):
+        sample_rate = 44100
+        duration = 0.6
+        frames = int(sample_rate * duration)
+        t = np.linspace(0, duration, frames, False)
+        tone = (np.sin(90 * t * 2 * np.pi) * 0.35 +
+                np.sin(140 * t * 2 * np.pi) * 0.25)
+        env = np.minimum(t * 4, 1.0) * np.linspace(1.0, 0.0, frames)
+        tone = (tone * env * 32767).astype(np.int16)
+        return pygame.sndarray.make_sound(tone)
+
+    def _make_kraken_hit(self):
+        sample_rate = 44100
+        duration = 0.12
+        frames = int(sample_rate * duration)
+        t = np.linspace(0, duration, frames, False)
+        tone = np.sin(300 * t * 2 * np.pi) * 0.3
+        tone += np.sin(450 * t * 2 * np.pi) * 0.2
+        fade = np.linspace(1.0, 0.0, frames)
+        tone = (tone * fade * 32767).astype(np.int16)
+        return pygame.sndarray.make_sound(tone)
+
+    def _make_kraken_die(self):
+        sample_rate = 44100
+        duration = 0.4
+        frames = int(sample_rate * duration)
+        t = np.linspace(0, duration, frames, False)
+        tone = np.sin(80 * t * 2 * np.pi) * 0.4
+        tone += np.sin(160 * t * 2 * np.pi) * 0.3
+        tone += np.random.normal(0, 0.15, frames) * 0.6
+        fade = np.linspace(1.0, 0.0, frames)
+        tone = (tone * fade * 32767).astype(np.int16)
+        return pygame.sndarray.make_sound(tone)
+
     def _make_card_shuffle(self):
         sample_rate = 44100
         duration = 0.15
@@ -151,6 +185,9 @@ class Audio:
         self.sounds['coin_jingle'] = self._make_coin_jingle()
         self.sounds['ship_horn'] = self._make_ship_horn()
         self.sounds['card_shuffle'] = self._make_card_shuffle()
+        self.sounds['kraken_roar'] = self._make_kraken_roar()
+        self.sounds['kraken_hit'] = self._make_kraken_hit()
+        self.sounds['kraken_die'] = self._make_kraken_die()
 
     def play(self, name):
         if not self.muted and name in self.sounds:

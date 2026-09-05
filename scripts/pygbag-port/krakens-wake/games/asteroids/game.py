@@ -202,6 +202,7 @@ class AsteroidsGame:
                 return 'quit'
 
     def _state_event_key(self):
+        boss = self.gameplay.boss
         return (
             self.state,
             self.paused,
@@ -209,6 +210,9 @@ class AsteroidsGame:
             self.gameplay.lives,
             self.state == "menu",
             self._recovered_error_count,
+            self.gameplay.wave,
+            boss is not None and boss.alive,
+            boss.phase if boss is not None else "dormant",
         )
 
     def _build_game_state(self):
@@ -231,6 +235,13 @@ class AsteroidsGame:
             "lastRecoveredPhase": self._last_recovered_phase,
             "bestScore": (hs.get_high("asteroids") or {}).get("score", 0),
             "newBest": bool(self._is_new_best),
+            "bossActive": self.gameplay.boss is not None and self.gameplay.boss.alive,
+            "bossPhase": self.gameplay.boss.phase if self.gameplay.boss is not None else "dormant",
+            "bossHp": self.gameplay.boss.hp if self.gameplay.boss is not None else 0,
+            "bossMaxHp": self.gameplay.boss.max_hp if self.gameplay.boss is not None else 0,
+            "bossX": self.gameplay.boss.x if self.gameplay.boss is not None else 0,
+            "bossY": self.gameplay.boss.y if self.gameplay.boss is not None else 0,
+            "wave": self.gameplay.wave,
         }
 
     def _update(self, dt):
@@ -241,8 +252,11 @@ class AsteroidsGame:
                 if result[0] == 'game_over':
                     self.state = 'game_over'
                     self.game_over_state = result[1]
-                    self._is_new_best = bool(
-                        hs.submit_asteroids(self.gameplay.score))
+                    if self.gameplay._test_mode:
+                        self._is_new_best = False
+                    else:
+                        self._is_new_best = bool(
+                            hs.submit_asteroids(self.gameplay.score))
         except Exception:
             traceback.print_exc()
             print("*** BUG: Uncaught exception in Asteroids _update — recovering to menu ***")

@@ -992,6 +992,16 @@ export interface ArcadeGameState {
   aiShrinkActive?: boolean;
   aiShrinkRemainingMs?: number;
   aiDifficulty?: number;
+  bestScore?: number;
+  bestRally?: number;
+  newBest?: boolean;
+  wave?: number;
+  bossActive?: boolean;
+  bossPhase?: string;
+  bossHp?: number;
+  bossMaxHp?: number;
+  bossX?: number;
+  bossY?: number;
 }
 
 /**

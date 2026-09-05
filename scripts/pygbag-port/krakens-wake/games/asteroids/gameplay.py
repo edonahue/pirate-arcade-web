@@ -4,9 +4,32 @@ from games.asteroids.ship import Ship
 from games.asteroids.barrel import Barrel
 from games.asteroids.cannonball import Cannonball
 from games.asteroids.treasure import Treasure
+from games.asteroids.kraken import KrakenBoss
 from renderer import draw_fps, draw_flash, HitParticle
 import random
 import math
+
+# Deterministic safe fallback slots for wave spawns (farthest-from-ship wins).
+_SPAWN_FALLBACK_SLOTS = ((200, 200), (1400, 200), (200, 700), (1400, 700))
+
+
+def _debug_kraken_wave():
+    """Test-only wave override via a localStorage key tests set before load.
+
+    Returns the internal wave index or None. Uses the same proven
+    localStorage transport as personal bests (pa_store) — readable from
+    game code, settable from Playwright addInitScript. Ordinary players
+    never carry the key, so normal runs are unaffected. Test-mode runs
+    suppress best-score submission (see _test_mode).
+    """
+    try:
+        from shared.pa_store import get_best as _get_best
+        display = _get_best("pa-kraken-test-wave")
+    except Exception:
+        return None
+    if display is None or not 1 <= display <= 30:
+        return None
+    return display - 1
 
 _NEBULA_LAYERS = [
     {"color": (*c.PIRATE_BLOOD[:3], 25), "radius": 280, "pos": (0.2, 0.3)},
@@ -73,21 +96,109 @@ class Gameplay:
         self.wave = 0
         self.cooldown = 0.0
         self.flash_timer = 0.0
+        self.boss = None
+        self.transition = None
+        self.transition_t = 0.0
+        self._test_mode = False
         self._cached_score = -1
         self._cached_score_surf = None
         self._cached_lives = -1
         self._cached_lives_surf = None
         self._cached_wave = -1
         self._cached_wave_surf = None
-        self._spawn_barrels()
+        self._cached_banner = (None, None)
+        self._cached_banner_surf = None
+        self._apply_debug_wave()
+        if self.transition is None:
+            self._spawn_barrels()
+
+    def _apply_debug_wave(self):
+        debug_wave = _debug_kraken_wave()
+        if debug_wave is None:
+            return
+        self._test_mode = True
+        # Park one wave below target: the cleared-transition advance then
+        # lands exactly on the requested wave through the production path.
+        self.wave = max(0, debug_wave - 1)
+        self.barrels = []
+        self.boss = None
+        self.transition = ("cleared", 0.01)
+
+    def _safe_barrel_pos(self):
+        sx, sy = self.ship.get_position()
+        for _ in range(c.BARREL_SPAWN_TRIES):
+            x = random.uniform(100, c.WINDOW_WIDTH - 100)
+            y = random.uniform(100, c.WINDOW_HEIGHT - 100)
+            if math.hypot(x - sx, y - sy) >= c.BARREL_SAFE_RADIUS:
+                return (x, y)
+        best = _SPAWN_FALLBACK_SLOTS[0]
+        best_d = -1.0
+        for slot in _SPAWN_FALLBACK_SLOTS:
+            d = math.hypot(slot[0] - sx, slot[1] - sy)
+            if d > best_d:
+                best_d = d
+                best = slot
+        return best
 
     def _spawn_barrels(self):
         self.barrels = []
         count = c.ASTEROID_INITIAL_COUNT + self.wave
         for _ in range(count):
-            x = random.uniform(100, c.WINDOW_WIDTH - 100)
-            y = random.uniform(100, c.WINDOW_HEIGHT - 100)
+            x, y = self._safe_barrel_pos()
             self.barrels.append(Barrel(x, y))
+
+    def _spawn_boss_wave(self):
+        hp = KrakenBoss.hp_for_wave(self.wave)
+        self.boss = KrakenBoss(800.0, float(c.KRAKEN_SPAWN_Y), hp=hp)
+        self.boss.begin_entry(self.ship.x)
+        self.audio.play('kraken_roar')
+
+    def _begin_transition(self, kind):
+        self.transition = (kind, c.WAVE_TRANSITION_DURATION)
+        self.transition_t = c.WAVE_TRANSITION_DURATION
+
+    def _defeat_boss(self):
+        bx, by = self.boss.x, self.boss.y
+        self.score += c.KRAKEN_KILL_SCORE
+        self.treasures.append(Treasure(bx, by))
+        for _ in range(20):
+            self.hit_particles.append(
+                HitParticle(bx, by, color=(160, 100, 40)))
+        for _ in range(20):
+            self.hit_particles.append(
+                HitParticle(bx, by, color=(255, 100, 30)))
+        self.flash_timer = 0.3
+        self.audio.play('kraken_die')
+        self.boss = None
+        self._begin_transition("sunk")
+
+    def _finish_transition(self):
+        kind = self.transition[0]
+        self.transition = None
+        if kind == "cleared":
+            self.wave += 1
+            if KrakenBoss.is_boss_wave(self.wave):
+                self._begin_transition("kraken")
+                self.audio.play('kraken_roar')
+            else:
+                self._spawn_barrels()
+        elif kind == "kraken":
+            self._spawn_boss_wave()
+        elif kind == "sunk":
+            self.wave += 1
+            self._spawn_barrels()
+
+    def _transition_banner(self):
+        if self.transition is None:
+            return None
+        kind = self.transition[0]
+        if kind == "cleared":
+            return "WAVE %d CLEARED" % (self.wave + 1)
+        if kind == "kraken":
+            return "THE KRAKEN WAKES"
+        if kind == "sunk":
+            return "KRAKEN SUNK! +%d" % c.KRAKEN_KILL_SCORE
+        return None
 
     def reset(self):
         self.score = 0
@@ -98,19 +209,30 @@ class Gameplay:
         self.cannonballs = []
         self.treasures = []
         self.flash_timer = 0.0
+        self.boss = None
+        self.transition = None
+        self.transition_t = 0.0
         self._cached_score = -1
         self._cached_score_surf = None
         self._cached_lives = -1
         self._cached_lives_surf = None
         self._cached_wave = -1
         self._cached_wave_surf = None
+        self._cached_banner = (None, None)
+        self._cached_banner_surf = None
         self.ship.reset()
-        self._spawn_barrels()
+        # Re-park the debug wave: every match start (menu, restart,
+        # replay) goes through reset(), which would otherwise wipe it.
+        self._apply_debug_wave()
+        if self.transition is None:
+            self._spawn_barrels()
 
     def reset_round(self):
         self.ship.reset()
         self.cannonballs = []
         self.cooldown = 0.0
+        if self.boss is not None and self.boss.alive:
+            self.boss.reposition_after_life_loss()
 
     def update(self, dt, keys):
         if keys is None:
@@ -136,12 +258,24 @@ class Gameplay:
         for b in self.barrels:
             b.update(dt)
 
+        if self.boss is not None and self.ship.alive:
+            self.boss.update(dt, self.ship.x, self.ship.y)
+
         for t in self.treasures:
             t.update(dt)
         self.treasures = [t for t in self.treasures if not t.dead]
 
         for cb in self.cannonballs[:]:
             cb_rect = cb.rect
+            if self.boss is not None and self.boss.vulnerable:
+                if cb_rect.colliderect(self.boss.rect):
+                    dealt = self.boss.hit_by_cannonball(cb)
+                    if dealt:
+                        self.score += c.KRAKEN_HIT_SCORE
+                        self.audio.play('kraken_hit')
+                        if not self.boss.alive:
+                            self._defeat_boss()
+                    break
             for barrel in self.barrels[:]:
                 if not barrel.alive:
                     continue
@@ -151,6 +285,11 @@ class Gameplay:
 
         if self.ship.alive and self.ship.invulnerable <= 0:
             ship_rect = self.ship.rect
+            if self.boss is not None and self.boss.dangerous:
+                if ship_rect.colliderect(self.boss.rect):
+                    result = self._hit_ship(None)
+                    if result and result[0] == 'game_over':
+                        return result
             for barrel in self.barrels:
                 if not barrel.alive:
                     continue
@@ -173,9 +312,12 @@ class Gameplay:
 
         self.barrels = [b for b in self.barrels if b.alive]
 
-        if len(self.barrels) == 0:
-            self.wave += 1
-            self._spawn_barrels()
+        if self.transition is not None:
+            self.transition_t -= dt
+            if self.transition_t <= 0:
+                self._finish_transition()
+        elif self.boss is None and len(self.barrels) == 0:
+            self._begin_transition("cleared")
             self.audio.play('level_win')
 
         self.hit_particles = [p for p in self.hit_particles if not p.dead]
@@ -238,6 +380,9 @@ class Gameplay:
         for barrel in self.barrels:
             barrel.draw(surface)
 
+        if self.boss is not None:
+            self.boss.draw(surface)
+
         for t in self.treasures:
             t.draw(surface)
 
@@ -263,6 +408,19 @@ class Gameplay:
             self._cached_wave = self.wave
             self._cached_wave_surf = self.hud_font.render("WAVE " + str(self.wave + 1), True, c.PIRATE_GOLD)
         surface.blit(self._cached_wave_surf, (20, 20))
+
+        if self.boss is not None and self.boss.alive:
+            self.boss.draw_hp_bar(surface, self.hud_font)
+
+        banner = self._transition_banner()
+        if banner is not None:
+            if banner != self._cached_banner[0]:
+                self._cached_banner = (banner, self.hud_font.render(
+                    banner, True, c.PIRATE_MENU_TITLE))
+            self._cached_banner_surf = self._cached_banner[1]
+            surface.blit(self._cached_banner_surf,
+                         (c.WINDOW_WIDTH // 2 - self._cached_banner_surf.get_width() // 2,
+                          c.WINDOW_HEIGHT // 2 - 120))
 
         if self.flash_timer > 0:
             draw_flash(surface, self.flash_timer)

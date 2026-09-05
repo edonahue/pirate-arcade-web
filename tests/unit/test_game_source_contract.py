@@ -109,7 +109,9 @@ class TestGameSourceContract(unittest.TestCase):
         for field in ("gameId", "phase", "score", "lives",
                        "playerPosition", "secondaryPosition",
                        "projectileCount", "actionReady", "shipAngle",
-                       "shipSpeed", "bestScore", "newBest"):
+                       "shipSpeed", "bestScore", "newBest",
+                       "bossActive", "bossPhase", "bossHp", "bossMaxHp",
+                       "bossX", "bossY", "wave"):
             self.assertIn(f'"{field}"', src, f"Missing field: {field}")
 
     # ── New API pattern ──

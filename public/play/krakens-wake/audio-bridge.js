@@ -140,6 +140,20 @@
     life_lost: function () {
       dual(200, 150, 0.3, 0.4, 0.3);
     },
+    // kraken_roar: 90Hz + 140Hz swell, 0.6s
+    kraken_roar: function () {
+      dual(90, 140, 0.6, 0.35, 0.25);
+    },
+    // kraken_hit: 300Hz + 450Hz, 0.12s
+    kraken_hit: function () {
+      dual(300, 450, 0.12, 0.3, 0.2);
+    },
+    // kraken_die: 80Hz + 160Hz + noise, 0.4s
+    kraken_die: function () {
+      tone(80, 0.4, 0.4);
+      tone(160, 0.4, 0.3);
+      noiseBurst(0.4, 0.6);
+    },
   };
 
   function play(name) {
