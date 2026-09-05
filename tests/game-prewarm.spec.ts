@@ -226,10 +226,19 @@ test.describe("Game Prewarm", () => {
     expect(msg.type).toBe("WARM_CACHE");
     expect(msg.urls).toHaveLength(2);
 
-    // Extract page URL and archive URL
+    // Extract page URL and archive URL. The archive hash changes on every
+    // repack, so derive the expected versioned URL from the served shell
+    // instead of pinning bytes here.
     const urls = new Set(msg.urls);
     const gamePageUrl = `/play/cannonball-clash/`;
-    const archiveUrl = `/play/cannonball-clash/cannonball-clash.tar.gz?h=54da9cdb5e24ce7c6953e446b85a0f0a6e7a6ded9fff1d839be819a562561872`;
+    const shellHtml = await page.evaluate(() =>
+      fetch("/play/cannonball-clash/").then((r) => r.text()),
+    );
+    const archiveMatch = shellHtml.match(
+      /\/play\/cannonball-clash\/cannonball-clash\.tar\.gz\?[hv]=[0-9a-f]+/,
+    );
+    expect(archiveMatch).not.toBeNull();
+    const archiveUrl = archiveMatch![0];
 
     expect(urls.has(gamePageUrl)).toBe(true);
     expect(urls.has(archiveUrl)).toBe(true);
