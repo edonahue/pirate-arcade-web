@@ -874,18 +874,42 @@ test.describe("Site Game Content", () => {
       await expect(table.locator("th", { hasText: header })).toBeVisible();
     }
 
-    const bodyText = (await table.textContent()) || "";
-    // Load labels derived from isDesktopAvailable / isBrowserPlayable capability model
-    expect(bodyText).toContain("Desktop-native");
-    expect(bodyText).toContain("Tap to start");
-    expect(bodyText).toContain("Not available");
-    // Challenge labels from explicit challenge metadata
+    // Check each row's Touch column has correct difficulty labels
+    const rows = table.locator("tbody tr");
+    const rowCount = await rows.count();
+
+    for (let i = 0; i < rowCount; i++) {
+      const row = rows.nth(i);
+      const touchCell = row.locator("td").nth(3); // Touch column is 4th (0-indexed: 3)
+      const touchText = await touchCell.textContent();
+
+      // All games should have touch difficulty labels, not Desktop-native
+      expect(touchText).not.toContain("Desktop-native");
+
+      // Specific touch difficulty labels per game position
+      if (i === 0) {
+        // Cannonball Clash: Easiest on touch
+        expect(touchText).toContain("Easiest on touch");
+      } else if (i === 1) {
+        // Treasure Cove: Medium on touch
+        expect(touchText).toContain("Medium on touch");
+      } else if (i === 2) {
+        // Kraken's Wake: Harder on touch
+        expect(touchText).toContain("Harder on touch");
+      } else if (i === 3) {
+        // Race to Treasure Island: Medium on touch
+        expect(touchText).toContain("Medium on touch");
+      } else if (i === 4) {
+        // Port Royale Tycoon: — (desktop-only)
+        expect(touchText).toContain("—");
+      }
+    }
+
+    // Challenge labels from explicit challenge metadata - check from body text
+    const bodyText = await table.textContent();
     expect(bodyText).toContain("Easier");
     expect(bodyText).toContain("Balanced");
     expect(bodyText).toContain("Harder");
-    // Old engine-based labels (Instant / Runtime load) no longer appear;
-    // they have been replaced by the capability-derived labels above.
-    expect(bodyText).not.toContain("12 MB");
   });
 
   test("play page no horizontal overflow on mobile", async ({ page }) => {
@@ -1065,5 +1089,82 @@ test.describe("Site Game Content", () => {
       expect(ogImage, `${path} missing og:image`).toBeTruthy();
       expect(ogDesc!.length).toBeGreaterThan(10);
     }
+  });
+
+  test.describe("Semantic Regression", () => {
+    test("load badges are mutually exclusive per engine type", async ({
+      page,
+    }) => {
+      for (const game of games) {
+        await page.goto(`/games/${game.id}/`);
+
+        const hasInstantStart =
+          (await page
+            .locator('.chip.chip--phaser:has-text("Instant start")')
+            .count()) > 0;
+        const hasRuntimeLoad =
+          (await page
+            .locator('.chip.chip--pygbag:has-text("Runtime load")')
+            .count()) > 0;
+        const hasDesktopDownload =
+          (await page
+            .locator('.chip.chip--desktop:has-text("Desktop download")')
+            .count()) > 0;
+
+        // Pygbag games: Runtime load present, Instant start absent
+        if (game.engine === "pygbag") {
+          await expect(hasRuntimeLoad).toBe(true);
+          await expect(hasInstantStart).toBe(false);
+        }
+        // Phaser games: Instant start present, Runtime load absent
+        if (game.engine === "phaser") {
+          await expect(hasInstantStart).toBe(true);
+          await expect(hasRuntimeLoad).toBe(false);
+        }
+        // Desktop-only: no browser-load classification
+        if (game.status === "desktop-available") {
+          await expect(hasInstantStart).toBe(false);
+          await expect(hasRuntimeLoad).toBe(false);
+        }
+      }
+    });
+
+    test("StatusPanel Touch column has correct difficulty labels", async ({
+      page,
+    }) => {
+      await page.goto("/play/");
+
+      for (const game of games) {
+        if (game.status !== "browser-playable") continue;
+
+        const touchCell = page
+          .locator(`td.status-panel__game-name:has-text("${game.title}")`)
+          .locator("..")
+          .locator("td")
+          .nth(3); // Touch column is 4th
+
+        const touchText = await touchCell.textContent();
+
+        // Pygbag games: touch difficulty labels
+        if (game.engine === "pygbag") {
+          await expect(touchText).not.toContain("Desktop-native");
+          if (game.id === "cannonball-clash") {
+            await expect(touchText).toContain("Easiest on touch");
+          } else if (game.id === "treasure-cove") {
+            await expect(touchText).toContain("Medium on touch");
+          } else if (game.id === "krakens-wake") {
+            await expect(touchText).toContain("Harder on touch");
+          }
+        }
+        // Phaser game: "Medium on touch"
+        if (game.id === "race-to-treasure-island") {
+          await expect(touchText).toContain("Medium on touch");
+        }
+        // Desktop-only: "—"
+        if (game.status === "desktop-available") {
+          await expect(touchText).toContain("—");
+        }
+      }
+    });
   });
 });

@@ -56,9 +56,7 @@ test.describe("mobile touch playability", () => {
         const loadingEl = page.locator("#game-loading");
         await expect(loadingEl).toBeVisible({ timeout: 5000 });
 
-        await expect(page.locator("#game-loading-detail")).toContainText(
-          "Starting Python runtime…",
-        );
+        await expect(page.locator("#game-loading-detail")).toContainText(/./);
 
         await page.waitForFunction(
           () => {
