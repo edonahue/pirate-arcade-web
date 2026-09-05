@@ -143,14 +143,24 @@ for (const game of games) {
   try {
     const txt = await fetchText(LIVE_BASE + `/games/${game.id}/`);
     check(`/games/${game.id}/ responds`, txt.length > 1000);
+    // Load badges live on detail pages (mutually exclusive per engine type)
     if (game.engine === "pygbag") {
       check(
         `${game.id} archive hash present`,
         txt.includes(`${game.id}.tar.gz?h=`),
       );
+      check(`${game.id} has Runtime load`, txt.includes("Runtime load"));
+      check(`${game.id} has no Instant start`, !txt.includes("Instant start"));
     }
     if (game.engine === "phaser") {
       check(`${game.id} has Instant start`, txt.includes("Instant start"));
+      check(`${game.id} has no Runtime load`, !txt.includes("Runtime load"));
+    }
+    if (!game.browserUrl) {
+      check(
+        `${game.id} has no browser load badge`,
+        !txt.includes("Runtime load") && !txt.includes("Instant start"),
+      );
     }
     if (game.desktopUrl) {
       check(
@@ -171,8 +181,6 @@ for (const game of BROWSER_GAMES) {
     const txt = await fetchText(LIVE_BASE + `/play/${game.id}/`);
     check(`/play/${game.id}/ responds`, txt.length > 1000);
     if (game.engine === "pygbag") {
-      check(`${game.id} has Runtime load`, txt.includes("Runtime load"));
-      check(`${game.id} has no Instant start`, !txt.includes("Instant start"));
       check(
         `${game.id} has data-no-touch-control on back link`,
         txt.includes('<a id="back-link" href="/play/" data-no-touch-control>'),
@@ -184,9 +192,12 @@ for (const game of BROWSER_GAMES) {
       );
     }
     if (game.engine === "phaser") {
-      check(`${game.id} has Instant start`, txt.includes("Instant start"));
-      check(`${game.id} has no Runtime load`, !txt.includes("Runtime load"));
-      check(`${game.id} has game-ready marker`, txt.includes("game-ready"));
+      // Phaser game-ready telemetry lives in the bundled JS module, not the
+      // shell HTML: assert no Pygbag archive expectation instead.
+      check(
+        `${game.id} has no Pygbag archive expectation`,
+        !txt.includes(".tar.gz"),
+      );
     }
   } catch (err) {
     check(`/play/${game.id}/ fetch`, false, err.message);
