@@ -12,7 +12,7 @@
     <link rel="preconnect" href="https://pygame-web.github.io">
     <link rel="dns-prefetch" href="https://pygame-web.github.io">
     <link rel="modulepreload" href="https://pygame-web.github.io/cdn/0.9.3/pythons.js" crossorigin="anonymous">
-    <link rel="preload" href="/play/krakens-wake/krakens-wake.tar.gz?h=3d6d7961ee195a836969e23c23561aed812a20b19b9e69c6baa5dfa8e61b12e6" as="fetch" crossorigin="anonymous">
+    <link rel="preload" href="/play/krakens-wake/krakens-wake.tar.gz?h=347b96cfd8048ad7a25079edc8f4864c26e4b23fe2af9fa259c3bdc78baeed99" as="fetch" crossorigin="anonymous">
     <script src="/play/shared/game-boot-metrics.js"></script>
     <script src="/play/shared/pygbag-loading.js?v=mobile-v15"></script>
     <script src="/play/shared/pygbag-lifecycle.js?v=mobile-v15"></script>
@@ -182,7 +182,7 @@
               '        # Pre-install pygame wheel from CDN and fetch archive in parallel',
               '        _w.PirateArcadeLoading.set("Installing Pygame and downloading game package…")',
               '        import aio.pep0723',
-              '        url = _w.location.origin + "/play/krakens-wake/krakens-wake.tar.gz?h=3d6d7961ee195a836969e23c23561aed812a20b19b9e69c6baa5dfa8e61b12e6"',
+              '        url = _w.location.origin + "/play/krakens-wake/krakens-wake.tar.gz?h=347b96cfd8048ad7a25079edc8f4864c26e4b23fe2af9fa259c3bdc78baeed99"',
               '        _w.PirateArcadeMetrics.setArchiveUrl(url)',
               '',
               '        async def install_pygame():',
@@ -218,23 +218,6 @@
               '        a = os.path.join(d, "assets")',
               '        sys.path.insert(0, a)',
               '        os.chdir(a)',
-              '',
-              '        # Init pygame display, then import game modules',
-              '',
-              '        # Browser FS: ~/.local/share/pirate-arcade/ may not be writable.',
-              '        # The desktop highscores.py tries to persist scores there; in the',
-              '        # browser that path can fail (Emscripten FS quirks). Disable saving',
-              '        # and treat the cache as empty so submit_asteroids()/get_high() are',
-              '        # no-ops for the lifetime of the page. The menu still shows',
-              '        # "Best: ..." only when a real high score is present in the cache.',
-              '        try:',
-              '            import highscores as hs',
-              '            hs._cache = {}',
-              '            hs._load = lambda: {}',
-              '            hs._save = lambda data: None',
-              '        except Exception:',
-              '            pass',
-              '',
               '        _w.PirateArcadeMetrics.setBootStage("pygame-import")',
               '        import pygame as pg',
               '        pg.display.init()',
@@ -560,7 +543,7 @@
     <script src="/play/shared/debug-panel.js?v=mobile-v15"></script>
     <!--
       GAME: krakens-wake
-      ARCHIVE: /play/krakens-wake/krakens-wake.tar.gz?h=3d6d7961ee195a836969e23c23561aed812a20b19b9e69c6baa5dfa8e61b12e6
+      ARCHIVE: /play/krakens-wake/krakens-wake.tar.gz?h=347b96cfd8048ad7a25079edc8f4864c26e4b23fe2af9fa259c3bdc78baeed99
       CONTROL: keyboard + touch
       CDN: pythons.js@0.9.3
       SHARED: pygbag-loading.js, pygame-input-bridge.js, game-viewport.js, mobile-controls.js

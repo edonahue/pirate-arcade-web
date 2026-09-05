@@ -30,6 +30,8 @@ class PongGame:
         self._timer = FixedStepTimer()
         self._active_animation = False
         self._render_after_anim = False
+        self._is_new_best = False
+        self._submitted_rally = 0
         builtins.__dict__["__pa_game_instance"] = self
         from shared.pa_state import _ensure_pa_post_key; _ensure_pa_post_key()
 
@@ -105,6 +107,8 @@ class PongGame:
                 self.game_over_timer = 0
                 self.particles.reset()
                 self._active_animation = False
+                self._is_new_best = False
+                self._submitted_rally = 0
                 return
 
         if self.state == 'playing' and self.paused:
@@ -127,6 +131,8 @@ class PongGame:
                     self.game_over_timer = 0
                     self.particles.reset()
                     self._active_animation = False
+                    self._is_new_best = False
+                    self._submitted_rally = 0
                 elif self.pause_selection == 2:
                     self.sound_enabled = not self.sound_enabled
                     self.audio.muted = not self.sound_enabled
@@ -161,6 +167,8 @@ class PongGame:
                 self.game_over_timer = 0
                 self.particles.reset()
                 self._active_animation = False
+                self._is_new_best = False
+                self._submitted_rally = 0
                 return
         if self.state == 'playing' and not self.paused:
             if key == pg.K_f:
@@ -203,12 +211,21 @@ class PongGame:
             "aiShrinkActive": getattr(self.gameplay, 'ai_shrink_timer', 0) > 0,
             "aiShrinkRemainingMs": int(getattr(self.gameplay, 'ai_shrink_timer', 0) * 1000),
             "aiDifficulty": self.gameplay.ai.speed_factor if hasattr(self.gameplay.ai, 'speed_factor') else 0.6,
+            "bestRally": (hs.get_high("pong") or {}).get("score", 0),
+            "newBest": bool(self._is_new_best),
         }
 
     def _update(self, dt):
         keys = pg.key.get_pressed()
         if self.state == 'playing' and not self.paused:
             result = self.gameplay.update(dt, keys)
+            # Persist longest rally as it grows, so a legitimately achieved
+            # record is never lost (even on tab close mid-match).
+            lr = getattr(self.gameplay, 'longest_rally', 0)
+            if lr > self._submitted_rally:
+                if lr > 0 and hs.submit_rally(lr):
+                    self._is_new_best = True
+                self._submitted_rally = lr
             if result[0] == 'game_over':
                 self.state = 'game_over'
                 self.game_over_state = result[1]
@@ -245,5 +262,6 @@ class PongGame:
                 self.surface, self.menu.title_font,
                 self.gameplay.score_font, self.menu.inst_font,
                 self.gameplay.player_score, self.gameplay.ai_score,
-                player_won, self.game_over_timer, self.particles)
+                player_won, self.game_over_timer, self.particles,
+                self._is_new_best)
         self.surface.blit(_VIGNETTE, (0, 0))

@@ -69,6 +69,7 @@ GAME_CONFIGS = [
 SHARED_TEST_FILES = [
     "test_pa_state.py",
     "test_pa_loop.py",
+    "test_pa_store.py",
     "test_game_source_contract.py",
     "test_runner_self.py",
 ]

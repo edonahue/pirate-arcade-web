@@ -76,7 +76,6 @@ describe("renderPythonBootProgram", () => {
       expect(metadata.readyMessage).toBe(config.readyMessage);
       expect(metadata.archiveUrl).toContain(config.id);
       expect(metadata.archiveUrl).toContain(".tar.gz");
-      expect(metadata.hasHighscoresShim).toBe(config.hasHighscoresShim);
     }
   });
 
@@ -263,15 +262,11 @@ print(ast.dump(tree, indent=2))
     }
   });
 
-  it("Kraken's Wake has highscores shim, others do not", () => {
+  it("no game neuters highscores persistence in boot source", () => {
     for (const config of ALL_GAMES) {
       const { source } = getSourceFor(config);
-      if (config.hasHighscoresShim) {
-        expect(source).toContain("import highscores as hs");
-        expect(source).toContain("hs._cache = {}");
-      } else {
-        expect(source).not.toContain("import highscores");
-      }
+      expect(source).not.toContain("hs._cache = {}");
+      expect(source).not.toContain("hs._save = lambda");
     }
   });
 });

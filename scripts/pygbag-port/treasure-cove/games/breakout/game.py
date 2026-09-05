@@ -25,6 +25,7 @@ class BreakoutGame:
         self._timer = FixedStepTimer()
         self._active_animation = False
         self._render_after_anim = False
+        self._is_new_best = False
         builtins.__dict__["__pa_game_instance"] = self
         from shared.pa_state import _ensure_pa_post_key; _ensure_pa_post_key()
 
@@ -277,6 +278,8 @@ class BreakoutGame:
             "slowMotionActive": self.gameplay.slow_motion_timer > 0,
             "slowMotionRemainingMs": int(self.gameplay.slow_motion_timer * 1000),
             "stageTransitionActive": self.gameplay.stage_transition_phase is not None,
+            "bestScore": (hs.get_high("breakout") or {}).get("score", 0),
+            "newBest": bool(self._is_new_best),
             "round": self.gameplay.round,
             "roundPhase": self.gameplay.round_phase,
             "brickDestructionCounts": dict(self.gameplay._brick_destruction_counts),
@@ -291,7 +294,8 @@ class BreakoutGame:
                 self.state = 'game_over'
                 self.game_over_state = result[1]
                 self._active_animation = True
-                hs.submit_breakout(self.gameplay.score)
+                self._is_new_best = bool(
+                    hs.submit_breakout(self.gameplay.score))
         elif self.state == 'game_over' and self._active_animation:
             self._active_animation = False
             self._render_after_anim = True
@@ -402,6 +406,14 @@ class BreakoutGame:
                                   (c.WINDOW_WIDTH // 2 - self._g_over_stage_detail.get_width() // 2,
                                    c.WINDOW_HEIGHT // 2 + 10))
 
+        if self._is_new_best:
+            new_best = self.hud_font.render("NEW BEST!", True, c.PIRATE_GOLD)
+            self.surface.blit(new_best,
+                              (c.WINDOW_WIDTH // 2 - new_best.get_width() // 2,
+                               c.WINDOW_HEIGHT // 2 + 34))
+
+        prompt_y = (c.WINDOW_HEIGHT // 2 + 74 if self._is_new_best
+                    else c.WINDOW_HEIGHT // 2 + 60)
         self.surface.blit(self._game_over_prompt,
                           (c.WINDOW_WIDTH // 2 - self._game_over_prompt.get_width() // 2,
-                           c.WINDOW_HEIGHT // 2 + 60))
+                           prompt_y))

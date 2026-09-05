@@ -26,6 +26,7 @@ class AsteroidsGame:
         self._timer = FixedStepTimer()
         self._recovered_error_count = 0
         self._last_recovered_phase = None
+        self._is_new_best = False
         builtins.__dict__["__pa_game_instance"] = self
         from shared.pa_state import _ensure_pa_post_key; _ensure_pa_post_key()
 
@@ -228,6 +229,8 @@ class AsteroidsGame:
             "shipSpeed": self.gameplay.ship.speed,
             "recoveredErrorCount": self._recovered_error_count,
             "lastRecoveredPhase": self._last_recovered_phase,
+            "bestScore": (hs.get_high("asteroids") or {}).get("score", 0),
+            "newBest": bool(self._is_new_best),
         }
 
     def _update(self, dt):
@@ -238,7 +241,8 @@ class AsteroidsGame:
                 if result[0] == 'game_over':
                     self.state = 'game_over'
                     self.game_over_state = result[1]
-                    hs.submit_asteroids(self.gameplay.score)
+                    self._is_new_best = bool(
+                        hs.submit_asteroids(self.gameplay.score))
         except Exception:
             traceback.print_exc()
             print("*** BUG: Uncaught exception in Asteroids _update — recovering to menu ***")
@@ -341,6 +345,14 @@ class AsteroidsGame:
         self.surface.blit(wave_surf, (c.WINDOW_WIDTH // 2 - wave_surf.get_width() // 2,
                                       c.WINDOW_HEIGHT // 2 + 40))
 
+        if self._is_new_best:
+            new_best = self.hud_font.render("NEW BEST!", True, c.PIRATE_GOLD)
+            self.surface.blit(new_best,
+                              (c.WINDOW_WIDTH // 2 - new_best.get_width() // 2,
+                               c.WINDOW_HEIGHT // 2 + 62))
+
+        prompt_y = (c.WINDOW_HEIGHT // 2 + 112 if self._is_new_best
+                    else c.WINDOW_HEIGHT // 2 + 80)
         self.surface.blit(self._game_over_prompt,
                           (c.WINDOW_WIDTH // 2 - self._game_over_prompt.get_width() // 2,
-                           c.WINDOW_HEIGHT // 2 + 80))
+                           prompt_y))

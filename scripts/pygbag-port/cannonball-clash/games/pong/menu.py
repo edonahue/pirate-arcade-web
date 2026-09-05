@@ -57,7 +57,7 @@ class Menu:
         label = high.get('label', str(high['score'])) if high else None
         if label != self._hs_label:
             self._hs_label = label
-            self._hs_surf = self.hud_font.render("Best Loot: " + label, True, c.PIRATE_GOLD) if label else None
+            self._hs_surf = self.hud_font.render("Best rally: " + label, True, c.PIRATE_GOLD) if label else None
         if self._hs_surf:
             surface.blit(self._hs_surf, (c.WINDOW_WIDTH // 2 - self._hs_surf.get_width() // 2, py + 40))
 

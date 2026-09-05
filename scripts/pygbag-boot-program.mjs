@@ -81,7 +81,6 @@ export function renderPythonBootProgram(config, archiveHash) {
     title: config.title,
     readyMessage: config.readyMessage,
     archiveUrl: `/play/${config.id}/${config.id}.tar.gz${hashParam}`,
-    hasHighscoresShim: config.hasHighscoresShim,
     bootMarks: [...BOOT_MARKS],
     failureStages: [...FAILURE_STAGES],
   };
@@ -151,29 +150,6 @@ function generateSource(config, archiveHash) {
     "        sys.path.insert(0, a)",
     "        os.chdir(a)",
   ];
-
-  // ── Kraken's Wake highscores shim ────────────────────────────
-  if (config.hasHighscoresShim) {
-    bootFn.push(
-      "",
-      "        # Init pygame display, then import game modules",
-      "",
-      "        # Browser FS: ~/.local/share/pirate-arcade/ may not be writable.",
-      "        # The desktop highscores.py tries to persist scores there; in the",
-      "        # browser that path can fail (Emscripten FS quirks). Disable saving",
-      "        # and treat the cache as empty so submit_asteroids()/get_high() are",
-      "        # no-ops for the lifetime of the page. The menu still shows",
-      '        # "Best: ..." only when a real high score is present in the cache.',
-      "        try:",
-      "            import highscores as hs",
-      "            hs._cache = {}",
-      "            hs._load = lambda: {}",
-      "            hs._save = lambda data: None",
-      "        except Exception:",
-      "            pass",
-      "",
-    );
-  }
 
   // ── Pygame import + Input bridge ────────────────────────────
   bootFn.push(

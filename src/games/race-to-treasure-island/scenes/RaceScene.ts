@@ -1456,17 +1456,19 @@ export class RaceScene extends Phaser.Scene {
         .join("\n");
       this.resultText.setColor(this.isNewBest ? "#ffd700" : "#88ddbb");
     } else {
-      this.isNewBest = false;
+      this.isNewBest = this.saveBestScore(this.score);
       const bestLine = this.bestScore > 0 ? `Best: ${this.bestScore}` : "";
+      const newBestLine = this.isNewBest ? "★ NEW BEST! ★" : "";
       resultLines = [
         `Score: ${this.score}`,
         overtakeLine,
+        newBestLine,
         bestLine,
         "Use BOOST to overtake him next run!",
       ]
         .filter(Boolean)
         .join("\n");
-      this.resultText.setColor("#ff8866");
+      this.resultText.setColor(this.isNewBest ? "#ffd700" : "#ff8866");
     }
     this.resultText.setLineSpacing(4);
     this.resultText.setText(resultLines);

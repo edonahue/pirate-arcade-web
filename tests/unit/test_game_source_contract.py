@@ -86,7 +86,7 @@ class TestGameSourceContract(unittest.TestCase):
                        "initialBallSpeed", "maxBallSpeed", "rallyCount",
                        "currentRally", "longestRally", "rallyTier",
                        "powerupType", "aiShrinkActive", "aiShrinkRemainingMs",
-                       "aiDifficulty"):
+                       "aiDifficulty", "bestRally", "newBest"):
             self.assertIn(f'"{field}"', src, f"Missing field: {field}")
 
     def test_breakout_state_has_required_fields(self):
@@ -101,7 +101,7 @@ class TestGameSourceContract(unittest.TestCase):
                        "fallingPickupCount", "lastPickupType",
                        "widePaddleActive", "widePaddleRemainingMs",
                        "slowMotionActive", "slowMotionRemainingMs",
-                       "stageTransitionActive"):
+                       "stageTransitionActive", "bestScore", "newBest"):
             self.assertIn(f'"{field}"', src, f"Missing field: {field}")
 
     def test_asteroids_state_has_required_fields(self):
@@ -109,7 +109,7 @@ class TestGameSourceContract(unittest.TestCase):
         for field in ("gameId", "phase", "score", "lives",
                        "playerPosition", "secondaryPosition",
                        "projectileCount", "actionReady", "shipAngle",
-                       "shipSpeed"):
+                       "shipSpeed", "bestScore", "newBest"):
             self.assertIn(f'"{field}"', src, f"Missing field: {field}")
 
     # ── New API pattern ──

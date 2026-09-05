@@ -16,7 +16,6 @@ export const PYBAG_GAMES = [
     loadingText: "Installing touch controls\u2026",
     touchOverlay: "pong",
     crossFileTimeout: 30000,
-    hasHighscoresShim: false,
     desktopKeys: ["ArrowUp", "ArrowDown", "Space", "Enter", "Escape"],
     actionKey: "Enter",
     dragAxis: "y",
@@ -43,7 +42,6 @@ export const PYBAG_GAMES = [
     loadingText: "Installing touch controls\u2026",
     touchOverlay: "breakout",
     crossFileTimeout: 30000,
-    hasHighscoresShim: false,
     desktopKeys: ["ArrowLeft", "ArrowRight", "Space", "Enter", "Escape"],
     actionKey: "Space",
     dragAxis: "x",
@@ -70,7 +68,6 @@ export const PYBAG_GAMES = [
     loadingText: "Setting up game\u2026",
     touchOverlay: "asteroids",
     crossFileTimeout: 10000,
-    hasHighscoresShim: true,
     desktopKeys: [
       "ArrowUp",
       "ArrowDown",

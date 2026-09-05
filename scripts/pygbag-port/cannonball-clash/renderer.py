@@ -286,7 +286,8 @@ class WinParticles:
 _g_over = {}
 
 def draw_game_over(surface, title_font, score_font, inst_font,
-                   player_score, ai_score, player_won, timer, particles):
+                   player_score, ai_score, player_won, timer, particles,
+                   new_best=False):
     surface.blit(_OVERLAY, (0, 0))
 
     if '_prompt' not in _g_over:
@@ -331,9 +332,13 @@ def draw_game_over(surface, title_font, score_font, inst_font,
                 _g_over['_cached_score'] = (score_key, cached_surf)
             surface.blit(cached_surf, (c.WINDOW_WIDTH // 2 - cached_surf.get_width() // 2,
                                        c.WINDOW_HEIGHT // 2 + 20))
+            if new_best:
+                best = inst_font.render("NEW BEST!", True, c.GOLD)
+                surface.blit(best, (c.WINDOW_WIDTH // 2 - best.get_width() // 2,
+                                    c.WINDOW_HEIGHT // 2 + 52))
             prompt = _g_over['_prompt']
             surface.blit(prompt, (c.WINDOW_WIDTH // 2 - prompt.get_width() // 2,
-                                  c.WINDOW_HEIGHT // 2 + 80))
+                                   c.WINDOW_HEIGHT // 2 + 80))
     else:
         ai = _g_over['_ai_wins']
         surface.blit(ai, (c.WINDOW_WIDTH // 2 - ai.get_width() // 2,
