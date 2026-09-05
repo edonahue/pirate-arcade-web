@@ -33,12 +33,6 @@ const challengeLabel = getChallengeLabel(game);
 
 const browserGames = games.filter((g) => g.status === "browser-playable");
 
-const challengeLabels: Record<string, string> = {
-  easier: "Easier",
-  balanced: "Balanced",
-  harder: "Harder",
-};
-
 // Next game offers a different gameplay challenge (registry order
 // tie-break). Desktop-only falls back to the first browser-playable game.
 const getNextGame = (current: typeof game): typeof game | undefined => {
@@ -54,7 +48,7 @@ const nextGame = getNextGame(game);
 
 const getNextTag = (g: typeof game): string => {
   if (g.challenge && g.challenge !== game.challenge)
-    return `Different challenge: ${challengeLabels[g.challenge] ?? g.challenge}`;
+    return `Different challenge: ${getChallengeLabel(g) ?? g.challenge}`;
   return "";
 };
 ---
@@ -86,8 +80,10 @@ const getNextTag = (g: typeof game): string => {
       {
         game.status === "browser-playable" && (
           <>
-            <span class="chip chip--phaser">Instant start</span>
-            {game.status === "browser-playable" && !isWebNative(game) && (
+            {isWebNative(game) && (
+              <span class="chip chip--phaser">Instant start</span>
+            )}
+            {isPygbag(game) && (
               <span class="chip chip--pygbag">Runtime load</span>
             )}
           </>
@@ -114,7 +110,7 @@ const getNextTag = (g: typeof game): string => {
             <p class="game-detail__quick-start-facts">
               {game.challenge && (
                 <span>
-                  Challenge: {challengeLabels[game.challenge] ?? game.challenge}
+                  Challenge: {getChallengeLabel(game) ?? game.challenge}
                 </span>
               )}
               {game.challenge && game.touchDifficultyLabel && (

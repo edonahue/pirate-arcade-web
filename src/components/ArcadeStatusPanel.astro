@@ -9,12 +9,6 @@ import {
   getBrowserEngineLabel,
   getChallengeLabel,
 } from "../lib/gameLaunch";
-
-const challengeLabels: Record<string, string> = {
-  easier: "Easier",
-  balanced: "Balanced",
-  harder: "Harder",
-};
 ---
 
 <section class="section status-panel">
@@ -43,10 +37,8 @@ const challengeLabels: Record<string, string> = {
                 <span class="status-panel__classic">{game.classic}</span>
               </td>
               <td>{getBrowserLoadLabel(game) ?? "Install"}</td>
-              <td>{game.challenge ? challengeLabels[game.challenge] : "—"}</td>
-              <td>
-                {isDesktopAvailable(game) ? "Desktop-native" : "Not available"}
-              </td>
+              <td>{getChallengeLabel(game) ?? "—"}</td>
+              <td>{game.touchDifficultyLabel ?? "—"}</td>
               <td>
                 <span aria-label="Needs user gesture">
                   {isBrowserPlayable(game)

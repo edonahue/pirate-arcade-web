@@ -83,15 +83,17 @@ export function projectNode(): JsonLdNode {
   };
 }
 
-export function gameNode(game: Game): JsonLdNode {
-  let gamePlatform: string[];
+export function getSchemaGamePlatforms(game: Game): string[] {
   if (game.engine === "phaser") {
-    gamePlatform = ["Web browser"];
-  } else if (game.status === "browser-playable") {
-    gamePlatform = ["Web browser", "Windows", "Linux"];
-  } else {
-    gamePlatform = ["Windows", "Linux", "macOS"];
+    return ["Web browser"];
   }
+  if (game.status === "browser-playable") {
+    return ["Web browser", "Windows", "Linux"];
+  }
+  return ["Windows", "Linux", "macOS"];
+}
+
+export function gameNode(game: Game): JsonLdNode {
   return {
     "@type": "VideoGame",
     "@id": `${absoluteUrl(`/games/${game.id}/`)}#game`,
@@ -99,7 +101,7 @@ export function gameNode(game: Game): JsonLdNode {
     description: game.description,
     url: absoluteUrl(`/games/${game.id}/`),
     image: game.screenshot ? absoluteUrl(game.screenshot) : undefined,
-    gamePlatform,
+    gamePlatform: getSchemaGamePlatforms(game),
     applicationCategory: "GameApplication",
     genre: "Arcade",
     isPartOf: { "@id": `${absoluteUrl("/")}#project` },
