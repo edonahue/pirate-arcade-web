@@ -64,6 +64,10 @@ export class RaceScene extends Phaser.Scene {
   private aiTargetX: number = GAME_WIDTH / 2;
   private aiLaneTimer: number = 0;
   private aiMistakeTimer: number = 0;
+  private aiSurgeTimer: number = 0;
+  private aiBreatherTimer: number = 0;
+  private aiSurgeBand: number = -1;
+  private aiBreatherArmed: boolean = false;
   private aiMistakeDir: number = 0;
 
   // HUD
@@ -164,7 +168,12 @@ export class RaceScene extends Phaser.Scene {
   }
 
   private getRivalProgressRate(): number {
-    return getRivalProgressRate(this.scrollSpeed, this.aiMistakeTimer > 0);
+    return getRivalProgressRate(
+      this.scrollSpeed,
+      this.aiMistakeTimer > 0,
+      this.aiSurgeTimer > 0,
+      this.aiBreatherTimer > 0,
+    );
   }
 
   private get stunActive(): boolean {
@@ -265,6 +274,10 @@ export class RaceScene extends Phaser.Scene {
     this.aiLaneTimer = 0;
     this.aiMistakeTimer = 0;
     this.aiMistakeDir = 0;
+    this.aiSurgeTimer = 0;
+    this.aiBreatherTimer = 0;
+    this.aiSurgeBand = -1;
+    this.aiBreatherArmed = false;
     this.lastHitTextTime = 0;
     this.lastOvertakeCueTime = 0;
     this.obstacleTypesSeen.clear();
@@ -599,6 +612,8 @@ export class RaceScene extends Phaser.Scene {
         baseWorldSpeed: Math.floor(this.getBaseWorldSpeed()),
         playerProgressRate: Math.floor(this.getPlayerProgressRate()),
         rivalProgressRate: Math.floor(this.getRivalProgressRate()),
+        aiSurgeActive: this.aiSurgeTimer > 0,
+        aiBreatherActive: this.aiBreatherTimer > 0,
         paused: this.paused,
         finished: this.raceFinished,
         gameOver: this.gameOver,
@@ -828,6 +843,12 @@ export class RaceScene extends Phaser.Scene {
       touch.boost = false;
       this.scene.restart();
     };
+    (window as any).__paRaceDebugCollectTreasure = () => {
+      const first = this.treasures?.getChildren?.()[0] as Treasure | undefined;
+      if (!first) return false;
+      this.handleTreasureCollect(first);
+      return true;
+    };
   }
 
   private handleSystemInput(): void {
@@ -975,6 +996,31 @@ export class RaceScene extends Phaser.Scene {
     ) {
       this.aiMistakeTimer = RACE_TUNING.aiMistakeDuration;
       this.aiMistakeDir = this.rngAi.float() < 0.5 ? -1 : 1;
+    }
+
+    // Scheduled pressure: every aiSurgeEvery rival progress, surge then
+    // breathe. Deterministic on distance bands — never on lead delta.
+    this.aiSurgeTimer -= dt * 1000;
+    this.aiBreatherTimer -= dt * 1000;
+    const band = Math.floor(this.rivalProgress / RACE_TUNING.aiSurgeEvery);
+    if (
+      band > this.aiSurgeBand &&
+      this.aiSurgeTimer <= 0 &&
+      this.aiBreatherTimer <= 0
+    ) {
+      this.aiSurgeBand = band;
+      this.aiSurgeTimer = RACE_TUNING.aiSurgeDuration;
+      this.aiBreatherArmed = true;
+      this.showOvertakeCue("LONG JOHN SURGES!");
+      this.aiShip.setTint(0xffaa33);
+    } else if (this.aiBreatherArmed && this.aiSurgeTimer <= 0) {
+      this.aiBreatherArmed = false;
+      this.aiBreatherTimer = RACE_TUNING.aiBreatherDuration;
+      this.showOvertakeCue("HE'S TACKING — PUSH NOW!");
+      this.aiShip.clearTint();
+    }
+    if (this.aiBreatherTimer <= 0 && this.aiSurgeTimer <= 0) {
+      this.aiShip.clearTint();
     }
 
     let targetX = this.aiTargetX;
@@ -1304,6 +1350,13 @@ export class RaceScene extends Phaser.Scene {
 
     this.boostMeter = Math.max(0, this.boostMeter - RACE_TUNING.hitWindPenalty);
 
+    // Retaliation: the bump provokes a Long John surge. Hits now cost
+    // the stun plus ~75 rival progress — dodging decides races.
+    this.aiSurgeTimer = RACE_TUNING.aiSurgeDuration;
+    this.aiBreatherArmed = true;
+    this.showOvertakeCue("LONG JOHN PULLS AHEAD!");
+    this.aiShip.setTint(0xffaa33);
+
     this.player.setTint(0xff4444);
     this.stunTimer = RACE_TUNING.stunDuration;
 
@@ -1382,9 +1435,13 @@ export class RaceScene extends Phaser.Scene {
     tres.collected = true;
 
     this.score += 100;
+    this.boostMeter = Math.min(
+      RACE_TUNING.boostMax,
+      this.boostMeter + RACE_TUNING.treasureWindRestore,
+    );
 
     const text = this.add
-      .text(tres.x, tres.y, "+100", {
+      .text(tres.x, tres.y, "+100 · +25 WIND", {
         fontFamily: "monospace",
         fontSize: "13px",
         color: "#ffd700",
@@ -1443,11 +1500,13 @@ export class RaceScene extends Phaser.Scene {
     const overtakeLine = `Overtakes: ${this.overtakeCount}`;
     let resultLines: string;
     if (win) {
+      this.score += RACE_TUNING.winBonus;
       this.isNewBest = this.saveBestScore(this.score);
       const bestLine = this.bestScore > 0 ? `Best: ${this.bestScore}` : "";
       const newBestLine = this.isNewBest ? "★ NEW BEST! ★" : "";
       resultLines = [
         `Score: ${this.score}`,
+        `First ashore: +${RACE_TUNING.winBonus}`,
         overtakeLine,
         newBestLine,
         bestLine,

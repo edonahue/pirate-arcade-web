@@ -30,12 +30,18 @@ export function getPlayerProgressRate(
 export function getRivalProgressRate(
   scrollSpeed: number,
   aiMistakeActive: boolean,
+  aiSurgeActive = false,
+  aiBreatherActive = false,
 ): number {
   const penalty = aiMistakeActive ? 40 : 0;
+  const surge = aiSurgeActive ? RACE_TUNING.aiSurgeBonus : 0;
+  const breather = aiBreatherActive ? RACE_TUNING.aiBreatherPenalty : 0;
   return (
     RACE_TUNING.aiBaseRate +
     (scrollSpeed - RACE_TUNING.baseScrollSpeed) * 0.45 -
-    penalty
+    penalty +
+    surge -
+    breather
   );
 }
 

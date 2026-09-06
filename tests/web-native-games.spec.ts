@@ -644,10 +644,11 @@ for (const game of GAMES) {
       );
       expect(state?.playerProgress).toBeGreaterThan(200);
       expect(state?.rivalProgress).toBeGreaterThan(100);
-      // Player should be slightly ahead with ArrowRight held
-      expect(state?.playerProgress).toBeGreaterThanOrEqual(
-        state?.rivalProgress ?? 0,
-      );
+      // Opening stays a contest: neither racer walks away in 3s.
+      // (Long John surges from the gun, so he may briefly lead.)
+      expect(
+        Math.abs(state?.playerProgress - state?.rivalProgress),
+      ).toBeLessThan(300);
     });
 
     test("player can finish in accelerated mode", async ({
@@ -2975,10 +2976,12 @@ for (const game of GAMES) {
       );
       expect(winState?.finished).toBe(true);
       expect(winState?.playerWon).toBe(true);
-      expect(winState?.bestScore).toBe(500);
+      // Win bonus: 500 + 300 First ashore.
+      expect(winState?.score).toBe(800);
+      expect(winState?.bestScore).toBe(800);
       expect(winState?.isNewBest).toBe(true);
 
-      // Force a rival win — bestScore should remain 500
+      // Force a rival win — bestScore should remain 800
       await page.evaluate(() => {
         if (typeof (window as any).__paRaceDebugRestart === "function") {
           (window as any).__paRaceDebugRestart();
@@ -3135,7 +3138,9 @@ for (const game of GAMES) {
 
       const winState = await readRaceState(page);
       expect(winState?.finished).toBe(true);
-      expect(winState?.isNewBest).toBe(false); // score was 0
+      // A win is never scoreless: First-ashore bonus sets the floor at 300.
+      expect(winState?.isNewBest).toBe(true);
+      expect(winState?.bestScore).toBe(300);
       expect(winState?.result).toContain("TREASURE ISLAND");
 
       // Restart
@@ -3194,3 +3199,111 @@ for (const game of GAMES) {
     });
   });
 }
+
+test.describe("Race pressure pass", () => {
+  test("scheduled surge fires at sail, then breathes", async ({
+    page,
+  }, testInfo) => {
+    test.skip(
+      !DESKTOP_PROJECTS.includes(testInfo.project.name),
+      "Pressure test skipped on non-desktop",
+    );
+
+    await goToRace(page, "seed=surge-test");
+    await expect
+      .poll(async () => (await readRaceState(page))?.aiSurgeActive, {
+        timeout: 15000,
+      })
+      .toBe(true);
+    await expect
+      .poll(async () => (await readRaceState(page))?.aiBreatherActive, {
+        timeout: 15000,
+      })
+      .toBe(true);
+  });
+
+  test("retaliation surge follows a hit", async ({ page }, testInfo) => {
+    test.skip(
+      !DESKTOP_PROJECTS.includes(testInfo.project.name),
+      "Retaliation test skipped on non-desktop",
+    );
+
+    await goToRace(page, "seed=retaliation-test");
+    await page.evaluate(() => {
+      if (typeof (window as any).__paRaceDebugHitObstacle === "function") {
+        (window as any).__paRaceDebugHitObstacle("barrel");
+      }
+    });
+    await expect
+      .poll(async () => (await readRaceState(page))?.aiSurgeActive, {
+        timeout: 5000,
+      })
+      .toBe(true);
+  });
+
+  test("treasure restores bounded wind and scores", async ({
+    page,
+  }, testInfo) => {
+    test.skip(
+      !DESKTOP_PROJECTS.includes(testInfo.project.name),
+      "Treasure wind test skipped on non-desktop",
+    );
+
+    await goToRace(page, "seed=treasure-wind-test");
+    await page.evaluate(() => {
+      if (typeof (window as any).__paRaceDebugSetBoostMeter === "function") {
+        (window as any).__paRaceDebugSetBoostMeter(10);
+      }
+    });
+    const before = await readRaceState(page);
+    await expect
+      .poll(
+        async () =>
+          page.evaluate(() =>
+            typeof (window as any).__paRaceDebugCollectTreasure === "function"
+              ? (window as any).__paRaceDebugCollectTreasure()
+              : false,
+          ),
+        { timeout: 15000 },
+      )
+      .toBe(true);
+    const after = await readRaceState(page);
+    expect(after.windMeter - before.windMeter).toBeGreaterThanOrEqual(20);
+    expect(after.windMeter).toBeLessThanOrEqual(100);
+    expect(after.score - before.score).toBe(100);
+  });
+
+  test("no-boost rival stays in touch", async ({ page }, testInfo) => {
+    test.skip(
+      !DESKTOP_PROJECTS.includes(testInfo.project.name),
+      "Pressure test skipped on non-desktop",
+    );
+
+    await goToRace(page, "seed=pressure-test");
+    await page.waitForTimeout(20000);
+    const state = await readRaceState(page);
+    const delta = state.playerProgress - state.rivalProgress;
+    // Rival leads or trails closely; never walks away with the player idle.
+    expect(delta).toBeLessThan(100);
+    expect(state.rivalProgress).toBeGreaterThan(2500);
+  });
+
+  test("strategic boost retakes the lead", async ({ page }, testInfo) => {
+    test.skip(
+      !DESKTOP_PROJECTS.includes(testInfo.project.name),
+      "Boost test skipped on non-desktop",
+    );
+
+    await goToRace(page, "seed=boost-lead-test");
+    await page.waitForTimeout(8000);
+    const before = await readRaceState(page);
+    const deltaBefore = before.playerProgress - before.rivalProgress;
+    await page.keyboard.down("Shift");
+    await page.waitForTimeout(5000);
+    await page.keyboard.up("Shift");
+    const after = await readRaceState(page);
+    expect(
+      after.playerProgress - after.rivalProgress - deltaBefore,
+    ).toBeGreaterThan(300);
+  });
+});
