@@ -220,6 +220,7 @@ class BreakoutGame:
             stage_transition,
             self.gameplay.remaining_bricks,
             self.gameplay.last_pickup_type,
+            self.gameplay.last_breach_size,
             self.gameplay.paddle.wide_timer > 0,
             self.gameplay.slow_motion_timer > 0,
             self.gameplay.round,
@@ -284,6 +285,7 @@ class BreakoutGame:
             "roundPhase": self.gameplay.round_phase,
             "brickDestructionCounts": dict(self.gameplay._brick_destruction_counts),
             "pickupHistory": list(self.gameplay._pickup_history),
+            "lastBreachSize": self.gameplay.last_breach_size,
         }
 
     def _update(self, dt):
@@ -294,8 +296,10 @@ class BreakoutGame:
                 self.state = 'game_over'
                 self.game_over_state = result[1]
                 self._active_animation = True
+                # Suppressed in test mode so debug breaches never pollute bests.
                 self._is_new_best = bool(
-                    hs.submit_breakout(self.gameplay.score))
+                    not getattr(self.gameplay, '_test_mode', False)
+                    and hs.submit_breakout(self.gameplay.score))
         elif self.state == 'game_over' and self._active_animation:
             self._active_animation = False
             self._render_after_anim = True

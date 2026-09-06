@@ -71,6 +71,30 @@ LEGEND = {
 
 CREW_LOST_HOLD_DURATION = 0.7
 
+BREACH_CALLOUT_THRESHOLD = 3
+BREACH_CALLOUT_DURATION = 1.5
+
+TEST_BREACH_SEED_KEY = "pa-treasure-test-breach"
+TEST_BREACH_KEG_ROW = 3
+TEST_BREACH_KEG_COL = 3
+
+
+def _debug_treasure_breach():
+    """Test-only breach seed: one-shot consume of a localStorage key.
+
+    Returns True when a deterministic Stage-3 breach setup is requested,
+    else None. The key is removed on read so fresh loads behave
+    ordinarily; ordinary players never carry it.
+    """
+    try:
+        from shared.pa_store import take as _take
+        flag = _take(TEST_BREACH_SEED_KEY)
+    except Exception:
+        return None
+    if flag is None or flag < 1:
+        return None
+    return True
+
 
 class Gameplay:
     def __init__(self, audio):
@@ -102,6 +126,12 @@ class Gameplay:
         self.slow_motion_factor = c.BALL_BREAKOUT_SLOW_FACTOR
         self.run_complete = False
         self.last_pickup_type = None
+        self.last_breach_size = 0
+        self._breach_callout_timer = 0.0
+        self._breach_callout_surf = None
+        self._test_mode = False
+        self._debug_breach = None
+        self._debug_checked = False
         self._pickup_label_timer = 0.0
         self._pickup_label = None
         self._pickup_label_surf = None
@@ -130,6 +160,48 @@ class Gameplay:
 
         self._backdrop_surfs = {}
         self._build_bricks()
+        self._apply_debug_breach()
+
+    def _apply_debug_breach(self):
+        # One-shot consume on first call; resets reuse the in-memory flag
+        # so restarts stay deterministic without rereading storage. Starts
+        # at Stage 3 with the production layout and parks a launched ball
+        # at the center of keg (3,3) so the next production collision
+        # detonates it through the production blast path.
+        if not self._debug_checked:
+            self._debug_checked = True
+            self._debug_breach = _debug_treasure_breach()
+            if self._debug_breach is not None:
+                self._test_mode = True
+        if self._debug_breach is None:
+            return
+        self.stage = 3
+        self._build_bricks()
+        self.reset_ball()
+        self._park_ball_on_keg(TEST_BREACH_KEG_ROW, TEST_BREACH_KEG_COL)
+
+    def _park_ball_on_keg(self, row, col):
+        keg = None
+        for b in self.bricks:
+            if (b.alive and b.brick_type == c.BRICK_POWDER_KEG
+                    and b.row == row and b.col == col):
+                keg = b
+                break
+        if keg is None:
+            return
+        ball = self.balls[0]
+        ball.x = keg.x + keg.width // 2
+        ball.y = keg.y + keg.height // 2
+        ball.px = ball.x
+        ball.py = ball.y
+        # Zero velocity: the parked overlap guarantees the production
+        # collision on the first playing frame, and the frozen aftermath
+        # keeps the deterministic assertions exact (no follow-on hits).
+        ball.vx = 0.0
+        ball.vy = 0.0
+        ball._underlying_speed = self._get_stage_speed()
+        ball.speed = 0.0
+        ball.launched = True
 
     def _build_backdrop_surfs(self):
         for stage, color in STAGE_BACKDROP_COLORS.items():
@@ -239,6 +311,9 @@ class Gameplay:
         self.stage_transition_phase = None
         self._stage_banner_timer = 0.0
         self.last_pickup_type = None
+        self.last_breach_size = 0
+        self._breach_callout_timer = 0.0
+        self._breach_callout_surf = None
         self._brick_destruction_counts = {"standard": 0, "reinforced": 0, "powder_keg": 0, "treasure": 0}
         self._pickup_history = []
         self._cached_score = -1
@@ -258,6 +333,7 @@ class Gameplay:
         self._pickup_label_surf = None
         self._build_bricks()
         self.reset_ball()
+        self._apply_debug_breach()
 
     def _start_stage_transition(self):
         self.stage_transition_phase = "breached"
@@ -266,6 +342,9 @@ class Gameplay:
         self._pickup_label_timer = 0.0
         self._pickup_label = None
         self._pickup_label_surf = None
+        self.last_breach_size = 0
+        self._breach_callout_timer = 0.0
+        self._breach_callout_surf = None
         self.slow_motion_timer = 0.0
         self.paddle.wide_timer = 0.0
         self._remove_all_slow()
@@ -314,9 +393,11 @@ class Gameplay:
                     self.remaining_bricks -= 1
                     self.score += brick.points
                     self._track_brick_destruction(brick)
+                    if brick.brick_type == c.BRICK_TREASURE:
+                        self._drop_pickup(brick)
                 affected.append(brick)
                 if brick.brick_type == c.BRICK_POWDER_KEG and brick is not start_brick:
-                    self._powder_keg_chain(brick, chain_set)
+                    affected.extend(self._powder_keg_chain(brick, chain_set))
         return affected
 
     def _drop_pickup(self, brick):
@@ -607,6 +688,8 @@ class Gameplay:
                 self.falling_pickups.remove(pickup)
         if self._pickup_label_timer > 0:
             self._pickup_label_timer -= dt
+        if self._breach_callout_timer > 0:
+            self._breach_callout_timer -= dt
 
     def _update_timers(self, dt):
         if self.slow_motion_timer > 0:
@@ -657,8 +740,14 @@ class Gameplay:
             if was_alive:
                 self.remaining_bricks -= 1
                 self._track_brick_destruction(brick)
-            self._powder_keg_chain(brick)
+            breach = self._powder_keg_chain(brick)
+            self.last_breach_size = len(breach)
             self.audio.play('explosion')
+            if self.last_breach_size >= BREACH_CALLOUT_THRESHOLD:
+                self._breach_callout_surf = self.hud_font.render(
+                    f"BREACH x{self.last_breach_size}!", True, c.PIRATE_GOLD)
+                self._breach_callout_timer = BREACH_CALLOUT_DURATION
+                self.audio.play('breach')
             return
 
         brick.hit()
@@ -728,6 +817,11 @@ class Gameplay:
             lx = c.WINDOW_WIDTH // 2 - self._pickup_label_surf.get_width() // 2
             ly = c.WINDOW_HEIGHT // 2 - 40
             surface.blit(self._pickup_label_surf, (lx, ly))
+
+        if self._breach_callout_surf is not None and self._breach_callout_timer > 0:
+            bx = c.WINDOW_WIDTH // 2 - self._breach_callout_surf.get_width() // 2
+            by = c.WINDOW_HEIGHT // 2 - 100
+            surface.blit(self._breach_callout_surf, (bx, by))
 
         if self._stage_banner_timer > 0 and self._stage_banner_surf:
             bx = c.WINDOW_WIDTH // 2 - self._stage_banner_surf.get_width() // 2

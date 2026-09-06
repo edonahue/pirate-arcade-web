@@ -102,7 +102,8 @@ class TestGameSourceContract(unittest.TestCase):
                        "fallingPickupCount", "lastPickupType",
                        "widePaddleActive", "widePaddleRemainingMs",
                        "slowMotionActive", "slowMotionRemainingMs",
-                       "stageTransitionActive", "bestScore", "newBest"):
+                        "stageTransitionActive", "bestScore", "newBest",
+                        "lastBreachSize"):
             self.assertIn(f'"{field}"', src, f"Missing field: {field}")
 
     def test_asteroids_state_has_required_fields(self):

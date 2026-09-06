@@ -1489,6 +1489,308 @@ class TestBrickCounterPrecision(unittest.TestCase):
         self.assertLess(self.gp.remaining_bricks, rem_before)
 
 
+class _RecordingAudio:
+    def __init__(self):
+        self.calls = []
+        self.muted = False
+
+    def play(self, name, *a, **kw):
+        self.calls.append(name)
+
+    def count(self, name):
+        return sum(1 for n in self.calls if n == name)
+
+
+def _stage_counts(gp):
+    counts = {"standard": 0, "reinforced": 0, "powder_keg": 0, "treasure": 0}
+    for b in gp.bricks:
+        if b.brick_type == c.BRICK_STANDARD:
+            counts["standard"] += 1
+        elif b.brick_type == c.BRICK_REINFORCED:
+            counts["reinforced"] += 1
+        elif b.brick_type == c.BRICK_POWDER_KEG:
+            counts["powder_keg"] += 1
+        elif b.brick_type == c.BRICK_TREASURE:
+            counts["treasure"] += 1
+    return counts
+
+
+def _stage_hp(counts):
+    return (counts["standard"] + 2 * counts["reinforced"]
+            + counts["powder_keg"] + counts["treasure"])
+
+
+def _keg_at(gp, row, col):
+    for b in gp.bricks:
+        if (b.alive and b.brick_type == c.BRICK_POWDER_KEG
+                and b.row == row and b.col == col):
+            return b
+    return None
+
+
+class TestStageLayoutContract(unittest.TestCase):
+    def _load_stage(self, stage):
+        gp = Gameplay(_MockAudio())
+        gp.stage = stage
+        gp._build_bricks()
+        return gp
+
+    def test_stage1_contract(self):
+        counts = _stage_counts(self._load_stage(1))
+        self.assertEqual(counts, {"standard": 46, "reinforced": 0,
+                                  "powder_keg": 2, "treasure": 1})
+        self.assertEqual(sum(counts.values()), 49)
+        self.assertEqual(_stage_hp(counts), 49)
+
+    def test_stage2_contract(self):
+        counts = _stage_counts(self._load_stage(2))
+        self.assertEqual(counts, {"standard": 35, "reinforced": 12,
+                                  "powder_keg": 3, "treasure": 3})
+        self.assertEqual(sum(counts.values()), 53)
+        self.assertEqual(_stage_hp(counts), 65)
+
+    def test_stage3_contract(self):
+        counts = _stage_counts(self._load_stage(3))
+        self.assertEqual(counts, {"standard": 34, "reinforced": 36,
+                                  "powder_keg": 5, "treasure": 5})
+        self.assertEqual(sum(counts.values()), 80)
+        self.assertEqual(_stage_hp(counts), 116)
+
+
+class TestBreachAggregation(unittest.TestCase):
+    def setUp(self):
+        self.audio = _RecordingAudio()
+        self.gp = Gameplay(self.audio)
+        self.gp.stage = 3
+        self.gp._build_bricks()
+
+    def test_intact_33_blast_is_eight(self):
+        keg = _keg_at(self.gp, 3, 3)
+        self.assertIsNotNone(keg)
+        self.gp._damage_brick(self.gp.balls[0], keg)
+        self.assertEqual(self.gp.last_breach_size, 8)
+
+    def test_initiating_keg_excluded(self):
+        keg = _keg_at(self.gp, 3, 3)
+        before = self.gp.remaining_bricks
+        self.gp._damage_brick(self.gp.balls[0], keg)
+        # 1 initiating keg + 8 secondaries removed, N counts secondaries only
+        self.assertEqual(before - self.gp.remaining_bricks, 9)
+        self.assertEqual(self.gp.last_breach_size, 8)
+
+    def test_breach_callout_arms_at_threshold(self):
+        keg = _keg_at(self.gp, 3, 3)
+        self.gp._damage_brick(self.gp.balls[0], keg)
+        self.assertGreater(self.gp._breach_callout_timer, 0)
+        self.assertIsNotNone(self.gp._breach_callout_surf)
+        self.assertEqual(self.audio.count('explosion'), 1)
+        self.assertEqual(self.audio.count('breach'), 1)
+
+    def test_small_blast_no_callout(self):
+        keg = Brick(5, 5, c.BRICK_POWDER_KEG)
+        nb1 = Brick(5, 6, c.BRICK_STANDARD)
+        nb2 = Brick(6, 5, c.BRICK_STANDARD)
+        self.gp.bricks = [keg, nb1, nb2]
+        self.gp.remaining_bricks = 3
+        self.gp._damage_brick(self.gp.balls[0], keg)
+        self.assertEqual(self.gp.last_breach_size, 2)
+        self.assertEqual(self.gp._breach_callout_timer, 0.0)
+        self.assertIsNone(self.gp._breach_callout_surf)
+        self.assertEqual(self.audio.count('explosion'), 1)
+        self.assertEqual(self.audio.count('breach'), 0)
+
+    def test_threshold_boundary_arms(self):
+        keg = Brick(5, 5, c.BRICK_POWDER_KEG)
+        self.gp.bricks = [keg, Brick(5, 6, c.BRICK_STANDARD),
+                          Brick(6, 5, c.BRICK_STANDARD),
+                          Brick(6, 6, c.BRICK_STANDARD)]
+        self.gp.remaining_bricks = 4
+        self.gp._damage_brick(self.gp.balls[0], keg)
+        self.assertEqual(self.gp.last_breach_size, 3)
+        self.assertGreater(self.gp._breach_callout_timer, 0)
+        self.assertEqual(self.audio.count('breach'), 1)
+
+    def test_recursive_kegs_aggregate_once(self):
+        gp = Gameplay(self.audio)
+        gp.stage = 1
+        gp._build_bricks()
+        keg = _keg_at(gp, 6, 4)
+        self.assertIsNotNone(keg)
+        other = _keg_at(gp, 6, 5)
+        self.assertIsNotNone(other)
+        gp._damage_brick(gp.balls[0], keg)
+        # Second keg triggered recursively and counted exactly once
+        self.assertFalse(other.alive)
+        self.assertGreaterEqual(gp.last_breach_size, 2)
+        self.assertEqual(gp.powder_keg_count, 0)
+        # One explosion + one breach cue for the whole initiating event
+        self.assertEqual(self.audio.count('explosion'), 1)
+        self.assertLessEqual(self.audio.count('breach'), 1)
+
+    def test_chain_results_unique(self):
+        keg = _keg_at(self.gp, 3, 3)
+        affected = self.gp._powder_keg_chain(keg)
+        ids = [id(b) for b in affected]
+        self.assertEqual(len(ids), len(set(ids)))
+        self.assertNotIn(id(keg), ids)
+
+    def test_chain_cap_respected(self):
+        keg = _keg_at(self.gp, 3, 3)
+        chain_set = set(range(c.POWDER_KEG_CHAIN_MAX + 5))
+        self.assertEqual(self.gp._powder_keg_chain(keg, chain_set), [])
+
+    def test_breach_score_is_exact_normal(self):
+        keg = _keg_at(self.gp, 3, 3)
+        before = self.gp.score
+        self.gp._damage_brick(self.gp.balls[0], keg)
+        # Initiating keg 25 + 4 reinforced (2x90 row-2, 2x120 row-3)
+        # + 2 treasure (2x50) + 2 standard row-4 (2x50) = 645, zero bonus
+        self.assertEqual(self.gp.score - before, 645)
+
+    def test_ordinary_hits_leave_breach_state(self):
+        self.gp.last_breach_size = 0
+        brick = self.gp.bricks[0]
+        brick.health = 1
+        self.gp._damage_brick(self.gp.balls[0], brick)
+        self.assertEqual(self.gp.last_breach_size, 0)
+        self.assertEqual(self.gp._breach_callout_timer, 0.0)
+
+    def test_reset_clears_breach(self):
+        keg = _keg_at(self.gp, 3, 3)
+        self.gp._damage_brick(self.gp.balls[0], keg)
+        self.assertGreater(self.gp.last_breach_size, 0)
+        self.gp.reset()
+        self.assertEqual(self.gp.last_breach_size, 0)
+        self.assertEqual(self.gp._breach_callout_timer, 0.0)
+        self.assertIsNone(self.gp._breach_callout_surf)
+
+    def test_stage_transition_clears_breach(self):
+        keg = _keg_at(self.gp, 3, 3)
+        self.gp._damage_brick(self.gp.balls[0], keg)
+        self.gp._start_stage_transition()
+        self.assertEqual(self.gp.last_breach_size, 0)
+        self.assertEqual(self.gp._breach_callout_timer, 0.0)
+
+
+class TestTreasureBlastDrops(unittest.TestCase):
+    def setUp(self):
+        self.gp = Gameplay(_MockAudio())
+        self.gp.stage = 3
+        self.gp._build_bricks()
+
+    def test_direct_treasure_kill_drops(self):
+        brick = None
+        for b in self.gp.bricks:
+            if b.brick_type == c.BRICK_TREASURE:
+                brick = b
+                break
+        self.assertIsNotNone(brick)
+        drops_before = len(self.gp.falling_pickups)
+        self.gp._damage_brick(self.gp.balls[0], brick)
+        self.assertEqual(len(self.gp.falling_pickups), drops_before + 1)
+
+    def test_blast_treasure_kill_drops(self):
+        keg = _keg_at(self.gp, 3, 3)
+        self.assertIsNotNone(keg)
+        drops_before = len(self.gp.falling_pickups)
+        self.gp._damage_brick(self.gp.balls[0], keg)
+        # (2,2) and (4,4) treasure destroyed by blast: two normal drops
+        self.assertEqual(len(self.gp.falling_pickups), drops_before + 2)
+
+    def test_blast_treasure_no_duplicate_drop(self):
+        keg = _keg_at(self.gp, 3, 3)
+        self.gp._damage_brick(self.gp.balls[0], keg)
+        drops_after_blast = len(self.gp.falling_pickups)
+        for b in self.gp.bricks:
+            if b.brick_type == c.BRICK_TREASURE and not b.alive:
+                self.gp._damage_brick(self.gp.balls[0], b)
+        self.assertEqual(len(self.gp.falling_pickups), drops_after_blast)
+
+    def test_overlapping_kegs_single_drop(self):
+        keg1 = _keg_at(self.gp, 3, 3)
+        keg2 = _keg_at(self.gp, 3, 5)
+        self.assertTrue(keg2.alive)
+        self.gp._damage_brick(self.gp.balls[0], keg1)
+        drops_after_first = len(self.gp.falling_pickups)
+        self.assertEqual(drops_after_first, 2)
+        self.gp._damage_brick(self.gp.balls[0], keg2)
+        # Shared treasure (4,4) already dead: only live (2,6) drops once
+        self.assertEqual(len(self.gp.falling_pickups), drops_after_first + 1)
+
+
+class TestBreachTestMode(unittest.TestCase):
+    def setUp(self):
+        from shared import pa_store
+        self._pa_store = pa_store
+        self._saved = dict(pa_store._MEM)
+
+    def tearDown(self):
+        self._pa_store._MEM.clear()
+        self._pa_store._MEM.update(self._saved)
+
+    def test_seed_arms_stage3_parked_breach(self):
+        self._pa_store._MEM["pa-treasure-test-breach"] = "1"
+        gp = Gameplay(_MockAudio())
+        self.assertTrue(gp._test_mode)
+        self.assertEqual(gp.stage, 3)
+        # Seed consumed one-shot
+        self.assertNotIn("pa-treasure-test-breach", self._pa_store._MEM)
+        # Ball parked launched overlapping keg (3,3)
+        keg = _keg_at(gp, 3, 3)
+        self.assertIsNotNone(keg)
+        ball = gp.balls[0]
+        self.assertTrue(ball.launched)
+        self.assertTrue(ball.rect.colliderect(keg.rect))
+
+    def test_reset_rearms_breach_setup(self):
+        self._pa_store._MEM["pa-treasure-test-breach"] = "1"
+        gp = Gameplay(_MockAudio())
+        gp.reset()
+        self.assertTrue(gp._test_mode)
+        self.assertEqual(gp.stage, 3)
+        keg = _keg_at(gp, 3, 3)
+        self.assertIsNotNone(keg)
+        self.assertTrue(gp.balls[0].rect.colliderect(keg.rect))
+
+    def test_fresh_load_is_ordinary(self):
+        self._pa_store._MEM.pop("pa-treasure-test-breach", None)
+        gp = Gameplay(_MockAudio())
+        self.assertFalse(gp._test_mode)
+        self.assertEqual(gp.stage, 1)
+
+    def test_best_suppressed_in_test_mode(self):
+        from shared import pa_store
+        pa_store._MEM.pop("pa-treasure-score", None)
+        game = BreakoutGame(None, _MockAudio())
+        game.state = 'playing'
+        game.gameplay._test_mode = True
+        game.gameplay.score = 500
+        game.gameplay.update = lambda dt, keys: ('game_over', 'lost')
+        game._update(1 / 60)
+        self.assertIsNone(pa_store.get_best("pa-treasure-score"))
+        self.assertFalse(game._is_new_best)
+
+    def test_best_submitted_when_ordinary(self):
+        from shared import pa_store
+        pa_store._MEM.pop("pa-treasure-score", None)
+        game = BreakoutGame(None, _MockAudio())
+        game.state = 'playing'
+        game.gameplay._test_mode = False
+        game.gameplay.score = 500
+        game.gameplay.update = lambda dt, keys: ('game_over', 'lost')
+        game._update(1 / 60)
+        self.assertEqual(pa_store.get_best("pa-treasure-score"), 500)
+
+    def test_breach_in_published_state(self):
+        game = BreakoutGame(None, _MockAudio())
+        game.gameplay.stage = 3
+        game.gameplay._build_bricks()
+        keg = _keg_at(game.gameplay, 3, 3)
+        game.gameplay._damage_brick(game.gameplay.balls[0], keg)
+        state = game._build_game_state()
+        self.assertEqual(state["lastBreachSize"], 8)
+
+
 if __name__ == "__main__":
     result = unittest.main(verbosity=2, exit=False)
     sys.exit(0 if result.result.wasSuccessful() else 1)

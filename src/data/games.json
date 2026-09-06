@@ -56,7 +56,7 @@
     "touchControls": "Slide longboat left/right  •  LAUNCH  •  PAUSE",
     "keyboardControls": "ArrowLeft / A — move left • ArrowRight / D — move right • Space — launch ball • Escape — pause • Enter — confirm",
     "howToPlay": "Three-stage Fortress Siege. Smash through the Outer Wall, breach the Inner Fortress, and conquer the Treasure Vault. Destroy Powder-Keg Bricks to trigger chain explosions. Collect power-ups from Treasure Bricks: Multiball (3 active balls), Wide Paddle (enlarged longboat), and Slow Seas (slows the cannonball). Each stage starts faster — Stage 1: 650, Stage 2: 700, Stage 3: 750. Clear all three to win!",
-    "tips": "Powder Kegs chain-react with neighboring bricks — aim for them to clear tough areas. Treasure Bricks drop falling pickups — catch them with your paddle. Reinforced bricks (metal bands) take two hits. Ball speeds up over time. Lives: 3.",
+    "tips": "Hit Powder Kegs early to breach clusters of fortress bricks — big blasts earn a BREACH callout. Treasure Bricks drop falling pickups — catch them with your paddle, even ones blasted loose by kegs. Reinforced bricks (metal bands) take two hits. Ball speeds up over time. Lives: 3.",
     "firstPlayTip": "Slide longboat left/right, tap LAUNCH. Destroy Powder Kegs for chain reactions!",
     "bestFor": "Breakout fans who want a multi-stage fortress siege with power-ups and special bricks.",
     "availabilityNote": "Playable in browser now via Pygbag and WebAssembly, and also included in the desktop release.",

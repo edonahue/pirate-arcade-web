@@ -99,6 +99,8 @@
     paddle_hit: function () { tone(440, 0.1, 0.4); },
     wall_hit:   function () { tone(220, 0.08, 0.3); },
     brick_break: function () { dual(600, 900, 0.12, 0.3, 0.2); },
+    explosion:  function () { dual(100, 200, 0.25, 0.4, 0.3); },
+    breach:     function () { chord([523, 784], 0.3, [0.35, 0.3]); },
     life_lost:  function () { dual(200, 150, 0.3, 0.4, 0.3); },
     level_win:  function () { chord([523, 659, 784], 0.5, [0.35, 0.25, 0.25]); },
     score:      function () { tone(180, 0.3, 0.35); },

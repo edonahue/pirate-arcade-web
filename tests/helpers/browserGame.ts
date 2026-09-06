@@ -984,6 +984,7 @@ export interface ArcadeGameState {
   roundPhase?: string;
   brickDestructionCounts?: Record<string, number>;
   pickupHistory?: string[];
+  lastBreachSize?: number;
   rallyCount?: number;
   currentRally?: number;
   longestRally?: number;
