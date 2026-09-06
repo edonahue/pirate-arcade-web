@@ -235,7 +235,9 @@ class TestWaveIntegration(unittest.TestCase):
         self.assertEqual(len(gp.barrels), 0)
         self.assertEqual(gp.wave, 0)
 
-    def test_transition_expiry_advances_to_boss_wave(self):
+    def test_transition_expiry_spawns_boss_directly(self):
+        # Collapsed flow: cleared expiry spawns the boss immediately into
+        # non-damaging entering. No separate kraken transition remains.
         gp = make_gameplay()
         gp.barrels = []
         gp.update(1.0 / 60, _KEYS_PARKED)
@@ -243,8 +245,24 @@ class TestWaveIntegration(unittest.TestCase):
         for _ in range(steps):
             gp.update(1.0 / 60, _KEYS_PARKED)
         self.assertEqual(gp.wave, 1)
-        self.assertIsNotNone(gp.transition)
-        self.assertEqual(gp.transition[0], "kraken")
+        self.assertIsNotNone(gp.boss)
+        self.assertTrue(gp.boss.alive)
+        self.assertEqual(gp.boss.phase, "entering")
+        self.assertIsNone(gp.transition)
+        self.assertEqual(len(gp.barrels), 0)
+
+    def test_no_kraken_transition_kind(self):
+        gp = make_gameplay()
+        gp.barrels = []
+        gp.update(1.0 / 60, _KEYS_PARKED)
+        kinds = set()
+        total = int(c.WAVE_TRANSITION_DURATION * 60) * 2 + 20
+        for _ in range(total):
+            gp.update(1.0 / 60, _KEYS_PARKED)
+            if gp.transition is not None:
+                kinds.add(gp.transition[0])
+        self.assertNotIn("kraken", kinds)
+        self.assertIsNotNone(gp.boss)
 
     def test_kraken_transition_spawns_boss_only(self):
         gp = make_gameplay()
@@ -256,6 +274,37 @@ class TestWaveIntegration(unittest.TestCase):
         self.assertIsNotNone(gp.boss)
         self.assertTrue(gp.boss.alive)
         self.assertEqual(len(gp.barrels), 0)
+
+    def test_exactly_one_roar_per_boss_arrival(self):
+        import sys as _sys
+        import os as _os
+
+        class _RecordingAudio:
+            def __init__(self):
+                self.calls = []
+                self.muted = False
+
+            def play(self, name):
+                self.calls.append(name)
+
+        base = _os.path.join(_os.path.dirname(__file__),
+                             "../../scripts/pygbag-port/krakens-wake")
+        if base not in _sys.path:
+            _sys.path.append(base)
+        from games.asteroids.gameplay import Gameplay
+        gp = Gameplay(_RecordingAudio())
+        gp.barrels = []
+        gp.update(1.0 / 60, _KEYS_PARKED)
+        # Drive through cleared banner, spawn, and full entering.
+        total = int((c.WAVE_TRANSITION_DURATION +
+                     c.KRAKEN_ENTER_DURATION) * 60) + 30
+        for _ in range(total):
+            gp.update(1.0 / 60, _KEYS_PARKED)
+        roars = [n for n in gp.audio.calls if n == "kraken_roar"]
+        self.assertEqual(len(roars), 1)
+        self.assertIn("level_win", gp.audio.calls)
+        self.assertLess(gp.audio.calls.index("level_win"),
+                        gp.audio.calls.index("kraken_roar"))
 
     def test_boss_defeat_advances_single_path(self):
         gp = make_gameplay()
@@ -318,12 +367,60 @@ class TestWaveIntegration(unittest.TestCase):
         pa_store.clear_memory()
         pa_store._MEM["pa-kraken-test-wave"] = "2"
         self.assertEqual(gmod._debug_kraken_wave(), 1)
+        # One-shot: the direct read consumed the seed; re-seed for construct.
+        pa_store._MEM["pa-kraken-test-wave"] = "2"
         gp = make_gameplay()
         self.assertTrue(gp._test_mode)
         # Production advance path lands exactly on internal wave 1.
         for _ in range(30):
             gp.update(1.0 / 60, _KEYS_PARKED)
         self.assertEqual(gp.wave, 1)
+        pa_store.clear_memory()
+
+    def test_debug_seed_one_shot_consumed(self):
+        from shared import pa_store
+        pa_store.clear_memory()
+        pa_store._MEM["pa-kraken-test-wave"] = "2"
+        gp = make_gameplay()
+        self.assertTrue(gp._test_mode)
+        # The browser key is gone after construction consumes it.
+        self.assertNotIn("pa-kraken-test-wave", pa_store._MEM)
+        pa_store.clear_memory()
+
+    def test_debug_wave_reused_across_reset(self):
+        from shared import pa_store
+        pa_store.clear_memory()
+        pa_store._MEM["pa-kraken-test-wave"] = "2"
+        gp = make_gameplay()
+        self.assertTrue(gp._test_mode)
+        gp.reset()
+        self.assertTrue(gp._test_mode)
+        # Reset re-parks through the in-memory value, no reread needed.
+        for _ in range(30):
+            gp.update(1.0 / 60, _KEYS_PARKED)
+        self.assertEqual(gp.wave, 1)
+        pa_store.clear_memory()
+
+    def test_fresh_construct_without_seed_is_ordinary(self):
+        from shared import pa_store
+        pa_store.clear_memory()
+        gp = make_gameplay()
+        self.assertFalse(gp._test_mode)
+        self.assertEqual(gp.wave, 0)
+        self.assertGreater(len(gp.barrels), 0)
+        self.assertIsNone(gp.boss)
+        self.assertIsNone(gp.transition)
+        pa_store.clear_memory()
+
+    def test_malformed_seed_consumed_not_poisonous(self):
+        from shared import pa_store
+        pa_store.clear_memory()
+        pa_store._MEM["pa-kraken-test-wave"] = "[[broken"
+        gp = make_gameplay()
+        self.assertFalse(gp._test_mode)
+        self.assertNotIn("pa-kraken-test-wave", pa_store._MEM)
+        self.assertEqual(gp.wave, 0)
+        self.assertGreater(len(gp.barrels), 0)
         pa_store.clear_memory()
 
     def test_reset_clears_boss_and_transition(self):

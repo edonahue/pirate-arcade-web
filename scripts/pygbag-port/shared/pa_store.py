@@ -79,6 +79,39 @@ def submit_best(key, value):
     return True
 
 
+def take(key):
+    """Read a validated int once, removing the key. None when absent.
+
+    Malformed values are consumed too, so a bad seed cannot poison future
+    loads. Browser errors never propagate; non-browser fallback pops from
+    memory. Used for one-shot test seeds, never for player records.
+    """
+    if not isinstance(key, str) or not key:
+        return None
+    store = _browser_storage()
+    raw = None
+    try:
+        if store is not None:
+            raw = store.getItem(key)
+            try:
+                store.removeItem(key)
+            except Exception:
+                pass
+        else:
+            raw = _MEM.pop(key, None)
+    except Exception:
+        return None
+    if raw is None:
+        return None
+    try:
+        value = int(raw)
+    except (TypeError, ValueError):
+        return None
+    if value < 0:
+        return None
+    return value
+
+
 def clear_memory():
     """Test seam: reset the non-browser fallback. No-op in the browser."""
     _MEM.clear()

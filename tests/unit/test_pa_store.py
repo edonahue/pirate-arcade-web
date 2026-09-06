@@ -50,6 +50,22 @@ class TestPaStoreContract(unittest.TestCase):
         self.assertFalse(pa_store.submit_best("", 10))
         self.assertIsNone(pa_store.get_best(""))
 
+    def test_take_consumes_valid_value(self):
+        pa_store._MEM["pa-seed"] = "7"
+        self.assertEqual(pa_store.take("pa-seed"), 7)
+        self.assertNotIn("pa-seed", pa_store._MEM)
+        self.assertIsNone(pa_store.take("pa-seed"))
+
+    def test_take_missing_and_malformed(self):
+        self.assertIsNone(pa_store.take("pa-absent"))
+        pa_store._MEM["pa-bad"] = "[[broken"
+        self.assertIsNone(pa_store.take("pa-bad"))
+        self.assertNotIn("pa-bad", pa_store._MEM)
+        pa_store._MEM["pa-neg"] = "-2"
+        self.assertIsNone(pa_store.take("pa-neg"))
+        self.assertNotIn("pa-neg", pa_store._MEM)
+        self.assertIsNone(pa_store.take(""))
+
 
 def _load_game_highscores(mod_name, game_dir):
     """Load a per-game highscores.py in isolation (all share a module name)."""

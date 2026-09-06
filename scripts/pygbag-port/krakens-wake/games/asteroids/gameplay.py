@@ -14,17 +14,16 @@ _SPAWN_FALLBACK_SLOTS = ((200, 200), (1400, 200), (200, 700), (1400, 700))
 
 
 def _debug_kraken_wave():
-    """Test-only wave override via a localStorage key tests set before load.
+    """Test-only wave override: one-shot consume of a localStorage seed.
 
-    Returns the internal wave index or None. Uses the same proven
-    localStorage transport as personal bests (pa_store) — readable from
-    game code, settable from Playwright addInitScript. Ordinary players
-    never carry the key, so normal runs are unaffected. Test-mode runs
-    suppress best-score submission (see _test_mode).
+    Returns the internal wave index or None. The seed is removed on read,
+    so a fresh page load without a newly set seed behaves ordinarily.
+    Ordinary players never carry the key. Test-mode runs suppress
+    best-score submission (see _test_mode).
     """
     try:
-        from shared.pa_store import get_best as _get_best
-        display = _get_best("pa-kraken-test-wave")
+        from shared.pa_store import take as _take
+        display = _take("pa-kraken-test-wave")
     except Exception:
         return None
     if display is None or not 1 <= display <= 30:
@@ -100,6 +99,7 @@ class Gameplay:
         self.transition = None
         self.transition_t = 0.0
         self._test_mode = False
+        self._debug_wave = None
         self._cached_score = -1
         self._cached_score_surf = None
         self._cached_lives = -1
@@ -113,13 +113,17 @@ class Gameplay:
             self._spawn_barrels()
 
     def _apply_debug_wave(self):
-        debug_wave = _debug_kraken_wave()
-        if debug_wave is None:
+        # One-shot consume on first call; resets reuse the in-memory value
+        # so restarts stay deterministic without rereading storage.
+        if self._debug_wave is None:
+            self._debug_wave = _debug_kraken_wave()
+            if self._debug_wave is not None:
+                self._test_mode = True
+        if self._debug_wave is None:
             return
-        self._test_mode = True
         # Park one wave below target: the cleared-transition advance then
         # lands exactly on the requested wave through the production path.
-        self.wave = max(0, debug_wave - 1)
+        self.wave = max(0, self._debug_wave - 1)
         self.barrels = []
         self.boss = None
         self.transition = ("cleared", 0.01)
@@ -178,24 +182,21 @@ class Gameplay:
         if kind == "cleared":
             self.wave += 1
             if KrakenBoss.is_boss_wave(self.wave):
-                self._begin_transition("kraken")
-                self.audio.play('kraken_roar')
+                self._spawn_boss_wave()
             else:
                 self._spawn_barrels()
-        elif kind == "kraken":
-            self._spawn_boss_wave()
         elif kind == "sunk":
             self.wave += 1
             self._spawn_barrels()
 
     def _transition_banner(self):
+        if self.boss is not None and self.boss.phase == "entering":
+            return "THE KRAKEN WAKES"
         if self.transition is None:
             return None
         kind = self.transition[0]
         if kind == "cleared":
             return "WAVE %d CLEARED" % (self.wave + 1)
-        if kind == "kraken":
-            return "THE KRAKEN WAKES"
         if kind == "sunk":
             return "KRAKEN SUNK! +%d" % c.KRAKEN_KILL_SCORE
         return None
