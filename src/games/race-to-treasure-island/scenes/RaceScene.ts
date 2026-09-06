@@ -629,6 +629,7 @@ export class RaceScene extends Phaser.Scene {
         stunTimer: Math.floor(this.stunTimer),
         hitBumpTimer: Math.floor(this.hitBumpTimer),
         obstacleCount: this.obstacles?.getLength() || 0,
+        treasureCount: this.treasures?.getLength() || 0,
         obstacleTypesSeen: Array.from(this.obstacleTypesSeen),
         obstacleSpawnLog: this.obstacleSpawnLog.slice(0, 10),
         scrollSpeed: Math.floor(this.scrollSpeed),
@@ -844,9 +845,10 @@ export class RaceScene extends Phaser.Scene {
       this.scene.restart();
     };
     (window as any).__paRaceDebugCollectTreasure = () => {
-      const first = this.treasures?.getChildren?.()[0] as Treasure | undefined;
-      if (!first) return false;
-      this.handleTreasureCollect(first);
+      const kids = (this.treasures?.getChildren?.() ?? []) as Treasure[];
+      const fresh = kids.find((t) => !t.collected);
+      if (!fresh) return false;
+      this.handleTreasureCollect(fresh);
       return true;
     };
   }

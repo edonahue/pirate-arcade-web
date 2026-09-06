@@ -3250,27 +3250,53 @@ test.describe("Race pressure pass", () => {
     );
 
     await goToRace(page, "seed=treasure-wind-test");
+    // Wait for a real spawned treasure, then freeze the sim so the
+    // measurement is exact (no regen, drift, or stray hits in between).
+    await expect
+      .poll(async () => (await readRaceState(page))?.treasureCount, {
+        timeout: 15000,
+      })
+      .toBeGreaterThan(0);
+    await page.evaluate(() => {
+      if (typeof (window as any).__paRaceDebugPause === "function") {
+        (window as any).__paRaceDebugPause();
+      }
+    });
+    await expect
+      .poll(async () => (await readRaceState(page))?.paused, {
+        timeout: 5000,
+      })
+      .toBe(true);
     await page.evaluate(() => {
       if (typeof (window as any).__paRaceDebugSetBoostMeter === "function") {
         (window as any).__paRaceDebugSetBoostMeter(10);
       }
     });
     const before = await readRaceState(page);
-    await expect
-      .poll(
-        async () =>
-          page.evaluate(() =>
-            typeof (window as any).__paRaceDebugCollectTreasure === "function"
-              ? (window as any).__paRaceDebugCollectTreasure()
-              : false,
-          ),
-        { timeout: 15000 },
-      )
-      .toBe(true);
-    const after = await readRaceState(page);
-    expect(after.windMeter - before.windMeter).toBeGreaterThanOrEqual(20);
-    expect(after.windMeter).toBeLessThanOrEqual(100);
-    expect(after.score - before.score).toBe(100);
+    const collected = await page.evaluate(() =>
+      typeof (window as any).__paRaceDebugCollectTreasure === "function"
+        ? (window as any).__paRaceDebugCollectTreasure()
+        : false,
+    );
+    expect(collected).toBe(true);
+    // Published state does not refresh while paused: resume so the
+    // collect publishes, then catch the first frame showing +100.
+    await page.evaluate(() => {
+      if (typeof (window as any).__paRaceDebugPause === "function") {
+        (window as any).__paRaceDebugPause();
+      }
+    });
+    let after = await readRaceState(page);
+    const deadline = Date.now() + 5000;
+    while ((after?.score ?? 0) - (before?.score ?? 0) !== 100) {
+      if (Date.now() > deadline) break;
+      await page.waitForTimeout(100);
+      after = await readRaceState(page);
+    }
+    expect((after?.score ?? 0) - (before?.score ?? 0)).toBe(100);
+    const windDelta = (after?.windMeter ?? 0) - (before?.windMeter ?? 0);
+    expect(windDelta).toBeGreaterThanOrEqual(24);
+    expect(windDelta).toBeLessThanOrEqual(45);
   });
 
   test("no-boost rival stays in touch", async ({ page }, testInfo) => {
