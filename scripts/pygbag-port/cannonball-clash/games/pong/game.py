@@ -213,6 +213,9 @@ class PongGame:
             "aiDifficulty": self.gameplay.ai.speed_factor if hasattr(self.gameplay.ai, 'speed_factor') else 0.6,
             "bestRally": (hs.get_high("pong") or {}).get("score", 0),
             "newBest": bool(self._is_new_best),
+            "playerPaddleHeight": self.gameplay.player_paddle.height,
+            "ballX": self.gameplay.ball.x,
+            "ballY": self.gameplay.ball.y,
         }
 
     def _update(self, dt):
@@ -221,9 +224,11 @@ class PongGame:
             result = self.gameplay.update(dt, keys)
             # Persist longest rally as it grows, so a legitimately achieved
             # record is never lost (even on tab close mid-match).
+            # Suppressed in test mode so debug rallies never pollute bests.
             lr = getattr(self.gameplay, 'longest_rally', 0)
             if lr > self._submitted_rally:
-                if lr > 0 and hs.submit_rally(lr):
+                if (lr > 0 and not getattr(self.gameplay, '_test_mode', False)
+                        and hs.submit_rally(lr)):
                     self._is_new_best = True
                 self._submitted_rally = lr
             if result[0] == 'game_over':

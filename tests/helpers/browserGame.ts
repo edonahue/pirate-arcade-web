@@ -992,6 +992,9 @@ export interface ArcadeGameState {
   aiShrinkActive?: boolean;
   aiShrinkRemainingMs?: number;
   aiDifficulty?: number;
+  playerPaddleHeight?: number;
+  ballX?: number;
+  ballY?: number;
   bestScore?: number;
   bestRally?: number;
   newBest?: boolean;

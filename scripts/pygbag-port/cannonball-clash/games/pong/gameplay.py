@@ -7,6 +7,22 @@ from games.pong.ai import AI
 from renderer import draw_center_line, draw_fps, draw_flash, HitParticle
 import random
 import math
+
+
+def _debug_pong_rally():
+    """Test-only rally seed: one-shot consume of a localStorage key.
+
+    Returns the requested rally count or None. The key is removed on read
+    so fresh loads behave ordinarily; ordinary players never carry it.
+    """
+    try:
+        from shared.pa_store import take as _take
+        count = _take("pa-pong-test-rally")
+    except Exception:
+        return None
+    if count is None or not 1 <= count <= 30:
+        return None
+    return count
 import builtins
 
 
@@ -98,6 +114,10 @@ class Gameplay:
         self.longest_rally = 0
         self.rally_tier = 0
         self.rally_callout_timer = 0.0
+        self._debug_rally = None
+        self._debug_checked = False
+        self._test_mode = False
+        self._apply_debug_rally()
         self.rally_callout_text = None
         self.rally_callout_surf = None
         self.ai_shrink_timer = 0.0
@@ -127,6 +147,28 @@ class Gameplay:
     def set_difficulty(self, difficulty):
         self.ai.set_difficulty(difficulty)
 
+    def _apply_debug_rally(self):
+        # One-shot consume on first call; resets reuse the in-memory value
+        # so restarts stay deterministic without rereading storage. Parks
+        # one hit below target so the next real return crosses it through
+        # the production tier-up path.
+        if not self._debug_checked:
+            self._debug_checked = True
+            self._debug_rally = _debug_pong_rally()
+            if self._debug_rally is not None:
+                self._test_mode = True
+        if self._debug_rally is None:
+            return
+        parked = max(0, self._debug_rally - 1)
+        self.rally_count = parked
+        if self.longest_rally < parked:
+            self.longest_rally = parked
+        tier = 0
+        for m in sorted(c.RALLY_MILESTONES):
+            if parked >= m:
+                tier = m
+        self.rally_tier = tier
+
     def reset_round(self):
         self.ball.reset()
         self.player_paddle.y = c.WINDOW_HEIGHT // 2
@@ -146,6 +188,8 @@ class Gameplay:
         self.point_transition_timer = 0.0
         self.point_callout = None
         self._point_callout_surf = None
+        # Parked last: reset lines above would wipe the debug rally state.
+        self._apply_debug_rally()
 
     def begin_match(self):
         self.reset()
@@ -280,6 +324,11 @@ class Gameplay:
                 self.rally_callout_surf = self.hud_font.render(label, True, c.PIRATE_GOLD)
                 self.rally_callout_timer = 1.5
                 self.ball.set_rally_tier(self.rally_tier)
+                if new_tier == 10:
+                    # Fever reinforcement: a 10-rally earns mid-point hull
+                    # strength through the existing big-paddle system.
+                    self.player_paddle.activate_big()
+                    self.audio.play('powerup')
             elif self.rally_tier > 0:
                 self.ball.set_rally_tier(self.rally_tier)
             self.audio.play('paddle_hit')

@@ -86,7 +86,8 @@ class TestGameSourceContract(unittest.TestCase):
                        "initialBallSpeed", "maxBallSpeed", "rallyCount",
                        "currentRally", "longestRally", "rallyTier",
                        "powerupType", "aiShrinkActive", "aiShrinkRemainingMs",
-                       "aiDifficulty", "bestRally", "newBest"):
+                       "aiDifficulty", "bestRally", "newBest",
+                       "playerPaddleHeight", "ballX", "ballY"):
             self.assertIn(f'"{field}"', src, f"Missing field: {field}")
 
     def test_breakout_state_has_required_fields(self):

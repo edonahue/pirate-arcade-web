@@ -804,6 +804,171 @@ class TestCannonballClashAiDifficulty(unittest.TestCase):
         self.assertAlmostEqual(self.game.gameplay.ai.speed_factor, 0.6, delta=0.1)
 
 
+class TestFeverReinforcement(unittest.TestCase):
+    """Cannonball Fever (rally 10) grants mid-point Reinforced Hull."""
+
+    def setUp(self):
+        self.gp = Gameplay(_MockAudio())
+        # Isolate the grant from natural power-up spawns.
+        self.gp.powerup_spawn_timer = 9999.0
+        self.gp.powerup = None
+
+    def _keys(self):
+        return {pg.K_w: False, pg.K_s: False, pg.K_UP: False, pg.K_DOWN: False}
+
+    def _drive_player_hit(self):
+        # Ball.update runs before collision: place the ball so one frame of
+        # travel at 650px/s carries it across the paddle face.
+        gp = self.gp
+        gp.ball.x = gp.player_paddle.rect.right + 5
+        gp.ball.y = gp.player_paddle.y
+        gp.ball.vx = -650
+        gp.ball.vy = 0
+        gp.ball.speed = 650
+        gp.update(1 / 60, self._keys())
+
+    def _stage_rally(self, count, tier):
+        self.gp.rally_count = count
+        self.gp.rally_tier = tier
+        if self.gp.longest_rally < count:
+            self.gp.longest_rally = count
+
+    def test_grant_fires_once_at_rally_10(self):
+        self._stage_rally(9, 5)
+        self._drive_player_hit()
+        self.assertEqual(self.gp.rally_count, 10)
+        self.assertEqual(self.gp.rally_tier, 10)
+        self.assertEqual(self.gp.player_paddle.height, 150)
+        self.assertGreaterEqual(self.gp.player_paddle.big_timer, 7.9)
+
+    def test_no_grant_below_10(self):
+        self._stage_rally(8, 5)
+        self._drive_player_hit()
+        self.assertEqual(self.gp.rally_count, 9)
+        self.assertEqual(self.gp.rally_tier, 5)
+        self.assertEqual(self.gp.player_paddle.height, 100)
+
+    def test_no_regrant_at_11_to_14(self):
+        self._stage_rally(9, 5)
+        self._drive_player_hit()
+        self.assertEqual(self.gp.player_paddle.big_timer, 8.0)
+        self.gp.player_paddle.big_timer = 5.0
+        self._stage_rally(13, 10)
+        self._drive_player_hit()
+        self.assertEqual(self.gp.rally_count, 14)
+        # Timer decayed naturally from 5.0: no refresh, no second grant.
+        self.assertLess(self.gp.player_paddle.big_timer, 5.0)
+        self.assertGreater(self.gp.player_paddle.big_timer, 0.0)
+
+    def test_grant_clears_on_point_reset(self):
+        self._stage_rally(9, 5)
+        self._drive_player_hit()
+        self.assertEqual(self.gp.player_paddle.height, 150)
+        self.gp.reset_round()
+        self.assertEqual(self.gp.player_paddle.height, 100)
+        self.assertEqual(self.gp.rally_tier, 0)
+
+    def test_grant_coexists_with_cursed(self):
+        self.gp.ai_shrink_timer = 7.0
+        self.gp.ai_paddle.height = 65
+        self._stage_rally(9, 5)
+        self._drive_player_hit()
+        self.assertEqual(self.gp.player_paddle.height, 150)
+        self.assertEqual(self.gp.ai_paddle.height, 65)
+
+    def test_grant_identical_across_difficulties(self):
+        for difficulty in ("easy", "medium", "hard"):
+            with self.subTest(difficulty=difficulty):
+                gp = Gameplay(_MockAudio())
+                gp.powerup_spawn_timer = 9999.0
+                gp.powerup = None
+                gp.ai.set_difficulty(difficulty)
+                self.gp = gp
+                self._stage_rally(9, 5)
+                self._drive_player_hit()
+                self.assertEqual(gp.player_paddle.height, 150)
+                self.assertEqual(gp.rally_tier, 10)
+
+    def test_longest_rally_untouched_by_grant(self):
+        self._stage_rally(9, 5)
+        self._drive_player_hit()
+        self.assertEqual(self.gp.longest_rally, 10)
+        self.assertEqual(self.gp.rally_count, 10)
+
+
+class TestDebugRallySeam(unittest.TestCase):
+    def setUp(self):
+        from shared import pa_store
+        pa_store.clear_memory()
+        self.gp = Gameplay(_MockAudio())
+        self.gp.powerup_spawn_timer = 9999.0
+        self.gp.powerup = None
+
+    def tearDown(self):
+        from shared import pa_store
+        pa_store.clear_memory()
+
+    def test_fresh_construct_without_seed_is_ordinary(self):
+        self.assertFalse(self.gp._test_mode)
+        self.assertEqual(self.gp.rally_count, 0)
+        self.assertEqual(self.gp.rally_tier, 0)
+
+    def test_seed_consumed_once_and_parked(self):
+        from shared import pa_store
+        pa_store._MEM["pa-pong-test-rally"] = "10"
+        gp = Gameplay(_MockAudio())
+        gp.powerup_spawn_timer = 9999.0
+        gp.powerup = None
+        self.assertTrue(gp._test_mode)
+        self.assertEqual(gp.rally_count, 9)
+        self.assertEqual(gp.rally_tier, 5)
+        self.assertNotIn("pa-pong-test-rally", pa_store._MEM)
+
+    def test_reset_reuses_memory_without_reread(self):
+        from shared import pa_store
+        pa_store._MEM["pa-pong-test-rally"] = "10"
+        gp = Gameplay(_MockAudio())
+        gp.powerup_spawn_timer = 9999.0
+        gp.powerup = None
+        self.assertTrue(gp._test_mode)
+        gp.reset_round()
+        self.assertTrue(gp._test_mode)
+        self.assertEqual(gp.rally_count, 9)
+        self.assertEqual(gp.rally_tier, 5)
+
+    def test_malformed_seed_consumed_not_poisonous(self):
+        from shared import pa_store
+        pa_store._MEM["pa-pong-test-rally"] = "[[broken"
+        gp = Gameplay(_MockAudio())
+        self.assertFalse(gp._test_mode)
+        self.assertNotIn("pa-pong-test-rally", pa_store._MEM)
+        self.assertEqual(gp.rally_count, 0)
+
+    def test_test_mode_suppresses_best_submit(self):
+        from shared import pa_store
+        pa_store._MEM["pa-pong-test-rally"] = "10"
+        game = PongGame(None, _MockAudio())
+        game.gameplay.powerup_spawn_timer = 9999.0
+        game.gameplay.powerup = None
+        self.assertTrue(game.gameplay._test_mode)
+        game.state = 'playing'
+        # Cross rally 10 through the real update path incl. submit guard.
+        for _ in range(6):
+            gp = game.gameplay
+            gp.ball.x = gp.player_paddle.rect.right + 5
+            gp.ball.y = gp.player_paddle.y
+            gp.ball.vx = -650
+            gp.ball.vy = 0
+            gp.ball.speed = 650
+            game._update(1 / 60)
+            if gp.rally_tier >= 10:
+                break
+        self.assertEqual(game.gameplay.rally_tier, 10)
+        self.assertEqual(game.gameplay.player_paddle.height, 150)
+        self.assertIsNone(pa_store.get_best("pa-cannonball-rally"))
+        self.assertFalse(game._is_new_best)
+
+
 if __name__ == "__main__":
     result = unittest.main(verbosity=2, exit=False)
     sys.exit(0 if result.result.wasSuccessful() else 1)
