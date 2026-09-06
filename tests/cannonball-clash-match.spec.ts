@@ -128,8 +128,9 @@ test.describe("Cannonball Clash match gameplay", () => {
       await page.keyboard.up("ArrowUp");
     }
 
-    // Input still works after the Fever point: ensure a live rally,
-    // then verify the paddle answers the keys.
+    // Input still works after the Fever point: ensure a live rally
+    // (ball moving, not a point-transition freeze), then verify the
+    // paddle answers the keys.
     const live = await readGameState(page);
     if (live?.phase !== "playing") {
       await pressKeyDownUp(page, "Enter", 200);
@@ -139,6 +140,11 @@ test.describe("Cannonball Clash match gameplay", () => {
         })
         .toBe("playing");
     }
+    await expect
+      .poll(async () => (await readGameState(page))?.ballSpeed, {
+        timeout: 15000,
+      })
+      .toBeGreaterThan(0);
     const posBefore = (await readGameState(page))?.playerPosition ?? 0;
     await pressKeyDownUp(page, "ArrowDown", 400);
     await page.waitForTimeout(50);
