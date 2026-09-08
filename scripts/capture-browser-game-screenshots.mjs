@@ -19,6 +19,11 @@
  * Usage:
  *   npm run build
  *   node scripts/capture-browser-game-screenshots.mjs
+ *   node scripts/capture-browser-game-screenshots.mjs --only=cannonball-clash,treasure-cove
+ *
+ * Curated states (Fever rally, Stage-3 breach, Kraken boss wave) use the
+ * existing one-shot test seams via localStorage pre-seeds and wait for
+ * published gameplay state instead of a fixed timeout.
  *
  * The package script `npm run capture:screenshots` chains the build.
  *
@@ -58,6 +63,40 @@ const GAMES = gamesMeta
 
 const OUT_W = 1280;
 const OUT_H = 720;
+
+/**
+ * Optional per-game curated capture state. Uses the existing one-shot
+ * test seams (consumed via pa_store.take(), no gameplay-source changes)
+ * to reach a representative moment, then waits for the published game
+ * state instead of an arbitrary timeout.
+ *
+ * - preSeed: localStorage key/value set before boot (fresh context per
+ *   game, consumed one-shot, no leakage, best-score suppressed by seam).
+ * - waitForState: JS expression over published state; polled bounded.
+ * - postStateDelayMs: short composition settle after the state lands.
+ */
+const CAPTURE_STATE = {
+  "cannonball-clash": {
+    preSeed: { key: "pa-pong-test-rally", value: "10" },
+    waitForState:
+      "state && state.rallyTier === 10 && state.playerPaddleHeight === 150",
+    stateTimeoutMs: 90_000,
+    postStateDelayMs: 800,
+  },
+  "treasure-cove": {
+    preSeed: { key: "pa-treasure-test-breach", value: "1" },
+    waitForState: "state && state.lastBreachSize === 8",
+    stateTimeoutMs: 60_000,
+    postStateDelayMs: 400,
+  },
+  "krakens-wake": {
+    preSeed: { key: "pa-kraken-test-wave", value: "2" },
+    waitForState:
+      "state && state.bossActive === true && (state.bossPhase === 'tracking' || state.bossPhase === 'telegraph')",
+    stateTimeoutMs: 90_000,
+    postStateDelayMs: 500,
+  },
+};
 const PREVIEW_PORT = Number(process.env.PA_CAPTURE_PORT || 4321);
 const PREVIEW_HOST = process.env.PA_CAPTURE_HOST || "127.0.0.1";
 const PREVIEW_URL = `http://${PREVIEW_HOST}:${PREVIEW_PORT}`;
@@ -255,6 +294,15 @@ async function captureGame(browser, game) {
     }
   });
 
+  const captureState = CAPTURE_STATE[game.id];
+  if (captureState?.preSeed) {
+    const { key: k, value: v } = captureState.preSeed;
+    await page.addInitScript(({ k, v }) => localStorage.setItem(k, v), {
+      k,
+      v,
+    });
+  }
+
   try {
     await page.goto(url, {
       waitUntil: "domcontentloaded",
@@ -270,7 +318,16 @@ async function captureGame(browser, game) {
     await waitForGameReady(page);
     await hideShellUI(page);
     await page.keyboard.press(game.startKey);
-    await wait(POST_START_SETTLE_MS);
+    if (captureState?.waitForState) {
+      await waitForCaptureState(
+        page,
+        captureState.waitForState,
+        captureState.stateTimeoutMs ?? 90_000,
+      );
+      await wait(captureState.postStateDelayMs ?? 0);
+    } else {
+      await wait(POST_START_SETTLE_MS);
+    }
     await hideShellUI(page);
 
     // Check that the game didn't crash or revert to loading
@@ -337,7 +394,41 @@ async function captureGame(browser, game) {
   }
 }
 
+/** Poll a published-state expression until true (bounded). */
+async function waitForCaptureState(page, expression, timeoutMs) {
+  await page.waitForFunction(
+    (expr) => {
+      const gs = window.PirateArcadeGameState;
+      if (!gs) return false;
+      try {
+        gs.refresh();
+        const state = gs.getState();
+        return new Function("state", `return (${expr})`)(state) === true;
+      } catch {
+        return false;
+      }
+    },
+    expression,
+    { timeout: timeoutMs, polling: 250 },
+  );
+}
+
 async function main() {
+  const onlyArg = process.argv.find((a) => a.startsWith("--only="));
+  const onlyIds = onlyArg
+    ? onlyArg
+        .slice("--only=".length)
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean)
+    : null;
+  const targets = onlyIds ? GAMES.filter((g) => onlyIds.includes(g.id)) : GAMES;
+  if (onlyIds) {
+    const unknown = onlyIds.filter((id) => !GAMES.some((g) => g.id === id));
+    if (unknown.length) {
+      throw new Error(`Unknown game id(s) for --only: ${unknown.join(", ")}`);
+    }
+  }
   const distMarker = resolve(
     REPO_ROOT,
     "dist",
@@ -359,7 +450,7 @@ async function main() {
   try {
     const browser = await chromium.launch({ headless: true });
     try {
-      for (const game of GAMES) {
+      for (const game of targets) {
         console.log(`\n\u2192 ${game.title} (${game.id}, ${game.engine})`);
         await captureGame(browser, game);
       }

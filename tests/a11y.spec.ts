@@ -118,15 +118,42 @@ for (const game of GAMES) {
       });
 
       test("DOM during gameplay has no critical blockers", async ({ page }) => {
+        // Gameplay is landscape-designed; portrait touch projects show a
+        // rotate prompt hiding #game-wrap by design. Use a landscape
+        // viewport so this test exercises the game, not the prompt.
+        await page.setViewportSize({ width: 812, height: 375 });
         await page.goto(game.path, { waitUntil: "domcontentloaded" });
         await page.waitForFunction(
           () => document.getElementById("transfer")?.hidden === true,
           { timeout: 120000, polling: 500 },
         );
+        // The canvas stays 1x1 until pygame resizes it; clicking earlier
+        // races boot on slower (mobile-emulated) runtimes.
+        await page.waitForFunction(
+          () => {
+            const c = document.getElementById(
+              "canvas",
+            ) as HTMLCanvasElement | null;
+            return !!c && c.width > 100 && c.height > 100;
+          },
+          { timeout: 120000, polling: 500 },
+        );
 
+        // Wait for visibility explicitly: under parallel-gate load the
+        // fixed click timeout can expire while boot is still settling.
         await page
           .locator("canvas#canvas")
-          .click({ position: { x: 10, y: 10 } });
+          .waitFor({ state: "visible", timeout: 120000 });
+        // Touch projects overlay live controls on top of the canvas;
+        // start through the production action button when it is visible.
+        const actionBtn = page.locator("#touch-overlay .btn-action");
+        if (await actionBtn.isVisible()) {
+          await actionBtn.click();
+        } else {
+          await page
+            .locator("canvas#canvas")
+            .click({ position: { x: 10, y: 10 } });
+        }
         await page.locator("canvas#canvas").focus();
         for (const key of game.desktopKeys) {
           await page.keyboard.press(key);

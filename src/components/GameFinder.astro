@@ -21,7 +21,12 @@ const initialLaunchAttrs = getLaunchLinkAttrs(initialGame)!;
   <form class="game-finder__form" data-pref>
     <fieldset class="game-finder__field">
       <legend>Control scheme</legend>
-      <select name="control" class="game-finder__select" data-pref="control">
+      <select
+        name="control"
+        class="game-finder__select"
+        data-pref="control"
+        aria-label="Control scheme"
+      >
         <option value="any">No preference</option>
         <option value="touch">Touch</option>
         <option value="keyboard">Keyboard / mouse</option>
@@ -30,7 +35,12 @@ const initialLaunchAttrs = getLaunchLinkAttrs(initialGame)!;
 
     <fieldset class="game-finder__field">
       <legend>Load speed</legend>
-      <select name="load" class="game-finder__select" data-pref="load">
+      <select
+        name="load"
+        class="game-finder__select"
+        data-pref="load"
+        aria-label="Load speed"
+      >
         <option value="any">No preference</option>
         <option value="instant" selected>Start instantly</option>
         <option value="runtime-ok">Runtime download is fine</option>
@@ -43,6 +53,7 @@ const initialLaunchAttrs = getLaunchLinkAttrs(initialGame)!;
         name="challenge"
         class="game-finder__select"
         data-pref="challenge"
+        aria-label="Challenge"
       >
         <option value="any">No preference</option>
         <option value="easier">Easier</option>

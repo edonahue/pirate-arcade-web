@@ -6,22 +6,17 @@ test.describe("Site Visual Theme", () => {
   test("Homepage renders main sections", async ({ page }) => {
     await page.goto("/");
 
-    // Check main sections exist
+    // Check main sections exist (semantic selectors for the
+    // showcase/grid/experiment architecture)
     await expect(page.locator("h1.hero__title")).toContainText("PIRATE ARCADE");
-    await expect(page.locator("h2.section__title").first()).toContainText(
-      "Games",
+    await expect(page.locator(".section--games .section__title")).toContainText(
+      "Pirate Arcade Games",
     );
-    await expect(page.locator("h2.section__title").nth(1)).toContainText(
-      "Race to Treasure",
-    );
-    await expect(page.locator("h2.section__title").nth(2)).toContainText(
-      "Play in Browser Now",
-    );
-    await expect(page.locator("h2.section__title").nth(3)).toContainText(
+    await expect(page.locator(".section--pyle .section__title")).toContainText(
       "Free AI, Local Hardware, Open Source",
     );
 
-    // Check game cards are visible
+    // Check all four browser-game cards are visible
     await expect(
       page.locator('article:has-text("Cannonball Clash") h3 a'),
     ).toBeVisible();
@@ -32,17 +27,22 @@ test.describe("Site Visual Theme", () => {
       page.locator('article:has-text("Kraken\'s Wake") h3 a'),
     ).toBeVisible();
     await expect(
-      page.locator('article:has-text("Port Royale Tycoon") h3 a'),
+      page.locator('article:has-text("Race to Treasure Island") h3 a'),
     ).toBeVisible();
 
-    // Check browser-play CTAs — all three browser-playable games
+    // Desktop-only game appears as a callout link, not a card
+    await expect(page.locator(".desktop-callout")).toContainText(
+      "Port Royale Tycoon",
+    );
+
+    // Check browser-play CTAs — all four browser-playable games
     await expect(page.locator("text=Play in Browser →")).toHaveCount(4);
   });
 
   test("Play page shows browser-playable games", async ({ page }) => {
     await page.goto("/play/");
 
-    // Should show the two browser-playable games prominently - use game card titles
+    // Should show the four browser-playable games prominently - use game card titles
     await expect(
       page.locator('article:has-text("Cannonball Clash") h3 a'),
     ).toBeVisible();

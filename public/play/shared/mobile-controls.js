@@ -132,6 +132,12 @@
     } else if (dragAxis === 'x') {
       if (input) input.setTouchTarget('x', coords.x, true);
     }
+    // Keep the drag-zone slider value truthful for assistive tech.
+    var zone = overlay ? overlay.querySelector('.touch-drag-zone') : null;
+    if (zone) {
+      var v = dragAxis === 'y' ? coords.y : coords.x;
+      zone.setAttribute('aria-valuenow', String(v));
+    }
     if (!dragStarted) {
       dragStarted = true;
       overlay.classList.add('drag-active');

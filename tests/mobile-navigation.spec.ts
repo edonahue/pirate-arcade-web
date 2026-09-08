@@ -60,6 +60,15 @@ test.describe("Mobile Navigation", () => {
 
         const backLink = page.locator("#back-link");
         await expect(backLink).toBeVisible();
+        // The loading overlay covers the page during boot by design;
+        // wait for it to hide so hit-testing reflects the live shell.
+        await page.waitForFunction(
+          () =>
+            document
+              .getElementById("game-loading")
+              ?.classList.contains("hidden") ?? true,
+          { timeout: 120000, polling: 500 },
+        );
 
         const topElement = await page.evaluate(() => {
           const el = document.getElementById("back-link");

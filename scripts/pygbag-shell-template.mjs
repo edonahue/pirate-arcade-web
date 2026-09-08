@@ -10,7 +10,7 @@ import { renderPythonBootProgram } from "./pygbag-boot-program.mjs";
 
 function touchOverlayPong() {
   return `<div class="touch-overlay" id="touch-overlay" data-controls="pong">
-      <div class="touch-drag-zone touch-drag-y" data-dir="drag-y" role="slider" aria-label="Slide ship up or down"></div>
+      <div class="touch-drag-zone touch-drag-y" data-dir="drag-y" role="slider" aria-label="Slide ship up or down" aria-valuemin="0" aria-valuemax="900" aria-valuenow="450"></div>
       <div class="btn btn-nudge btn-up" data-dir="left">\u25b2</div>
       <div class="btn btn-nudge btn-down" data-dir="right">\u25bc</div>
       <div class="btn btn-action" data-dir="action" role="button" aria-label="Start game">START</div>
@@ -20,7 +20,7 @@ function touchOverlayPong() {
 
 function touchOverlayBreakout() {
   return `<div class="touch-overlay" id="touch-overlay" data-controls="breakout">
-      <div class="touch-drag-zone touch-drag-x" data-dir="drag-x" role="slider" aria-label="Slide longboat left or right"></div>
+      <div class="touch-drag-zone touch-drag-x" data-dir="drag-x" role="slider" aria-label="Slide longboat left or right" aria-valuemin="0" aria-valuemax="1600" aria-valuenow="800"></div>
       <div class="btn btn-nudge btn-left" data-dir="left">\u25c0</div>
       <div class="btn btn-nudge btn-right" data-dir="right">\u25b6</div>
       <div class="btn btn-action" data-dir="action" role="button" aria-label="Launch ball">LAUNCH</div>
