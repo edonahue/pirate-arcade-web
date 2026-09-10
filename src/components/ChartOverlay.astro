@@ -1,7 +1,6 @@
 ---
-// Nautical chart decorative overlay — curved lat/long lines,
-// rhumb lines, partial compass rose, X marks, mermaid and
-// treasure-chest engraved glyphs.
+// Nautical chart decorative overlay — sparse rhumb-line bearings,
+// partial compass rose, one X mark, and a small mermaid engraving.
 // aria-hidden, pointer-events: none, responsive.
 ---
 
@@ -12,34 +11,16 @@
   aria-hidden="true"
   focusable="false"
 >
-  <!-- Curved lat/long grid lines -->
-  <g class="chart-grid-lines">
-    <path d="M -100,200 Q 360,260 720,200 T 1540,200"></path>
-    <path d="M -100,380 Q 360,440 720,380 T 1540,380"></path>
-    <path d="M -100,560 Q 360,620 720,560 T 1540,560"></path>
-    <path d="M -100,740 Q 360,800 720,740 T 1540,740"></path>
-    <path d="M 180,-100 Q 240,450 180,1000"></path>
-    <path d="M 420,-100 Q 480,450 420,1000"></path>
-    <path d="M 660,-100 Q 720,450 660,1000"></path>
-    <path d="M 900,-100 Q 960,450 900,1000"></path>
-    <path d="M 1140,-100 Q 1200,450 1140,1000"></path>
-    <path d="M 1380,-100 Q 1440,450 1380,1000"></path>
-  </g>
-
-  <!-- Rhumb lines (portolan-style intersecting lines) -->
+  <!-- Rhumb lines (portolan-style bearings from two edge origins) -->
   <g class="chart-rhumb-lines">
     <line x1="120" y1="160" x2="600" y2="800"></line>
     <line x1="120" y1="160" x2="1100" y2="700"></line>
     <line x1="120" y1="160" x2="1400" y2="300"></line>
     <line x1="120" y1="160" x2="800" y2="900"></line>
-    <line x1="120" y1="160" x2="1350" y2="800"></line>
     <line x1="800" y1="120" x2="200" y2="550"></line>
     <line x1="800" y1="120" x2="300" y2="780"></line>
     <line x1="800" y1="120" x2="1000" y2="850"></line>
     <line x1="800" y1="120" x2="1300" y2="650"></line>
-    <line x1="500" y1="450" x2="100" y2="750"></line>
-    <line x1="500" y1="450" x2="1400" y2="600"></line>
-    <line x1="500" y1="450" x2="1200" y2="200"></line>
   </g>
 
   <!-- Compass rose (partially off-screen top-right) -->
@@ -112,16 +93,14 @@
     <circle cx="0" cy="0" r="3" fill="currentColor" opacity="0.2"></circle>
   </g>
 
-  <!-- X marks -->
+  <!-- X mark -->
   <g class="x-marks">
     <path class="x-mark--primary" d="M 370,340 L 395,365 M 395,340 L 370,365"
-    ></path>
-    <path class="x-mark--secondary" d="M 750,620 L 785,655 M 785,620 L 750,655"
     ></path>
   </g>
 
   <!-- Mermaid glyph (map engraving style) -->
-  <g class="mermaid-glyph" transform="translate(180, 210)" opacity="0.25">
+  <g class="mermaid-glyph" transform="translate(180, 210)" opacity="0.18">
     <!-- Head -->
     <circle
       cx="0"
@@ -193,91 +172,6 @@
       fill="none"
       stroke-width="0.5"></path>
   </g>
-
-  <!-- Treasure chest glyph (map engraving style) -->
-  <g
-    class="treasure-chest-glyph"
-    transform="translate(755, 625)"
-    opacity="0.25"
-  >
-    <!-- Lid (open, angled up) -->
-    <path
-      d="M -14,-12 Q 0,-24 14,-12 L 14,4 L -14,4 Z"
-      stroke="currentColor"
-      fill="none"
-      stroke-width="1.2"></path>
-    <!-- Box body -->
-    <rect
-      x="-11"
-      y="4"
-      width="22"
-      height="14"
-      stroke="currentColor"
-      fill="none"
-      stroke-width="1.2"></rect>
-    <!-- Keyhole plate -->
-    <rect
-      x="-4"
-      y="6"
-      width="8"
-      height="8"
-      rx="1"
-      stroke="currentColor"
-      fill="none"
-      stroke-width="0.8"></rect>
-    <circle
-      cx="0"
-      cy="10"
-      r="1.5"
-      stroke="currentColor"
-      fill="none"
-      stroke-width="0.6"></circle>
-    <!-- Metal bands (horizontal) -->
-    <line
-      x1="-11"
-      y1="8"
-      x2="11"
-      y2="8"
-      stroke="currentColor"
-      stroke-width="0.6"></line>
-    <line
-      x1="-11"
-      y1="14"
-      x2="11"
-      y2="14"
-      stroke="currentColor"
-      stroke-width="0.6"></line>
-    <!-- Metal bands (vertical) -->
-    <line
-      x1="-11"
-      y1="4"
-      x2="-11"
-      y2="18"
-      stroke="currentColor"
-      stroke-width="0.6"></line>
-    <line
-      x1="11"
-      y1="4"
-      x2="11"
-      y2="18"
-      stroke="currentColor"
-      stroke-width="0.6"></line>
-    <!-- Lid hinge hints -->
-    <circle
-      cx="-14"
-      cy="-12"
-      r="1"
-      stroke="currentColor"
-      fill="none"
-      stroke-width="0.5"></circle>
-    <circle
-      cx="14"
-      cy="-12"
-      r="1"
-      stroke="currentColor"
-      fill="none"
-      stroke-width="0.5"></circle>
-  </g>
 </svg>
 
 <style>
@@ -290,12 +184,6 @@
     z-index: 0;
     color: var(--chart-line);
     overflow: hidden;
-  }
-
-  .chart-grid-lines {
-    stroke: currentColor;
-    stroke-width: 0.5;
-    opacity: 0.35;
   }
 
   .chart-rhumb-lines {
@@ -317,48 +205,24 @@
     color: var(--chart-line);
   }
 
-  :root[data-theme="light"] .chart-grid-lines {
-    opacity: 0.2;
-  }
-
   :root[data-theme="light"] .chart-rhumb-lines {
     opacity: 0.1;
   }
 
-  /* Mobile: sparse simplified chart instead of hiding entirely */
+  /* Mobile: clean negative space instead of a reduced chart */
   @media (max-width: 480px) {
-    .chart-rhumb-lines,
-    .compass-rose,
-    .mermaid-glyph,
-    .treasure-chest-glyph {
-      display: none;
-    }
-
-    .x-mark--secondary {
-      display: none;
-    }
-
-    .x-marks {
-      opacity: 0.2;
-    }
-
-    .chart-grid-lines {
-      opacity: 0.2;
-    }
-
     .chart-overlay {
-      opacity: 0.6;
+      display: none;
     }
   }
 
-  /* Tablet: ensure compass rose and glyphs stay clear of header/reading area */
+  /* Tablet: ensure compass rose and glyph stay clear of header/reading area */
   @media (min-width: 481px) and (max-width: 820px) {
     .compass-rose {
       opacity: 0.5;
     }
 
-    .mermaid-glyph,
-    .treasure-chest-glyph {
+    .mermaid-glyph {
       opacity: 0.15;
     }
   }

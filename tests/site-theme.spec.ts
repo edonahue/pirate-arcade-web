@@ -150,11 +150,14 @@ test.describe("Chart Overlay", () => {
   test("chart-overlay groups exist at desktop width", async ({ page }) => {
     await page.goto("/");
 
-    await expect(page.locator(".chart-grid-lines")).toBeVisible();
+    await expect(page.locator(".chart-grid-lines")).toHaveCount(0);
     await expect(page.locator(".compass-rose")).toBeVisible();
     await expect(page.locator(".x-marks")).toBeVisible();
     await expect(page.locator(".mermaid-glyph")).toBeVisible();
-    await expect(page.locator(".treasure-chest-glyph")).toBeVisible();
+    await expect(page.locator(".treasure-chest-glyph")).toHaveCount(0);
+    await expect(page.locator(".x-mark--secondary")).toHaveCount(0);
+    // Exactly 8 rhumb bearings: 4 + 4 from the two edge origins
+    await expect(page.locator(".chart-rhumb-lines line")).toHaveCount(8);
   });
 
   test("chart overlay visible in dark and light themes", async ({ page }) => {
@@ -171,28 +174,16 @@ test.describe("Chart Overlay", () => {
     await expect(page.locator(".chart-overlay")).toBeVisible();
   });
 
-  test("chart overlay is simplified on mobile (≤480px)", async ({ page }) => {
+  test("chart overlay is hidden on mobile (≤480px)", async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto("/");
 
-    // Chart still present
+    // Decorative chart hidden entirely on phones: clean negative space
     const overlay = page.locator(".chart-overlay");
     await expect(overlay).toBeAttached();
+    await expect(overlay).toBeHidden();
 
-    // Dense motifs are hidden
-    await expect(page.locator(".compass-rose")).toBeHidden();
-    await expect(page.locator(".mermaid-glyph")).toBeHidden();
-    await expect(page.locator(".treasure-chest-glyph")).toBeHidden();
-    await expect(page.locator(".chart-rhumb-lines")).toBeHidden();
-
-    // Grid lines still rendered
-    await expect(page.locator(".chart-grid-lines")).toBeVisible();
-
-    // Only primary X marker visible on mobile
-    await expect(page.locator(".x-mark--primary")).toBeVisible();
-    await expect(page.locator(".x-mark--secondary")).toBeHidden();
-
-    // No horizontal overflow with chart present
+    // No horizontal overflow without chart
     const hasOverflow = await page.evaluate(() => {
       return (
         document.documentElement.scrollWidth >
