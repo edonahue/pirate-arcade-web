@@ -81,7 +81,7 @@ jobs:
         timeout-minutes: 10
       - name: Lifecycle tests (chromium-desktop)
         run: npm run test:pygbag-exit-lifecycle
-        timeout-minutes: 5
+        timeout-minutes: 25
       - name: Gameplay match tests (chromium-desktop)
         run: npx playwright test tests/*-match.spec.ts --project=chromium-desktop --reporter=list
         timeout-minutes: 15

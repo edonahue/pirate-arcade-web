@@ -1487,4 +1487,31 @@ export async function expectNoRuntimeErrors(page: Page): Promise<void> {
   }
 }
 
+/**
+ * Dead-runtime invariant: a Pygbag game whose run() coroutine has completed
+ * (boot stage "game-exited") while the browser is still on its game page
+ * with no exit navigation in flight is stranded — the canvas is frozen and
+ * no input can revive it. Fails with full diagnostics.
+ */
+export async function expectNoStrandedGameRuntime(
+  page: Page,
+  gameId: string,
+): Promise<void> {
+  const snap = await page.evaluate(() => ({
+    url: location.pathname,
+    stage: (window as any).PirateArcadeMetrics?.getBootStage?.() ?? null,
+    lifecycle: (window as any).PirateArcadeLifecycle?.getState?.() ?? null,
+    gameState: (window as any).PirateArcadeGameState?.getState?.() ?? null,
+    loading: (window as any).PirateArcadeLoading?.getState?.() ?? null,
+  }));
+  const stranded =
+    snap.stage === "game-exited" &&
+    snap.url === `/play/${gameId}/` &&
+    snap.lifecycle?.navigationDone === false;
+  expect(
+    stranded,
+    `stranded game runtime on /play/${gameId}/: ${JSON.stringify(snap)}`,
+  ).toBe(false);
+}
+
 export { test, expect };

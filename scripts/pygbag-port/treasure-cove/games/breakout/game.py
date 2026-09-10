@@ -50,7 +50,7 @@ class BreakoutGame:
         ]
         self._menu_lines = [self.inst_font.render(line, True, c.GRAY) for line in lines]
         self._menu_prompt = self.hud_font.render("Press SPACE to set sail!", True, c.PAUSE_HIGHLIGHT)
-        self._menu_hint = self.inst_font.render("ESC to return to menu", True, c.GRAY)
+        self._menu_hint = self.inst_font.render("ESC — Back to Arcade", True, c.GRAY)
 
         self._pause_title = self.title_font.render("PAUSED", True, c.WHITE)
         self._pause_hint = self.inst_font.render(
@@ -74,7 +74,7 @@ class BreakoutGame:
                            h.render("▸ FPS Counter: OFF", True, c.PAUSE_HIGHLIGHT))
 
         self._game_over_prompt = self.inst_font.render(
-            "Press SPACE to sail again  |  ESC to port", True, c.GRAY)
+            "Press SPACE to sail again  |  ESC — Back to Arcade", True, c.GRAY)
 
         self._g_over_win = self.title_font.render("LOOT SECURED!", True, c.PIRATE_GOLD)
         self._g_over_lose = self.title_font.render("SHIP SUNK!", True, c.PIRATE_RED)
@@ -89,8 +89,10 @@ class BreakoutGame:
                     return
                 if event.type == pg.KEYDOWN:
                     result = self._handle_key(event.key)
+                    # The boot program only navigates on the exact 'quit'
+                    # string; a bare return would strand the game page.
                     if result == 'quit':
-                        return
+                        return 'quit'
 
             hidden = page_hidden()
             simulation_active = self.state == 'playing' and not self.paused

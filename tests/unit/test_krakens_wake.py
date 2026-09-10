@@ -223,13 +223,17 @@ class TestKrakensWakeExitSemantics(unittest.TestCase):
     def setUp(self):
         self.game = AsteroidsGame(self.surface, _MockAudio())
 
-    def test_pause_quit_to_menu_returns_menu(self):
+    def test_pause_quit_to_menu_stays_internal(self):
+        # "menu" is internal-only: Quit to Menu must not return a value
+        # that run() would propagate to the browser boot program (which
+        # would end the game loop with no navigation). Only "quit" exits.
         self.game.state = "playing"
         self.game.paused = True
         self.game.pause_selection = 4
         result = self.game._handle_key(pg.K_SPACE)
-        self.assertEqual(result, "menu")
+        self.assertIsNone(result)
         self.assertEqual(self.game.state, "menu")
+        self.assertFalse(self.game.paused)
 
     def test_pause_resume_returns_none(self):
         self.game.state = "playing"

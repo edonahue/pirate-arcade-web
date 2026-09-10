@@ -53,7 +53,7 @@ class AsteroidsGame:
         ]
         self._menu_lines = [self.inst_font.render(line, True, c.GRAY) for line in lines]
         self._menu_prompt = self.hud_font.render("Press SPACE to cast off!", True, c.PAUSE_HIGHLIGHT)
-        self._menu_hint = self.inst_font.render("ESC to return to menu", True, c.GRAY)
+        self._menu_hint = self.inst_font.render("ESC — Back to Arcade", True, c.GRAY)
 
         self._pause_title = self.title_font.render("PAUSED", True, c.WHITE)
         self._pause_hint = self.inst_font.render(
@@ -77,7 +77,7 @@ class AsteroidsGame:
                            h.render("▸ FPS Counter: OFF", True, c.PAUSE_HIGHLIGHT))
 
         self._game_over_prompt = self.inst_font.render(
-            "Press SPACE to play again  |  ESC to menu", True, c.GRAY)
+            "Press SPACE to play again  |  ESC — Back to Arcade", True, c.GRAY)
         self._g_over_text = self.title_font.render("DAVY JONES' LOCKER", True, c.PIRATE_GAME_OVER)
         self._g_over_score = (-1, None)
 
@@ -95,9 +95,9 @@ class AsteroidsGame:
                     self.paused = not self.paused
                 elif event.type == pg.KEYDOWN:
                     result = self._handle_key(event.key)
-                    if result == 'menu':
-                        return 'menu'
-                    elif result == 'quit':
+                    # 'menu' is internal-only (title screen inside the
+                    # running loop); only 'quit' exits to the Arcade hub.
+                    if result == 'quit':
                         return 'quit'
 
             hidden = page_hidden()
@@ -179,7 +179,7 @@ class AsteroidsGame:
                     self.paused = False
                     self.gameplay.reset()
                     self.game_over_state = None
-                    return 'menu'
+                    return
                 return
 
         if self.state == 'playing' and not self.paused:

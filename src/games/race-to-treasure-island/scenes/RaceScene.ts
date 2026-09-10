@@ -562,9 +562,11 @@ export class RaceScene extends Phaser.Scene {
       }
     });
 
-    this.input.keyboard!.on("keydown-Escape", () => this.togglePause());
-    this.input.keyboard!.on("keydown-p", () => this.togglePause());
-    this.input.keyboard!.on("keydown-f", () => {
+    // NOTE: Phaser key event names use uppercase KeyCodes names
+    // ("keydown-ESC"); mixed/lowercase variants never fire.
+    this.input.keyboard!.on("keydown-ESC", () => this.togglePause());
+    this.input.keyboard!.on("keydown-P", () => this.togglePause());
+    this.input.keyboard!.on("keydown-F", () => {
       const debugMode =
         typeof window !== "undefined" && !!(window as any).__paRaceDebugMode;
       if (debugMode && !this.raceFinished) {
@@ -1512,6 +1514,7 @@ export class RaceScene extends Phaser.Scene {
         overtakeLine,
         newBestLine,
         bestLine,
+        "ESC — Back to Arcade",
       ]
         .filter(Boolean)
         .join("\n");
@@ -1526,6 +1529,7 @@ export class RaceScene extends Phaser.Scene {
         newBestLine,
         bestLine,
         "Use BOOST to overtake him next run!",
+        "ESC — Back to Arcade",
       ]
         .filter(Boolean)
         .join("\n");
@@ -1571,7 +1575,12 @@ export class RaceScene extends Phaser.Scene {
   }
 
   private togglePause(): void {
-    if (this.raceFinished || this.gameOver) return;
+    if (this.raceFinished || this.gameOver) {
+      // Result screen has no pause state: ESC exits to the Arcade hub,
+      // matching the Pygbag games' result-screen contract.
+      if (typeof window !== "undefined") window.location.assign("/play/");
+      return;
+    }
     this.paused = !this.paused;
     this.pauseText.setVisible(this.paused);
     this.pauseOverlay.setVisible(this.paused);

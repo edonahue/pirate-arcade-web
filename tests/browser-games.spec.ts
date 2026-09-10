@@ -129,6 +129,18 @@ for (const game of GAMES) {
       const bodyClasses = await page.evaluate(() => document.body.className);
       expect(bodyClasses).toContain("game-ready");
 
+      // game-viewport.js writes these inline styles in one pass after the
+      // game-ready class lands; wait for its write instead of racing it.
+      await page.waitForFunction(
+        () => {
+          const c = document.getElementById(
+            "canvas",
+          ) as HTMLCanvasElement | null;
+          return !!c && c.style.margin === "0px";
+        },
+        null,
+        { timeout: 30000, polling: 250 },
+      );
       const canvasStyle = await page.evaluate(() => {
         const c = document.getElementById("canvas") as HTMLCanvasElement | null;
         if (!c) return {};

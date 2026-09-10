@@ -42,8 +42,10 @@ class PongGame:
                     return
                 if event.type == pg.KEYDOWN:
                     result = self._handle_key(event.key)
+                    # The boot program only navigates on the exact 'quit'
+                    # string; a bare return would strand the game page.
                     if result == 'quit':
-                        return
+                        return 'quit'
 
             hidden = page_hidden()
             simulation_active = self.state == 'playing' and not self.paused

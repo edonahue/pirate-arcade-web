@@ -129,8 +129,13 @@
       var ok = callPythonKeyBridge(keyName, true);
       logBridgeCall(keyName, true, ok);
       if (ok) markFirstInputIfNeeded();
-      if (!ok) logEvent('bridgeMiss', { key: keyName });
-      dispatchFallbackKeyEvent(keyName, 'keydown');
+      // Fallback only when the bridge missed: unconditional fallback
+      // double-delivers (bridge + synthetic DOM event both reach Pygame),
+      // which toggles Escape-driven states twice and cancels the action.
+      if (!ok) {
+        logEvent('bridgeMiss', { key: keyName });
+        dispatchFallbackKeyEvent(keyName, 'keydown');
+      }
     },
 
     keyUp: function (keyName) {
@@ -139,8 +144,10 @@
       logEvent('keyUp', { key: keyName });
       var ok = callPythonKeyBridge(keyName, false);
       logBridgeCall(keyName, false, ok);
-      if (!ok) logEvent('bridgeMiss', { key: keyName });
-      dispatchFallbackKeyEvent(keyName, 'keyup');
+      if (!ok) {
+        logEvent('bridgeMiss', { key: keyName });
+        dispatchFallbackKeyEvent(keyName, 'keyup');
+      }
     },
 
     tap: function (keyName, holdMs) {
@@ -178,7 +185,7 @@
           var ok = callPythonKeyBridge(keyName, false);
           logBridgeCall(keyName, false, ok);
           logEvent('releaseKey', { key: keyName, bridgeOk: ok });
-          dispatchFallbackKeyEvent(keyName, 'keyup');
+          if (!ok) dispatchFallbackKeyEvent(keyName, 'keyup');
         }
       }
       _heldKeys = {};

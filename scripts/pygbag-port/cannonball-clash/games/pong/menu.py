@@ -34,7 +34,7 @@ class Menu:
             "W/S navigate  •  SPACE / Enter select", True, c.GRAY)
 
         self._item_static = []
-        for label in ["Start Game", "Back to Menu"]:
+        for label in ["Start Game", "Quit to Arcade"]:
             self._item_static.append(self.hud_font.render("  " + label, True, c.WHITE))
             self._item_static.append(self.hud_font.render("▸ " + label, True, c.PAUSE_HIGHLIGHT))
 
