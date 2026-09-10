@@ -21,7 +21,6 @@ A pirate-themed arcade collection and a public build experiment exploring zero-c
 | Treasure Cove               | Pygbag / WebAssembly        | Browser + Desktop | Breakout physics, visual feedback      |
 | Kraken's Wake               | Pygbag / WebAssembly        | Browser + Desktop | Momentum-based controls, survival loop |
 | **Race to Treasure Island** | **Phaser 4.2 (web-native)** | **Browser only**  | **Seeded RNG, wind boost, AI rival**   |
-| Port Royale Tycoon          | Python / Pygame             | Desktop only      | Save/load, turn-based economy          |
 
 ## Stack
 

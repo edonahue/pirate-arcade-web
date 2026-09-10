@@ -160,34 +160,5 @@
       "Opening countdown with control hints",
       "Procedural ship and obstacle textures"
     ]
-  },
-  {
-    "id": "port-royale-tycoon",
-    "title": "Port Royale Tycoon",
-    "classic": "Property-trading board game",
-    "description": "Buy ports, build trade empires, and rule the seas. Outsmart rival captains and become the wealthiest pirate on the map.",
-    "status": "desktop-available",
-    "statusLabel": "Desktop app available",
-    "desktopUrl": "https://github.com/edonahue/pirate-arcade/releases",
-    "screenshot": "/images/screenshot-port-royale-tycoon.png",
-    "keyboardControls": "Mouse-driven UI • Keyboard shortcuts for actions",
-    "howToPlay": "Buy ports, build trade empires, and rule the seas. Outsmart rival captains and become the wealthiest pirate on the map. 2-4 players with AI opponents.",
-    "tips": "Save often. AI opponents play aggressively. Trade routes compound over time.",
-    "firstPlayTip": "Start with a 2-player game to learn the mechanics.",
-    "bestFor": "Turn-based strategy fans who want a deep pirate economy game.",
-    "availabilityNote": "Available in the desktop release now. The Pygbag/WebAssembly pipeline proved effective for arcade games, but a turn-based board game with point-and-click controls needs a different approach. A browser version is under evaluation (see the build log for details).",
-    "seoDescription": "Download Port Royale Tycoon — a pirate property-trading board game with 2-4 players, AI opponents, and save/load.",
-    "features": [
-      "2-4 players",
-      "AI opponents",
-      "Save/load",
-      "Property trading"
-    ],
-    "demonstrates": [
-      "Turn-based board game with save/load persistence",
-      "AI opponents with aggressive trading strategy",
-      "Property economy with compounding trade routes",
-      "Desktop-only: Pygbag tradeoff analysis in build log"
-    ]
   }
 ]

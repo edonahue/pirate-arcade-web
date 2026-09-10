@@ -85,7 +85,7 @@ Files created or modified on the website:
 
 ## Next Steps
 
-- Port Treasure Cove, Kraken's Wake, and Port Royale Tycoon via the same Pygbag pipeline
+- Port Treasure Cove and Kraken's Wake via the same Pygbag pipeline
 - Each game will need individual audio and renderer fixes (gfxdraw usage in particle systems, SDL_mixer → Web Audio API)
 - Investigate WASM audio pipeline for the procedural sound generator (NumPy → raw buffer → Web Audio)
 - Consider CRT scanline overlay as a toggleable CSS layer

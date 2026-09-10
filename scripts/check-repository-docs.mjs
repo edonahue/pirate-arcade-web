@@ -120,18 +120,22 @@ if (agents && agents.includes("dependencies should remain empty")) {
   );
 }
 
-// 3c. README must mention all 5 games (by title or id)
+// 3c. README must mention all 4 public games (by title or id)
 const readmeGameNames = [
   { id: "cannonball-clash", title: "Cannonball" },
   { id: "treasure-cove", title: "Treasure Cove" },
   { id: "krakens-wake", title: "Kraken" },
   { id: "race-to-treasure-island", title: "Race to Treasure" },
-  { id: "port-royale-tycoon", title: "Port Royale" },
 ];
 for (const { id, title } of readmeGameNames) {
   if (readme && !readme.includes(id) && !readme.includes(title)) {
     error(`README.md missing mention of game "${id}"`);
   }
+}
+
+// 3c2. README must not advertise the removed desktop-only game
+if (readme && /port[- ]royale/i.test(readme)) {
+  error('README.md must not mention "Port Royale"');
 }
 
 // 3d. MAINTENANCE must reference both engine paths

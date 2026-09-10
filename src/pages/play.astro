@@ -12,7 +12,6 @@ import { webPageNode } from "../lib/schema";
 const browserGames = games.filter((g) => g.status === "browser-playable");
 const pygbagGames = browserGames.filter((g) => g.engine === "pygbag");
 const webNativeGames = browserGames.filter((g) => g.engine === "phaser");
-const desktopGames = games.filter((g) => g.status === "desktop-available");
 
 const instantGame = webNativeGames[0];
 ---
@@ -33,7 +32,7 @@ const instantGame = webNativeGames[0];
   <Hero
     title="THE ARCADE"
     subtitle={`Pirate-themed arcade games. ${browserGames.length} games are playable in your browser now —
-    including the web-native Race to Treasure Island. ${desktopGames.length} ${desktopGames.length === 1 ? "game is" : "games are"} desktop-only.`}
+    including the web-native Race to Treasure Island.`}
     eyebrow="Find Your Game"
     backgroundImage="/images/art/pyle-blackbeard-buries-treasure.webp"
     artPosition="50% 45%"
@@ -116,8 +115,7 @@ const instantGame = webNativeGames[0];
           pygbagGames.length !== 1 ? "s" : ""
         } ({pygbagGames.map((g) => g.title).join(", ")}) are also available as
         desktop downloads via the desktop repo. Race to Treasure Island is
-        web-native and has no desktop build. Port Royale Tycoon is the only
-        desktop-only game (see roadmap below).
+        web-native and has no desktop build.
       </p>
     </div>
 
@@ -166,9 +164,8 @@ const instantGame = webNativeGames[0];
       <h2 class="section__title">What's Next</h2>
       <p class="section__description">
         <strong>Race to Treasure Island</strong> is our first web-native (Phaser)
-        game — load it instantly, no runtime download. Port Royale Tycoon (trading
-        board game) remains the only desktop-only game. A browser port has been evaluated
-        — see the feasibility review in the build log.
+        game — load it instantly, no runtime download. All four games play in the
+        browser; the collection is in maintenance mode.
       </p>
       <p class="section__description mt-1">
         <a href="/build-log/browser-port-feasibility">

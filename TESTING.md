@@ -584,13 +584,10 @@ Do not refresh for small gameplay tuning — the validator is strict
 on dimensions/ratio but the screenshots stay valid across minor
 visual tweaks.
 
-### Port Royale Tycoon
+### Desktop screenshots
 
-Desktop-only. The desktop screenshot in
-`public/images/screenshot-port-royale-tycoon.png` is produced by
-`scripts/capture-screenshots.py` (SDL_VIDEODRIVER=dummy + Pillow).
-**Do not capture it from `/play/`** — there is no browser shell for
-that game.
+Desktop-only captures are out of scope for this site; only
+browser-playable games are captured from `/play/`.
 
 ---
 

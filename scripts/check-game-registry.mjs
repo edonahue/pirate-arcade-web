@@ -80,8 +80,29 @@ if (!Array.isArray(games)) {
 
 console.log(`\n🔍 Checking game registry (${games.length} games)...\n`);
 
-/** Check unique IDs */
+/** The public catalog is exactly four browser-playable games */
+const EXPECTED_IDS = [
+  "cannonball-clash",
+  "treasure-cove",
+  "krakens-wake",
+  "race-to-treasure-island",
+];
 const ids = games.map((g) => g.id);
+for (const expected of EXPECTED_IDS) {
+  if (!ids.includes(expected)) {
+    fail(`Missing expected public game: "${expected}"`);
+  }
+}
+for (const id of ids) {
+  if (!EXPECTED_IDS.includes(id)) {
+    fail(`Unexpected game in public registry: "${id}"`);
+  }
+}
+if (games.some((g) => g.status !== "browser-playable")) {
+  fail("Every public game must be browser-playable");
+}
+
+/** Check unique IDs */
 const uniqueIds = new Set(ids);
 if (uniqueIds.size !== ids.length) {
   const dups = ids.filter((id, i) => ids.indexOf(id) !== i);

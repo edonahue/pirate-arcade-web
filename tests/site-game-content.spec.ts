@@ -13,7 +13,6 @@ const pkg = JSON.parse(
 const projectLicense = pkg.license || "MIT";
 
 const browserGames = games.filter((g: any) => g.status === "browser-playable");
-const desktopGames = games.filter((g: any) => g.status === "desktop-available");
 const phaserGames = browserGames.filter((g: any) => g.engine === "phaser");
 const instantGame = phaserGames[0];
 
@@ -124,17 +123,13 @@ test.describe("Site Game Content", () => {
     }
   });
 
-  test("home page stats strip has 3 registry-derived counts", async ({
+  test("home page stats strip has 2 registry-derived counts", async ({
     page,
   }) => {
     await page.goto("/");
 
     const statsItems = page.locator(".stats-strip__item");
-    await expect(statsItems).toHaveCount(3);
-
-    const desktopOnly = games.filter(
-      (g: any) => g.status !== "browser-playable",
-    );
+    await expect(statsItems).toHaveCount(2);
 
     const totalLabel = page.locator(
       '.stats-strip__item:has-text("Total Games")',
@@ -148,13 +143,6 @@ test.describe("Site Game Content", () => {
     );
     await expect(browserLabel.locator(".stats-strip__count")).toHaveText(
       String(browserGames.length),
-    );
-
-    const desktopLabel = page.locator(
-      '.stats-strip__item:has-text("Desktop Only")',
-    );
-    await expect(desktopLabel.locator(".stats-strip__count")).toHaveText(
-      String(desktopOnly.length),
     );
   });
 
@@ -192,17 +180,19 @@ test.describe("Site Game Content", () => {
     ).toBeVisible();
   });
 
-  test("play page desktop section does not show browser language for Port Royale", async ({
-    page,
-  }) => {
-    await page.goto("/play/");
-
-    const desktopOnly = games.filter(
-      (g: any) => g.status === "desktop-available",
-    );
-    for (const game of desktopOnly) {
-      await expect(page.locator(`text=${game.title}`).first()).toBeVisible();
+  test("registry contains exactly four browser-playable games", async () => {
+    expect(games.map((g: any) => g.id).sort()).toEqual([
+      "cannonball-clash",
+      "krakens-wake",
+      "race-to-treasure-island",
+      "treasure-cove",
+    ]);
+    for (const game of games) {
+      expect((game as any).status).toBe("browser-playable");
     }
+    expect(games.some((g: any) => /port[- ]royale/i.test(g.id + g.title))).toBe(
+      false,
+    );
   });
 
   test("browser games reference desktop repo where applicable", async () => {
@@ -332,13 +322,6 @@ test.describe("Site Game Content", () => {
       }
     }
 
-    // Desktop callout link also not overlapped
-    const callout = page.locator(".desktop-callout a");
-    const calloutBox = await callout.boundingBox();
-    if (calloutBox) {
-      expect(rectanglesDoNotOverlap(vignetteBox!, calloutBox)).toBe(true);
-    }
-
     // Section title and description not overlapped
     const sectionTitle = page.locator(".section--games .section__title");
     const sectionDesc = page.locator(".section--games .section__description");
@@ -407,10 +390,11 @@ test.describe("Site Game Content", () => {
       await expect(playLink).toHaveAttribute("data-game-launch", "true");
     }
 
-    // Desktop-only game is not in the browser grid
+    // No removed game lingers in the browser grid
     await expect(
       grid.locator("article", { hasText: "Port Royale Tycoon" }),
     ).toHaveCount(0);
+    await expect(page.getByText("Port Royale Tycoon")).toHaveCount(0);
   });
 
   test("play page hero has primary Play Instantly action with derived instant game", async ({
@@ -471,7 +455,7 @@ test.describe("Site Game Content", () => {
     expect(bodyText).not.toContain("12 MB");
   });
 
-  test("homepage shows four browser games plus a desktop callout", async ({
+  test("homepage shows four browser games and no desktop exception", async ({
     page,
   }) => {
     await page.goto("/");
@@ -485,16 +469,9 @@ test.describe("Site Game Content", () => {
       ).toBeVisible();
     }
 
-    // Desktop-only game lives in the callout, not the grid
-    await expect(
-      grid.locator("article", { hasText: "Port Royale Tycoon" }),
-    ).toHaveCount(0);
-    const callout = page.locator(".desktop-callout");
-    await expect(callout).toBeVisible();
-    await expect(callout).toContainText("Port Royale Tycoon");
-    await expect(
-      callout.locator('a[href="/games/port-royale-tycoon/"]'),
-    ).toBeVisible();
+    // Removed game appears nowhere; no desktop-only exception exists
+    await expect(page.getByText("Port Royale Tycoon")).toHaveCount(0);
+    await expect(page.locator(".desktop-callout")).toHaveCount(0);
 
     // No duplicate recommendation surfaces remain
     await expect(page.locator(".recommended-first")).toHaveCount(0);
@@ -877,6 +854,7 @@ test.describe("Site Game Content", () => {
     // Check each row's Touch column has correct difficulty labels
     const rows = table.locator("tbody tr");
     const rowCount = await rows.count();
+    expect(rowCount).toBe(4);
 
     for (let i = 0; i < rowCount; i++) {
       const row = rows.nth(i);
@@ -899,9 +877,8 @@ test.describe("Site Game Content", () => {
       } else if (i === 3) {
         // Race to Treasure Island: Medium on touch
         expect(touchText).toContain("Medium on touch");
-      } else if (i === 4) {
-        // Port Royale Tycoon: — (desktop-only)
-        expect(touchText).toContain("—");
+      } else {
+        throw new Error(`Unexpected status matrix row ${i}`);
       }
     }
 
@@ -1121,11 +1098,6 @@ test.describe("Site Game Content", () => {
           await expect(hasInstantStart).toBe(true);
           await expect(hasRuntimeLoad).toBe(false);
         }
-        // Desktop-only: no browser-load classification
-        if (game.status === "desktop-available") {
-          await expect(hasInstantStart).toBe(false);
-          await expect(hasRuntimeLoad).toBe(false);
-        }
       }
     });
 
@@ -1159,10 +1131,6 @@ test.describe("Site Game Content", () => {
         // Phaser game: "Medium on touch"
         if (game.id === "race-to-treasure-island") {
           await expect(touchText).toContain("Medium on touch");
-        }
-        // Desktop-only: "—"
-        if (game.status === "desktop-available") {
-          await expect(touchText).toContain("—");
         }
       }
     });

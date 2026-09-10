@@ -166,12 +166,21 @@ for (const game of gamesMeta.filter((g) => g.status === "browser-playable")) {
   }
 }
 
-// 5. llms.txt must not list Port Royale as browser-playable
-if (
-  llmsTxt.includes("Port Royale Tycoon") &&
-  llmsTxt.includes("/play/port-royale-tycoon/")
-) {
-  fail("llms.txt incorrectly lists Port Royale Tycoon as browser-playable");
+// 5. The removed desktop-only game must not appear anywhere public
+const ABSENT_PATTERNS = [/port[- ]royale/i, /pirate[- _]dominion/i];
+for (const pattern of ABSENT_PATTERNS) {
+  if (pattern.test(llmsTxt)) {
+    fail(`llms.txt references removed game (${pattern})`);
+  }
+  const llmsFull = readFileSync("public/llms-full.txt", "utf8");
+  if (pattern.test(llmsFull)) {
+    fail(`llms-full.txt references removed game (${pattern})`);
+  }
+}
+for (const pattern of ABSENT_PATTERNS) {
+  if (pattern.test(sitemap)) {
+    fail(`sitemap.xml references removed game (${pattern})`);
+  }
 }
 
 // 6. Every game detail page must have unique title/meta description

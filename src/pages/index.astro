@@ -65,22 +65,11 @@ const webNativeGames = browserGames.filter((g) => g.engine === "phaser");
         <span class="stats-strip__count">{browserGames.length}</span>
         <span class="stats-strip__label">Play in Browser</span>
       </div>
-      <div class="stats-strip__item">
-        <span class="stats-strip__count"
-          >{games.length - browserGames.length}</span
-        >
-        <span class="stats-strip__label">Desktop Only</span>
-      </div>
     </div>
 
     <div class="game-grid">
       {browserGames.map((game) => <GameCard game={game} />)}
     </div>
-
-    <p class="desktop-callout">
-      Plus <a href="/games/port-royale-tycoon/">Port Royale Tycoon</a>, a
-      strategy game for desktop only.
-    </p>
 
     <!-- Treasure Island cover vignette — edge fragment like old chart plate -->
     <img

@@ -17,7 +17,7 @@ Modern pirate arcade + public builder notebook. Playful but not cheesy. Honest a
 - `public/play/shared/pygbag-loading.js` — single authoritative `PirateArcadeLoading` API (30s slow timer, retry button, no "Error:" prefix). The bridge (`pygame-input-bridge.js`) no longer defines or replaces it.
 - `public/_headers` — per-route CSP. `unsafe-eval` only on game routes (`/play/*`). Keep global CSP strict.
 - `public/sw.js` — classic service worker (no `import`). CACHE_VERSION inlined by build script. WARM_CACHE listener at top scope.
-- `src/data/games.json` — source of truth. Browser-playable entries have `browserUrl`, desktop-only entries don't.
+- `src/data/games.json` — source of truth. All four entries are browser-playable with `browserUrl`; do not add a desktop-only entry.
 - `ASSET_VERSION` from `scripts/game-asset-versions.mjs` — must use for versioned archive URLs. No hardcoded versions.
 - `public/images/screenshot-*.png` — committed static production assets. Refresh only via `npm run capture:screenshots`; do not hand-edit or generate at build time.
 
@@ -65,13 +65,11 @@ RGBA, and all 3 are byte-distinct. It also decompresses IDAT data
 with built-in zlib to check pixel brightness and diversity (catches
 blank/dark screenshots).
 
-Port Royale Tycoon is desktop-only and uses a separate desktop
-screenshot — do not capture it from `/play/`.
+Capture only the four browser-playable games from `/play/`.
 
 ## Game data notes
 
 - Browser-playable: cannonball-clash, treasure-cove, krakens-wake, race-to-treasure-island (from `games.json`)
-- Desktop-only: port-royale-tycoon
 - Race to Treasure Island is web-native Phaser 4.2 (not Pygbag) — loads instantly, no WASM download
 - Prewarm uses passive touchstart, no `preventDefault()`
 - `__paCanvasLayout`, `__paBootMetrics`, `PirateArcadeInput` are runtime globals from shared scripts

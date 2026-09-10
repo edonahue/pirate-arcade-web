@@ -34,9 +34,8 @@ const challengeLabel = getChallengeLabel(game);
 const browserGames = games.filter((g) => g.status === "browser-playable");
 
 // Next game offers a different gameplay challenge (registry order
-// tie-break). Desktop-only falls back to the first browser-playable game.
+// tie-break). Every public game is browser-playable.
 const getNextGame = (current: typeof game): typeof game | undefined => {
-  if (current.status !== "browser-playable") return browserGames[0];
   return (
     browserGames.find(
       (g) => g.id !== current.id && g.challenge !== current.challenge,

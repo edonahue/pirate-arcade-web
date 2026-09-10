@@ -82,8 +82,8 @@ const pygbagGame: Game = {
 };
 
 const desktopGame: Game = {
-  id: "port-royale-tycoon",
-  title: "Port Royale Tycoon",
+  id: "desktop-only-game",
+  title: "Desktop Only Game",
   classic: "trading board game",
   description: "Desktop trading game",
   status: "desktop-available",
@@ -304,20 +304,24 @@ describe("archive hash contract: data-driven from games.json", () => {
       (g: any) => g.status === "desktop-available",
     );
 
-    for (const g of desktopGames) {
-      it(`${g.id}: getLaunchLinkAttrs returns null`, () => {
-        const game: Game = {
-          id: g.id,
-          title: g.title,
-          classic: "",
-          description: "",
-          status: "desktop-available",
-          statusLabel: "Desktop",
-          desktopUrl: g.desktopUrl ?? "",
-        };
-        expect(isBrowserPlayable(game)).toBe(false);
-        expect(getLaunchLinkAttrs(game)).toBeNull();
-      });
-    }
+    it("public registry has no desktop-only games", () => {
+      expect(desktopGames).toEqual([]);
+    });
+
+    // Synthetic fixture keeps the generic desktop-only launch contract
+    // covered even though no such game ships publicly.
+    it("synthetic desktop-only game: getLaunchLinkAttrs returns null", () => {
+      const game: Game = {
+        id: "desktop-only-fixture",
+        title: "Desktop Only Fixture",
+        classic: "",
+        description: "",
+        status: "desktop-available",
+        statusLabel: "Desktop",
+        desktopUrl: "https://github.com/edonahue/pirate-arcade/releases",
+      };
+      expect(isBrowserPlayable(game)).toBe(false);
+      expect(getLaunchLinkAttrs(game)).toBeNull();
+    });
   });
 });

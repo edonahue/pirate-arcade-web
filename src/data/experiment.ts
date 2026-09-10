@@ -225,17 +225,6 @@ export const modelRuns: ModelRun[] = [
     ],
   },
   {
-    model: "DeepSeek V4 Flash Free",
-    task: "Port Royale Tycoon (property-trading game) — board and game rules",
-    era: "historical",
-    observed: [
-      "Generated plausible board structure but incorrect game-state transitions",
-      "Human had to redesign the entire game-flow state machine",
-      "Property purchase and rent logic needed complete rewrite",
-      "This was the task that required the most human intervention",
-    ],
-  },
-  {
     model: "Big Pickle OpenCode Zen",
     task: "Astro website scaffold — layout, components, styles",
     era: "historical",

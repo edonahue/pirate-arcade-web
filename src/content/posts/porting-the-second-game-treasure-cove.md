@@ -69,5 +69,5 @@ in WASM, `display.set_mode()` ordering, the `WebAudio` bridge class — was alre
 solved and documented in the first shipping post.
 
 Two data points do not make a pattern, but the effort delta between port one and
-port two suggests the remaining two games (Kraken's Wake, Port Royale Tycoon)
-will also be straightforward ports.
+port two suggests the remaining game (Kraken's Wake)
+will also be a straightforward port.

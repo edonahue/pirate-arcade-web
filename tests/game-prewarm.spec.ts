@@ -24,6 +24,12 @@ const DESKTOP_ONLY = games
   .filter((g) => g.status === "desktop-available")
   .map((g) => ({ id: g.id, name: g.title }));
 
+test.describe("Game catalog", () => {
+  test("no desktop-only games remain in the public registry", () => {
+    expect(DESKTOP_ONLY).toEqual([]);
+  });
+});
+
 test.describe("Game Prewarm", () => {
   test.use({ viewport: { width: 1440, height: 900 } });
 

@@ -57,8 +57,6 @@ const ALLOWED_LITERAL = [
   "treasure-cove",
   "krakens-wake",
   "kraken's wake",
-  "port-royale-tycoon",
-  "port royale tycoon",
   "howard pyle",
   "pirate illustrations",
   "pirate art",

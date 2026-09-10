@@ -28,7 +28,7 @@ The bet: a single developer with free AI assistance, a local workstation, GitHub
 - **Zero-cost infrastructure.** GitHub free tier handles everything: CI runners, releases, package distribution. Cloudflare Pages free tier hosts the website.
 - **AI-assisted code generation is fast for well-known patterns.** Classic games like Pong, Breakout, and Asteroids have been implemented thousands of times. The AI had plenty of training data and produced solid first-pass implementations.
 - **Procedural asset pipeline.** Generating all visuals and audio programmatically eliminated the need for a game artist or sound designer. This is a genuine advantage for a solo developer.
-- **Property-trading game variant was the most interesting.** Port Royale Tycoon required more original game design (pirate-themed board, unique rules) and correspondingly more human judgment. The AI handled the repetitive part; the human handled the creative constraints.
+- **Original design needs the most human judgment.** Game variants requiring original rules and balancing needed correspondingly more human input. The AI handled the repetitive part; the human handled the creative constraints.
 
 ## What broke
 
@@ -36,7 +36,7 @@ The bet: a single developer with free AI assistance, a local workstation, GitHub
 - **Debugging AI-generated code is harder than debugging your own.** When the code doesn't match your mental model, you can't quickly spot where the logic diverges. Each bug fix required reading unfamiliar generated code carefully.
 - **Test-driven workflow is essential but easy to skip.** When each iteration is fast, the temptation to skip tests is high. Several regressions snuck in and had to be fixed in follow-up commits.
 - **Cross-platform packaging still needs human attention.** PyInstaller and Debian packaging worked, but the spec file needed manual tweaks for hidden imports. Not something AI handled correctly out of the box.
-- **Themes beyond "well-worn patterns" require more human input.** The pirate property-trading game variant needed original board layout, property names, rule modifications, and balancing. AI generated plausible-looking structures but the human had to redesign the game logic.
+- **Themes beyond "well-worn patterns" require more human input.** Game variants needing original layouts, names, rule modifications, and balancing took more work. AI generated plausible-looking structures but the human had to redesign the game logic.
 
 ## Human intervention needed
 

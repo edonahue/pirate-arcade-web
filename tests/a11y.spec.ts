@@ -62,7 +62,6 @@ const BUILD_LOG_PAGES = [
   "/build-log/elegant-pirate-visuals/",
   "/build-log/launching-on-free-infrastructure/",
   "/build-log/porting-the-second-game-treasure-cove/",
-  "/build-log/port-royale-tycoon-feasibility/",
   "/build-log/race-to-treasure-island-phaser-polish/",
   "/build-log/shipping-first-browser-port/",
   "/build-log/the-free-ai-coding-experiment/",
@@ -214,7 +213,6 @@ test.describe("Game detail page accessibility", () => {
     "/games/treasure-cove/",
     "/games/krakens-wake/",
     "/games/race-to-treasure-island/",
-    "/games/port-royale-tycoon/",
   ];
 
   for (const path of detailPaths) {

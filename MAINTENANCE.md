@@ -12,8 +12,8 @@ and by multiple scripts (`check-game-cache-versioning.mjs`,
 
 - Never hardcode a game list in a script — read from `games.json` and filter
   by `status === "browser-playable"`.
-- Only `port-royale-tycoon` is desktop-only; do not mark it browser-playable
-  unless a real browser build is published.
+- All public games are browser-playable; do not add a desktop-only entry
+  unless a real product decision restores one.
 - Game IDs must match directory names in `public/play/<id>/`.
 
 ## Pygbag game shell generation
@@ -255,7 +255,7 @@ The script (`scripts/capture-browser-game-screenshots.mjs`):
 4. Resizes 1600x900 → 1280x720 via Sharp.
 5. Always kills the preview process.
 
-Port Royale Tycoon is desktop-only — do not capture from `/play/`.
+Capture only browser-playable games from `/play/`.
 
 ### Validation
 

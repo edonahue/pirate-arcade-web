@@ -27,7 +27,7 @@
  *
  * The package script `npm run capture:screenshots` chains the build.
  *
- * Port Royale Tycoon is intentionally NOT captured here (desktop-only).
+ * Only browser-playable registry games are captured here.
  */
 
 import { chromium } from "playwright";

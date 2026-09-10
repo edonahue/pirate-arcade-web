@@ -30,10 +30,9 @@ test.describe("Site Visual Theme", () => {
       page.locator('article:has-text("Race to Treasure Island") h3 a'),
     ).toBeVisible();
 
-    // Desktop-only game appears as a callout link, not a card
-    await expect(page.locator(".desktop-callout")).toContainText(
-      "Port Royale Tycoon",
-    );
+    // No desktop-only exception exists: four games, all browser-playable
+    await expect(page.locator(".desktop-callout")).toHaveCount(0);
+    await expect(page.getByText("Port Royale Tycoon")).toHaveCount(0);
 
     // Check browser-play CTAs — all four browser-playable games
     await expect(page.locator("text=Play in Browser →")).toHaveCount(4);
@@ -50,13 +49,10 @@ test.describe("Site Visual Theme", () => {
       page.locator('article:has-text("Treasure Cove") h3 a'),
     ).toBeVisible();
 
-    // Desktop-only game appears in the status matrix and Desktop Collection,
-    // not in the browser grid
-    await expect(
-      page.locator(".status-panel__table", { hasText: "Port Royale Tycoon" }),
-    ).toBeVisible();
-    await expect(page.locator("#desktop-collection")).toContainText(
-      "Port Royale Tycoon",
+    // No desktop-only game exists anywhere on the page
+    await expect(page.getByText("Port Royale Tycoon")).toHaveCount(0);
+    await expect(page.getByText("desktop-only", { exact: false })).toHaveCount(
+      0,
     );
   });
 
@@ -357,22 +353,11 @@ test.describe("Game Detail Page", () => {
     await expect(screenshotLink).toBeVisible();
   });
 
-  test("Desktop-only game has download hero CTA and no browser launch", async ({
+  test("Removed desktop-only game detail route does not exist", async ({
     page,
   }) => {
-    await page.goto("/games/port-royale-tycoon/");
-
-    const heroCta = page.locator(
-      '.game-detail__hero-cta a:has-text("Download Desktop Release")',
-    );
-    await expect(heroCta).toBeVisible();
-    await expect(page.locator(".game-detail__hero-cta")).toHaveCount(1);
-
-    // No browser Play action anywhere on the page
-    await expect(page.locator('a:has-text("Play in Browser")')).toHaveCount(0);
-
-    const screenshotLink = page.locator(".game-detail__screenshot-link");
-    await expect(screenshotLink).toHaveCount(0);
+    const response = await page.goto("/games/port-royale-tycoon/");
+    expect(response?.status()).toBe(404);
   });
 
   test("Game detail screenshot links to the game with launch metadata", async ({

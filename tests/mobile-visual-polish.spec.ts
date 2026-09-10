@@ -19,7 +19,6 @@ const PAGES = [
   { path: "/games/cannonball-clash/", name: "Cannonball Clash" },
   { path: "/games/treasure-cove/", name: "Treasure Cove" },
   { path: "/games/krakens-wake/", name: "Kraken's Wake" },
-  { path: "/games/port-royale-tycoon/", name: "Port Royale Tycoon" },
   { path: "/about/", name: "About" },
   { path: "/source/", name: "Source" },
   { path: "/build-log/", name: "Build Log" },

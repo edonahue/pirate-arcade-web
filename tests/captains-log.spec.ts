@@ -180,20 +180,15 @@ test.describe("Captain's Log", () => {
     await expect(logPanel).toBeHidden();
   });
 
-  test("desktop-only games do not create browser-play launch entries", async ({
-    page,
-  }) => {
+  test("removed game has no launch entries anywhere", async ({ page }) => {
     await page.goto("/play/");
 
-    // Check that desktop-only games don't have data-captains-log attribute
-    const desktopLinks = page.locator('a[data-game-id="port-royale-tycoon"]');
-    const count = await desktopLinks.count();
-
-    for (let i = 0; i < count; i++) {
-      const link = desktopLinks.nth(i);
-      const captainsLogAttr = await link.getAttribute("data-captains-log");
-      expect(captainsLogAttr).toBeNull();
-    }
+    // Port Royale Tycoon was removed from the public catalog: no links,
+    // no launch entries, no journal references.
+    await expect(
+      page.locator('a[data-game-id="port-royale-tycoon"]'),
+    ).toHaveCount(0);
+    await expect(page.getByText("Port Royale Tycoon")).toHaveCount(0);
   });
 
   test("log persists across page reloads", async ({ page }) => {
