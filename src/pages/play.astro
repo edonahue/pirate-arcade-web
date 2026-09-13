@@ -29,6 +29,25 @@ const instantGame = webNativeGames[0];
     ),
   ]}
 >
+  {
+    /* Warm the two Pygbag CDN origins so the first game launch after the
+      hub skips DNS/TCP/TLS setup. CORS anonymous matches the runtime and
+      dependency fetches; no payload is prefetched. */
+  }
+  <link
+    slot="head"
+    rel="preconnect"
+    href="https://pygame-web.github.io"
+    crossorigin="anonymous"
+  />
+  <link slot="head" rel="dns-prefetch" href="https://pygame-web.github.io" />
+  <link
+    slot="head"
+    rel="preconnect"
+    href="https://cdn.pygame.org"
+    crossorigin="anonymous"
+  />
+  <link slot="head" rel="dns-prefetch" href="https://cdn.pygame.org" />
   <Hero
     title="THE ARCADE"
     subtitle={`Pirate-themed arcade games. ${browserGames.length} games are playable in your browser now —

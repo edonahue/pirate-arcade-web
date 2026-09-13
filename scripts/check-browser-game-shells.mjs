@@ -144,6 +144,39 @@ for (const game of pygbagGames) {
     fail(`${gameDir}: missing preload link`);
   }
 
+  // Both Pygbag CDN origins get CORS-anonymous preconnect (matching the
+  // cross-origin runtime/dependency fetches) plus DNS fallbacks.
+  for (const origin of [
+    "https://pygame-web.github.io",
+    "https://cdn.pygame.org",
+  ]) {
+    const escaped = origin.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    if (
+      new RegExp(
+        `rel="preconnect"[^>]*href="${escaped}"[^>]*crossorigin="anonymous"|rel="preconnect"[^>]*crossorigin="anonymous"[^>]*href="${escaped}"`,
+      ).test(html)
+    ) {
+      ok(`preconnect ${origin} (anonymous)`);
+    } else {
+      fail(`${gameDir}: missing anonymous preconnect for ${origin}`);
+    }
+    if (new RegExp(`rel="dns-prefetch"[^>]*href="${escaped}"`).test(html)) {
+      ok(`dns-prefetch ${origin}`);
+    } else {
+      fail(`${gameDir}: missing dns-prefetch for ${origin}`);
+    }
+  }
+
+  if (
+    new RegExp(
+      `rel="modulepreload"[^>]*href="https://pygame-web\\.github\\.io/cdn/${(game.cdnVersion || "0.9.3").replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}/pythons\\.js"[^>]*crossorigin="anonymous"`,
+    ).test(html)
+  ) {
+    ok("pinned pythons.js modulepreload (anonymous)");
+  } else {
+    fail(`${gameDir}: missing pinned anonymous pythons.js modulepreload`);
+  }
+
   for (const { name, pattern } of REQUIRED_INVARIANTS) {
     if (pattern.test(html)) {
       ok(name);

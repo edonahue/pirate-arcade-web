@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
-import { readFileSync, readdirSync } from "fs";
-import { join } from "path";
+import { existsSync, readFileSync, readdirSync } from "fs";
+import { join, resolve } from "path";
 import { JSDOM } from "jsdom";
 
 const CONTENT_TAGS = new Set([
@@ -206,6 +206,59 @@ for (const file of files) {
     for (const err of result.errors) {
       console.log(`    ${err}`);
     }
+  }
+}
+
+function checkHubResourceHints() {
+  // /play/ warms both Pygbag CDN origins in <head>; the hints must not
+  // leak onto unrelated pages.
+  const errors = [];
+  const hubPath = resolve(DIST, "play", "index.html");
+  if (!existsSync(hubPath)) {
+    errors.push("dist/play/index.html missing; cannot check hub hints");
+  } else {
+    const hub = new JSDOM(readFileSync(hubPath, "utf-8")).window.document;
+    const head = hub.querySelector("head");
+    for (const origin of [
+      "https://pygame-web.github.io",
+      "https://cdn.pygame.org",
+    ]) {
+      const preconnect = head?.querySelector(
+        `link[rel="preconnect"][href="${origin}"]`,
+      );
+      if (!preconnect) {
+        errors.push(`/play/ <head> missing preconnect ${origin}`);
+      } else if (preconnect.getAttribute("crossorigin") !== "anonymous") {
+        errors.push(
+          `/play/ preconnect ${origin} must use crossorigin="anonymous"`,
+        );
+      }
+      if (!head?.querySelector(`link[rel="dns-prefetch"][href="${origin}"]`)) {
+        errors.push(`/play/ <head> missing dns-prefetch ${origin}`);
+      }
+    }
+  }
+  for (const [rel, pagePath] of [
+    ["index.html", "/"],
+    ["about/index.html", "/about/"],
+  ]) {
+    const file = resolve(DIST, rel);
+    if (!existsSync(file)) continue;
+    const doc = new JSDOM(readFileSync(file, "utf-8")).window.document;
+    const headHtml = doc.querySelector("head")?.innerHTML || "";
+    if (/pygame-web\.github\.io|cdn\.pygame\.org/.test(headHtml)) {
+      errors.push(`${pagePath} <head> must not contain Pygbag CDN hints`);
+    }
+  }
+  return errors;
+}
+
+const hubHintErrors = checkHubResourceHints();
+if (hubHintErrors.length > 0) {
+  allPassed = false;
+  console.log(`\n❌ hub resource hints`);
+  for (const err of hubHintErrors) {
+    console.log(`    ${err}`);
   }
 }
 

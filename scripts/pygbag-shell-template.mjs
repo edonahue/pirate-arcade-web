@@ -87,8 +87,10 @@ export function render(config, archiveHash) {
     <title>${config.title} \u2013 Pirate Arcade</title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <!-- Resource hints for performance -->
-    <link rel="preconnect" href="https://pygame-web.github.io">
+    <link rel="preconnect" href="https://pygame-web.github.io" crossorigin="anonymous">
     <link rel="dns-prefetch" href="https://pygame-web.github.io">
+    <link rel="preconnect" href="https://cdn.pygame.org" crossorigin="anonymous">
+    <link rel="dns-prefetch" href="https://cdn.pygame.org">
     <link rel="modulepreload" href="https://pygame-web.github.io/cdn/0.9.3/pythons.js" crossorigin="anonymous">
     <link rel="preload" href="${archiveUrl(config.id, archiveHash)}" as="fetch" crossorigin="anonymous">
     <script src="/play/shared/game-boot-metrics.js"></script>

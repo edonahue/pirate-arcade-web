@@ -277,6 +277,36 @@ function main() {
     }
   }
 
+  // ── Arcade hub rules: hub warms both Pygbag CDN origins ──
+
+  for (const pat of ["/play/", "/play/index.html"]) {
+    const rule = rules.find((r) => r.pattern === pat);
+    assert(rule != null, `Arcade hub route "${pat}" exists`);
+    if (rule) {
+      assert(
+        rule.detachHeaders.has("content-security-policy"),
+        `"${pat}" detaches (with !) the inherited Content-Security-Policy`,
+      );
+      const csp = rule.setHeaders.get("content-security-policy");
+      assert(csp != null, `"${pat}" sets its own Content-Security-Policy`);
+      if (csp) {
+        assert(
+          csp.includes("https://pygame-web.github.io") &&
+            csp.includes("https://cdn.pygame.org"),
+          `"${pat}" CSP allows both Pygbag CDN origins in connect-src`,
+        );
+        assert(
+          !csp.includes("'unsafe-eval'"),
+          `"${pat}" CSP does NOT contain unsafe-eval (hub is not a game route)`,
+        );
+        assert(
+          csp.includes("connect-src 'self'"),
+          `"${pat}" CSP retains 'self' in connect-src`,
+        );
+      }
+    }
+  }
+
   // Global route
   const globalRule = rules.find((r) => r.pattern === "/*");
   assert(globalRule != null, 'Global route "/*" exists');
@@ -388,6 +418,25 @@ function main() {
         `${tc.desc} (${tc.url}) effective CSP does NOT include 'unsafe-eval'`,
       );
     }
+  }
+
+  // ── Arcade hub effective CSP warms both CDN origins ──
+
+  console.log("\n── Arcade hub effective CSP ──\n");
+
+  for (const hubUrl of ["/play/", "/play/index.html"]) {
+    const hubCsp =
+      computeEffectiveHeaders(hubUrl, rules).get("content-security-policy") ||
+      "";
+    assert(
+      hubCsp.includes("https://pygame-web.github.io") &&
+        hubCsp.includes("https://cdn.pygame.org"),
+      `"${hubUrl}" effective CSP allows both Pygbag CDN origins`,
+    );
+    assert(
+      !hubCsp.includes("'unsafe-eval'"),
+      `"${hubUrl}" effective CSP does NOT include 'unsafe-eval'`,
+    );
   }
 
   // ── Other headers inherit correctly ──
