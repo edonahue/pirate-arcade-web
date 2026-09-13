@@ -12,9 +12,11 @@ const CACHE_VERSION = "pirate-arcade-games-v14";
 const CACHE_NAME = CACHE_VERSION;
 
 // Lightweight shell/shared assets to cache on install.
-// Game archives are ~12 MB each and downloaded on demand via
+// Game archives (~22-26 KB each) are downloaded on demand via
 // cache-first — their URLs carry ?h=<sha256> content hashes,
 // making each version a unique, immutable cache entry.
+// (The ~12-15 MB cost is the external Python/Pygame runtime,
+// which the service worker intentionally does not cache.)
 // Only assets loaded WITHOUT a version query param are listed here.
 const ASSETS_TO_CACHE = [
   "/play/cannonball-clash/",

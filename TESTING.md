@@ -593,7 +593,7 @@ browser-playable games are captured from `/play/`.
 
 ## Lighthouse CI
 
-`npm run test:lhci` (or `lhci autorun`) runs Lighthouse audits on 6 key routes as a **smoke and baseline audit**:
+`npm run test:lhci` runs Lighthouse audits on 8 key routes as a **smoke and baseline audit**. Browser resolution: `CHROME_PATH` wins when explicitly supplied; otherwise local testing uses the installed Playwright Chromium (`scripts/run-lhci.mjs`). Run `npx playwright install chromium` if it is missing:
 
 - `/` (homepage), `/play/` (game listing), `/about/` (static info)
 - `/play/cannonball-clash/` (Pygbag game shell)
