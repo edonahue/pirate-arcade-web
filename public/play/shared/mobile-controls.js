@@ -178,7 +178,9 @@
         input.tap('Enter', 220);
       }
     } else if (d === 'pause') {
-      if (input) {
+      if (_secondaryRole === 'arcade') {
+        exitSecondaryToArcade();
+      } else if (input) {
         input.pause();
       }
     }
@@ -340,11 +342,51 @@
     });
   }
 
+  // ── Phase-aware secondary (pause) control ─────────────
+  // The pause slot doubles as an explicit Arcade exit outside pausable
+  // phases. Its label, accessible name, and action all follow the
+  // published phase; the exiting action navigates directly instead of
+  // aliasing Escape through the game loop.
+  var _secondaryRole = 'pause'; // 'pause' | 'resume' | 'arcade'
+
+  function secondaryRoleForPhase(phase) {
+    if (phase === 'paused') return 'resume';
+    if (phase === 'menu' || phase === 'game-over') return 'arcade';
+    return 'pause';
+  }
+
+  function updateSecondaryControl(phase) {
+    if (!overlay) return;
+    var btn = overlay.querySelector('.btn-pause[data-dir="pause"]');
+    if (!btn) return;
+    var role = secondaryRoleForPhase(phase);
+    _secondaryRole = role;
+    var label = role === 'resume' ? 'RESUME' : role === 'arcade' ? 'ARCADE' : 'PAUSE';
+    var aria = role === 'resume' ? 'Resume' : role === 'arcade' ? 'Back to Arcade' : 'Pause';
+    if (btn.textContent !== label) btn.textContent = label;
+    btn.setAttribute('aria-label', aria);
+  }
+
+  function exitSecondaryToArcade() {
+    // Release held movement/touch inputs first so nothing sticks
+    // across the navigation, then use the shared lifecycle exit.
+    if (input) {
+      try { input.releaseAll('secondary-exit'); } catch (e) {}
+    }
+    if (window.PirateArcadeLifecycle &&
+        typeof window.PirateArcadeLifecycle.exitToArcade === 'function') {
+      window.PirateArcadeLifecycle.exitToArcade();
+    } else if (typeof window !== 'undefined') {
+      window.location.assign('/play/');
+    }
+  }
+
   // ── Update action button label from game state ──────────────
   if (window.PirateArcadeGameState && window.PirateArcadeActions) {
     window.PirateArcadeGameState.subscribe(function (state) {
       if (state && state.phase) {
         window.PirateArcadeActions.updateButtonLabel();
+        updateSecondaryControl(state.phase);
       }
     });
   }

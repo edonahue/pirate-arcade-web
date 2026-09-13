@@ -123,6 +123,7 @@ export class RaceScene extends Phaser.Scene {
     this.createTreasureIsland();
     this.createHUD();
     this.setupInput();
+    this.syncPauseButton();
     this.setupCollisions();
     this.setupBootMetrics();
     this.setupDebugHooks();
@@ -564,7 +565,16 @@ export class RaceScene extends Phaser.Scene {
 
     // NOTE: Phaser key event names use uppercase KeyCodes names
     // ("keydown-ESC"); mixed/lowercase variants never fire.
-    this.input.keyboard!.on("keydown-ESC", () => this.togglePause());
+    this.input.keyboard!.on("keydown-ESC", () => {
+      if (this.raceFinished || this.gameOver) {
+        // Result screen has no pause state and no internal menu:
+        // ESC exits to the Arcade hub.
+        window.location.assign("/play/");
+        return;
+      }
+      this.togglePause();
+    });
+    // P only ever toggles pause; it never navigates.
     this.input.keyboard!.on("keydown-P", () => this.togglePause());
     this.input.keyboard!.on("keydown-F", () => {
       const debugMode =
@@ -859,8 +869,13 @@ export class RaceScene extends Phaser.Scene {
     const touch = (window as any).__paTouchInput || {};
 
     if (touch.pause) {
-      this.togglePause();
       touch.pause = false;
+      if (this.raceFinished || this.gameOver) {
+        // Labeled ARCADE at result (see handleFinish): explicit exit.
+        window.location.assign("/play/");
+      } else {
+        this.togglePause();
+      }
     }
 
     if (touch.restart) {
@@ -1570,17 +1585,16 @@ export class RaceScene extends Phaser.Scene {
     const restartBtn =
       typeof window !== "undefined" ? (window as any).__paRestartBtn : null;
     if (restartBtn) restartBtn.style.display = "";
+    // At result the pause slot becomes an explicit ARCADE exit.
+    this.setPauseButtonArcade();
 
     this.exposeState();
   }
 
   private togglePause(): void {
-    if (this.raceFinished || this.gameOver) {
-      // Result screen has no pause state: ESC exits to the Arcade hub,
-      // matching the Pygbag games' result-screen contract.
-      if (typeof window !== "undefined") window.location.assign("/play/");
-      return;
-    }
+    // Pause-only toggle: result-screen exit lives with the ESC/touch
+    // callers, which label it explicitly.
+    if (this.raceFinished || this.gameOver) return;
     this.paused = !this.paused;
     this.pauseText.setVisible(this.paused);
     this.pauseOverlay.setVisible(this.paused);
@@ -1591,17 +1605,34 @@ export class RaceScene extends Phaser.Scene {
     } else {
       this.physics.resume();
     }
-    if (typeof window !== "undefined") {
-      const pauseBtn = (window as any).__paPauseBtn;
-      if (pauseBtn) {
-        pauseBtn.classList.toggle("touch-btn--active", this.paused);
-        pauseBtn.setAttribute("aria-pressed", this.paused ? "true" : "false");
-        pauseBtn.setAttribute("aria-label", this.paused ? "Resume" : "Pause");
-        const label = pauseBtn.querySelector(".touch-btn__label");
-        if (label) label.textContent = this.paused ? "RESUME" : "PAUSE";
-      }
-    }
+    this.syncPauseButton();
     this.exposeState();
+  }
+
+  private syncPauseButton(): void {
+    if (typeof window === "undefined") return;
+    const pauseBtn = (window as any).__paPauseBtn;
+    if (!pauseBtn) return;
+    pauseBtn.classList.toggle("touch-btn--active", this.paused);
+    pauseBtn.setAttribute("aria-pressed", this.paused ? "true" : "false");
+    pauseBtn.setAttribute("aria-label", this.paused ? "Resume" : "Pause");
+    const icon = pauseBtn.querySelector(".touch-btn__icon");
+    if (icon) icon.style.display = "";
+    const label = pauseBtn.querySelector(".touch-btn__label");
+    if (label) label.textContent = this.paused ? "RESUME" : "PAUSE";
+  }
+
+  private setPauseButtonArcade(): void {
+    if (typeof window === "undefined") return;
+    const pauseBtn = (window as any).__paPauseBtn;
+    if (!pauseBtn) return;
+    pauseBtn.classList.remove("touch-btn--active");
+    pauseBtn.setAttribute("aria-pressed", "false");
+    pauseBtn.setAttribute("aria-label", "Back to Arcade");
+    const icon = pauseBtn.querySelector(".touch-btn__icon");
+    if (icon) icon.style.display = "none";
+    const label = pauseBtn.querySelector(".touch-btn__label");
+    if (label) label.textContent = "ARCADE";
   }
 
   private updateHUD(): void {

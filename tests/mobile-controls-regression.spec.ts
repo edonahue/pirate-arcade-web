@@ -237,8 +237,11 @@ for (const route of ROUTES) {
         return;
       }
 
-      // 1. Exercise every production button with real pointer
-      //    down/up/leave/cancel sequence.
+      // 1. Exercise every non-exit production button with real pointer
+      //    down/up/leave/cancel sequence. The pause slot is tapped last:
+      //    on the title menu it is an explicit ARCADE exit that navigates
+      //    away (asserted in step 4), which would strand the rest of the
+      //    sequence and fire navigation dialogs.
       for (const btn of route.buttons) {
         // The button must be present in DOM. If it's missing, fail
         // the test — the test is also catching DOM regressions.
@@ -246,6 +249,7 @@ for (const route of ROUTES) {
           page.locator(btn.selector),
           `${route.name} should have ${btn.dataDir} button (${btn.selector})`,
         ).toHaveCount(1);
+        if (btn.dataDir === "pause") continue;
 
         await pointerHoldButton(page, btn.selector, 150, {
           fireLostPointerCapture: true,
@@ -354,6 +358,48 @@ for (const route of ROUTES) {
         blockingPageErrors,
         `Unexpected page errors during pointer handling on ${route.name} / ${testInfo.project.name}:\n${blockingPageErrors.join("\n")}`,
       ).toEqual([]);
+
+      // 4. Pause slot last: on the title menu it is an explicit ARCADE
+      // exit, so tapping it navigates to the hub. This both exercises
+      // the exit path with real pointer events and proves the label
+      // contract (a pause-labeled control must never silently exit).
+      // Pygbag registers a beforeunload confirm handler (auto-denied by
+      // browsers); accept it so the intentional navigation can complete.
+      // Earlier dialog assertions already ran, so swapping the recorder
+      // here loses no signal.
+      // Reload first: the action-button tap above may have started a
+      // match, which would legitimately retarget the secondary to PAUSE.
+      page.removeAllListeners("dialog");
+      page.on("dialog", (dlg) => dlg.accept().catch(() => {}));
+      await page.reload({ waitUntil: "domcontentloaded" });
+      await page.waitForSelector("#touch-overlay.active", { timeout: 15000 });
+      await expect(
+        page.locator('#touch-overlay .btn-pause[data-dir="pause"]'),
+      ).toHaveText("ARCADE");
+      const pauseBtn = route.buttons.find((b) => b.dataDir === "pause");
+      await expect(
+        page.locator(pauseBtn!.selector),
+        `${route.name} should have pause button`,
+      ).toHaveCount(1);
+      await page.locator(pauseBtn!.selector).dispatchEvent("pointerdown", {
+        pointerId: 1,
+        pointerType: "touch",
+        isPrimary: true,
+        button: 0,
+        buttons: 1,
+        bubbles: true,
+        cancelable: true,
+      });
+      await page.waitForURL(
+        (url) => {
+          const u = url.toString();
+          return u.includes("/play/") && !u.includes(route.path);
+        },
+        // Full-page navigation after an intentional exit; generous
+        // headroom for loaded shared runners.
+        { timeout: 30000 },
+      );
+      expect(page.url()).toContain("/play/");
 
       // 3d. Attach full diagnostics to the report for triage
       // (success path — Playwright will only show on failure by
