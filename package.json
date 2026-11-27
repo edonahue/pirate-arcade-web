@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "astro dev",
     "build": "astro build && node scripts/generate-sitemap.mjs && node scripts/generate-build-info.mjs",
-    "preview": "astro preview",
+    "preview": "astro preview --ignore-lock",
     "typecheck": "astro check",
     "format": "prettier --write .",
     "format:check": "prettier --check .",

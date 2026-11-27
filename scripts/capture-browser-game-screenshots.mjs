@@ -145,6 +145,7 @@ function startPreview() {
       [
         "astro",
         "preview",
+        "--ignore-lock",
         "--host",
         PREVIEW_HOST,
         "--port",

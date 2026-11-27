@@ -2,7 +2,7 @@
 module.exports = {
   ci: {
     collect: {
-      startServerCommand: "astro preview --port 4321",
+      startServerCommand: "astro preview --ignore-lock --port 4321",
       url: [
         "http://localhost:4321/",
         "http://localhost:4321/play/",
