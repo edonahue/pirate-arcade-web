@@ -58,31 +58,25 @@ const touchDifficultyLabel = game.touchDifficulty
         data-game-page={browserUrl}
         data-game-archive={archiveUrl}
       >
-        {
-          game.screenshot ? (
-            <img
-              src={game.screenshot}
-              alt={`${game.title} screenshot`}
-              loading="lazy"
-              width="1280"
-              height="720"
-            />
-          ) : (
-            <span class="game-card__placeholder">
-              [{game.title} screenshot]
-            </span>
-          )
-        }
-        {
-          engineLabel && (
-            <span
-              class="game-card__engine-badge"
-              data-engine={game.engine ?? "none"}
-            >
-              {engineLabel}
-            </span>
-          )
-        }
+        {game.screenshot ? (
+          <img
+            src={game.screenshot}
+            alt={`${game.title} screenshot`}
+            loading="lazy"
+            width="1280"
+            height="720"
+          />
+        ) : (
+          <span class="game-card__placeholder">[{game.title} screenshot]</span>
+        )}
+        {engineLabel && (
+          <span
+            class="game-card__engine-badge"
+            data-engine={game.engine ?? "none"}
+          >
+            {engineLabel}
+          </span>
+        )}
         <span class="game-card__screenshot-caption">{screenshotCaption}</span>
       </a>
       <div class="game-card__body">
@@ -91,63 +85,55 @@ const touchDifficultyLabel = game.touchDifficulty
         </h3>
         <div class="game-card__classic">{game.classic}</div>
         <p class="game-card__description">{game.description}</p>
-        {
-          game.firstPlayTip && (
-            <p class="game-card__first-play">
-              <span class="game-card__first-play-label">First play:</span>{" "}
-              {game.firstPlayTip}
-            </p>
-          )
-        }
-        {
-          game.features && game.features.length > 0 && (
-            <div class="game-card__features">
-              {game.features.map((f) => (
-                <span class="game-card__feature-chip">{f}</span>
-              ))}
-            </div>
-          )
-        }
+        {game.firstPlayTip && (
+          <p class="game-card__first-play">
+            <span class="game-card__first-play-label">First play:</span>{" "}
+            {game.firstPlayTip}
+          </p>
+        )}
+        {game.features && game.features.length > 0 && (
+          <div class="game-card__features">
+            {game.features.map((f) => (
+              <span class="game-card__feature-chip">{f}</span>
+            ))}
+          </div>
+        )}
       </div>
       <div class="game-card__footer">
         <div class="game-card__footer-badges">
           <StatusBadge
-            variant={isDesktopAvailable(game)
-              ? "available"
-              : game.status === "browser-playable"
+            variant={
+              isDesktopAvailable(game)
                 ? "available"
-                : game.status === "browser-planned"
-                  ? "planned"
-                  : "experimental"}
+                : game.status === "browser-playable"
+                  ? "available"
+                  : game.status === "browser-planned"
+                    ? "planned"
+                    : "experimental"
+            }
             label={game.statusLabel}
             context="paper"
           />
-          {
-            game.touchDifficulty && touchDifficultyLabel && (
-              <span
-                class={`game-card__touch-difficulty game-card__touch-difficulty--${game.touchDifficulty}`}
-              >
-                {touchDifficultyLabel}
-              </span>
-            )
-          }
-          {
-            playable && loadLabel && (
-              <span
-                class={`game-card__load-badge game-card__load-badge--${loadLabel === "Runtime load" ? "runtime" : "instant"}`}
-              >
-                {loadLabel}
-              </span>
-            )
-          }
+          {game.touchDifficulty && touchDifficultyLabel && (
+            <span
+              class={`game-card__touch-difficulty game-card__touch-difficulty--${game.touchDifficulty}`}
+            >
+              {touchDifficultyLabel}
+            </span>
+          )}
+          {playable && loadLabel && (
+            <span
+              class={`game-card__load-badge game-card__load-badge--${loadLabel === "Runtime load" ? "runtime" : "instant"}`}
+            >
+              {loadLabel}
+            </span>
+          )}
         </div>
-        {
-          playable && (
-            <a class="game-card__play-link" {...getLaunchLinkAttrs(game)!}>
-              Play in Browser →
-            </a>
-          )
-        }
+        {playable && (
+          <a class="game-card__play-link" {...getLaunchLinkAttrs(game)!}>
+            Play in Browser →
+          </a>
+        )}
       </div>
     </div>
     <div class="game-chart-frame__brass-corner top-left"></div>

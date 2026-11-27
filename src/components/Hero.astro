@@ -13,30 +13,26 @@ const bgStyle = artPosition ? { objectPosition: artPosition } : undefined;
 ---
 
 <section class="hero">
-  {
-    backgroundImage && (
-      <>
-        <img
-          class="hero__bg"
-          src={backgroundImage}
-          alt=""
-          aria-hidden="true"
-          decoding="async"
-          loading="lazy"
-          style={bgStyle}
-        />
-        <div class="hero__bg-overlay" aria-hidden="true" />
-      </>
-    )
-  }
+  {backgroundImage && (
+    <>
+      <img
+        class="hero__bg"
+        src={backgroundImage}
+        alt=""
+        aria-hidden="true"
+        decoding="async"
+        loading="lazy"
+        style={bgStyle}
+      />
+      <div class="hero__bg-overlay" aria-hidden="true" />
+    </>
+  )}
   {eyebrow && <p class="hero__eyebrow">{eyebrow}</p>}
   <h1 class="hero__title">{title}</h1>
   {subtitle && <p class="hero__subtitle">{subtitle}</p>}
-  {
-    Astro.slots.has("default") && (
-      <div class="hero__actions">
-        <slot />
-      </div>
-    )
-  }
+  {Astro.slots.has("default") && (
+    <div class="hero__actions">
+      <slot />
+    </div>
+  )}
 </section>

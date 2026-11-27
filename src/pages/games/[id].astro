@@ -76,93 +76,73 @@ const getNextTag = (g: typeof game): string => {
     </div>
 
     <div class="game-detail__chips">
-      {
-        game.status === "browser-playable" && (
-          <>
-            {isWebNative(game) && (
-              <span class="chip chip--phaser">Instant start</span>
-            )}
-            {isPygbag(game) && (
-              <span class="chip chip--pygbag">Runtime load</span>
-            )}
-          </>
-        )
-      }
-      {
-        game.status === "browser-playable" && (
-          <span class="chip chip--browser">Playable in browser</span>
-        )
-      }
-      {
-        game.status === "desktop-available" && (
-          <span class="chip chip--desktop">Desktop download</span>
-        )
-      }
+      {game.status === "browser-playable" && (
+        <>
+          {isWebNative(game) && (
+            <span class="chip chip--phaser">Instant start</span>
+          )}
+          {isPygbag(game) && (
+            <span class="chip chip--pygbag">Runtime load</span>
+          )}
+        </>
+      )}
+      {game.status === "browser-playable" && (
+        <span class="chip chip--browser">Playable in browser</span>
+      )}
+      {game.status === "desktop-available" && (
+        <span class="chip chip--desktop">Desktop download</span>
+      )}
     </div>
 
-    {
-      game.firstPlayTip && (
-        <div class="game-detail__quick-start">
-          <span class="game-detail__quick-start-label">Quick start</span>
-          <p class="game-detail__quick-start-text">{game.firstPlayTip}</p>
-          {(game.challenge || game.touchDifficultyLabel) && (
-            <p class="game-detail__quick-start-facts">
-              {game.challenge && (
-                <span>
-                  Challenge: {getChallengeLabel(game) ?? game.challenge}
-                </span>
-              )}
-              {game.challenge && game.touchDifficultyLabel && (
-                <span aria-hidden="true"> · </span>
-              )}
-              {game.touchDifficultyLabel && (
-                <span>Touch: {game.touchDifficultyLabel}</span>
-              )}
-            </p>
-          )}
-        </div>
-      )
-    }
+    {game.firstPlayTip && (
+      <div class="game-detail__quick-start">
+        <span class="game-detail__quick-start-label">Quick start</span>
+        <p class="game-detail__quick-start-text">{game.firstPlayTip}</p>
+        {(game.challenge || game.touchDifficultyLabel) && (
+          <p class="game-detail__quick-start-facts">
+            {game.challenge && (
+              <span>
+                Challenge: {getChallengeLabel(game) ?? game.challenge}
+              </span>
+            )}
+            {game.challenge && game.touchDifficultyLabel && (
+              <span aria-hidden="true"> · </span>
+            )}
+            {game.touchDifficultyLabel && (
+              <span>Touch: {game.touchDifficultyLabel}</span>
+            )}
+          </p>
+        )}
+      </div>
+    )}
 
-    {
-      game.status === "browser-playable" && game.browserUrl ? (
-        <div class="game-detail__hero-cta">
-          <CTAButton href={game.browserUrl} variant="primary">
-            ▶ Play in Browser
-          </CTAButton>
-        </div>
-      ) : (
-        <div class="game-detail__hero-cta">
-          <CTAButton
-            href={getDesktopReleaseUrl(game)}
-            variant="primary"
-            target="_blank"
-            rel="noopener noreferrer"
+    {game.status === "browser-playable" && game.browserUrl ? (
+      <div class="game-detail__hero-cta">
+        <CTAButton href={game.browserUrl} variant="primary">
+          ▶ Play in Browser
+        </CTAButton>
+      </div>
+    ) : (
+      <div class="game-detail__hero-cta">
+        <CTAButton
+          href={getDesktopReleaseUrl(game)}
+          variant="primary"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          ⬇ Download Desktop Release
+        </CTAButton>
+      </div>
+    )}
+
+    {game.screenshot && (
+      <figure class="game-detail__figure">
+        {game.status === "browser-playable" && game.browserUrl ? (
+          <a
+            class="game-detail__screenshot-link"
+            aria-label={`${game.title} screenshot — play in browser`}
+            {...getLaunchLinkAttrs(game)!}
           >
-            ⬇ Download Desktop Release
-          </CTAButton>
-        </div>
-      )
-    }
-
-    {
-      game.screenshot && (
-        <figure class="game-detail__figure">
-          {game.status === "browser-playable" && game.browserUrl ? (
-            <a
-              class="game-detail__screenshot-link"
-              aria-label={`${game.title} screenshot — play in browser`}
-              {...getLaunchLinkAttrs(game)!}
-            >
-              <img
-                src={game.screenshot}
-                alt={`${game.title} gameplay screenshot`}
-                width="1280"
-                height="720"
-                loading="eager"
-              />
-            </a>
-          ) : (
             <img
               src={game.screenshot}
               alt={`${game.title} gameplay screenshot`}
@@ -170,141 +150,135 @@ const getNextTag = (g: typeof game): string => {
               height="720"
               loading="eager"
             />
-          )}
-        </figure>
-      )
-    }
+          </a>
+        ) : (
+          <img
+            src={game.screenshot}
+            alt={`${game.title} gameplay screenshot`}
+            width="1280"
+            height="720"
+            loading="eager"
+          />
+        )}
+      </figure>
+    )}
 
     <div class="prose">
       <h2>How to play</h2>
       <p>{game.howToPlay}</p>
 
-      {
-        game.touchControls && (
-          <>
-            <h2>Touch controls</h2>
-            <p class="controls-summary">{game.touchControls}</p>
-          </>
-        )
-      }
+      {game.touchControls && (
+        <>
+          <h2>Touch controls</h2>
+          <p class="controls-summary">{game.touchControls}</p>
+        </>
+      )}
 
-      {
-        game.keyboardControls && (
-          <>
-            <h2>Keyboard controls</h2>
-            <p class="controls-summary">{game.keyboardControls}</p>
-          </>
-        )
-      }
+      {game.keyboardControls && (
+        <>
+          <h2>Keyboard controls</h2>
+          <p class="controls-summary">{game.keyboardControls}</p>
+        </>
+      )}
 
       <h2>Tips</h2>
       <p>{game.tips}</p>
 
-      {
-        game.features && game.features.length > 0 && (
-          <>
-            <h2>Features</h2>
-            <ul>
-              {game.features.map((feature) => (
-                <li>{feature}</li>
-              ))}
-            </ul>
-          </>
-        )
-      }
+      {game.features && game.features.length > 0 && (
+        <>
+          <h2>Features</h2>
+          <ul>
+            {game.features.map((feature) => (
+              <li>{feature}</li>
+            ))}
+          </ul>
+        </>
+      )}
 
-      {
-        game.demonstrates && game.demonstrates.length > 0 && (
-          <>
-            <h2>Behind the build</h2>
-            <p>
-              {game.title} is{" "}
-              {isWebNative(game)
-                ? "built as a web-native Phaser game that runs directly in your browser."
-                : isPygbag(game)
-                  ? "a Pygbag/WebAssembly port of the original Python game."
-                  : "part of the Python and Pygame desktop collection."}
-            </p>
-            <ul class="game-detail__demonstrates">
-              {game.demonstrates.map((item) => (
-                <li>{item}</li>
-              ))}
-            </ul>
-          </>
-        )
-      }
+      {game.demonstrates && game.demonstrates.length > 0 && (
+        <>
+          <h2>Behind the build</h2>
+          <p>
+            {game.title} is{" "}
+            {isWebNative(game)
+              ? "built as a web-native Phaser game that runs directly in your browser."
+              : isPygbag(game)
+                ? "a Pygbag/WebAssembly port of the original Python game."
+                : "part of the Python and Pygame desktop collection."}
+          </p>
+          <ul class="game-detail__demonstrates">
+            {game.demonstrates.map((item) => (
+              <li>{item}</li>
+            ))}
+          </ul>
+        </>
+      )}
 
       <h2>Availability</h2>
       <p>{game.availabilityNote}</p>
     </div>
 
-    {
-      game.id === "race-to-treasure-island" && (
-        <div class="prose">
-          <h2>Treasure Island & Long John Silver</h2>
-          <p>
-            Race to Treasure Island draws inspiration from Robert Louis
-            Stevenson's classic novel <em>Treasure Island</em> (1883). The rival
-            pirate Long John Silver — "Long John" in-game — is the novel's
-            iconic one-legged sea-cook turned mutineer.
-          </p>
-          <p>
-            Louis Rhead (1857–1926) illustrated a 1915 edition of{" "}
-            <em>Treasure Island</em> with dramatic full-page artwork. His
-            illustrations capture the novel's stormy, dangerous atmosphere.
-          </p>
-          <figure class="game-detail__art-figure">
-            <img
-              src="/images/art/rhead-treasure-island-cover.webp"
-              alt="Treasure Island cover illustration by Louis Rhead"
-              width="1000"
-              height="1491"
-              loading="lazy"
-              class="game-detail__art"
-            />
-            <figcaption>
-              Treasure Island cover illustration by Louis Rhead (1915).{" "}
-              <a
-                href="https://www.gutenberg.org/ebooks/120"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Project Gutenberg
-              </a>
-              , public domain.
-            </figcaption>
-          </figure>
-        </div>
-      )
-    }
+    {game.id === "race-to-treasure-island" && (
+      <div class="prose">
+        <h2>Treasure Island & Long John Silver</h2>
+        <p>
+          Race to Treasure Island draws inspiration from Robert Louis
+          Stevenson's classic novel <em>Treasure Island</em> (1883). The rival
+          pirate Long John Silver — "Long John" in-game — is the novel's iconic
+          one-legged sea-cook turned mutineer.
+        </p>
+        <p>
+          Louis Rhead (1857–1926) illustrated a 1915 edition of{" "}
+          <em>Treasure Island</em> with dramatic full-page artwork. His
+          illustrations capture the novel's stormy, dangerous atmosphere.
+        </p>
+        <figure class="game-detail__art-figure">
+          <img
+            src="/images/art/rhead-treasure-island-cover.webp"
+            alt="Treasure Island cover illustration by Louis Rhead"
+            width="1000"
+            height="1491"
+            loading="lazy"
+            class="game-detail__art"
+          />
+          <figcaption>
+            Treasure Island cover illustration by Louis Rhead (1915).{" "}
+            <a
+              href="https://www.gutenberg.org/ebooks/120"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Project Gutenberg
+            </a>
+            , public domain.
+          </figcaption>
+        </figure>
+      </div>
+    )}
 
     <div class="game-detail__keep-playing">
       <h2 class="game-detail__keep-playing-title">Keep playing</h2>
       <div class="game-detail__keep-playing-grid">
         <div class="game-detail__keep-playing-card">
           <span class="game-detail__keep-playing-heading">Play this game</span>
-          {
-            game.status === "browser-playable" && game.browserUrl && (
-              <a
-                class="game-detail__keep-playing-link game-detail__keep-playing-link--primary"
-                {...getLaunchLinkAttrs(game)!}
-              >
-                ▶ Play in Browser
-              </a>
-            )
-          }
-          {
-            game.desktopUrl && (
-              <a
-                href={getDesktopReleaseUrl(game)}
-                class="game-detail__keep-playing-link"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Desktop download →
-              </a>
-            )
-          }
+          {game.status === "browser-playable" && game.browserUrl && (
+            <a
+              class="game-detail__keep-playing-link game-detail__keep-playing-link--primary"
+              {...getLaunchLinkAttrs(game)!}
+            >
+              ▶ Play in Browser
+            </a>
+          )}
+          {game.desktopUrl && (
+            <a
+              href={getDesktopReleaseUrl(game)}
+              class="game-detail__keep-playing-link"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Desktop download →
+            </a>
+          )}
         </div>
         <div class="game-detail__keep-playing-card">
           <span class="game-detail__keep-playing-heading">Back to arcade</span>
@@ -312,34 +286,32 @@ const getNextTag = (g: typeof game): string => {
             See all games →
           </a>
         </div>
-        {
-          nextGame && (
-            <div class="game-detail__keep-playing-card">
-              <span class="game-detail__keep-playing-heading">Try next</span>
-              <span class="game-detail__keep-playing-tag">
-                {getNextTag(nextGame)}
-              </span>
-              {nextGame.status === "browser-playable" && nextGame.browserUrl ? (
-                <a
-                  class="game-detail__keep-playing-link"
-                  {...getLaunchLinkAttrs(nextGame)!}
-                >
-                  {nextGame.title}
-                </a>
-              ) : (
-                <a
-                  href={`/games/${nextGame.id}/`}
-                  class="game-detail__keep-playing-link"
-                >
-                  {nextGame.title}
-                </a>
-              )}
-              {nextGame.bestFor && (
-                <p class="game-detail__keep-playing-desc">{nextGame.bestFor}</p>
-              )}
-            </div>
-          )
-        }
+        {nextGame && (
+          <div class="game-detail__keep-playing-card">
+            <span class="game-detail__keep-playing-heading">Try next</span>
+            <span class="game-detail__keep-playing-tag">
+              {getNextTag(nextGame)}
+            </span>
+            {nextGame.status === "browser-playable" && nextGame.browserUrl ? (
+              <a
+                class="game-detail__keep-playing-link"
+                {...getLaunchLinkAttrs(nextGame)!}
+              >
+                {nextGame.title}
+              </a>
+            ) : (
+              <a
+                href={`/games/${nextGame.id}/`}
+                class="game-detail__keep-playing-link"
+              >
+                {nextGame.title}
+              </a>
+            )}
+            {nextGame.bestFor && (
+              <p class="game-detail__keep-playing-desc">{nextGame.bestFor}</p>
+            )}
+          </div>
+        )}
       </div>
     </div>
   </article>

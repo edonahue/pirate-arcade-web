@@ -29,15 +29,21 @@ const browserGames = games.filter((g) => g.status === "browser-playable");
 
     <div class="prose">
       <p>
-        Pirate Arcade is a collection of {games.length} classic arcade games reimagined
-        with a pirate nautical theme. It's also a public workbench — an experiment
-        in how far a zero-cost AI-assisted development workflow can go when you combine
-        free coding tools, local hardware, and open source infrastructure.
+        Pirate Arcade is a collection of {games.length} classic arcade games
+        reimagined with a pirate nautical theme. It's also a public workbench —
+        an experiment in how far a zero-cost AI-assisted development workflow
+        can go when you combine free coding tools, local hardware, and open
+        source infrastructure.
       </p>
     </div>
     <p class="text-center mt-1">
-      <CTAButton href="/play" variant="primary">Play in Browser</CTAButton>
-      <CTAButton href="/source" variant="outline"> How It's Built </CTAButton>
+      <CTAButton href="/play" variant="primary">
+        Play in Browser
+      </CTAButton>
+      <CTAButton href="/source" variant="outline">
+        {" "}
+        How It's Built{" "}
+      </CTAButton>
     </p>
   </section>
 
@@ -93,10 +99,10 @@ const browserGames = games.filter((g) => g.status === "browser-playable");
     <div class="maker-card">
       <div class="maker-card__body">
         <p class="maker-card__desc">
-          {site.authorDescription} I build practical decision tools, data products,
-          and creative systems. This project is my public workbench for exploring
-          AI-assisted development — the boundary of what a single person with good
-          tools and free infrastructure can ship.
+          {site.authorDescription} I build practical decision tools, data
+          products, and creative systems. This project is my public workbench
+          for exploring AI-assisted development — the boundary of what a single
+          person with good tools and free infrastructure can ship.
         </p>
         <div class="maker-card__links">
           <a

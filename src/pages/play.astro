@@ -29,11 +29,9 @@ const instantGame = webNativeGames[0];
     ),
   ]}
 >
-  {
-    /* Warm the two Pygbag CDN origins so the first game launch after the
+  {/* Warm the two Pygbag CDN origins so the first game launch after the
       hub skips DNS/TCP/TLS setup. CORS anonymous matches the runtime and
-      dependency fetches; no payload is prefetched. */
-  }
+      dependency fetches; no payload is prefetched. */}
   <link
     slot="head"
     rel="preconnect"
@@ -59,7 +57,10 @@ const instantGame = webNativeGames[0];
     <CTAButton href={instantGame.browserUrl!} variant="primary">
       Play Instantly: {instantGame.title}
     </CTAButton>
-    <CTAButton href="#start-here" variant="outline"> Help Me Choose </CTAButton>
+    <CTAButton href="#start-here" variant="outline">
+      {" "}
+      Help Me Choose{" "}
+    </CTAButton>
   </Hero>
 
   <section class="section" id="start-here">
@@ -78,7 +79,9 @@ const instantGame = webNativeGames[0];
       <div class="game-selection__inner">
         <h2 class="sr-only">Available Games</h2>
         <div class="game-grid">
-          {browserGames.map((game) => <GameCard game={game} />)}
+          {browserGames.map((game) => (
+            <GameCard game={game} />
+          ))}
         </div>
       </div>
     </ArcadeFrame>
@@ -89,9 +92,10 @@ const instantGame = webNativeGames[0];
       <p class="section__eyebrow">Browser</p>
       <h2 class="section__title">How browser games run</h2>
       <p class="section__description">
-        {webNativeGames.length} web-native game loads instantly with no runtime download.
-        {pygbagGames.length} Python games load the game runtime on first visit; repeat
-        visits use the cache. All {browserGames.length}
+        {webNativeGames.length} web-native game loads instantly with no runtime
+        download.
+        {pygbagGames.length} Python games load the game runtime on first visit;
+        repeat visits use the cache. All {browserGames.length}
         are playable right now.
       </p>
     </div>
@@ -101,8 +105,8 @@ const instantGame = webNativeGames[0];
         <p class="before-launch__heading">Good to know</p>
         <ul class="before-launch__list">
           <li>
-            <strong>First launch:</strong> Python games load the game runtime once,
-            then it is cached.
+            <strong>First launch:</strong> Python games load the game runtime
+            once, then it is cached.
           </li>
           <li>
             <strong>Instant start:</strong>
@@ -112,8 +116,8 @@ const instantGame = webNativeGames[0];
             <strong>Audio:</strong> Starts after your first click or tap.
           </li>
           <li>
-            <strong>Controls:</strong> Keyboard and touch supported on every browser
-            game — touch badges show the easiest fit.
+            <strong>Controls:</strong> Keyboard and touch supported on every
+            browser game — touch badges show the easiest fit.
           </li>
           <li>
             <strong>Orientation:</strong> Landscape recommended.
@@ -130,9 +134,9 @@ const instantGame = webNativeGames[0];
       <p class="section__eyebrow">Desktop</p>
       <h2 class="section__title">Desktop Collection</h2>
       <p class="section__description">
-        The {pygbagGames.length} Pygbag game{
-          pygbagGames.length !== 1 ? "s" : ""
-        } ({pygbagGames.map((g) => g.title).join(", ")}) are also available as
+        The {pygbagGames.length} Pygbag game
+        {pygbagGames.length !== 1 ? "s" : ""} (
+        {pygbagGames.map((g) => g.title).join(", ")}) are also available as
         desktop downloads via the desktop repo. Race to Treasure Island is
         web-native and has no desktop build.
       </p>
@@ -182,9 +186,9 @@ const instantGame = webNativeGames[0];
       <p class="section__eyebrow">Roadmap</p>
       <h2 class="section__title">What's Next</h2>
       <p class="section__description">
-        <strong>Race to Treasure Island</strong> is our first web-native (Phaser)
-        game — load it instantly, no runtime download. All four games play in the
-        browser; the collection is in maintenance mode.
+        <strong>Race to Treasure Island</strong> is our first web-native
+        (Phaser) game — load it instantly, no runtime download. All four games
+        play in the browser; the collection is in maintenance mode.
       </p>
       <p class="section__description mt-1">
         <a href="/build-log/browser-port-feasibility">
