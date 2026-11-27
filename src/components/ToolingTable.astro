@@ -14,23 +14,21 @@ import { tooling } from "../data/experiment";
       </tr>
     </thead>
     <tbody>
-      {
-        tooling.map((entry) => (
-          <tr>
-            <td class="tooling-table__name">{entry.name}</td>
-            <td>
-              <span
-                class={`tooling-table__category tooling-table__category--${entry.category.replace(/[^a-z]/g, "")}`}
-              >
-                {entry.category}
-              </span>
-            </td>
-            <td class="tooling-table__used-for">{entry.usedFor.join("; ")}</td>
-            <td class="tooling-table__cost">{entry.cost}</td>
-            <td class="tooling-table__status">{entry.status}</td>
-          </tr>
-        ))
-      }
+      {tooling.map((entry) => (
+        <tr>
+          <td class="tooling-table__name">{entry.name}</td>
+          <td>
+            <span
+              class={`tooling-table__category tooling-table__category--${entry.category.replace(/[^a-z]/g, "")}`}
+            >
+              {entry.category}
+            </span>
+          </td>
+          <td class="tooling-table__used-for">{entry.usedFor.join("; ")}</td>
+          <td class="tooling-table__cost">{entry.cost}</td>
+          <td class="tooling-table__status">{entry.status}</td>
+        </tr>
+      ))}
     </tbody>
   </table>
 </div>

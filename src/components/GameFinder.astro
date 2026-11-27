@@ -12,7 +12,9 @@ const initialLaunchAttrs = getLaunchLinkAttrs(initialGame)!;
 ---
 
 <section class="game-finder" aria-labelledby="gf-heading">
-  <h2 id="gf-heading" class="game-finder__heading">Choose Your Voyage</h2>
+  <h2 id="gf-heading" class="game-finder__heading">
+    Choose Your Voyage
+  </h2>
   <p class="game-finder__intro">
     Pick your preferences and we'll match you with a game you can play right
     now.
@@ -42,7 +44,9 @@ const initialLaunchAttrs = getLaunchLinkAttrs(initialGame)!;
         aria-label="Load speed"
       >
         <option value="any">No preference</option>
-        <option value="instant" selected>Start instantly</option>
+        <option value="instant" selected>
+          Start instantly
+        </option>
         <option value="runtime-ok">Runtime download is fine</option>
       </select>
     </fieldset>
@@ -64,8 +68,12 @@ const initialLaunchAttrs = getLaunchLinkAttrs(initialGame)!;
   </form>
 
   <div class="game-finder__result" aria-live="polite">
-    <h3 class="game-finder__title" data-title>{initialGame.title}</h3>
-    <p class="game-finder__reason" data-reason>{reason}</p>
+    <h3 class="game-finder__title" data-title>
+      {initialGame.title}
+    </h3>
+    <p class="game-finder__reason" data-reason>
+      {reason}
+    </p>
     <p class="game-finder__bestfor" data-bestfor hidden={!initialGame.bestFor}>
       {initialGame.bestFor}
     </p>

@@ -9,15 +9,13 @@ const { current } = Astro.props;
 ---
 
 <nav class="site-nav" aria-label="Primary navigation" role="navigation">
-  {
-    nav.map((item) => (
-      <a
-        href={item.href}
-        aria-current={current === item.key ? "page" : undefined}
-        data-nav-key={item.key}
-      >
-        {item.label}
-      </a>
-    ))
-  }
+  {nav.map((item) => (
+    <a
+      href={item.href}
+      aria-current={current === item.key ? "page" : undefined}
+      data-nav-key={item.key}
+    >
+      {item.label}
+    </a>
+  ))}
 </nav>

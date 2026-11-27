@@ -40,64 +40,63 @@ import { publicDomainArt } from "../data/publicDomainArt";
       </p>
       <div class="provenance-note">
         <p>
-          <strong>Louis Rhead</strong> illustrated the 1915 edition of Robert Louis
-          Stevenson's <em>Treasure Island</em> — the primary visual inspiration for
-          this project's aesthetic. Rhead's bold woodcut-style engravings of Hispaniola,
-          Long John Silver, and the treasure map anchor the site's nautical-pirate
-          look.
+          <strong>Louis Rhead</strong> illustrated the 1915 edition of Robert
+          Louis Stevenson's <em>Treasure Island</em> — the primary visual
+          inspiration for this project's aesthetic. Rhead's bold woodcut-style
+          engravings of Hispaniola, Long John Silver, and the treasure map
+          anchor the site's nautical-pirate look.
         </p>
         <p>
-          <strong>Howard Pyle</strong>'s <em>Book of Pirates</em> (1921) provides
-          additional swashbuckling scene art. Both artists' work is sourced from scans
-          at Project Gutenberg and Wikimedia Commons, converted to WebP at
+          <strong>Howard Pyle</strong>'s <em>Book of Pirates</em> (1921)
+          provides additional swashbuckling scene art. Both artists' work is
+          sourced from scans at Project Gutenberg and Wikimedia Commons,
+          converted to WebP at
           <code>quality: 85</code>.
         </p>
       </div>
     </div>
 
     <div class="art-provenance-grid">
-      {
-        publicDomainArt.map((art) => (
-          <article class="art-provenance-card">
-            <img
-              src={`/images/art/${art.filename}`}
-              alt={art.alt}
-              width={art.width}
-              height={art.height}
-              loading="lazy"
-              class="art-provenance__image"
-            />
-            <div class="art-provenance__meta">
-              <h3 class="art-provenance__title">{art.title}</h3>
-              <p class="art-provenance__desc">{art.alt}</p>
-              <dl class="art-provenance__details">
-                <dt>Author</dt>
-                <dd>{art.author}</dd>
-                <dt>Year</dt>
-                <dd>{art.year}</dd>
-                <dt>Collection</dt>
-                <dd>{art.collection}</dd>
-                <dt>License</dt>
-                <dd>{art.license}</dd>
-                <dt>Source</dt>
-                <dd>
-                  <a
-                    href={art.sourcePage}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    {art.sourcePage.includes("wikimedia.org")
-                      ? "Wikimedia Commons"
-                      : art.sourcePage.includes("gutenberg.org")
-                        ? "Project Gutenberg"
-                        : "Source"}
-                  </a>
-                </dd>
-              </dl>
-            </div>
-          </article>
-        ))
-      }
+      {publicDomainArt.map((art) => (
+        <article class="art-provenance-card">
+          <img
+            src={`/images/art/${art.filename}`}
+            alt={art.alt}
+            width={art.width}
+            height={art.height}
+            loading="lazy"
+            class="art-provenance__image"
+          />
+          <div class="art-provenance__meta">
+            <h3 class="art-provenance__title">{art.title}</h3>
+            <p class="art-provenance__desc">{art.alt}</p>
+            <dl class="art-provenance__details">
+              <dt>Author</dt>
+              <dd>{art.author}</dd>
+              <dt>Year</dt>
+              <dd>{art.year}</dd>
+              <dt>Collection</dt>
+              <dd>{art.collection}</dd>
+              <dt>License</dt>
+              <dd>{art.license}</dd>
+              <dt>Source</dt>
+              <dd>
+                <a
+                  href={art.sourcePage}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {art.sourcePage.includes("wikimedia.org")
+                    ? "Wikimedia Commons"
+                    : art.sourcePage.includes("gutenberg.org")
+                      ? "Project Gutenberg"
+                      : "Source"}
+                </a>
+              </dd>
+            </dl>
+          </div>
+        </article>
+      ))}
     </div>
   </section>
 
@@ -120,15 +119,17 @@ import { publicDomainArt } from "../data/publicDomainArt";
         </thead>
         <tbody>
           <tr>
-            <td><code>ship-player</code> / <code>ship-ai</code></td>
+            <td>
+              <code>ship-player</code> / <code>ship-ai</code>
+            </td>
             <td>Generated (Phaser procedural)</td>
             <td>Original work</td>
-            <td
-              >80&times;100 textures generated at boot by
-              <code>BootScene.ts</code> via Phaser Graphics API. Player: white sails,
-              gold stripe, gold flag. Rival: cream sails, red stripe, red flag with
-              cross.</td
-            >
+            <td>
+              80&times;100 textures generated at boot by
+              <code>BootScene.ts</code> via Phaser Graphics API. Player: white
+              sails, gold stripe, gold flag. Rival: cream sails, red stripe, red
+              flag with cross.
+            </td>
           </tr>
         </tbody>
       </table>
@@ -139,8 +140,8 @@ import { publicDomainArt } from "../data/publicDomainArt";
       <p class="section__description">
         All remaining game textures (ocean, barrel, shipwreck, reef, debris,
         treasure chest, boost bar, treasure island, finish flag, particle, sail)
-        are generated at boot time via <code>BootScene.generateTextures()</code
-        >. They are original procedural code, not external assets.
+        are generated at boot time via <code>BootScene.generateTextures()</code>
+        . They are original procedural code, not external assets.
       </p>
 
       <h3 class="credits-subtitle">Game Screenshots</h3>
@@ -154,7 +155,9 @@ import { publicDomainArt } from "../data/publicDomainArt";
         </thead>
         <tbody>
           <tr>
-            <td><code>screenshot-*.png</code></td>
+            <td>
+              <code>screenshot-*.png</code>
+            </td>
             <td>Captured via Playwright</td>
             <td>
               1280&times;720 PNG at compressionLevel 9. Captured by
@@ -167,12 +170,11 @@ import { publicDomainArt } from "../data/publicDomainArt";
 
     <p class="art-provenance__note mt-2">
       All images are optimized WebP conversions of the original public-domain
-      scans used with <code>aria-hidden="true"</code> or empty alt where appropriate.
-      See the
-      <a
-        href="https://github.com/edonahue/pirate-arcade-web/blob/main/ASSET_CREDITS.md"
-        >full ASSET_CREDITS.md</a
-      >
+      scans used with <code>aria-hidden="true"</code> or empty alt where
+      appropriate. See the
+      <a href="https://github.com/edonahue/pirate-arcade-web/blob/main/ASSET_CREDITS.md">
+        full ASSET_CREDITS.md
+      </a>
       for the complete inventory.
     </p>
   </section>

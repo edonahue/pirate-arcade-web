@@ -30,15 +30,24 @@ const webNativeGames = browserGames.filter((g) => g.engine === "phaser");
     backgroundImage="/images/art/pyle-marooned.webp"
     artPosition="50% 25%"
   >
-    <CTAButton href="/play" variant="primary">Enter the Arcade</CTAButton>
-    <CTAButton href="/build-log" variant="gold">Read the Build Log</CTAButton>
+    <CTAButton href="/play" variant="primary">
+      Enter the Arcade
+    </CTAButton>
+    <CTAButton href="/build-log" variant="gold">
+      Read the Build Log
+    </CTAButton>
   </Hero>
 
   <p class="hero__credit">
     A playable arcade collection and public build experiment by
-    <a href="https://erichdonahue.com" target="_blank" rel="noopener noreferrer"
-      >Erich Donahue</a
-    >.
+    <a
+      href="https://erichdonahue.com"
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      Erich Donahue
+    </a>
+    .
   </p>
 
   <section class="section section--games">
@@ -46,10 +55,9 @@ const webNativeGames = browserGames.filter((g) => g.engine === "phaser");
       <p class="section__eyebrow">On the Chart</p>
       <h2 class="section__title">{games.length} Pirate Arcade Games</h2>
       <p class="section__description">
-        {games.length} classic arcade games, each reimagined with pirate flavor and
-        modern visual effects. {browserGames.length} browser-playable — {
-          pygbagGames.length
-        }
+        {games.length} classic arcade games, each reimagined with pirate flavor
+        and modern visual effects. {browserGames.length} browser-playable —{" "}
+        {pygbagGames.length}
         Pygbag/WebAssembly ports and {webNativeGames.length} web-native Phaser
         {webNativeGames.length === 1 ? "racer" : "racers"}.
       </p>
@@ -68,7 +76,9 @@ const webNativeGames = browserGames.filter((g) => g.engine === "phaser");
     </div>
 
     <div class="game-grid">
-      {browserGames.map((game) => <GameCard game={game} />)}
+      {browserGames.map((game) => (
+        <GameCard game={game} />
+      ))}
     </div>
 
     <!-- Treasure Island cover vignette — edge fragment like old chart plate -->
@@ -127,7 +137,9 @@ const webNativeGames = browserGames.filter((g) => g.engine === "phaser");
     </div>
 
     <div class="text-center mt-2">
-      <CTAButton href="/build-log" variant="gold">Read the Build Log</CTAButton>
+      <CTAButton href="/build-log" variant="gold">
+        Read the Build Log
+      </CTAButton>
     </div>
     <img
       class="section__art"

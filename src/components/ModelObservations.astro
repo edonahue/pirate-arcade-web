@@ -19,22 +19,20 @@ import { modelRuns } from "../data/experiment";
       </tr>
     </thead>
     <tbody>
-      {
-        modelRuns.map((run) => (
-          <tr>
-            <td class="model-obs-table__model">{run.model}</td>
-            <td class="model-obs-table__task">{run.task}</td>
-            <td>
-              <ul class="model-obs-table__list">
-                {run.observed.map((obs) => (
-                  <li>{obs}</li>
-                ))}
-              </ul>
-            </td>
-            <td class="model-obs-table__era">{run.era}</td>
-          </tr>
-        ))
-      }
+      {modelRuns.map((run) => (
+        <tr>
+          <td class="model-obs-table__model">{run.model}</td>
+          <td class="model-obs-table__task">{run.task}</td>
+          <td>
+            <ul class="model-obs-table__list">
+              {run.observed.map((obs) => (
+                <li>{obs}</li>
+              ))}
+            </ul>
+          </td>
+          <td class="model-obs-table__era">{run.era}</td>
+        </tr>
+      ))}
     </tbody>
   </table>
 </div>

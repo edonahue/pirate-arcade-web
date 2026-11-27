@@ -29,28 +29,26 @@ import {
         </tr>
       </thead>
       <tbody>
-        {
-          games.map((game) => (
-            <tr>
-              <td class="status-panel__game-name">
-                <strong>{game.title}</strong>
-                <span class="status-panel__classic">{game.classic}</span>
-              </td>
-              <td>{getBrowserLoadLabel(game) ?? "Install"}</td>
-              <td>{getChallengeLabel(game) ?? "—"}</td>
-              <td>{game.touchDifficultyLabel ?? "—"}</td>
-              <td>
-                <span aria-label="Needs user gesture">
-                  {isBrowserPlayable(game)
-                    ? "Tap to start"
-                    : isDesktopAvailable(game)
-                      ? "Desktop-native"
-                      : "Not available"}
-                </span>
-              </td>
-            </tr>
-          ))
-        }
+        {games.map((game) => (
+          <tr>
+            <td class="status-panel__game-name">
+              <strong>{game.title}</strong>
+              <span class="status-panel__classic">{game.classic}</span>
+            </td>
+            <td>{getBrowserLoadLabel(game) ?? "Install"}</td>
+            <td>{getChallengeLabel(game) ?? "—"}</td>
+            <td>{game.touchDifficultyLabel ?? "—"}</td>
+            <td>
+              <span aria-label="Needs user gesture">
+                {isBrowserPlayable(game)
+                  ? "Tap to start"
+                  : isDesktopAvailable(game)
+                    ? "Desktop-native"
+                    : "Not available"}
+              </span>
+            </td>
+          </tr>
+        ))}
       </tbody>
     </table>
   </div>
